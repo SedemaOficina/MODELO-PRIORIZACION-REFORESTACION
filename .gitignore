@@ -1,0 +1,12 @@
+# Se quedan solo en la copia local (no se publican en GitHub)
+05_documentacion/bitacora/
+07_versiones/
+_to_delete/
+
+# Archivos del sistema y temporales
+desktop.ini
+Thumbs.db
+.DS_Store
+~$*
+__pycache__/
+node_modules/

@@ -1,0 +1,21 @@
+const { chromium } = require('playwright'); const fs = require('fs');
+const SC = '/tmp/claude-0/-home-claude/dd9ce749-5a99-545b-9acc-0332c785cc1e/scratchpad/'; const O=SC+'b2/';
+const route = async route=>{const u=route.request().url();const map={'deck.gl@9.4.0/dist.min.js':'deck.js','pako_inflate.min.js':'pako.js','jspdf.umd.min.js':'jspdf.js','xlsx.full.min.js':'xlsx.js'};for(const k in map) if(u.includes(k)){const p=SC+'libs/'+map[k];if(fs.existsSync(p))return route.fulfill({path:p,contentType:'application/javascript'});} if(u.startsWith('https://fonts.'))return route.fulfill({status:200,body:'',contentType:'text/css'}); return route.continue();};
+(async () => {
+  const body = fs.readFileSync(SC+'calles_prioritarias.html','utf8');
+  fs.writeFileSync(SC+'test_page.html','<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>'+body+'</body></html>');
+  const proxy = process.env.HTTPS_PROXY;
+  const browser = await chromium.launch({proxy:proxy?{server:proxy}:undefined,args:['--ignore-certificate-errors','--use-gl=swiftshader','--enable-unsafe-swiftshader']});
+  const errors=[];
+  const page = await (await browser.newContext({viewport:{width:1440,height:900}})).newPage(); page.setDefaultTimeout(150000); page.on('pageerror',e=>errors.push(e.message));
+  await page.route('**/*', route); await page.goto('file://'+SC+'test_page.html'); await page.waitForSelector('#loader[hidden]',{state:'attached'}); await page.waitForTimeout(2500);
+  console.log('resp-row h:', await page.$eval('.resp-row', e=>Math.round(e.getBoundingClientRect().height)));
+  await page.close();
+  const mp = await (await browser.newContext({viewport:{width:390,height:844}, isMobile:true, hasTouch:true})).newPage(); mp.setDefaultTimeout(150000); mp.on('pageerror',e=>errors.push('M '+e.message));
+  await mp.route('**/*', route); await mp.goto('file://'+SC+'test_page.html'); await mp.waitForSelector('#loader[hidden]',{state:'attached'}); await mp.waitForTimeout(3000);
+  const ph = async n=>console.log('M '+n, JSON.stringify(await mp.evaluate(()=>({cls:document.body.className, panelH:Math.round(document.querySelector('.panel').getBoundingClientRect().height), respH:Math.round(document.querySelector('.resp-row').getBoundingClientRect().height), docW:document.documentElement.scrollWidth}))));
+  await ph('peek'); await mp.screenshot({path:O+'q_m1.png'});
+  await mp.tap('#omni'); await mp.waitForTimeout(800); await mp.fill('#omni','iztapalapa'); await mp.waitForTimeout(900); await mp.keyboard.press('Enter'); await mp.waitForTimeout(6000);
+  await ph('alcaldía'); await mp.screenshot({path:O+'q_m2.png'});
+  console.log('errors:', errors.length? errors.join('\n'):'none'); await browser.close();
+})().catch(e=>{console.error('FAILED',e.message);process.exit(1)});

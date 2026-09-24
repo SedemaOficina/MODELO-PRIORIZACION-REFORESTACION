@@ -1,0 +1,59 @@
+/* ===== Bloque 1 · auditoría UX v1 ===== */
+/* C5 · ninguna pista de rejilla empuja el ancho más allá de la pantalla */
+.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
+.seg{grid-template-columns:repeat(3,minmax(0,1fr))}
+.bars{grid-template-columns:auto minmax(0,1fr) auto}
+.results li{grid-template-columns:minmax(0,1fr) auto}
+.chip{grid-template-columns:26px minmax(0,1fr)}
+.card dl{grid-template-columns:auto minmax(0,1fr)}
+.fund{grid-template-columns:repeat(2,minmax(0,1fr))}
+.kpi,.kpi .l,.results li > div,.chip > span{min-width:0}
+.kpi .l,.results li > div{overflow-wrap:break-word}
+.kpi .v{white-space:nowrap;font-size:20px}
+@media (max-width:860px){
+  .app{grid-template-columns:minmax(0,1fr)!important}
+  .panel,.panel-head,.panel-body,.sheet-grip,.block,.block-comp,.block-h{min-width:0;max-width:100vw}
+  .panel-body{padding-inline:16px}
+  .fund{grid-template-columns:minmax(0,1fr)}
+  html,body{overflow-x:hidden}
+}
+/* C3 · barra de escala */
+.scalebar{position:absolute;right:16px;bottom:40px;z-index:5;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.88);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--ink-2);pointer-events:none}
+.scalebar i{display:block;height:6px;border:1.5px solid var(--ink-2);border-top:0}
+@media (max-width:860px){.scalebar{right:62px;bottom:10px}}
+/* I1 + M1 · capas y leyenda-filtro sobre el mapa */
+.legend{max-width:268px}
+.legend .lg-cap{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:8px 0 5px}
+.legend .lg-sec{padding-bottom:9px;border-bottom:1px solid var(--line);margin-bottom:2px}
+.legend .lg-sec .pills{gap:4px;flex-wrap:nowrap}
+.legend .lg-sec .pills button{padding:5px 8px;font-size:12px;white-space:nowrap}
+.legend .lg-sec .pills button i{width:12px;height:12px;margin-right:5px}
+.legend .lg-note{margin:6px 0 0;font-size:12px;color:var(--ink-2);line-height:1.35}
+#legend-rows .row{display:grid;grid-template-columns:14px 22px minmax(0,1fr) auto;gap:7px;align-items:center}
+.legend .lg-cb{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--line-strong);background:var(--panel);position:relative;display:block}
+#legend-rows .row[aria-checked="true"] .lg-cb{background:var(--ink);border-color:var(--ink)}
+#legend-rows .row[aria-checked="true"] .lg-cb::after{content:"";position:absolute;inset:0;background:var(--panel);-webkit-mask:var(--check) center/80% no-repeat;mask:var(--check) center/80% no-repeat}
+.legend .lg-km{font-style:normal;color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:12px}
+.legend .row.off{opacity:.55}
+.legend .row.off span{text-decoration:none}
+/* M2 · encabezado compacto */
+.panel-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 16px 10px;border-bottom-width:3px}
+.panel-head .logo{grid-column:1/-1;max-width:230px;height:auto}
+.panel-head h1{margin:0;font-size:16px;line-height:1.25;text-wrap:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-head p{display:none}
+.panel-head #open-info{white-space:nowrap;font-size:12px}
+@media (max-width:860px){.panel-head .logo{max-width:200px}}
+/* I3 · estados vacíos */
+.kpi-empty,.card .empty-note{grid-column:1/-1;background:var(--panel-2);border-radius:8px;padding:12px 14px;font-size:14px;color:var(--ink-2);line-height:1.45}
+.kpi-empty b,.card .empty-note b{display:block;color:var(--ink);margin-bottom:2px}
+.card .empty-note{margin:10px 0 4px;font-size:12px}
+.results li.sinnombre{font-size:12px;color:var(--ink-2);cursor:default;display:block}
+/* I5 · acciones de campo en la ficha */
+.card .field-acts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:12px}
+.card .fa{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:52px;padding:7px 4px;border:1px solid var(--line-strong);border-radius:8px;background:var(--panel);color:var(--ink);font:600 12px/1.2 Roboto,sans-serif;text-align:center;text-decoration:none;cursor:pointer}
+.card .fa:hover{border-color:var(--guinda);color:var(--guinda)}
+.card .fa svg{width:18px;height:18px;fill:none;stroke:var(--guinda);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* ajustes tras la verificación */
+.card:not([hidden]) ~ .scalebar{display:none}
+.attrib{color:var(--ink-2)}
+@media (max-width:860px){.legend.open{max-height:calc(100% - 72px);overflow-y:auto}.legend.open ~ .scalebar{display:none}}
