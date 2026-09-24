@@ -34,15 +34,17 @@ El resultado se escribe en `docs/index.html`. No requiere instalar nada más que
 - **Página pública (GitHub Pages):** https://sedemaoficina.github.io/MODELO-PRIORIZACION-REFORESTACION/
 - La página lleva la instrucción de **no aparecer en buscadores** (`noindex`); solo entra quien tenga el enlace. Se quita vaciando la línea `ROBOTS` de `02_fuente/construir.py` cuando se apruebe su difusión.
 - Quedan fuera del repositorio (ver `.gitignore`): la bitácora, que trae detalles de infraestructura y decisiones internas, y `07_versiones/`.
-- Para publicar un cambio: en GitHub Desktop, escribir un resumen, **Commit to main** y **Push origin**. GitHub Pages se actualiza en uno o dos minutos.
+- Para publicar un cambio: **Claude hace el commit** (con resumen y descripción) al terminar cada modificación; Liber abre GitHub Desktop y da **Push origin**. GitHub Pages se actualiza en uno o dos minutos.
 - Destino final: `sedema.sia.cdmx.gob.mx`. El equipo del SIA puede servir `docs/` directamente desde este repositorio, como en el sitio de árboles patrimoniales.
 
 ## Cómo se trabaja con Claude
 
 1. Se conecta esta carpeta a la sesión de Claude (Cowork) y el proyecto "Alcaldías-Reforestación".
-2. Claude edita las piezas de `02_fuente/`, reconstruye con `construir.py`, prueba en escritorio y teléfono, y actualiza el artefacto de respaldo. Liber sube el cambio a GitHub con GitHub Desktop (Claude no ejecuta Git).
-3. Antes de cada cambio grande, la versión vigente se copia a `07_versiones/` con fecha.
-4. Cada cambio se documenta en `05_documentacion/bitacora/`.
+2. Claude edita las piezas de `02_fuente/`, reconstruye con `construir.py`, prueba en escritorio y teléfono, actualiza el artefacto de respaldo y **hace el commit** con un resumen y una descripción en español.
+3. Liber revisa el commit en GitHub Desktop (pestaña History) y da **Push origin**.
+4. Antes de cada cambio grande, la versión vigente se copia a `07_versiones/` con fecha.
+5. Cada cambio se documenta en `05_documentacion/bitacora/`.
+6. Claude nunca borra archivos de la carpeta: lo que sobre se mueve a `_to_delete/` para que Liber lo elimine.
 
 ## Estado al 24 de septiembre de 2026
 
