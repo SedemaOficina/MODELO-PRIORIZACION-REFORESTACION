@@ -581,6 +581,10 @@ rep('<div class="eyebrow">Programa de Reforestación Urbana · Metodología</div
     <div class="eyebrow">Programa de Reforestación Urbana · Metodología</div>
     <h2 id="info-title">""")
 rep('aria-modal="true" aria-labelledby="info-title"', 'aria-modal="true" aria-labelledby="howto-title"')
+# Mi ubicación: botón en la barra del mapa
+rep('''<button class="tool" id="zfit" title="Ver alcaldía completa" aria-label="Ver alcaldía completa"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>''',
+    '''<button class="tool" id="zfit" title="Ver alcaldía completa" aria-label="Ver alcaldía completa"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/></svg></button>
+      <button class="tool" id="zloc" title="Mi ubicación" aria-label="Mi ubicación" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>''')
 _b2 = open(SC + 'b2.css', encoding='utf-8').read()
 # I2 · escala tipográfica de cinco pasos (12 · 14 · 16 · 20 · 28 px)
 def _fs(m):
