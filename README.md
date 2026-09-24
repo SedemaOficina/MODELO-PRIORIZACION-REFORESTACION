@@ -10,7 +10,8 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 
 | Carpeta | Contenido |
 |---|---|
-| `docs/` | **La herramienta lista para usar**: `index.html`. Es lo que publica GitHub Pages. También se abre con doble clic en Chrome o Edge (necesita internet para cargar las librerías del mapa). |
+| `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA): `index.html` y, aparte, `datos/` (frentes, catálogos y vialidades), `libs/` (librerías del mapa, PDF y Excel) e `img/`. Necesita un servidor web: no se abre con doble clic. |
+| `_local/` | `calles_prioritarias.html`: la misma herramienta **en un solo archivo, para abrir con doble clic** (necesita internet para las librerías). Se genera al construir y no se publica. |
 | `02_fuente/` | Las piezas con las que se arma la herramienta: `construir.py` (ensambla todo), `v6.html` (base), `v7_app.js` (lógica), `b1.css` y `b2.css` (estilos de los bloques 1 y 2 de la auditoría UX), `blk_*.txt` (datos comprimidos de frentes, colonias y vialidades), la lámina de la metodología y `libs/` (librerías para servir sin CDN). |
 | `03_procesamiento_datos/` | Scripts de Python con los que se prepararon los datos (decodificación de frentes, cruce con vialidades primarias, unión con el IDS de EVALÚA) y sus insumos intermedios. `IDS_ut/` trae la capa del Índice de Desarrollo Social por unidad territorial. |
 | `04_pruebas/` | Recorridos automatizados (Playwright) usados para verificar cada versión en escritorio y teléfono. |
@@ -26,7 +27,7 @@ Después de cambiar cualquier archivo de `02_fuente/`:
 python3 02_fuente/construir.py
 ```
 
-El resultado se escribe en `docs/index.html`. No requiere instalar nada más que Python 3.
+El resultado se escribe en `docs/` (sitio con datos y librerías en archivos aparte) y en `_local/calles_prioritarias.html` (un solo archivo). Solo se reescriben los archivos que cambiaron. No requiere instalar nada más que Python 3.
 
 ## Publicación
 

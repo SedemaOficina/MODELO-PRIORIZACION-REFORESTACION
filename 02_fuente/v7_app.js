@@ -22,13 +22,31 @@ async function gunzip(bytes){
   return pako.inflate(bytes);
 }
 const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; $('load-bar').style.width = (p*100)+'%'; };
+// datos: incrustados en la página (artefacto, versión de un solo archivo) o en archivos aparte (docs/datos)
+const DATOS = window.SIA_DATOS || null;
+let dlDone = 0, dlShow = true;
+function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .02 + .2*Math.min(1, dlDone/DATOS.total)); }
+async function fetchBytes(name){
+  let r;
+  try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
+  catch(e){ throw new Error(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/calles_prioritarias.html' : 'No se pudieron descargar los datos; revisa tu conexión'); }
+  if (!r.ok) throw new Error('No se pudo descargar ' + name + ' (' + r.status + ')');
+  if (!r.body || !r.body.getReader){ const b = new Uint8Array(await r.arrayBuffer()); dlDone += b.length; showDl(); return b; }
+  const rd = r.body.getReader(), parts = []; let n = 0;
+  for(;;){ const {done, value} = await rd.read(); if (done) break; parts.push(value); n += value.length; dlDone += value.length; showDl(); }
+  const out = new Uint8Array(n); let o = 0; for (const q of parts){ out.set(q, o); o += q.length; } return out;
+}
+const blk = (id, name) => { const el = $(id); return el ? Promise.resolve(b64ToBytes(el.textContent.trim())) : fetchBytes(name); };
+const pMeta = blk('meta-b64','meta.bin'), pData = blk('data-b64','data.bin'), pVp = blk('vp-b64','vp.bin');
+pMeta.catch(()=>{}); pData.catch(()=>{}); pVp.catch(()=>{});
 function reader(raw){ let rp=0; return ()=>{ let res=0, shift=0, b; do{ b=raw[rp++]; res += (b & 0x7f) * Math.pow(2,shift); shift+=7; }while(b & 0x80); return (res % 2) ? -((res+1)/2) : res/2; }; }
 
-setLoad('Descomprimiendo catálogos…', .05);
-const META = JSON.parse(new TextDecoder().decode(await gunzip(b64ToBytes($('meta-b64').textContent.trim()))));
+setLoad(DATOS ? 'Descargando datos…' : 'Descomprimiendo catálogos…', .02);
+const META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta)));
 const Q = META.Q;
-setLoad('Descomprimiendo 372 mil frentes…', .2);
-const raw = await gunzip(b64ToBytes($('data-b64').textContent.trim()));
+const rawGz = await pData; dlShow = false;
+setLoad('Descomprimiendo 372 mil frentes…', .25);
+const raw = await gunzip(rawGz);
 setLoad('Construyendo geometría…', .45);
 await new Promise(r=>setTimeout(r,20));
 
@@ -52,7 +70,7 @@ const midLat = i => { const a=start[i], b=start[i+1]; return (POS[2*a+1]+POS[2*(
 
 // vialidades primarias (Gobierno Central)
 setLoad('Cargando vialidades primarias…', .7);
-const vraw = await gunzip(b64ToBytes($('vp-b64').textContent.trim()));
+const vraw = await gunzip(await pVp);
 rv = reader(vraw);
 const NV = rv();
 const VP = { nom:new Int32Array(NV), nombre:new Int32Array(NV), tipo:new Uint8Array(NV), car:new Uint8Array(NV), circ:new Uint8Array(NV), alct:new Uint8Array(NV), mun:new Uint8Array(NV), prio:new Uint8Array(NV), len:new Uint32Array(NV), clave:new Int32Array(NV), rec:new Int32Array(NV) };
@@ -332,7 +350,7 @@ function showCard(kind, i){ pinned={kind,i}; const c=$('card');
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
   const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); renderResults(); rerender(); showCard('col', i); };
-  const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>fichaPDF('col');
+  const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>conPDF('col');
   const bcp=c.querySelector('[data-copy]'); if(bcp) bcp.onclick=()=>{ const t=bcp.dataset.copy, lab=bcp.querySelector('span');
     const ok=()=>{ lab.textContent='Coordenadas copiadas'; setTimeout(()=>{ lab.textContent='Copiar coordenadas'; }, 1800); };
     const fb=()=>{ const r=document.createRange(); r.selectNodeContents(lab); lab.textContent=t; const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); };
@@ -855,16 +873,26 @@ function dictAoa(key, nreg, archivo){
   return a;
 }
 // ---------- exportación a Excel (datos + diccionario) ----------
-let XL = null;
-function loadXL(){
-  if (XL) return Promise.resolve(XL);
+// librerías bajo demanda: de docs/libs en la versión del sitio (window.SIA_LIBS) o del CDN en el artefacto
+function loadLib(file, glob, cdn){
+  if (window[glob]) return Promise.resolve(window[glob]);
   return new Promise((res, rej)=>{
     const s = document.createElement('script');
-    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
-    s.onload = ()=>{ XL = window.XLSX; XL? res(XL) : rej(new Error('sin XLSX')); };
+    s.src = window.SIA_LIBS ? window.SIA_LIBS + file : cdn;
+    s.onload = ()=> window[glob] ? res(window[glob]) : rej(new Error('sin ' + glob));
     s.onerror = ()=> rej(new Error('no se pudo cargar la librería'));
     document.head.appendChild(s);
   });
+}
+let XL = null;
+function loadXL(){
+  if (XL) return Promise.resolve(XL);
+  return loadLib('xlsx.js', 'XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(x => (XL = x));
+}
+function conPDF(kind){
+  loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
+    .then(()=> fichaPDF(kind))
+    .catch(()=>{ const st = $('dl-status'); if (st) st.textContent = 'No se pudo cargar el generador de PDF; revisa tu conexión.'; });
 }
 const wch = ws => ws.map(w=>({wch:w}));
 async function deliverTable(base, key, aoa){
@@ -1058,10 +1086,10 @@ function fichaPDF(kind){
   const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(c.n)}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}${sel!==null? '_'+slug(META.munNames[sel]):''}.pdf`;
   deliverBlob(fname, doc.output('blob'));
 }
-$('dl-ficha').onclick = ()=>fichaPDF('col');
-$('dl-ficha-alc').onclick = ()=>fichaPDF('alc');
-$('dl-ficha-vpalc').onclick = ()=>fichaPDF('vpalc');
-$('dl-ficha-av').onclick = ()=>fichaPDF('vpav');
+$('dl-ficha').onclick = ()=>conPDF('col');
+$('dl-ficha-alc').onclick = ()=>conPDF('alc');
+$('dl-ficha-vpalc').onclick = ()=>conPDF('vpalc');
+$('dl-ficha-av').onclick = ()=>conPDF('vpav');
 
 // ---------- metodología ----------
 const infoModal = $('info-modal'); let lastFocus = null;

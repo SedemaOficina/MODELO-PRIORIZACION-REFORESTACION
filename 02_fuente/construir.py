@@ -598,9 +598,55 @@ out = head + libs + f'<script id="meta-b64" type="text/plain">{meta}</script>\n<
 _sk = lines[0].replace('<html>', '<html lang="es">', 1)
 ROBOTS = '<meta name="robots" content="noindex, nofollow">'
 _sk = _sk.replace('</head><body>', ROBOTS + '</head><body>', 1)
-pagina = _sk + '\n' + out + '</body></html>\n'
+def completa(cuerpo):
+    return _sk + '\n' + cuerpo + '</body></html>\n'
+
+import hashlib as _hl, json as _json
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DOCS = os.path.join(RAIZ, 'docs')
+
+def poner(rel, contenido):
+    """Escribe un archivo del sitio solo si cambió (así Git no ve cambios falsos)."""
+    ruta = os.path.join(DOCS, *rel.split('/'))
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    if os.path.exists(ruta) and open(ruta, 'rb').read() == contenido:
+        return
+    open(ruta, 'wb').write(contenido)
+
+huella = lambda b: _hl.sha1(b).hexdigest()[:10]
+
+# 1) Versión de un solo archivo, para abrir con doble clic sin servidor (no se publica: _local/ está en .gitignore)
+os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
+open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(completa(out))
+
+# 2) Sitio (GitHub Pages y SIA): datos, librerías e imagen en archivos aparte, que el navegador
+#    descarga en paralelo y conserva en caché aunque cambie el código
+ver, total = {}, 0
+for nombre, txt in (('meta.bin', meta), ('data.bin', data), ('vp.bin', vp)):
+    b = _b64.b64decode(txt.strip())
+    poner('datos/' + nombre, b); ver[nombre] = huella(b); total += len(b)
+lver = {}
+for lib in ('deck.js', 'pako.js', 'jspdf.js', 'xlsx.js'):
+    b = open(SC + 'libs/' + lib, 'rb').read()
+    poner('libs/' + lib, b); lver[lib] = huella(b)
+_jpg = open(SC + 'composicion_frentes_manzana.jpg', 'rb').read()
+poner('img/composicion_frentes_manzana.jpg', _jpg)
+_imgtag = '<img src="data:image/jpeg;base64,' + _img + '"'
+assert head.count(_imgtag) == 1, 'no se encontró la imagen de la metodología'
+head_sitio = head.replace(_imgtag, '<img loading="lazy" src="img/composicion_frentes_manzana.jpg?v=' + huella(_jpg) + '"')
+cfg = ('<script>window.SIA_LIBS = "libs/"; window.SIA_DATOS = '
+       + _json.dumps({'v': ver, 'total': total}) + ';</script>\n'
+       + '<script src="libs/deck.js?v=' + lver['deck.js'] + '"></script>\n'
+       + '<script src="libs/pako.js?v=' + lver['pako.js'] + '"></script>\n')
+_msg = 'Descomprimiendo datos…</div>'
+assert head_sitio.count(_msg) == 1, 'no se encontró el mensaje inicial del cargador'
+head_sitio = head_sitio.replace(_msg, 'Descargando la herramienta…</div>')
+pagina = completa(head_sitio + cfg + app)
+# que el navegador empiece a bajar los datos desde el primer momento, en paralelo con las librerías
+_pre = ''.join('<link rel="preload" href="datos/%s?v=%s" as="fetch" crossorigin>' % (n, ver[n]) for n in ('data.bin', 'meta.bin', 'vp.bin'))
+pagina = pagina.replace('</head>', _pre + '</head>', 1)
 open(SALIDA, 'w', encoding='utf-8').write(pagina)
-print('escrito en', SALIDA)
+print('escrito en', SALIDA, '(%d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
 if '--artefacto' in sys.argv:
     _ruta = sys.argv[sys.argv.index('--artefacto') + 1]
     open(_ruta, 'w', encoding='utf-8').write(out)
