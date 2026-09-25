@@ -61,7 +61,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP` |
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
-| `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom, encuadre y toda la ciudad, modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
+| `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas | `setResp`, `setLayer` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel | `colStat`, `avStat`, `frSumm`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías | `buildStreets`, `buildAvenues`, `renderResults` |

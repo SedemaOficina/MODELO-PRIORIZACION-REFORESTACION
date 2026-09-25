@@ -71,7 +71,6 @@ function revisarRendimiento(){
 function scopeView(){ const P = matchMedia('(max-width:860px)').matches? 0.45 : 1;
   if (selAv!==null){ const b=avBounds(selAv, sel); const pad=0.003; const vs=fitTo([b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad], 60*P); vs.zoom=Math.min(vs.zoom,15.5); return vs; }
   return selCol!==null? fitTo(colBounds(selCol), 60*P) : sel===null? fitTo(CITY_BOUNDS,24*P) : fitTo(META.bounds[META.muns[sel]], 40*P); }
-$('zfit').onclick = ()=> flyTo(scopeView());
 // botón de la casa: regresa a toda la ciudad y reinicia la consulta (alcaldía, colonia y avenida); conserva
 // quién atiende, las capas y la leyenda
 $('zcity').onclick = ()=>{ if (locFollow) stopFollow(true); hideCard();
