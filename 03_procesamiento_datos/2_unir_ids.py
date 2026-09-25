@@ -6,9 +6,9 @@ from pyproj import Transformer
 import os
 SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
-M=json.load(open(SC+'meta.json', encoding='utf-8')); Q=M['Q']
+M=json.load(open(SC+'intermedios/meta.json', encoding='utf-8')); Q=M['Q']
 to_wgs=Transformer.from_crs('EPSG:32614','EPSG:4326',always_xy=True)
-r=shapefile.Reader(SC+'IDS_ut/IDS_ponderado.shp', encoding='utf-8')
+r=shapefile.Reader(SC+'insumos/IDS_ut/IDS_ponderado.shp', encoding='utf-8')
 f=[x[0] for x in r.fields[1:]]
 UT=[]; polys=[]
 for sr in r.iterShapeRecords():
@@ -51,5 +51,5 @@ print(Counter(c.get('ids') for c in M['colonias'][1:] if c.get('n')).most_common
 pob=sum(c.get('pob',0) for c in M['colonias'][1:] if c.get('n'))
 pobp=sum(c.get('pob',0) for c in M['colonias'][1:] if c.get('n') and c.get('p',-1)>=3)
 print(f'población total en colonias {pob:,} · en colonias prioritarias {pobp:,} ({100*pobp/pob:.1f} %)')
-json.dump(M, open(SC+'meta.json', 'w', encoding='utf-8'), ensure_ascii=False)
+json.dump(M, open(SC+'intermedios/meta.json', 'w', encoding='utf-8'), ensure_ascii=False)
 print('meta.json actualizado')

@@ -6,6 +6,8 @@ Mapa de consulta para que las 16 alcaldías y el Gobierno de la Ciudad identifiq
 
 Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente, todo lo necesario para reconstruirla y la bitácora de decisiones. La herramienta se construyó con Claude por iteraciones.
 
+**¿Vas a mantenerla o instalarla?** Empieza por [`ARQUITECTURA.md`](ARQUITECTURA.md): dónde está cada cosa, cómo se arma, formato de los datos y cambios comunes.
+
 ## Alcance
 
 - **Solo de consulta:** no recibe reportes ni datos de los usuarios (decisión de Liber, 25 sep 2026).
@@ -16,9 +18,9 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 
 | Carpeta | Contenido |
 |---|---|
-| `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA). Lo genera `construir.py`; no se edita a mano. `index.html`, `estilos.css`, `app.js`, `config.js`, `datos/` (frentes, catálogos y vialidades), `libs/` (librerías del mapa, PDF y Excel, con sus licencias) e `img/`. Necesita un servidor web: no se abre con doble clic. |
-| `02_fuente/` | Las piezas de la herramienta: `plantilla.html` (estructura de la página), `estilos.css`, `app.js` (lógica), `datos/*.bin`, `img/`, `libs/` y `construir.py`, que las ensambla. |
-| `03_procesamiento_datos/` | Scripts de Python con los que se prepararon los datos y sus insumos intermedios. Ver su `LEEME.md`. |
+| `02_fuente/` | **Aquí se edita.** `plantilla.html` (estructura), `css/` (6 archivos de estilos), `js/` (16 módulos de lógica, uno por tema), `datos/*.bin`, `img/`, `libs/` y `construir.py`, que lo ensambla todo. |
+| `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA). Lo genera `construir.py`; no se edita a mano. Necesita un servidor web: no se abre con doble clic. |
+| `03_procesamiento_datos/` | Scripts de Python numerados en el orden en que se corren, con `insumos/` e `intermedios/`. Ver su `LEEME.md`. |
 | `04_pruebas/` | `prueba_sitio.js`: prueba integral en escritorio y teléfono. Ver su `LEEME.md`. |
 | `05_documentacion/` | `auditoria_ux_calles.html`: informe de la auditoría UI/UX (24 sep 2026). `bitacora/`: registro de versiones y decisiones (**solo en la copia local**). |
 | `06_entregables/` | Guía de prueba con personal de alcaldías (Word y PDF) y lámina de composición de frentes de manzana. |
@@ -55,7 +57,7 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 
 ## Estado al 25 de septiembre de 2026
 
-- Versión vigente: **v17.3** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación y limpieza del código).
+- Versión vigente: **v17.4** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código).
 - Publicada en GitHub Pages y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar" de Claude.
 
 ### Pendientes

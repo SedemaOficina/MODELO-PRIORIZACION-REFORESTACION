@@ -7,8 +7,8 @@ from pyproj import Transformer
 import os
 SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
-META = json.load(open(SC + 'meta.json', encoding='utf-8'))
-fr = dict(np.load(SC + 'frentes.npz'))
+META = json.load(open(SC + 'intermedios/meta.json', encoding='utf-8'))
+fr = dict(np.load(SC + 'intermedios/frentes.npz'))
 N = len(fr['mun']); start = fr['start']; lon = fr['lon']; lat = fr['lat']
 
 to_utm = Transformer.from_crs('EPSG:4326', 'EPSG:32614', always_xy=True)
@@ -124,5 +124,4 @@ import random; random.seed(1)
 sample = random.sample(list(best.items()), 25)
 for f, (k, d) in sample:
     print(f'  {tipos[fr["tipo"][f]]} {names[fr["name"][f]]!r:45} ↔ {VP[k]["attr"]["NOMENCLAT"]!r:40} [{VP[k]["attr"]["NOMBRE"]}] {d:.0f} m')
-np.savez_compressed(SC + 'cruce.npz', gc=gc, gcvp=gcvp)
-json.dump({'nvp': len(VP)}, open(SC + 'cruce_info.json', 'w', encoding='utf-8'))
+np.savez_compressed(SC + 'intermedios/cruce.npz', gc=gc, gcvp=gcvp)

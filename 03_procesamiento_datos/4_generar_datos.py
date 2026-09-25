@@ -1,13 +1,13 @@
 """Construye los bloques de datos v7: frentes (con responsable y enlace a vialidad primaria), vialidades primarias y META."""
-import json, gzip, base64, collections, numpy as np, shapefile, shapely
+import json, gzip, collections, numpy as np, shapefile, shapely
 from shapely import STRtree
 from pyproj import Transformer
 
 import os
 SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
-META = json.load(open(SC + 'meta.json', encoding='utf-8'))
-fr = dict(np.load(SC + 'frentes.npz')); cr = dict(np.load(SC + 'cruce.npz'))
+META = json.load(open(SC + 'intermedios/meta.json', encoding='utf-8'))
+fr = dict(np.load(SC + 'intermedios/frentes.npz')); cr = dict(np.load(SC + 'intermedios/cruce.npz'))
 N = len(fr['mun']); start = fr['start']; Q = META['Q']
 gc = cr['gc']; gcvp = cr['gcvp']
 PRIO = META['prio']
@@ -85,8 +85,8 @@ for k, v in enumerate(VP):
     vals += d.tolist(); px = int(xs[-1]); py = int(ys[-1])
     vp_mun.append(int(mun_of[k])); vp_prio.append(pr); vp_len.append(v['len'] / 1000)
 vp_bytes = varint_bytes(np.array(vals, dtype=np.int64))
-vp_b64 = base64.b64encode(gzip.compress(vp_bytes, 9)).decode()
-print('vp block: raw', len(vp_bytes), 'b64', len(vp_b64))
+vp_gz = gzip.compress(vp_bytes, 9, mtime=0)
+print('vialidades primarias:', len(vp_bytes), 'bytes →', len(vp_gz), 'comprimidos')
 vp_mun = np.array(vp_mun); vp_prio = np.array(vp_prio); vp_len = np.array(vp_len)
 # resumen VP por alcaldía y ciudad
 vp_summ = {}
@@ -115,8 +115,8 @@ vfeat = np.repeat(np.arange(N), nv); vlocal = np.arange(int(nv.sum())) - np.repe
 dpos = feat_off[vfeat] + 9 + 2 * vlocal
 out[dpos] = dx; out[dpos + 1] = dy
 fr_bytes = varint_bytes(out)
-fr_b64 = base64.b64encode(gzip.compress(fr_bytes, 9)).decode()
-print('frentes block: raw', len(fr_bytes), 'b64', len(fr_b64))
+fr_gz = gzip.compress(fr_bytes, 9, mtime=0)
+print('frentes:', len(fr_bytes), 'bytes →', len(fr_gz), 'comprimidos')
 
 # ---------- META ----------
 km = fr['ln'] / 1000; prio = fr['prio']; mun = fr['mun']; sinarb = (fr['flags'] & 7) == 1
@@ -132,10 +132,9 @@ META['summ_gc'] = {m: summ((gc == 1) & (mun == i)) for i, m in enumerate(META['m
 META['city_gc'] = summ(gc == 1)
 META['vp'] = {'nomenclat': nomenclat, 'nombres': nombres, 'circula': circula, 'alctxt': alctxt, 'claves': claves, 'tipos': tiposvp, 'summ': vp_summ, 'city': vp_city, 'cov': vp_cov, 'n': len(VP)}
 META['cruce'] = {'frentes_gc': int(gc.sum()), 'km_gc': round(float(km[gc == 1].sum()), 1), 'km_gc_prio': round(float(km[(gc == 1) & (prio >= 3)].sum()), 1), 'regla': 'frente paralelo (≤30°) a ≤18 m de la vialidad primaria, o a ≤60 m con nombre coincidente'}
-meta_b64 = base64.b64encode(gzip.compress(json.dumps(META, ensure_ascii=False, separators=(',', ':')).encode(), 9)).decode()
-print('meta b64', len(meta_b64))
+meta_gz = gzip.compress(json.dumps(META, ensure_ascii=False, separators=(',', ':')).encode(), 9, mtime=0)
+print('catálogos (meta):', len(meta_gz), 'bytes comprimidos')
 # bloques de datos de la herramienta (gzip de varints; construir.py los usa tal cual)
-for _n, _b in (('meta', meta_b64), ('data', fr_b64), ('vp', vp_b64)):
-    open(RAIZ + '02_fuente/datos/%s.bin' % _n, 'wb').write(base64.b64decode(_b))
-json.dump({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc'], 'vp_summ': vp_summ}, open(SC + 'resumen_v7.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+for _n, _b in (('meta', meta_gz), ('data', fr_gz), ('vp', vp_gz)):
+    open(RAIZ + '02_fuente/datos/%s.bin' % _n, 'wb').write(_b)
 print(json.dumps({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc']}, ensure_ascii=False))

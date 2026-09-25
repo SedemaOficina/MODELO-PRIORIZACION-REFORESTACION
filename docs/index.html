@@ -1,9 +1,12 @@
-<!doctype html><html lang="es"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="robots" content="noindex, nofollow"><link rel="preload" href="datos/data.bin?v=9c5a4a4caf" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=9cc05a8975" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=c26099ee79" as="fetch" crossorigin></head><body>
+<!doctype html><html lang="es"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="robots" content="noindex, nofollow"><link rel="preload" href="datos/data.bin?v=0d38f09868" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin></head><body>
+<!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 <title>Calles Prioritarias para Reforestar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=a694bd24b9">
+<link rel="stylesheet" href="estilos.css?v=8b998652ba">
+<!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
+  <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
   <aside class="panel">
     <button class="sheet-grip" id="sheet" type="button" aria-expanded="false" aria-controls="panel-body"><i></i><b id="sheet-label">Ver la consulta</b></button>
     <div class="panel-head">
@@ -13,6 +16,7 @@
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
+      <!-- consulta: buscador único (js/14_buscador.js), fila "Atiende" y ruta de navegación -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -32,6 +36,7 @@
         </nav>
       </div>
 
+      <!-- respuesta: ámbito, cifras, pestañas Resumen / Listado / Descargas (js/08, 09, 11) -->
       <div class="answer" id="answer">
         <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title">Ciudad de México</h2></div><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div>
         <div class="colinfo" id="alcinfo" hidden></div>
@@ -81,6 +86,7 @@
       </div>
       </div>
     </div>
+    <!-- acciones fijas al pie del panel: descarga principal y ficha PDF (js/13_interfaz.js) -->
     <div class="panel-actions" id="panel-actions">
       <button type="button" class="btn" id="act-main"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span id="act-main-lbl">Descargar listado (Excel)</span></button>
       <button type="button" class="btn secondary" id="act-ficha">Ficha PDF</button>
@@ -88,6 +94,7 @@
     </div>
   </aside>
 
+  <!-- ===== Mapa: barra de resumen, herramientas, leyenda-filtro y tarjeta (js/04 a 07) ===== -->
   <div class="mapwrap">
     <div id="map"></div>
     <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descargando la herramienta…</div><div class="bar"><i id="load-bar"></i></div></div></div>
@@ -122,6 +129,7 @@
 </div>
 
 
+<!-- ===== Ventana "Cómo funciona": ayuda de uso, glosario y metodología ===== -->
 <div class="modal" id="info-modal" hidden role="dialog" aria-modal="true" aria-labelledby="howto-title">
   <div class="modal-card">
     <button class="close" id="info-close" aria-label="Cerrar">×</button>
@@ -250,8 +258,8 @@
     <p class="fine">Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); CONAPO, Índice de marginación urbana 2020; EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial (población, población en pobreza por necesidades básicas insatisfechas y estrato de desarrollo social); SEDEMA, temperatura superficial urbana 2024 y cobertura de copa; Sistema de Información Ambiental, modelo de priorización de frentes de manzana (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026).</p>
   </div>
 </div>
-<script src="config.js?v=ea8958e5ed"></script>
+<script src="config.js?v=70619027da"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=60cca5aaac"></script>
+<script src="app.js?v=170b9dea8c"></script>
 </body></html>

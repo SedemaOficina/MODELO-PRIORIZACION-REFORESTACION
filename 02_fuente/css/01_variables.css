@@ -1,0 +1,12 @@
+/* Variables: paleta institucional, rampa de prioridad (--p0 Muy Baja … --p4 Muy Alta), colores del mapa y sombras. Cambiar un color aquí lo cambia en toda la herramienta; los colores del mapa se leen desde app (03_estado.js). */
+:root{
+  color-scheme: light only;
+  --guinda:#9D2148; --guinda-ink:#7E1A3A; --dorado:#B28E5C; --dorado-soft:#EBDDC6;
+  --ground:#F4F2EE; --panel:#FFFFFF; --panel-2:#F8F6F2; --line:#E2DDD5; --line-strong:#C9C2B7;
+  --ink:#24262A; --ink-2:#55585A; --ink-3:#666A6D;
+  --p0:#F9E7BF; --p1:#F4C56E; --p2:#E88A2E; --p3:#C2421B; --p4:#7F1D12;
+  --map-alc:#8A8C8E; --map-col:#B9B3A8; --map-label:#55585A; --map-sel:#273A45; --map-vp:#6E7174;
+  --focus:#B28E5C;
+  --shadow: 0 8px 28px rgba(36,38,42,.14);
+  --loc:#1A73E8;   /* punto y botón de Mi ubicación (azul convencional de "tu ubicación")*/
+}

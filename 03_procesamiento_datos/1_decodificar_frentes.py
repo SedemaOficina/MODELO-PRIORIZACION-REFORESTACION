@@ -54,5 +54,5 @@ xy = np.cumsum(d, axis=0)  # coordenadas acumuladas globales (el encoder usa px,
 Q = 100000
 lon = xy[:, 0] / Q; lat = xy[:, 1] / Q
 print('lon range', lon.min(), lon.max(), 'lat range', lat.min(), lat.max())
-np.savez_compressed(SC + 'frentes.npz', mun=mun, prio=prio, name=name, tipo=tipo, col=col, ln=ln, flags=flags, start=start, lon=lon, lat=lat)
+np.savez_compressed(SC + 'intermedios/frentes.npz', mun=mun, prio=prio, name=name, tipo=tipo, col=col, ln=ln, flags=flags, start=start, lon=lon, lat=lat)
 print('saved')

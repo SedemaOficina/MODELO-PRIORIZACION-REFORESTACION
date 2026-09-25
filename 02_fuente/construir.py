@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 """Arma la herramienta "Calles prioritarias para reforestar" a partir de sus piezas.
 
-Piezas (todas en esta carpeta):
+Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   plantilla.html   estructura de la página (sin estilos ni código)
-  estilos.css      estilos
-  app.js           lógica del mapa, consultas, descargas y fichas
+  css/*.css        estilos, en orden de aplicación (01_variables … 06_mi_ubicacion)
+  js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 16_arranque);
+                   se unen en un solo app.js dentro de una función asíncrona
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
   img/             logotipo y lámina de la metodología
-  libs/            deck.gl, pako, jsPDF y SheetJS (copias locales)
+  libs/            deck.gl, pako, jsPDF y SheetJS (copias locales, con LICENCIAS.md)
 
 Salidas:
   ../docs/                               sitio para GitHub Pages y el SIA: página, estilos, código,
@@ -61,9 +62,24 @@ def poner(rel, contenido):
     open(ruta, 'wb').write(contenido)
 
 
+AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar aquí.'
+# La lógica corre dentro de una función asíncrona (los datos se esperan con await); si algo falla al
+# cargar, el cargador muestra el error en lugar del mapa.
+APERTURA = "(async function(){\n'use strict';\n"
+CIERRE = ("})().catch(err=>{ console.error(err); const l=document.getElementById('loader'); l.hidden=false; "
+          "l.querySelector('div').innerHTML = `<div class=\"cabin\" style=\"font-weight:600;font-size:16px\">No fue posible cargar el mapa</div>"
+          "<div style=\"font-size:12px;margin-top:6px;max-width:320px\">${(err && err.message)||err}. Recarga la página; si persiste, "
+          "avisa al Sistema de Información Ambiental.</div>`; });\n")
+
+
+def unir(carpeta, extension):
+    nombres = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n.endswith(extension))
+    return ''.join(leer(carpeta + '/' + n).rstrip('\n') + '\n\n' for n in nombres).rstrip('\n') + '\n'
+
+
 plantilla = leer('plantilla.html')
-estilos = leer('estilos.css')
-app = leer('app.js')
+estilos = '/* ' + AVISO % 'css/' + ' */\n' + unir('css', '.css')
+app = '// ' + AVISO % 'js/' + '\n' + APERTURA + unir('js', '.js') + CIERRE
 assert plantilla.count('<!-- ESTILOS -->') == 1, 'la plantilla debe tener un solo marcador <!-- ESTILOS -->'
 for img in IMAGENES:
     assert ('src="%s"' % img) in plantilla, 'la plantilla no usa ' + img
@@ -113,7 +129,8 @@ sitio += ('<script src="config.js?v=%s"></script>\n' % v(config)
           + '<script src="app.js?v=%s"></script>\n' % v(app))
 # que el navegador empiece a bajar los datos desde el primer momento, en paralelo con las librerías
 precarga = ''.join('<link rel="preload" href="datos/%s?v=%s" as="fetch" crossorigin>' % (n, ver[n]) for n in ('data.bin', 'meta.bin', 'vp.bin'))
-pagina = ESQUELETO.replace('{CABEZA}', ROBOTS + precarga) + sitio + '</body></html>\n'
+pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + precarga) + '<!-- ' + AVISO % 'plantilla.html, css/ y js/' + ' -->\n'
+          + sitio + '</body></html>\n')
 poner('index.html', pagina)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
 

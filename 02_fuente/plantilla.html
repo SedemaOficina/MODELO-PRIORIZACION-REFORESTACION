@@ -2,7 +2,9 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <meta name="color-scheme" content="light only">
 <!-- ESTILOS -->
+<!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
+  <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
   <aside class="panel">
     <button class="sheet-grip" id="sheet" type="button" aria-expanded="false" aria-controls="panel-body"><i></i><b id="sheet-label">Ver la consulta</b></button>
     <div class="panel-head">
@@ -12,6 +14,7 @@
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
+      <!-- consulta: buscador único (js/14_buscador.js), fila "Atiende" y ruta de navegación -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -31,6 +34,7 @@
         </nav>
       </div>
 
+      <!-- respuesta: ámbito, cifras, pestañas Resumen / Listado / Descargas (js/08, 09, 11) -->
       <div class="answer" id="answer">
         <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title">Ciudad de México</h2></div><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div>
         <div class="colinfo" id="alcinfo" hidden></div>
@@ -80,6 +84,7 @@
       </div>
       </div>
     </div>
+    <!-- acciones fijas al pie del panel: descarga principal y ficha PDF (js/13_interfaz.js) -->
     <div class="panel-actions" id="panel-actions">
       <button type="button" class="btn" id="act-main"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span id="act-main-lbl">Descargar listado (Excel)</span></button>
       <button type="button" class="btn secondary" id="act-ficha">Ficha PDF</button>
@@ -87,6 +92,7 @@
     </div>
   </aside>
 
+  <!-- ===== Mapa: barra de resumen, herramientas, leyenda-filtro y tarjeta (js/04 a 07) ===== -->
   <div class="mapwrap">
     <div id="map"></div>
     <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descomprimiendo datos…</div><div class="bar"><i id="load-bar"></i></div></div></div>
@@ -121,6 +127,7 @@
 </div>
 
 
+<!-- ===== Ventana "Cómo funciona": ayuda de uso, glosario y metodología ===== -->
 <div class="modal" id="info-modal" hidden role="dialog" aria-modal="true" aria-labelledby="howto-title">
   <div class="modal-card">
     <button class="close" id="info-close" aria-label="Cerrar">×</button>
