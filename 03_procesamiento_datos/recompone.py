@@ -2,8 +2,10 @@
 from PIL import Image, ImageDraw, ImageFont
 import numpy as np
 
-SC = '/tmp/claude-0/-home-claude/dd9ce749-5a99-545b-9acc-0332c785cc1e/scratchpad/'
-im = Image.open(SC + 'slide_orig.jpg').convert('RGB')
+import os
+SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+im = Image.open(SC + 'insumos/slide_orig.jpg').convert('RGB')
 a = np.asarray(im).astype(int)
 H, W = a.shape[:2]
 
@@ -109,7 +111,7 @@ while yy < ty + 4 * 28 + 26:
     d.line([(div_x, yy), (div_x, yy + 11)], fill=DIV_C, width=5)
     yy += 26
 
-canvas.save(SC + 'composicion_frentes_manzana.png')
+canvas.save(RAIZ + '06_entregables/composicion_frentes_manzana.png')
 print('guardado', canvas.size)
 
 # --- versión con fondo transparente ---
@@ -129,5 +131,5 @@ yy = ty - 26
 while yy < ty + 4 * 28 + 26:
     td.line([(div_x, yy), (div_x, yy + 11)], fill=DIV_C + (255,), width=5)
     yy += 26
-tr.crop((0, 0, NW, ty + 4 * 28 + 40)).save(SC + 'composicion_frentes_manzana_transparente.png')
+tr.crop((0, 0, NW, ty + 4 * 28 + 40)).save(RAIZ + '06_entregables/composicion_frentes_manzana_transparente.png')
 print('transparente ok')

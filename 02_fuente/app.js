@@ -1,4 +1,3 @@
-<script>
 (async function(){
 'use strict';
 const $ = id => document.getElementById(id);
@@ -386,7 +385,6 @@ function renderLegendNote(){
 }
 
 // ---------- responsable ----------
-const RESP_TXT = {alc:'Alcaldía', gc:'Gobierno Central', both:'Ambos'};
 // dos casillas combinables: Alcaldía y Gob. Central; al menos una activa
 const respOn = { alc:true, gc:false };
 document.querySelectorAll('button[data-resp]').forEach(b=>{ b.onclick = ()=>{ const k=b.dataset.resp; const other = k==='alc'? respOn.gc : respOn.alc; if (respOn[k] && !other) return; respOn[k]=!respOn[k]; setResp(respOn.alc && respOn.gc? 'both' : respOn.gc? 'gc' : 'alc'); }; });
@@ -395,8 +393,8 @@ function setResp(v){
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   if (resp===v) return; resp=v;
   document.body.dataset.resp = v;
-  if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; colQ.value=''; colClear.hidden=true; colList.hidden=true; }
-  else { selAv=null; avQ.value=''; avClear.hidden=true; avList.hidden=true; if (colBefore && !showColB && !showAlcB) setLayer('col',true); colBefore=false; if(!showAlcB && !showColB && !showFrB) setLayer('col',true); }
+  if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; }
+  else { selAv=null; if (colBefore && !showColB && !showAlcB) setLayer('col',true); colBefore=false; if(!showAlcB && !showColB && !showFrB) setLayer('col',true); }
   highlight=null; hideCard(); $('q').value=''; $('q').placeholder = isGC()? 'Buscar avenida o eje…' : 'Buscar calle o avenida…';
   document.querySelector('.seg.lvl button[data-lvl="col"]').hidden = isGC();
   document.querySelector('.seg.lvl button[data-lvl="fr"]').innerHTML = isGC()? '<i></i>Vialidades' : '<i></i>Calles';
@@ -405,7 +403,6 @@ function setResp(v){
   $('resp-note').textContent = v==='alc' ? 'Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.'
     : v==='gc' ? 'Vialidades primarias y de acceso controlado que atiende el Gobierno de la Ciudad, con su propia prioridad.'
     : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para cada responsable.';
-  $('col-field').hidden = isGC(); $('av-field').hidden = !isGC();
   buildVP(); refresh();
 }
 
@@ -676,87 +673,24 @@ function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); re
   $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
-  colQ.value=''; colClear.hidden=true; colList.hidden=true; avQ.value=''; avClear.hidden=true; avList.hidden=true; colLabel(); collapseSheet(); refresh();
+  collapseSheet(); refresh();
 }
-// ---------- colonia: autocompletar ----------
-const colQ = $('col-q'), colList = $('col-list'), colClear = $('col-clear');
-// el catálogo de colonias trae abreviaturas (Pgal, Sto, Ampl…): se expanden para que la búsqueda funcione con el nombre completo
+// ---------- selección de colonia y avenida (la búsqueda está en el buscador único, más abajo) ----------
+// el catálogo de colonias trae abreviaturas (Pgal, Sto, Ampl…); el buscador las expande
 const ABREV = {pgal:'pedregal', sto:'santo', sta:'santa', ampl:'ampliacion', ampliacion:'ampliacion', secc:'seccion', ote:'oriente', pte:'poniente', nte:'norte', gral:'general', prol:'prolongacion', fracc:'fraccionamiento', cjto:'conjunto', uh:'unidad habitacional', bo:'barrio', pblo:'pueblo'};
-const expand = s => norm(s).split(/\s+/).map(t=>ABREV[t]||t).join(' ');
-const COL_N = META.colonias.map(c=>expand(c.n));
-const COL_UT = META.colonias.map(c=>expand(c.ut||''));  // la unidad territorial ayuda cuando el nombre del catálogo es distinto
-let colItems = [], colActive = -1;
-function colLabel(){ colQ.placeholder = sel===null? 'Buscar colonia en toda la ciudad…' : 'Escribe el nombre de la colonia…'; avQ.placeholder = sel===null? 'Buscar avenida en toda la ciudad…' : 'Escribe el nombre de la avenida…'; }
-function colSearch(q){
-  q = expand(q.trim()); if (q.length<2) return [];
-  const m = sel===null? null : META.muns[sel]; const starts=[], inc=[];
-  for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const n=COL_N[i]; if(n.startsWith(q)) starts.push(i); else if(n.includes(q) || COL_UT[i].includes(q)) inc.push(i); }
-  const byName = (a,b)=> META.colonias[a].n.localeCompare(META.colonias[b].n,'es') || (META.colonias[a].cp||'').localeCompare(META.colonias[b].cp||'');
-  return starts.concat(inc).sort(byName).slice(0, 30);
-}
-function colRender(){
-  colList.innerHTML=''; colActive=-1;
-  if (!colItems.length){ const q=colQ.value.trim(); if(q.length>=2){ colList.innerHTML='<li class="empty">Sin coincidencias'+(sel!==null?' en '+META.munNames[sel]:'')+'.</li>'; colList.hidden=false; } else colList.hidden=true; colQ.setAttribute('aria-expanded', String(!colList.hidden)); return; }
-  for(const id of colItems){ const c=META.colonias[id]; const pc = c.p>=0? T.prio[c.p]:null; const li=document.createElement('li'); li.setAttribute('role','option'); li.dataset.id=id;
-    li.innerHTML = `<i class="dot" style="background:${pc? `rgb(${pc[0]},${pc[1]},${pc[2]})`:'transparent'}"></i><span>${c.n}</span><span class="cp">${c.cp? 'CP '+c.cp.padStart(5,'0'):''}</span><span class="m">${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}</span>`;
-    li.onmousedown = e=>{ e.preventDefault(); pickColonia(id); }; colList.appendChild(li); }
-  colList.hidden=false; colQ.setAttribute('aria-expanded','true');
-}
-function colSetActive(i){ const lis=[...colList.querySelectorAll('li[role=option]')]; if(!lis.length) return; colActive=(i+lis.length)%lis.length; lis.forEach((l,k)=>l.classList.toggle('active',k===colActive)); lis[colActive].scrollIntoView({block:'nearest'}); }
 function pickColonia(id){
   if (isGC()) setResp('alc');
   const c = META.colonias[id]; const m = munIndex[c.m];
-  colList.hidden=true; colQ.setAttribute('aria-expanded','false'); colQ.value = c.n; colClear.hidden=false;
-  if (sel!==m){ sel=m; selEl.value=String(m); colLabel(); }
+  if (sel!==m){ sel=m; selEl.value=String(m); }
   selCol=id; selAv=null; highlight=null; hideCard(); $('q').value=''; if (isPhone() && !showFrB) setLayer('fr', true); collapseSheet(); refresh(); showCard('col', id);
 }
-function clearColonia(){ colQ.value=''; colClear.hidden=true; colList.hidden=true; if(selCol!==null){ selCol=null; highlight=null; hideCard(); refresh(); } }
-colQ.addEventListener('input', ()=>{ if(selCol!==null){ selCol=null; highlight=null; hideCard(); refresh(); } colClear.hidden = !colQ.value; colItems=colSearch(colQ.value); colRender(); });
-colQ.addEventListener('focus', ()=>{ if(colQ.value.trim().length>=2 && selCol===null){ colItems=colSearch(colQ.value); colRender(); } });
-colQ.addEventListener('blur', ()=> setTimeout(()=>{ colList.hidden=true; colQ.setAttribute('aria-expanded','false'); }, 120));
-colQ.addEventListener('keydown', e=>{
-  if (e.key==='ArrowDown'){ e.preventDefault(); if(colList.hidden){ colItems=colSearch(colQ.value); colRender(); } colSetActive(colActive+1); }
-  else if (e.key==='ArrowUp'){ e.preventDefault(); colSetActive(colActive-1); }
-  else if (e.key==='Enter'){ if(!colList.hidden && colItems.length){ e.preventDefault(); pickColonia(colItems[colActive>=0? colActive : 0]); } }
-  else if (e.key==='Escape'){ if(!colList.hidden){ e.stopPropagation(); colList.hidden=true; } else if(colQ.value){ clearColonia(); } }
-});
-colClear.onclick = ()=>{ clearColonia(); colQ.focus(); };
-// ---------- avenida: autocompletar (Gobierno Central) ----------
-const avQ = $('av-q'), avList = $('av-list'), avClear = $('av-clear');
-let avItems = [], avActive = -1;
-function avSearch(q){
-  q = norm(q.trim()); if (q.length<2) return [];
-  const starts=[], inc=[];
-  for(const [a,s] of avIdx){ const n=AV_N[a]; if(n.startsWith(q)) starts.push(a); else if(n.includes(q) || [...s.nombres].some(x=>norm(x).includes(q))) inc.push(a); }
-  const byName=(a,b)=> VPC.nomenclat[a].localeCompare(VPC.nomenclat[b],'es');
-  return starts.sort(byName).concat(inc.sort(byName)).slice(0,30);
-}
-function avRender(){
-  avList.innerHTML=''; avActive=-1;
-  if (!avItems.length){ const q=avQ.value.trim(); if(q.length>=2){ avList.innerHTML='<li class="empty">Sin coincidencias'+(sel!==null?' en '+META.munNames[sel]:'')+'.</li>'; avList.hidden=false; } else avList.hidden=true; avQ.setAttribute('aria-expanded', String(!avList.hidden)); return; }
-  for(const a of avItems){ const s=avIdx.get(a); const d=dom({km:avStat(a).kmByP}); const pc=T.prio[d]; const li=document.createElement('li'); li.setAttribute('role','option');
-    li.innerHTML = `<i class="dot" style="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></i><span>${VPC.nomenclat[a]}</span><span class="cp">${fmt1.format(s.kmp)} km prior.</span><span class="m">${[...s.nombres].slice(0,2).join(', ')}${sel===null? ' · '+[...s.muns].slice(0,2).map(m=>META.munNames[m]).join(', ')+(s.muns.size>2?' +'+(s.muns.size-2):''):''}</span>`;
-    li.onmousedown = e=>{ e.preventDefault(); pickAvenida(a); }; avList.appendChild(li); }
-  avList.hidden=false; avQ.setAttribute('aria-expanded','true');
-}
-function avSetActive(i){ const lis=[...avList.querySelectorAll('li[role=option]')]; if(!lis.length) return; avActive=(i+lis.length)%lis.length; lis.forEach((l,k)=>l.classList.toggle('active',k===avActive)); lis[avActive].scrollIntoView({block:'nearest'}); }
+function clearColonia(){ if(selCol!==null){ selCol=null; highlight=null; hideCard(); refresh(); } }
 function pickAvenida(a){
   if (!isGC()) setResp('gc');
-  avList.hidden=true; avQ.setAttribute('aria-expanded','false'); avQ.value = VPC.nomenclat[a]; avClear.hidden=false;
   selAv=a; selCol=null; hideCard(); $('q').value='';
   const s=avStat(a); highlight={avId:a, idx:s.idx}; collapseSheet(); refresh();
 }
-function clearAvenida(){ avQ.value=''; avClear.hidden=true; avList.hidden=true; if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } }
-avQ.addEventListener('input', ()=>{ if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } avClear.hidden = !avQ.value; avItems=avSearch(avQ.value); avRender(); });
-avQ.addEventListener('focus', ()=>{ if(avQ.value.trim().length>=2 && selAv===null){ avItems=avSearch(avQ.value); avRender(); } });
-avQ.addEventListener('blur', ()=> setTimeout(()=>{ avList.hidden=true; avQ.setAttribute('aria-expanded','false'); }, 120));
-avQ.addEventListener('keydown', e=>{
-  if (e.key==='ArrowDown'){ e.preventDefault(); if(avList.hidden){ avItems=avSearch(avQ.value); avRender(); } avSetActive(avActive+1); }
-  else if (e.key==='ArrowUp'){ e.preventDefault(); avSetActive(avActive-1); }
-  else if (e.key==='Enter'){ if(!avList.hidden && avItems.length){ e.preventDefault(); pickAvenida(avItems[avActive>=0? avActive : 0]); } }
-  else if (e.key==='Escape'){ if(!avList.hidden){ e.stopPropagation(); avList.hidden=true; } else if(avQ.value){ clearAvenida(); } }
-});
-avClear.onclick = ()=>{ clearAvenida(); avQ.focus(); };
+function clearAvenida(){ if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } }
 selEl.onchange = e=> setSel(e.target.value);
 $('n-total').textContent = `${fmt.format(N)} frentes de manzana y ${fmt.format(VPC.cov.registros)} tramos de vialidad primaria (${fmt0.format(VPC.cov.km_total)} km).`;
 
@@ -922,7 +856,7 @@ async function deliverTable(base, key, aoa){
   const wd = X.utils.aoa_to_sheet(dictAoa(key, nreg, base + '.xlsx'));
   wd['!cols'] = wch([26, 78, 46]);
   X.utils.book_append_sheet(wb, wd, 'Diccionario');
-  const buf = X.write(wb, { bookType:'xlsx', type:'array' });
+  const buf = X.write(wb, { bookType:'xlsx', type:'array', compression:true });
   await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
 }
 const num = v => { const n = Number(v); return Number.isFinite(n)? n : v; };
@@ -961,7 +895,7 @@ $('dl-avenidas').onclick = ()=>{
 document.fonts && document.fonts.ready.then(()=> rerender());
 
 // ---------- fichas (PDF) ----------
-const LOGO_URI = document.querySelector('.panel-head .logo').src, LOGO_W = 1400, LOGO_H = 142;
+const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1400, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
 function fichaPDF(kind){
   // kind: 'col' | 'alc' | 'vpalc' | 'vpav'
@@ -981,7 +915,7 @@ function fichaPDF(kind){
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const unit = isVP? 'tramos' : 'frentes';
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_URI, 'PNG', M, 9, lw, lh);
+  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_IMG, 'PNG', M, 9, lw, lh);
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(isCol? 'Ficha de colonia' : isAlc? 'Ficha de alcaldía' : isVpAlc? 'Ficha de vialidades primarias' : 'Ficha de avenida', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
@@ -996,7 +930,6 @@ function fichaPDF(kind){
   doc.text(doc.splitTextToSize(sub, W-2*M)[0], M, 44);
   const pk = isCol? c.p : isAlc? ALC_DOM[sel] : isVpAlc? VP_DOM[sel] : dom({km:av.kmByP}); const pc = pk>=0? T.prio[pk] : GRIS;
   doc.setFillColor(pc[0],pc[1],pc[2]); doc.setDrawColor(200,194,184); doc.setLineWidth(0.15); doc.circle(M+2, 51.2, 1.8, 'FD');
-  const ambP = isCol? 'de la colonia' : isAlc? 'de la alcaldía' : isVpAlc? 'de vialidad primaria de la alcaldía' : 'de la avenida';
   const l1 = isCol? `Prioridad de la colonia: ${pk>=0? META.prio[pk]:'—'}` : `Prioridad predominante: ${META.prio[pk]} (${pct(cs.km[pk],tot)} de los ${isVpAv? 'km de la avenida' : isVP? 'km de vialidad primaria de la alcaldía' : 'frentes de la alcaldía'})`;
   doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(l1, M+6, 52.5);
   const tw = doc.getTextWidth(l1);
@@ -1116,7 +1049,6 @@ let sheetState = 'half';
 function setSheetState(st){ sheetState = st; document.body.classList.toggle('sheet-open', st==='full'); document.body.classList.toggle('sheet-peek', st==='peek');
   sheetBtn.setAttribute('aria-expanded', String(st!=='peek')); sheetLbl.textContent = st==='peek'? 'Ver la consulta' : st==='half'? 'Ver más' : 'Ver el mapa';
   setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 260); }
-function setSheet(open){ setSheetState(open? 'full' : 'half'); }
 sheetBtn.onclick = ()=> setSheetState(sheetState==='peek'? 'half' : sheetState==='half'? 'full' : 'peek');
 const panelBtn = $('panel-toggle');
 panelBtn.onclick = ()=>{ const off = document.body.classList.toggle('panel-off');
@@ -1169,7 +1101,7 @@ function renderCrumb(){
   else if (selAv!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${VPC.nomenclat[selAv]}</span><button type="button" class="cr-up" data-up="av" title="Quitar la avenida" aria-label="Quitar la avenida">×</button></span>`;
   rest.innerHTML = h; const up = rest.querySelector('.cr-up'); if (up) up.onclick = ()=>{ up.dataset.up==='col'? clearColonia() : clearAvenida(); };
 }
-$('cr-city').onclick = ()=>{ if (sel===null && selCol===null && selAv===null) return; selAv=null; highlight=null; avQ.value=''; selEl.value=''; setSel(''); };
+$('cr-city').onclick = ()=>{ if (sel===null && selCol===null && selAv===null) return; selAv=null; highlight=null; selEl.value=''; setSel(''); };
 
 // ---------- C6 · buscador único ----------
 const omni=$('omni'), omniList=$('omni-list'), omniClear=$('omni-clear');
@@ -1237,7 +1169,7 @@ function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; i
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }
 function omniPick(it){
   omniClose(); omni.value=''; omniClear.hidden=true; omni.blur();
-  if (it.t==='alc'){ if (isGC() && selAv!==null){ selAv=null; highlight=null; avQ.value=''; } selEl.value=String(it.i); setSel(String(it.i)); }
+  if (it.t==='alc'){ if (isGC() && selAv!==null){ selAv=null; highlight=null; } selEl.value=String(it.i); setSel(String(it.i)); }
   else if (it.t==='col'){ pickColonia(it.i); }
   else if (it.t==='av'){ if (sel!==null && !avStat(it.a).muns.has(sel)){ sel=null; selEl.value=''; } pickAvenida(it.a); }
   else { const s=omniIndex().stStat.get(it.nid); if (isGC()) setResp('alc');
@@ -1376,9 +1308,7 @@ mapEl.addEventListener('pointermove', e=>{ if (locFollow && e.buttons && pdown &
 // ---------- init ----------
 if (isPhone()) setLayer('fr', false);   // en pantallas chicas se dibujan primero las colonias
 document.body.dataset.resp = resp;
-$('col-field').hidden = false; $('av-field').hidden = true;
 setSel('');
 setTab('res');
 if (isPhone()) setSheetState('peek');
-})().catch(err=>{ console.error(err); const l=document.getElementById('loader'); l.hidden=false; l.querySelector('div').innerHTML = `<div class="cabin" style="font-weight:600;font-size:16px">No fue posible cargar el mapa</div><div style="font-size:12.5px;margin-top:6px;max-width:320px">${(err && err.message)||err}. Recarga la página; si persiste, avisa al Sistema de Información Ambiental.</div>`; });
-</script>
+})().catch(err=>{ console.error(err); const l=document.getElementById('loader'); l.hidden=false; l.querySelector('div').innerHTML = `<div class="cabin" style="font-weight:600;font-size:16px">No fue posible cargar el mapa</div><div style="font-size:12px;margin-top:6px;max-width:320px">${(err && err.message)||err}. Recarga la página; si persiste, avisa al Sistema de Información Ambiental.</div>`; });

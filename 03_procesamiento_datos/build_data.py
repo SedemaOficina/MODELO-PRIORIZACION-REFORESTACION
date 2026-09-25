@@ -3,8 +3,10 @@ import json, gzip, base64, collections, numpy as np, shapefile, shapely
 from shapely import STRtree
 from pyproj import Transformer
 
-SC = '/tmp/claude-0/-home-claude/dd9ce749-5a99-545b-9acc-0332c785cc1e/scratchpad/'
-META = json.load(open(SC + 'meta.json'))
+import os
+SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+META = json.load(open(SC + 'meta.json', encoding='utf-8'))
 fr = dict(np.load(SC + 'frentes.npz')); cr = dict(np.load(SC + 'cruce.npz'))
 N = len(fr['mun']); start = fr['start']; Q = META['Q']
 gc = cr['gc']; gcvp = cr['gcvp']
@@ -33,7 +35,7 @@ def varint_bytes(vals):
 
 # ---------- vialidades primarias ----------
 to_wgs = Transformer.from_crs('EPSG:32614', 'EPSG:4326', always_xy=True)
-r = shapefile.Reader(SC + 'vp/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp', encoding='utf-8')
+r = shapefile.Reader(SC + 'insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp', encoding='utf-8')
 fields = [f[0] for f in r.fields[1:]]
 VP = []
 for rec_i, sr in enumerate(r.iterShapeRecords()):
@@ -132,6 +134,8 @@ META['vp'] = {'nomenclat': nomenclat, 'nombres': nombres, 'circula': circula, 'a
 META['cruce'] = {'frentes_gc': int(gc.sum()), 'km_gc': round(float(km[gc == 1].sum()), 1), 'km_gc_prio': round(float(km[(gc == 1) & (prio >= 3)].sum()), 1), 'regla': 'frente paralelo (≤30°) a ≤18 m de la vialidad primaria, o a ≤60 m con nombre coincidente'}
 meta_b64 = base64.b64encode(gzip.compress(json.dumps(META, ensure_ascii=False, separators=(',', ':')).encode(), 9)).decode()
 print('meta b64', len(meta_b64))
-open(SC + 'blk_meta.txt', 'w').write(meta_b64); open(SC + 'blk_data.txt', 'w').write(fr_b64); open(SC + 'blk_vp.txt', 'w').write(vp_b64)
-json.dump({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc'], 'vp_summ': vp_summ}, open(SC + 'resumen_v7.json', 'w'), ensure_ascii=False, indent=1)
+# bloques de datos de la herramienta (gzip de varints; construir.py los usa tal cual)
+for _n, _b in (('meta', meta_b64), ('data', fr_b64), ('vp', vp_b64)):
+    open(RAIZ + '02_fuente/datos/%s.bin' % _n, 'wb').write(base64.b64decode(_b))
+json.dump({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc'], 'vp_summ': vp_summ}, open(SC + 'resumen_v7.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
 print(json.dumps({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc']}, ensure_ascii=False))

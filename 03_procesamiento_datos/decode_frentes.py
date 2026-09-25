@@ -1,8 +1,10 @@
 """Decodifica el bloque data-b64 del artefacto v6 (varint zigzag + gzip) a arreglos numpy."""
 import base64, gzip, re, json, numpy as np, time
 
-SC = '/tmp/claude-0/-home-claude/dd9ce749-5a99-545b-9acc-0332c785cc1e/scratchpad/'
-html = open(SC + 'v6.html').read()
+import os
+SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+html = open(RAIZ + '07_versiones/calles_prioritarias_v6_original.html', encoding='utf-8').read()
 m = re.search(r'<script id="data-b64" type="text/plain">([^<]+)</script>', html)
 raw = gzip.decompress(base64.b64decode(m.group(1)))
 print('raw bytes', len(raw))

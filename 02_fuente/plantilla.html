@@ -1,13 +1,12 @@
-<!doctype html><html lang="es"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1"><style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><meta name="robots" content="noindex, nofollow"><link rel="preload" href="datos/data.bin?v=9c5a4a4caf" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=9cc05a8975" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=c26099ee79" as="fetch" crossorigin></head><body>
 <title>Calles Prioritarias para Reforestar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=a694bd24b9">
+<!-- ESTILOS -->
 <div class="app">
   <aside class="panel">
     <button class="sheet-grip" id="sheet" type="button" aria-expanded="false" aria-controls="panel-body"><i></i><b id="sheet-label">Ver la consulta</b></button>
     <div class="panel-head">
-      <img class="logo" src="img/logo_sedema_reforestacion.png?v=5f36e23ee5" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+      <img class="logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
       <h1>Calles prioritarias para reforestar</h1>
       
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
@@ -90,7 +89,7 @@
 
   <div class="mapwrap">
     <div id="map"></div>
-    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descargando la herramienta…</div><div class="bar"><i id="load-bar"></i></div></div></div>
+    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descomprimiendo datos…</div><div class="bar"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
       <div class="mapsum" id="mapsum"></div>
@@ -125,7 +124,7 @@
 <div class="modal" id="info-modal" hidden role="dialog" aria-modal="true" aria-labelledby="howto-title">
   <div class="modal-card">
     <button class="close" id="info-close" aria-label="Cerrar">×</button>
-    <img class="logo modal-logo" src="img/logo_sedema_reforestacion.png?v=5f36e23ee5" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+    <img class="logo modal-logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
     <section class="howto" aria-labelledby="howto-title">
       <div class="eyebrow">Calles prioritarias para reforestar · Ayuda</div>
       <h2 id="howto-title">Cómo usar la herramienta</h2>
@@ -201,7 +200,7 @@
       </svg>
       <figcaption>Los colores son las cinco clases de prioridad. La red de las alcaldías está formada por 372,534 frentes de manzana y la de vialidades primarias por <span id="m-vp-tramos">—</span> tramos; al seleccionar una calle o una avenida, el panel indica cuántos de sus tramos son prioritarios y cuántos kilómetros suman.</figcaption>
     </figure>
-    <figure><img loading="lazy" src="img/composicion_frentes_manzana.jpg?v=fc3c72613c" alt="Ortofoto de un conjunto de manzanas y la misma zona con sus frentes clasificados: en verde los que tienen arbolado y en rojo los que no"><figcaption>Así se clasifica el verdor de cada frente de manzana: en verde los tramos con arbolado y en rojo los que no lo tienen. Es el nivel de detalle con el que se prioriza al interior de las colonias.</figcaption></figure>
+    <figure><img src="img/composicion_frentes_manzana.jpg" alt="Ortofoto de un conjunto de manzanas y la misma zona con sus frentes clasificados: en verde los que tienen arbolado y en rojo los que no"><figcaption>Así se clasifica el verdor de cada frente de manzana: en verde los tramos con arbolado y en rojo los que no lo tienen. Es el nivel de detalle con el que se prioriza al interior de las colonias.</figcaption></figure>
 
     <h3><span class="step">3</span>Quién atiende cada calle: alcaldías y Gobierno Central</h3>
     <p>Las <b>vialidades primarias y de acceso controlado</b> (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales) corresponden al Gobierno de la Ciudad de México; el resto de la red la atienden las alcaldías. La capa de vialidades primarias (<span id="m-vp-km">—</span> km) trae su propia prioridad de reforestación en la misma escala de cinco niveles: <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</p>
@@ -250,8 +249,3 @@
     <p class="fine">Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); CONAPO, Índice de marginación urbana 2020; EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial (población, población en pobreza por necesidades básicas insatisfechas y estrato de desarrollo social); SEDEMA, temperatura superficial urbana 2024 y cobertura de copa; Sistema de Información Ambiental, modelo de priorización de frentes de manzana (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026).</p>
   </div>
 </div>
-<script src="config.js?v=ea8958e5ed"></script>
-<script src="libs/deck.js?v=39eac2ebde"></script>
-<script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=60cca5aaac"></script>
-</body></html>

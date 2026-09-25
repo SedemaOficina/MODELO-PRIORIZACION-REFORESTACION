@@ -4,8 +4,10 @@ import numpy as np, shapefile, shapely
 from shapely import STRtree
 from pyproj import Transformer
 
-SC = '/tmp/claude-0/-home-claude/dd9ce749-5a99-545b-9acc-0332c785cc1e/scratchpad/'
-META = json.load(open(SC + 'meta.json'))
+import os
+SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
+RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+META = json.load(open(SC + 'meta.json', encoding='utf-8'))
 fr = dict(np.load(SC + 'frentes.npz'))
 N = len(fr['mun']); start = fr['start']; lon = fr['lon']; lat = fr['lat']
 
@@ -19,7 +21,7 @@ frentes = shapely.linestrings(fxy, indices=vidx)
 print('frentes geoms', len(frentes))
 
 # ---- vialidades primarias ----
-r = shapefile.Reader(SC + 'vp/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp', encoding='utf-8')
+r = shapefile.Reader(SC + 'insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp', encoding='utf-8')
 fields = [f[0] for f in r.fields[1:]]
 VP = []  # partes explotadas
 seg_xy = []; seg_part = []
@@ -123,4 +125,4 @@ sample = random.sample(list(best.items()), 25)
 for f, (k, d) in sample:
     print(f'  {tipos[fr["tipo"][f]]} {names[fr["name"][f]]!r:45} ↔ {VP[k]["attr"]["NOMENCLAT"]!r:40} [{VP[k]["attr"]["NOMBRE"]}] {d:.0f} m')
 np.savez_compressed(SC + 'cruce.npz', gc=gc, gcvp=gcvp)
-json.dump({'nvp': len(VP)}, open(SC + 'cruce_info.json', 'w'))
+json.dump({'nvp': len(VP)}, open(SC + 'cruce_info.json', 'w', encoding='utf-8'))
