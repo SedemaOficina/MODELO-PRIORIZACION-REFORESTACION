@@ -52,12 +52,14 @@ El resultado se escribe en `docs/` (sitio con datos y librerías en archivos apa
 - Versión vigente: **v17** (bloques 1 y 2 de la auditoría UX).
 - Publicada en GitHub Pages (ver arriba) y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar".
 
+### Alcance
+- La herramienta es **solo de consulta**: no recibe reportes ni datos de los usuarios (decisión de Liber, 25 sep 2026). Por eso no se incluye el botón "Reportar un dato" que propuso la auditoría.
+
 ### Pendientes
 1. **Visto bueno institucional de la rampa de calor** que sustituyó al semáforo (ver `bitacora/10_auditoria-ux-v1-y-bloque-1.md`).
 2. **Login con correo y contraseña** y **publicación en la infraestructura del SIA** (`sedema.sia.cdmx.gob.mx`). Hay nueve decisiones por tomar (propósito del login, tipo de usuario, altas, alcance, recuperación de contraseña, aviso de privacidad, capas, piloto, dirección web y actualizaciones), con recomendación y responsable en `bitacora/15_despliegue-sia-y-login.md`.
-3. Definir a dónde llegan los reportes de "Reportar un dato" en la ficha de campo.
-4. Validar con la Secretaría la regla del cruce de frentes con vialidades primarias (18 m, o 60 m con coincidencia de nombre).
-5. Recalcular el modelo con el IDS cuando haya acceso a las capas de temperatura superficial 2024, cobertura de copa y NDVI por frente.
-6. Regenerar el lote de fichas PDF de las 16 alcaldías con la versión vigente.
-7. Homologar en el SIA los nombres abreviados de colonias y "Av. Insurgentes Norte".
-8. Probar en teléfonos reales con personal de alcaldías.
+3. Validar con la Secretaría la regla del cruce de frentes con vialidades primarias (18 m, o 60 m con coincidencia de nombre).
+4. Recalcular el modelo con el IDS cuando haya acceso a las capas de temperatura superficial 2024, cobertura de copa y NDVI por frente.
+5. Regenerar el lote de fichas PDF de las 16 alcaldías con la versión vigente.
+6. Homologar en el SIA los nombres abreviados de colonias y "Av. Insurgentes Norte".
+7. Probar en teléfonos reales con personal de alcaldías.
