@@ -7,7 +7,8 @@
 - listado, Excel de frentes y de tramos, fichas PDF de alcaldía y de colonia;
 - modo Gobierno Central y regreso a toda la ciudad;
 - Mi ubicación con un GPS simulado en la colonia Vicente Guerrero (Iztapalapa);
-- ayuda y lámina de la metodología;
+- ayuda y lámina de la metodología, y que la ayuda se pueda cerrar aunque se haya bajado hasta el final;
+- botón "toda la ciudad";
 - teléfono sin desborde horizontal y con la hoja mínima al abrir.
 
 Uso (requiere Node 18 o posterior y Playwright):

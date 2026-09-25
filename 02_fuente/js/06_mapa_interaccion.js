@@ -46,3 +46,5 @@ function scopeView(){ const P = matchMedia('(max-width:860px)').matches? 0.45 : 
   if (selAv!==null){ const b=avBounds(selAv, sel); const pad=0.003; const vs=fitTo([b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad], 60*P); vs.zoom=Math.min(vs.zoom,15.5); return vs; }
   return selCol!==null? fitTo(colBounds(selCol), 60*P) : sel===null? fitTo(CITY_BOUNDS,24*P) : fitTo(META.bounds[META.muns[sel]], 40*P); }
 $('zfit').onclick = ()=> flyTo(scopeView());
+// regresa el mapa a toda la ciudad sin cambiar la consulta (para cambiarla, "Ciudad de México" en la ruta de navegación)
+$('zcity').onclick = ()=>{ if (locFollow) stopFollow(true); hideCard(); flyTo(fitTo(CITY_BOUNDS, 24*(matchMedia('(max-width:860px)').matches? 0.45 : 1))); };

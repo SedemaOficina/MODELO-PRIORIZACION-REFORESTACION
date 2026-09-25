@@ -376,6 +376,8 @@ function scopeView(){ const P = matchMedia('(max-width:860px)').matches? 0.45 : 
   if (selAv!==null){ const b=avBounds(selAv, sel); const pad=0.003; const vs=fitTo([b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad], 60*P); vs.zoom=Math.min(vs.zoom,15.5); return vs; }
   return selCol!==null? fitTo(colBounds(selCol), 60*P) : sel===null? fitTo(CITY_BOUNDS,24*P) : fitTo(META.bounds[META.muns[sel]], 40*P); }
 $('zfit').onclick = ()=> flyTo(scopeView());
+// regresa el mapa a toda la ciudad sin cambiar la consulta (para cambiarla, "Ciudad de México" en la ruta de navegación)
+$('zcity').onclick = ()=>{ if (locFollow) stopFollow(true); hideCard(); flyTo(fitTo(CITY_BOUNDS, 24*(matchMedia('(max-width:860px)').matches? 0.45 : 1))); };
 
 // Leyenda-filtro por prioridad, fila "Atiende" (alcaldías / Gobierno Central) y casillas de capas.
 // ---------- leyenda-filtro ----------
@@ -1049,9 +1051,14 @@ $('dl-ficha-av').onclick = ()=>conPDF('vpav');
 // Interfaz: ventana de metodología, hoja inferior en teléfono, pestañas, acciones fijas y ruta de navegación.
 // ---------- metodología ----------
 const infoModal = $('info-modal'); let lastFocus = null;
-function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; $('info-close').focus(); }
-function closeInfo(){ infoModal.hidden=true; if(lastFocus) lastFocus.focus(); }
-$('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-close').onclick = closeInfo;
+// La ventana se cierra con la × (siempre visible), con "Volver al mapa" al final, con Esc, tocando fuera
+// de ella o con el botón Atrás del teléfono (se registra un paso en el historial al abrirla).
+function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
+  try { history.pushState({ayuda:true}, ''); } catch(e){} }
+function hideInfo(){ infoModal.hidden=true; if(lastFocus) lastFocus.focus(); }
+function closeInfo(){ if (history.state && history.state.ayuda){ history.back(); setTimeout(()=>{ if(!infoModal.hidden) hideInfo(); }, 400); } else hideInfo(); }
+addEventListener('popstate', ()=>{ if (!infoModal.hidden) hideInfo(); });
+$('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-close').onclick = closeInfo; $('info-back').onclick = closeInfo;
 infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); });
 addEventListener('keydown', e=>{ if(e.key==='Escape' && !infoModal.hidden) closeInfo(); });
 // cifras del cruce en la metodología

@@ -59,6 +59,13 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   ok('Mi ubicación lista calles cercanas', (await page.$$('#card .loc-list button')).length > 0);
   await page.$eval('#open-info', b => b.click()); await page.waitForTimeout(1200);
   ok('ayuda y metodología', (await texto(page, '.howto')).length > 50 && await page.$eval('img[src^="img/composicion"]', i => i.complete && i.naturalWidth > 0));
+  await page.$eval('.modal-card', c => c.scrollTop = 99999); await page.waitForTimeout(300);
+  const cierre = await page.evaluate(() => { const r = document.getElementById('info-close').getBoundingClientRect(); const el = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return el && el.id === 'info-close'; });
+  await page.$eval('#info-close', b => b.click()); await page.waitForTimeout(800);
+  ok('la ayuda se cierra aunque se haya bajado hasta el final', cierre && await page.$eval('#info-modal', m => m.hidden));
+  await buscar(page, 'iztapalapa'); await page.keyboard.press('Enter'); await page.waitForTimeout(4000);
+  const escala = await texto(page, '#scalebar'); await page.$eval('#zcity', b => b.click()); await page.waitForTimeout(2500);
+  ok('botón "toda la ciudad" aleja el mapa sin cambiar la consulta', (await texto(page, '#scalebar')) !== escala && (await texto(page, '#scope-title')).includes('Iztapalapa'), `${escala} → ${await texto(page, '#scalebar')}`);
   await page.screenshot({ path: path.join(SALIDA, 'escritorio.png') }); await ctx.close();
 
   // ---------- teléfono ----------

@@ -61,14 +61,14 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP` |
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl | `layers`, `flyTo`, `fitTo`, `updateScale` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
-| `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, zoom | `showCard`, `hideCard`, `rerender`, `scopeView` |
+| `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom, encuadre y toda la ciudad | `showCard`, `hideCard`, `rerender`, `scopeView` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas | `setResp`, `setLayer` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel | `colStat`, `avStat`, `frSumm`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías | `buildStreets`, `buildAvenues`, `renderResults` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
 | `11_descargas.js` | CSV y Excel con diccionario de datos; carga de librerías bajo demanda | `deliverTable`, `dictAoa`, `loadLib` |
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias y avenida | `conPDF`, `fichaPDF` |
-| `13_interfaz.js` | Ventana de metodología, hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación | `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
+| `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
 | `14_buscador.js` | Buscador único con abreviaturas y tolerancia a errores | `omniIndex`, `omniSearch`, `omniPick` |
 | `15_mi_ubicacion.js` | GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
 | `16_arranque.js` | Estado inicial | — |
