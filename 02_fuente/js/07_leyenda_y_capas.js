@@ -45,4 +45,13 @@ document.querySelectorAll('.seg.lvl button').forEach(b=>{ b.onclick = ()=>{
   else if (isGC()){ if (cur) return; setLayer('alc',false); setLayer('fr',true); }
   else { if (showAlcB){ setLayer('alc',false); setLayer(k,true); } else { const other = k==='col'? showFrB : showColB; if (cur && !other) return; setLayer(k, !cur); } }
   hideCard(); renderResults(); rerender(); }; });
+// mapa de fondo: sin fondo (predeterminado) o satélite
+const ATRIB_BASE = $('attrib').innerHTML;
+function setFondo(sat){ fondoSat = sat; satFallas = 0;
+  document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String((b.dataset.fondo==='sat')===sat)));
+  $('attrib').innerHTML = sat? SAT_ATRIB : ATRIB_BASE; $('attrib').classList.toggle('sat', sat); document.body.classList.toggle('fondo-sat', sat);
+  const n = $('fondo-note'); n.hidden = !sat; n.textContent = sat? 'Imagen de satélite de 10 m por píxel: muestra zonas verdes y mancha urbana, no árboles individuales.' : '';
+  rerender(); }
+function avisoSatelite(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar la imagen de satélite (revisa la conexión a internet).'; }
+document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ const sat = b.dataset.fondo==='sat'; if (sat!==fondoSat) setFondo(sat); }; });
 $('reset-all').onclick = ()=>{ setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); selEl.value=''; setSel(''); };

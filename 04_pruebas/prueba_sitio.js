@@ -17,6 +17,8 @@ const servidor = http.createServer((req, res) => {
 
 const resultados = []; const ok = (nombre, cond, detalle = '') => { resultados.push([cond, nombre, detalle]); console.log(`${cond ? 'OK   ' : 'FALLA'} ${nombre}${detalle ? ' · ' + detalle : ''}`); };
 const sinFuentes = r => r.fulfill({ status: 200, body: '', contentType: 'text/css' });   // Google Fonts no es necesario para probar
+// tesela JPEG gris de 1×1 px para simular el satélite
+const TESELA = Buffer.from('/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=', 'base64');
 const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };                    // colonia Vicente Guerrero, Iztapalapa
 
 (async () => {
@@ -74,6 +76,12 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   await page.mouse.move(1000, 450); for (let i = 0; i < 5; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(400); } await page.waitForTimeout(2000);
   const escRueda = await texto(page, '#scalebar'); await page.$eval('#zcity', b => b.click()); await page.waitForTimeout(3000);
   ok('botón de la casa responde después de acercar con la rueda', escRueda !== escCiudad && (await texto(page, '#scalebar')) === escCiudad, `${escRueda} → ${await texto(page, '#scalebar')}`);
+  // mapa de fondo satelital: las teselas se simulan para no depender de internet
+  let teselas = 0; await page.route(u => u.hostname === 'tiles.maps.eox.at', r => { teselas++; r.fulfill({ status: 200, body: TESELA, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' } }); });
+  await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await page.waitForTimeout(6000);
+  ok('mapa de fondo satelital con su atribución', teselas > 0 && (await texto(page, '#attrib')).includes('Sentinel-2'), `${teselas} teselas`);
+  await page.$eval('.seg.fondo button[data-fondo="no"]', b => b.click()); await page.waitForTimeout(1500);
+  ok('quitar el fondo satelital', (await texto(page, '#attrib')).startsWith('Sin mapa base'));
   await page.screenshot({ path: path.join(SALIDA, 'escritorio.png') }); await ctx.close();
 
   // ---------- teléfono ----------

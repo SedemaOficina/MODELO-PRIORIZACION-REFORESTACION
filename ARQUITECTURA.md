@@ -62,7 +62,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
-| `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas | `setResp`, `setLayer` |
+| `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas, mapa de fondo | `setResp`, `setLayer`, `setFondo` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel | `colStat`, `avStat`, `frSumm`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías | `buildStreets`, `buildAvenues`, `renderResults` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
@@ -86,6 +86,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `viewState` | Vista actual del mapa |
 | `myPos` | Última posición de Mi ubicación (solo en memoria) |
 | `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
+| `fondoSat` | Mapa de fondo satelital encendido |
 
 **Flujo de un cambio de ámbito:** una acción (buscador, clic, ruta) cambia `sel`/`selCol`/`selAv` → `refresh()` recalcula colores y filtros por vértice, cifras, listados y botones → `rerender()` redibuja las capas → `flyTo(scopeView())` encuadra el mapa.
 
@@ -136,6 +137,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Tipografías Cabin y Roboto | Google Fonts | Pendiente servirlas desde el sitio para el SIA |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
+| Mapa de fondo satelital (opcional) | Sentinel-2 cloudless 2024 de EOX, `tiles.maps.eox.at` | 10 m por píxel; gratuito para uso no comercial con atribución (CC BY-NC-SA 4.0). Solo se pide si el usuario lo enciende. No funciona dentro del artefacto de Claude (bloquea servidores externos) |
 
 ## 9. Cambios comunes
 
@@ -148,6 +150,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Cambiar qué muestra la tarjeta de un frente | `js/05_mapa_tarjetas.js` |
 | Actualizar los datos del modelo | Scripts de `03_procesamiento_datos/` → `construir.py` |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
+| Cambiar la fuente de la imagen satelital (p. ej., Esri con licencia) | `SAT_URL` y `SAT_ATRIB` en `js/04_mapa_capas.js` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
 Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_pruebas/prueba_sitio.js`.

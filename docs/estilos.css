@@ -378,6 +378,12 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 .aviso-ligero button:hover{background:var(--panel-2)}
 @media (max-width:860px){.aviso-ligero{top:auto;left:12px;right:60px;transform:none;max-width:none;bottom:calc(200px + env(safe-area-inset-bottom,0px))}}
 
+/* atribución del mapa de fondo satelital (obligatoria por la licencia; también visible en teléfono) */
+.attrib.sat{max-width:min(640px,58%);line-height:1.35;font-size:11px}
+.attrib a{color:inherit;text-decoration:underline}
+@media (min-width:861px){body.fondo-sat .scalebar{bottom:58px}}
+@media (max-width:860px){.attrib.sat{display:block;max-width:none;left:12px;right:60px;bottom:auto;top:64px;font-size:10px}}
+
 /* Bloque 1 de la auditoría UX (sep 2026): sin desborde en teléfono, barra de escala, leyenda-filtro, encabezado compacto, estados vacíos y acciones de campo. Ajusta reglas de los archivos anteriores; el orden importa. */
 /* ninguna pista de rejilla empuja el ancho más allá de la pantalla (auditoría C5) */
 .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}

@@ -3,7 +3,7 @@
 <title>Calles Prioritarias para Reforestar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=75920b57cc">
+<link rel="stylesheet" href="estilos.css?v=2f438f4103">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -117,6 +117,10 @@
             <button type="button" data-lvl="col" aria-pressed="true"><i></i>Colonias</button>
             <button type="button" data-lvl="fr" aria-pressed="true"><i></i>Calles</button>
           </div><p class="lg-note" id="lvl-note">Colonias y Calles se combinan; Alcaldías va sola.</p></div>
+      <div class="lg-sec"><span class="lg-cap" id="fondo-label">Mapa de fondo</span><div class="seg fondo pills" role="group" aria-labelledby="fondo-label">
+            <button type="button" data-fondo="no" aria-pressed="true"><i></i>Sin fondo</button>
+            <button type="button" data-fondo="sat" aria-pressed="false"><i></i>Satélite</button>
+          </div><p class="lg-note" id="fondo-note" hidden></p></div>
       <span class="lg-cap" id="lg-scope">Prioridad · km de frente de la ciudad</span>
       <div id="legend-rows"></div>
       <div class="row static" id="legend-vp"></div>
@@ -124,7 +128,7 @@
       </div>
     </div>
     <div class="card" id="card" hidden></div>
-    <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
+    <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib" id="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
   </div>
 </div>
 
@@ -262,5 +266,5 @@
 <script src="config.js?v=70619027da"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=3d5b53ffe6"></script>
+<script src="app.js?v=fab40217ff"></script>
 </body></html>

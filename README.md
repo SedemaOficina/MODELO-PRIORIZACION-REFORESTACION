@@ -12,7 +12,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 
 - **Solo de consulta:** no recibe reportes ni datos de los usuarios (decisión de Liber, 25 sep 2026).
 - **Sin datos personales:** la ubicación que usa "Mi ubicación" se queda en el teléfono; no se envía ni se guarda.
-- **Sitio estático:** no necesita base de datos, backend ni GeoServer.
+- **Sitio estático:** no necesita base de datos, backend ni GeoServer. Lo único externo es el mapa de fondo satelital opcional (Sentinel-2 de EOX), que se pide al servidor de EOX solo si el usuario lo enciende.
 
 ## Qué hay en cada carpeta
 
@@ -57,7 +57,7 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 
 ## Estado al 25 de septiembre de 2026
 
-- Versión vigente: **v17.6** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad" y zoom rápido con modo ligero para equipos sin aceleración gráfica).
+- Versión vigente: **v17.7** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
 - Publicada en GitHub Pages y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar" de Claude.
 
 ### Pendientes
@@ -67,6 +67,6 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 4. **Visto bueno institucional de la rampa de calor** que sustituyó al semáforo.
 5. Validar con la Secretaría la regla del cruce de frentes con vialidades primarias (18 m, o 60 m con coincidencia de nombre).
 6. Recalcular el modelo con el IDS cuando haya acceso a las capas de temperatura superficial 2024, cobertura de copa y NDVI por frente.
-7. Bloque 3 de la auditoría: mapa de fondo y carga por zonas.
+7. Bloque 3 de la auditoría: carga por zonas. Mapa de fondo: ya hay satélite Sentinel-2 (10 m); si el SIA confirma licencia de ArcGIS, cambiar a Esri World Imagery (≈30–50 cm) en `SAT_URL`. En el SIA, sus cabeceras de seguridad deben permitir imágenes de `tiles.maps.eox.at`.
 8. Regenerar el lote de fichas PDF de las 16 alcaldías con la versión definitiva.
 9. Homologar en el SIA los nombres abreviados de colonias y "Av. Insurgentes Norte".

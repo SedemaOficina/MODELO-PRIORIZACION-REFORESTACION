@@ -115,6 +115,10 @@
             <button type="button" data-lvl="col" aria-pressed="true"><i></i>Colonias</button>
             <button type="button" data-lvl="fr" aria-pressed="true"><i></i>Calles</button>
           </div><p class="lg-note" id="lvl-note">Colonias y Calles se combinan; Alcaldías va sola.</p></div>
+      <div class="lg-sec"><span class="lg-cap" id="fondo-label">Mapa de fondo</span><div class="seg fondo pills" role="group" aria-labelledby="fondo-label">
+            <button type="button" data-fondo="no" aria-pressed="true"><i></i>Sin fondo</button>
+            <button type="button" data-fondo="sat" aria-pressed="false"><i></i>Satélite</button>
+          </div><p class="lg-note" id="fondo-note" hidden></p></div>
       <span class="lg-cap" id="lg-scope">Prioridad · km de frente de la ciudad</span>
       <div id="legend-rows"></div>
       <div class="row static" id="legend-vp"></div>
@@ -122,7 +126,7 @@
       </div>
     </div>
     <div class="card" id="card" hidden></div>
-    <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
+    <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib" id="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
   </div>
 </div>
 

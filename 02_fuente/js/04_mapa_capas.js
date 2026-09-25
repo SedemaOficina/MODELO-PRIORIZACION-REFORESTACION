@@ -52,9 +52,23 @@ function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 4007
   el.querySelector('i').style.width = Math.round(m/mpp)+'px'; el.querySelector('span').textContent = m>=1000? (m/1000)+' km' : m+' m'; }
 let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
+// Mapa de fondo satelital: Sentinel-2 cloudless 2024 de EOX (10 m por píxel), gratuito para uso no comercial con
+// atribución (CC BY-NC-SA 4.0; ver SAT_ATRIB). Para cambiar de fuente basta con cambiar SAT_URL y SAT_ATRIB.
+const SAT_URL = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg';
+const SAT_ATRIB = 'Imagen: <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2024</a> por EOX IT Services GmbH (contiene datos modificados de Copernicus Sentinel 2024) · CC BY-NC-SA 4.0';
+let satFallas = 0;
+function capaSatelite(){
+  return new deck.TileLayer({id:'satelite', data:SAT_URL, minZoom:0, maxZoom:15, tileSize:256,
+    opacity:0.85,
+    onTileError: ()=>{ if (++satFallas===3) avisoSatelite(); },
+    renderSubLayers: p=>{ const b = p.tile.boundingBox;
+      return new deck.BitmapLayer(p, {data:null, image:p.data, bounds:[b[0][0], b[0][1], b[1][0], b[1][1]]}); }});
+}
+
 function layers(){
   const z = viewState.zoom;
   const L = [];
+  if (fondoSat) L.push(capaSatelite());
   if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
   if (showCol()) L.push(new PolygonLayer({id:'col-fill', data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
   L.push(new PolygonLayer({id:'alc', data:ALC_PARTS, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.alc, lineWidthMinPixels:1, lineWidthMaxPixels:1.5, updateTriggers:{getLineColor:[T.alc]}}));
