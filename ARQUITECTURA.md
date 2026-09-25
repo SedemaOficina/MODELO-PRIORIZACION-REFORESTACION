@@ -59,9 +59,9 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `01_utilidades.js` | `$`, formatos de número, km y porcentaje | `kmTxt`, `kmFull`, `pct` |
 | `02_datos.js` | Descarga, descompresión y decodificación de los datos | `fetchBytes`, `gunzip`, `reader` |
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP` |
-| `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl | `layers`, `flyTo`, `fitTo`, `updateScale` |
+| `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
-| `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom, encuadre y toda la ciudad | `showCard`, `hideCard`, `rerender`, `scopeView` |
+| `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom, encuadre y toda la ciudad, modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas | `setResp`, `setLayer` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel | `colStat`, `avStat`, `frSumm`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías | `buildStreets`, `buildAvenues`, `renderResults` |
@@ -85,6 +85,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `showAlcB`, `showColB`, `showFrB` | Capas encendidas |
 | `viewState` | Vista actual del mapa |
 | `myPos` | Última posición de Mi ubicación (solo en memoria) |
+| `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
 
 **Flujo de un cambio de ámbito:** una acción (buscador, clic, ruta) cambia `sel`/`selCol`/`selAv` → `refresh()` recalcula colores y filtros por vértice, cifras, listados y botones → `rerender()` redibuja las capas → `flyTo(scopeView())` encuadra el mapa.
 
@@ -147,8 +148,16 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Cambiar qué muestra la tarjeta de un frente | `js/05_mapa_tarjetas.js` |
 | Actualizar los datos del modelo | Scripts de `03_procesamiento_datos/` → `construir.py` |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
+| Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
 Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_pruebas/prueba_sitio.js`.
+
+### 9 bis. Rendimiento y modo ligero
+
+- Lo pesado es **dibujar** los 372 mil frentes (≈1 millón de vértices), no el código. Con tarjeta gráfica es fluido; sin ella (aceleración por hardware desactivada, escritorios remotos o máquinas virtuales) cada zoom puede tardar decenas de segundos.
+- Al cargar, `revisarRendimiento()` lee el nombre del dibujante de WebGL. Si es por software (SwiftShader, llvmpipe, Microsoft Basic Render), activa el **modo ligero**: sin animaciones, resolución 1×, frentes solo a partir del zoom 13 (antes, las colonias pintadas por prioridad) y un aviso con los pasos para activar la aceleración.
+- Forzar un modo desde la dirección: `?modo=ligero` (sin aviso) o `?modo=completo`.
+- Siempre: los botones + y − cambian de zoom sin animación, las capas solo se rehacen al cruzar un corte de zoom (`ZOOM_CORTES`) y la resolución se limita a 1.5× en pantallas de alta densidad.
 
 ## 10. Publicación en el SIA (resumen)
 

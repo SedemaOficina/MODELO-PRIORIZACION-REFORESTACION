@@ -36,6 +36,10 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   // ---------- escritorio ----------
   const { page, ctx, seg } = await abrir({ viewport: { width: 1440, height: 900 }, geolocation: GPS, permissions: ['geolocation'] });
   ok('carga en escritorio', true, `${seg.toFixed(0)} s (con GPU simulada)`);
+  ok('sin aceleración gráfica entra en modo ligero y avisa', await page.evaluate(() => document.body.classList.contains('modo-ligero') && !!document.querySelector('.aviso-ligero:not([hidden])')));
+  const e0 = await texto(page, '#scalebar'); await page.$eval('#zin', b => b.click()); await page.waitForTimeout(1500);
+  ok('botón + acerca el mapa', (await texto(page, '#scalebar')) !== e0, `${e0} → ${await texto(page, '#scalebar')}`);
+  await page.$eval('#zout', b => b.click()); await page.waitForTimeout(1500);
   await buscar(page, 'calz zaragoza');
   ok('buscador reconoce abreviaturas', (await texto(page, '#omni-list li.opt')).includes('Zaragoza'), (await texto(page, '#omni-list li.opt')).slice(0, 70));
   await buscar(page, 'iztapalapa'); await page.keyboard.press('Enter'); await page.waitForTimeout(5000);

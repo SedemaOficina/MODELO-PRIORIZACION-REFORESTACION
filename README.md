@@ -57,7 +57,7 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 
 ## Estado al 25 de septiembre de 2026
 
-- Versión vigente: **v17.5** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra y botón "toda la ciudad").
+- Versión vigente: **v17.6** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad" y zoom rápido con modo ligero para equipos sin aceleración gráfica).
 - Publicada en GitHub Pages y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar" de Claude.
 
 ### Pendientes
