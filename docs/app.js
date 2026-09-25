@@ -188,9 +188,12 @@ const CITY_BOUNDS = [-99.365,19.048,-98.940,19.593];
 viewState = fitTo(CITY_BOUNDS, 24);
 const NOMAP = location.hash==='#nomap';
 // Sin animación en modo ligero o si la persona pidió reducir movimiento: cada cuadro de animación redibuja el mapa.
+let nVista = 0;
 function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; } const sinAnim = modoLigero || ms===0 || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const prev = viewState.zoom;
-  dk.setProps({initialViewState:{...vs, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
+  // _n hace única cada orden: deck.gl ignora una vista inicial igual a la anterior aunque el usuario ya
+  // haya movido el mapa con el ratón o los dedos (por eso "toda la ciudad" a veces no hacía nada)
+  dk.setProps({initialViewState:{...vs, _n: ++nVista, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
   // sin animación deck.gl no avisa del cambio de vista: se actualizan aquí capas y escala
   if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev)) rerender(); updateScale(); } }
 
@@ -426,8 +429,10 @@ function scopeView(){ const P = matchMedia('(max-width:860px)').matches? 0.45 : 
   if (selAv!==null){ const b=avBounds(selAv, sel); const pad=0.003; const vs=fitTo([b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad], 60*P); vs.zoom=Math.min(vs.zoom,15.5); return vs; }
   return selCol!==null? fitTo(colBounds(selCol), 60*P) : sel===null? fitTo(CITY_BOUNDS,24*P) : fitTo(META.bounds[META.muns[sel]], 40*P); }
 $('zfit').onclick = ()=> flyTo(scopeView());
-// regresa el mapa a toda la ciudad sin cambiar la consulta (para cambiarla, "Ciudad de México" en la ruta de navegación)
-$('zcity').onclick = ()=>{ if (locFollow) stopFollow(true); hideCard(); flyTo(fitTo(CITY_BOUNDS, 24*(matchMedia('(max-width:860px)').matches? 0.45 : 1))); };
+// botón de la casa: regresa a toda la ciudad y reinicia la consulta (alcaldía, colonia y avenida); conserva
+// quién atiende, las capas y la leyenda
+$('zcity').onclick = ()=>{ if (locFollow) stopFollow(true); hideCard();
+  if (sel!==null || selCol!==null || selAv!==null){ selEl.value=''; setSel(''); } else flyTo(scopeView()); };
 
 // Leyenda-filtro por prioridad, fila "Atiende" (alcaldías / Gobierno Central) y casillas de capas.
 // ---------- leyenda-filtro ----------

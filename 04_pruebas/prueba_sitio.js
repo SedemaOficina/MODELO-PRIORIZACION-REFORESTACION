@@ -68,8 +68,12 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   await page.$eval('#info-close', b => b.click()); await page.waitForTimeout(800);
   ok('la ayuda se cierra aunque se haya bajado hasta el final', cierre && await page.$eval('#info-modal', m => m.hidden));
   await buscar(page, 'iztapalapa'); await page.keyboard.press('Enter'); await page.waitForTimeout(4000);
-  const escala = await texto(page, '#scalebar'); await page.$eval('#zcity', b => b.click()); await page.waitForTimeout(2500);
-  ok('botón "toda la ciudad" aleja el mapa sin cambiar la consulta', (await texto(page, '#scalebar')) !== escala && (await texto(page, '#scope-title')).includes('Iztapalapa'), `${escala} → ${await texto(page, '#scalebar')}`);
+  const escala = await texto(page, '#scalebar'); await page.$eval('#zcity', b => b.click()); await page.waitForTimeout(3000);
+  const escCiudad = await texto(page, '#scalebar');
+  ok('botón de la casa: toda la ciudad y consulta reiniciada', escCiudad !== escala && (await texto(page, '#scope-title')).includes('Ciudad'), `${escala} → ${escCiudad} · ${await texto(page, '#scope-title')}`);
+  await page.mouse.move(1000, 450); for (let i = 0; i < 5; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(400); } await page.waitForTimeout(2000);
+  const escRueda = await texto(page, '#scalebar'); await page.$eval('#zcity', b => b.click()); await page.waitForTimeout(3000);
+  ok('botón de la casa responde después de acercar con la rueda', escRueda !== escCiudad && (await texto(page, '#scalebar')) === escCiudad, `${escRueda} → ${await texto(page, '#scalebar')}`);
   await page.screenshot({ path: path.join(SALIDA, 'escritorio.png') }); await ctx.close();
 
   // ---------- teléfono ----------

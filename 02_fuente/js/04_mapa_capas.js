@@ -11,9 +11,12 @@ const CITY_BOUNDS = [-99.365,19.048,-98.940,19.593];
 viewState = fitTo(CITY_BOUNDS, 24);
 const NOMAP = location.hash==='#nomap';
 // Sin animación en modo ligero o si la persona pidió reducir movimiento: cada cuadro de animación redibuja el mapa.
+let nVista = 0;
 function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; } const sinAnim = modoLigero || ms===0 || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const prev = viewState.zoom;
-  dk.setProps({initialViewState:{...vs, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
+  // _n hace única cada orden: deck.gl ignora una vista inicial igual a la anterior aunque el usuario ya
+  // haya movido el mapa con el ratón o los dedos (por eso "toda la ciudad" a veces no hacía nada)
+  dk.setProps({initialViewState:{...vs, _n: ++nVista, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
   // sin animación deck.gl no avisa del cambio de vista: se actualizan aquí capas y escala
   if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev)) rerender(); updateScale(); } }
 
