@@ -28,7 +28,8 @@ function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); re
   $('dl-frentes').disabled = $('dl-calles').disabled = (sel===null);
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); }
+function syncCalleBtns(){ const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
   collapseSheet(); refresh();

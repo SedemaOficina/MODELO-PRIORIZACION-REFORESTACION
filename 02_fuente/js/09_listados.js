@@ -101,10 +101,13 @@ function renderResults(){
   if (q.length<2 && sinNombre.kmp>0){ const li=document.createElement('li'); li.className='empty sinnombre';
     li.textContent = `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI ("Ninguno" o "Manzana o edificación contigua"). No aparecen en esta lista, pero sí en el Excel de frentes.`; ul.appendChild(li); }
 }
+// calle consultada en la red de las alcaldías (la resaltada): nombre y frentes; null si no hay
+function calleSel(){ if (!highlight || highlight.avId!==undefined || isGC() || !highlight.idx.length) return null;
+  return {nombre: META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre', idx: highlight.idx}; }
 function highlightStreet(nid, s){
   highlight = {nameId:nid, idx:s.idx};
   let w=180,sN=90,e=-180,n=-90; for(const i of s.idx){ for(let k=start[i];k<start[i+1];k++){ const x=POS[2*k],y=POS[2*k+1]; if(x<w)w=x; if(x>e)e=x; if(y<sN)sN=y; if(y>n)n=y; } }
   const pad = 0.0015; const vs = fitTo([w-pad,sN-pad,e+pad,n+pad], 60); vs.zoom = Math.min(vs.zoom, 16.5);
-  hideCard(); collapseSheet(); flyTo(vs, 1000); rerender();
+  hideCard(); collapseSheet(); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns();
 }
 $('q').addEventListener('input', renderResults);

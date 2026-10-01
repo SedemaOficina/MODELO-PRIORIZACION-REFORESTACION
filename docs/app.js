@@ -281,10 +281,14 @@ function layers(){
     for(let i=0;i<idx.length;i++){ st[i]=n; n += src.st[idx[i]+1]-src.st[idx[i]]; }
     st[idx.length]=n; const p = new Float64Array(n*2); let o=0;
     for(const i of idx){ for(let k=src.st[i];k<src.st[i+1];k++){ p[o++]=src.pos[2*k]; p[o++]=src.pos[2*k+1]; } }
-    // calle buscada: línea dorada con borde oscuro para que destaque sobre cualquier color de prioridad
+    // calle buscada: halo dorado, filete oscuro y, al centro, el color de prioridad de cada frente (el resaltado
+    // no debe tapar la prioridad, y se ve aunque la capa de calles esté apagada)
     const hd = {length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}};
-    L.push(new PathLayer({id:'hl-borde', data:hd, _pathType:'open', widthUnits:'meters', getWidth:24, widthMinPixels:9, widthMaxPixels:26, getColor:[36,38,42,235], pickable:false}));
-    L.push(new PathLayer({id:'hl', data:hd, _pathType:'open', widthUnits:'meters', getWidth:14, widthMinPixels:5, widthMaxPixels:16, getColor:[T.gold[0],T.gold[1],T.gold[2],255], pickable:false}));
+    L.push(new PathLayer({id:'hl', data:hd, _pathType:'open', widthUnits:'meters', getWidth:30, widthMinPixels:13, widthMaxPixels:34, getColor:[T.gold[0],T.gold[1],T.gold[2],235], pickable:false}));
+    L.push(new PathLayer({id:'hl-borde', data:hd, _pathType:'open', widthUnits:'meters', getWidth:16, widthMinPixels:7, widthMaxPixels:18, getColor:[36,38,42,255], pickable:false}));
+    if (highlight.avId===undefined){ const cc = new Uint8Array(n*4); let q=0;
+      for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=src.st[i];k<src.st[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
+      L.push(new PathLayer({id:'hl-prio', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false})); }
   }
   L.push(new TextLayer({id:'alc-labels', data:ALC_LABELS, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:charset,
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:{sdf:true}, outlineWidth:5, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> d.text.length, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
@@ -728,11 +732,14 @@ function renderResults(){
   if (q.length<2 && sinNombre.kmp>0){ const li=document.createElement('li'); li.className='empty sinnombre';
     li.textContent = `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI ("Ninguno" o "Manzana o edificación contigua"). No aparecen en esta lista, pero sí en el Excel de frentes.`; ul.appendChild(li); }
 }
+// calle consultada en la red de las alcaldías (la resaltada): nombre y frentes; null si no hay
+function calleSel(){ if (!highlight || highlight.avId!==undefined || isGC() || !highlight.idx.length) return null;
+  return {nombre: META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre', idx: highlight.idx}; }
 function highlightStreet(nid, s){
   highlight = {nameId:nid, idx:s.idx};
   let w=180,sN=90,e=-180,n=-90; for(const i of s.idx){ for(let k=start[i];k<start[i+1];k++){ const x=POS[2*k],y=POS[2*k+1]; if(x<w)w=x; if(x>e)e=x; if(y<sN)sN=y; if(y>n)n=y; } }
   const pad = 0.0015; const vs = fitTo([w-pad,sN-pad,e+pad,n+pad], 60); vs.zoom = Math.min(vs.zoom, 16.5);
-  hideCard(); collapseSheet(); flyTo(vs, 1000); rerender();
+  hideCard(); collapseSheet(); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns();
 }
 $('q').addEventListener('input', renderResults);
 
@@ -766,7 +773,8 @@ function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); re
   $('dl-frentes').disabled = $('dl-calles').disabled = (sel===null);
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); }
+function syncCalleBtns(){ const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
   collapseSheet(); refresh();
@@ -842,6 +850,8 @@ const DIC = {
       ['banqueta_inegi','Disponibilidad de banqueta registrada por INEGI.','Dispone, No dispone, Conjunto habitacional, No aplica, No especificado'],
       ['lat','Latitud del punto medio del frente.','Grados decimales'],
       ['lon','Longitud del punto medio del frente.','Grados decimales'] ] },
+  calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. Si el nombre existe en varias colonias del ámbito, se incluyen todas.',
+    cols:[11,30,16,13,28,7,16,18,26,14,18,20,11,20,11,11], campos:null },
   calles: { titulo:'Resumen por calle', contenido:'Un renglón por calle dentro de su colonia, con la suma de sus frentes de manzana. Dos calles con el mismo nombre en colonias distintas son renglones distintos. Los frentes sin nombre de vialidad en INEGI no se incluyen; están en el Excel de frentes.',
     cols:[30,30,8,22,20,13,15,12,13,11,15,11],
     campos:[
@@ -890,6 +900,9 @@ const DIC = {
       ['km_prioritario','Suma de Muy Alta y Alta.','Kilómetros'],
       ['km_total','Kilómetros de la avenida en el ámbito.','Kilómetros'] ] }
 };
+DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Clase de prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
+function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Boolean))].map(k=>META.colonias[k].n); const muns=[...new Set(c.idx.map(i=>F.mun[i]))].map(m=>META.munNames[m]);
+  return `Calle ${c.nombre} · ${cols.length>4? cols.length+' colonias' : cols.join(', ')} · ${muns.join(', ')}`; }
 function ambitoTxt(){
   if (selAv!==null) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad');
   if (selCol!==null) return META.colonias[selCol].n + ' · ' + META.munNames[sel];
@@ -899,7 +912,7 @@ function dictAoa(key, nreg, archivo){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
-    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', ambitoTxt()],
+    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt()],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
     ['Registros', nreg], ['Fecha de generación', hoy], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
@@ -960,6 +973,14 @@ $('dl-frentes').onclick = ()=>{
   for(const i of idx){ const c=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', c.n, c.cp? c.cp.padStart(5,'0'):'', c.p>=0? META.prio[c.p]:'', c.ids||'', c.ut||'', c.pob||0, c.nbi||0, META.munNames[sel], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   deliverTable(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows);
 };
+$('dl-calle').onclick = ()=>{
+  const c = calleSel(); if (!c) return;
+  const rows=[['prioridad','vialidad','tipo_vialidad','responsable','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','lat','lon']];
+  const idx=[...c.idx].sort((a,b)=> (META.colonias[F.col[a]].n||'').localeCompare(META.colonias[F.col[b]].n||'','es') || F.prio[b]-F.prio[a]);
+  for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.pob||0, k.nbi||0, META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
+  const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
+  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}`, 'calle', rows);
+};
 $('dl-calles').onclick = ()=>{
   if (sel===null) return;
   const rows=[['vialidad','colonia','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','km_muy_alta','km_alta','km_prioritario','km_total']];
@@ -986,7 +1007,7 @@ $('dl-avenidas').onclick = ()=>{
 
 document.fonts && document.fonts.ready.then(()=> rerender());
 
-// Fichas PDF (jsPDF bajo demanda) de colonia, alcaldía, vialidades primarias de la alcaldía y avenida.
+// Fichas PDF (jsPDF bajo demanda) de colonia, alcaldía, vialidades primarias de la alcaldía, avenida y calle.
 // abre la ficha después de cargar jsPDF (de libs/ en el sitio; del CDN en el artefacto)
 function conPDF(kind){
   loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
@@ -1124,6 +1145,86 @@ function fichaPDF(kind){
   const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(c.n)}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}${sel!==null? '_'+slug(META.munNames[sel]):''}.pdf`;
   deliverBlob(fname, doc.output('blob'));
 }
+// ---------- ficha de calle (red de las alcaldías) ----------
+// Misma composición que las demás fichas: encabezado, cifras, barras por prioridad, mapa y tabla por colonia.
+function fichaCallePDF(){
+  const c = calleSel(); if (!c || !window.jspdf) return;
+  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'});
+  const W=215.9, M=15, GUINDA=[157,33,72], PIZARRA=[39,58,69], GRIS=[85,88,90], INK=[36,38,42], LINE=[226,221,213], PANEL=[248,246,242];
+  const f2 = new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const idx = c.idx, enCalle = new Set(idx);
+  const km=[0,0,0,0,0], n=[0,0,0,0,0]; let banq=0; const tipos=new Set(), porCol=new Map(), munSet=new Set();
+  for(const i of idx){ const k=F.len[i]/1000, p=F.prio[i]; km[p]+=k; n[p]++; if (META.disp[(F.flags[i]>>3)&7]==='Dispone') banq++; if (META.tipos[F.tipo[i]]) tipos.add(META.tipos[F.tipo[i]]); munSet.add(F.mun[i]);
+    let s=porCol.get(F.col[i]); if(!s){ s={km:0,kmp:0,n:0,np:0}; porCol.set(F.col[i],s); } s.km+=k; s.n++; if(p>=3){ s.kmp+=k; s.np++; } }
+  const tot=sum(km), kmp=km[3]+km[4], ntot=idx.length, np=n[3]+n[4];
+  const muns=[...munSet].map(m=>META.munNames[m]); const colNoms=[...porCol.keys()].filter(Boolean).map(k=>META.colonias[k].n);
+  // encabezado
+  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_IMG, 'PNG', M, 9, lw, lh);
+  doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text('Ficha de calle', W-M, 14, {align:'right'});
+  doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
+  doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
+  doc.setDrawColor(...GUINDA); doc.setLineWidth(0.8); doc.line(M, 26.5, W-M, 26.5);
+  doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(c.nombre.length>34? 17 : 22); doc.text(doc.splitTextToSize(c.nombre, W-2*M)[0], M, 38);
+  doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...GRIS);
+  const sub = `${colNoms.length>3? colNoms.length+' colonias' : colNoms.join(', ')} · ${muns.join(', ')} · ${fmt.format(ntot)} frentes de manzana · ${kmFull(tot)}`;
+  doc.text(doc.splitTextToSize(sub, W-2*M)[0], M, 44);
+  const pk = dom({km}); const pc = T.prio[pk];
+  doc.setFillColor(pc[0],pc[1],pc[2]); doc.setDrawColor(200,194,184); doc.setLineWidth(0.15); doc.circle(M+2, 51.2, 1.8, 'FD');
+  const l1 = `Prioridad predominante: ${META.prio[pk]} (${pct(km[pk],tot)} de los km de la calle)`;
+  doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(l1, M+6, 52.5); const tw1 = doc.getTextWidth(l1);
+  doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
+  const l2 = [...tipos].slice(0,2).join(', '); const l2x = M+6+tw1+8; if (l2 && l2x + doc.getTextWidth(l2) <= W-M) doc.text(l2, l2x, 52.5);
+  // cifras
+  const kp = [[kmFull(kmp), 'de frente prioritario de la calle (Muy Alta + Alta)'],[fmt1.format(tot? 100*kmp/tot:0)+' %','de los '+kmFull(tot)+' de frentes de la calle'],[fmt.format(np), `frentes prioritarios, de los ${fmt.format(ntot)} frentes de la calle`]];
+  const kw=(W-2*M-8)/3; let y=58;
+  kp.forEach((k,i)=>{ const x=M+i*(kw+4); doc.setFillColor(...PANEL); doc.setDrawColor(...LINE); doc.roundedRect(x,y,kw,20,2,2,'FD'); doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(k[0], x+4, y+9); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS); doc.text(doc.splitTextToSize(k[1], kw-8), x+4, y+14); });
+  doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GUINDA);
+  doc.text(`Banqueta (INEGI): ${fmt.format(banq)} de ${fmt.format(ntot)} frentes disponen de banqueta. Cada frente es un lado de la calle frente a una manzana.`, M, 82.5);
+  // barras + mapa
+  y=89; const colW=(W-2*M)*0.46;
+  doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS); doc.text('KILÓMETROS POR PRIORIDAD EN LA CALLE', M, y);
+  const max=Math.max(...km,0.001); const barX=M+22, barW=colW-22-24;
+  for(let k=4;k>=0;k--){ const yy=y+6+(4-k)*9; const col=T.prio[k]; doc.setFillColor(col[0],col[1],col[2]); doc.setDrawColor(200,194,184); doc.setLineWidth(0.15); doc.rect(M,yy-3,3.5,3.5,'FD'); doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK); doc.text(META.prio[k], M+5, yy);
+    doc.setFillColor(...PANEL); doc.rect(barX,yy-3.2,barW,4,'F'); doc.setFillColor(col[0],col[1],col[2]); doc.rect(barX,yy-3.2,Math.max(0.6,barW*km[k]/max),4,'FD');
+    doc.setTextColor(...GRIS); doc.text(`${kmFull(km[k])} · ${tot? fmt1.format(100*km[k]/tot):'0'} %`, barX+barW+2, yy); }
+  const mx=M+colW+6, my=y-4, mw=W-M-mx, mh=62;
+  doc.setDrawColor(...LINE); doc.setFillColor(255,255,255); doc.rect(mx,my,mw,mh,'FD');
+  doc.saveGraphicsState(); doc.rect(mx,my,mw,mh,null); doc.clip(); doc.discardPath();
+  let w=180,s0=90,e=-180,nn=-90; for(const i of idx){ for(let v=start[i];v<start[i+1];v++){ const x=POS[2*v], yv=POS[2*v+1]; if(x<w)w=x; if(x>e)e=x; if(yv<s0)s0=yv; if(yv>nn)nn=yv; } }
+  const pd=Math.max(0.0025, 0.15*Math.max(e-w, nn-s0)); const b=[w-pd,s0-pd,e+pd,nn+pd];
+  const cosl=Math.cos((b[1]+b[3])/2*Math.PI/180); const dx=(b[2]-b[0])*cosl, dy=(b[3]-b[1]); const sc=Math.min((mw-6)/dx,(mh-6)/dy);
+  // la vista del mapa se amplía hasta llenar el recuadro, para dar contexto alrededor de la calle
+  const cx=(b[0]+b[2])/2, cy=(b[1]+b[3])/2, hw=mw/2/sc/cosl, hh=mh/2/sc; const vb=[cx-hw,cy-hh,cx+hw,cy+hh];
+  const X=lon=>mx+mw/2+(lon-cx)*cosl*sc, Y=lat=>my+mh/2-(lat-cy)*sc;
+  // contexto: demás frentes de la zona en gris claro y contorno de las colonias de la calle
+  doc.setDrawColor(214,209,201); doc.setLineWidth(0.2);
+  for(let i=0;i<N;i++){ if (enCalle.has(i) || !munSet.has(F.mun[i])) continue; const a=start[i]; const x=POS[2*a], yv=POS[2*a+1]; if (x<vb[0]||x>vb[2]||yv<vb[1]||yv>vb[3]) continue;
+    for(let v=start[i];v<start[i+1]-1;v++) doc.line(X(POS[2*v]),Y(POS[2*v+1]),X(POS[2*v+2]),Y(POS[2*v+3])); }
+  doc.setDrawColor(...PIZARRA); doc.setLineWidth(0.3);
+  for(const cc of COLS){ if(!porCol.has(cc.i)) continue; for(const p of cc.paths){ for(let q=0;q<p.length-1;q++) doc.line(X(p[q][0]),Y(p[q][1]),X(p[q+1][0]),Y(p[q+1][1])); } }
+  for(let k=0;k<5;k++){ const col=T.prio[k]; doc.setDrawColor(col[0],col[1],col[2]); doc.setLineWidth(1.1);
+    for(const i of idx){ if(F.prio[i]!==k) continue; for(let v=start[i];v<start[i+1]-1;v++) doc.line(X(POS[2*v]),Y(POS[2*v+1]),X(POS[2*v+2]),Y(POS[2*v+3])); } }
+  doc.restoreGraphicsState();
+  doc.setFillColor(255,255,255); doc.rect(mx+0.3,my+mh-5.2,mw-0.6,4.9,'F');
+  doc.setFontSize(7.5); doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.text('La calle por prioridad · en gris, calles vecinas · contorno de sus colonias', mx+2, my+mh-2);
+  doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.rect(mx,my,mw,mh,'D');
+  // tabla por colonia
+  y=y+62; doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS); doc.text('LA CALLE POR COLONIA', M, y);
+  const items=[...porCol.entries()].sort((a,b2)=>b2[1].kmp-a[1].kmp || b2[1].km-a[1].km);
+  const cols=[[M,'Colonia'],[M+70,'Prioridad de la colonia'],[M+112,'Km de frente'],[M+138,'Km prior.'],[M+160,'Frentes prior.']];
+  const rows = items.slice(0,14).map(([k,st])=>{ const cc=META.colonias[k]; return [k? cc.n : 'Colonia no identificada', k && cc.p>=0? META.prio[cc.p] : '—', f2.format(st.km), f2.format(st.kmp), `${st.np} de ${st.n}`]; });
+  y+=6; doc.setFillColor(...PANEL); doc.rect(M,y-4,W-2*M,6,'F'); doc.setFontSize(7.5); cols.forEach(([x,h])=>doc.text(h.toUpperCase(),x+1.5,y));
+  doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK);
+  rows.forEach((r,i)=>{ const yy=y+6+i*6.2; if(i%2){ doc.setFillColor(252,251,249); doc.rect(M,yy-4.2,W-2*M,6.2,'F'); }
+    r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
+  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} colonias; el Excel de la calle trae todas.`, M+1.5, y+6+14*6.2); }
+  // pie
+  doc.setDrawColor(...LINE); doc.line(M,262,W-M,262); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
+  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '.', W-2*M), M, 266);
+  deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
+}
+$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js').then(fichaCallePDF)
+  .catch(()=>{ const st = $('dl-status'); if (st) st.textContent = 'No se pudo cargar el generador de PDF; revisa tu conexión.'; });
 $('dl-ficha').onclick = ()=>conPDF('col');
 $('dl-ficha-alc').onclick = ()=>conPDF('alc');
 $('dl-ficha-vpalc').onclick = ()=>conPDF('vpalc');
@@ -1188,6 +1289,10 @@ function renderActions(){
     main = (sel!==null && !vacia)? 'dl-frentes' : null;
     ficha = vacia? null : selCol!==null? 'dl-ficha' : sel!==null? 'dl-ficha-alc' : null;
     why = vacia? 'Esta colonia no tiene frentes a cargo de la alcaldía que descargar.' : sel===null? 'Elige una alcaldía o una colonia para descargar su listado.' : '';
+    // con una calle consultada, los botones principales son los de la calle
+    const calle = calleSel();
+    if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frentes de la calle (Excel)';
+      why = `Calle consultada: ${calle.nombre}. Los archivos de la ${selCol!==null? 'colonia' : 'alcaldía'} completa están en la pestaña Descargas.`; }
   }
   lbl.textContent = txt; m.disabled = !main; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
   hint.hidden = !why; hint.textContent = why; }

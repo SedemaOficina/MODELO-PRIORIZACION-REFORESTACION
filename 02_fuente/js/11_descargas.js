@@ -50,6 +50,8 @@ const DIC = {
       ['banqueta_inegi','Disponibilidad de banqueta registrada por INEGI.','Dispone, No dispone, Conjunto habitacional, No aplica, No especificado'],
       ['lat','Latitud del punto medio del frente.','Grados decimales'],
       ['lon','Longitud del punto medio del frente.','Grados decimales'] ] },
+  calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. Si el nombre existe en varias colonias del ámbito, se incluyen todas.',
+    cols:[11,30,16,13,28,7,16,18,26,14,18,20,11,20,11,11], campos:null },
   calles: { titulo:'Resumen por calle', contenido:'Un renglón por calle dentro de su colonia, con la suma de sus frentes de manzana. Dos calles con el mismo nombre en colonias distintas son renglones distintos. Los frentes sin nombre de vialidad en INEGI no se incluyen; están en el Excel de frentes.',
     cols:[30,30,8,22,20,13,15,12,13,11,15,11],
     campos:[
@@ -98,6 +100,9 @@ const DIC = {
       ['km_prioritario','Suma de Muy Alta y Alta.','Kilómetros'],
       ['km_total','Kilómetros de la avenida en el ámbito.','Kilómetros'] ] }
 };
+DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Clase de prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
+function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Boolean))].map(k=>META.colonias[k].n); const muns=[...new Set(c.idx.map(i=>F.mun[i]))].map(m=>META.munNames[m]);
+  return `Calle ${c.nombre} · ${cols.length>4? cols.length+' colonias' : cols.join(', ')} · ${muns.join(', ')}`; }
 function ambitoTxt(){
   if (selAv!==null) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad');
   if (selCol!==null) return META.colonias[selCol].n + ' · ' + META.munNames[sel];
@@ -107,7 +112,7 @@ function dictAoa(key, nreg, archivo){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
-    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', ambitoTxt()],
+    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt()],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
     ['Registros', nreg], ['Fecha de generación', hoy], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
@@ -167,6 +172,14 @@ $('dl-frentes').onclick = ()=>{
   idx.sort((a,b)=> F.prio[b]-F.prio[a] || (META.names[F.name[a]]||'').localeCompare(META.names[F.name[b]]||'') );
   for(const i of idx){ const c=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', c.n, c.cp? c.cp.padStart(5,'0'):'', c.p>=0? META.prio[c.p]:'', c.ids||'', c.ut||'', c.pob||0, c.nbi||0, META.munNames[sel], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   deliverTable(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows);
+};
+$('dl-calle').onclick = ()=>{
+  const c = calleSel(); if (!c) return;
+  const rows=[['prioridad','vialidad','tipo_vialidad','responsable','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','lat','lon']];
+  const idx=[...c.idx].sort((a,b)=> (META.colonias[F.col[a]].n||'').localeCompare(META.colonias[F.col[b]].n||'','es') || F.prio[b]-F.prio[a]);
+  for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.pob||0, k.nbi||0, META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
+  const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
+  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}`, 'calle', rows);
 };
 $('dl-calles').onclick = ()=>{
   if (sel===null) return;

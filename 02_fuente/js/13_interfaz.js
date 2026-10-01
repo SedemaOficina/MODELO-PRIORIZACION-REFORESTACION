@@ -57,6 +57,10 @@ function renderActions(){
     main = (sel!==null && !vacia)? 'dl-frentes' : null;
     ficha = vacia? null : selCol!==null? 'dl-ficha' : sel!==null? 'dl-ficha-alc' : null;
     why = vacia? 'Esta colonia no tiene frentes a cargo de la alcaldía que descargar.' : sel===null? 'Elige una alcaldía o una colonia para descargar su listado.' : '';
+    // con una calle consultada, los botones principales son los de la calle
+    const calle = calleSel();
+    if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frentes de la calle (Excel)';
+      why = `Calle consultada: ${calle.nombre}. Los archivos de la ${selCol!==null? 'colonia' : 'alcaldía'} completa están en la pestaña Descargas.`; }
   }
   lbl.textContent = txt; m.disabled = !main; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
   hint.hidden = !why; hint.textContent = why; }

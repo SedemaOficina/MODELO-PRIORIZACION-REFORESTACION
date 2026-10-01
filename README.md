@@ -2,7 +2,7 @@
 
 Herramienta **"Calles prioritarias para reforestar"** de la Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).
 
-Mapa de consulta para que las 16 alcaldías y el Gobierno de la Ciudad identifiquen qué colonias, calles y vialidades primarias conviene reforestar primero, según el modelo de priorización del SIA. Incluye buscador único, ubicación del usuario en campo, descargas en Excel con diccionario de datos y fichas PDF por alcaldía, colonia, vialidades primarias y avenida.
+Mapa de consulta para que las 16 alcaldías y el Gobierno de la Ciudad identifiquen qué colonias, calles y vialidades primarias conviene reforestar primero, según el modelo de priorización del SIA. Incluye buscador único, ubicación del usuario en campo, descargas en Excel con diccionario de datos y fichas PDF por alcaldía, colonia, vialidades primarias, avenida y calle.
 
 Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente, todo lo necesario para reconstruirla y la bitácora de decisiones. La herramienta se construyó con Claude por iteraciones.
 
@@ -57,7 +57,7 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 
 ## Estado al 25 de septiembre de 2026
 
-- Versión vigente: **v17.8** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
+- Versión vigente: **v17.9** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
 - Publicada en GitHub Pages y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar" de Claude.
 
 ### Pendientes

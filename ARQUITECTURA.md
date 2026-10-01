@@ -64,10 +64,10 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas, mapa de fondo | `setResp`, `setLayer`, `setFondo` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel | `colStat`, `avStat`, `frSumm`, `renderSummary` |
-| `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías | `buildStreets`, `buildAvenues`, `renderResults` |
+| `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías; calle consultada (la resaltada) | `buildStreets`, `buildAvenues`, `renderResults`, `highlightStreet`, `calleSel` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
 | `11_descargas.js` | CSV y Excel con diccionario de datos; carga de librerías bajo demanda | `deliverTable`, `dictAoa`, `loadLib` |
-| `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias y avenida | `conPDF`, `fichaPDF` |
+| `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |
 | `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
 | `14_buscador.js` | Buscador único con abreviaturas y tolerancia a errores | `omniIndex`, `omniSearch`, `omniPick` |
 | `15_mi_ubicacion.js` | GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
