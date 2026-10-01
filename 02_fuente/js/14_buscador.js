@@ -72,7 +72,10 @@ function omniPick(it){
     const cols=[...s.cols.keys()].filter(Boolean);
     if (cols.length===1){ pickColonia(cols[0]); const key=it.nid*4096+cols[0]; const st=streetIdx.get(key); if (st){ highlightStreet(key, st); } setTab('list'); renderResults(); }
     else { const muns=[...s.muns]; if (muns.length===1){ if (sel!==muns[0] || selCol!==null){ selEl.value=String(muns[0]); setSel(String(muns[0])); } } else if (sel!==null || selCol!==null){ selEl.value=''; setSel(''); }
-      $('q').value = META.names[it.nid]; renderResults(); setTab('list'); } }
+      $('q').value = META.names[it.nid]; renderResults(); setTab('list');
+      // varias calles con el mismo nombre: se resaltan todas y el mapa se acerca a ellas
+      const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
+      if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet(); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });

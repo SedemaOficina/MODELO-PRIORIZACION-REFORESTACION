@@ -82,6 +82,9 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   ok('mapa de fondo satelital con su atribución', teselas > 0 && (await texto(page, '#attrib')).includes('Sentinel-2'), `${teselas} teselas`);
   await page.$eval('.seg.fondo button[data-fondo="no"]', b => b.click()); await page.waitForTimeout(1500);
   ok('quitar el fondo satelital', (await texto(page, '#attrib')).startsWith('Sin mapa base'));
+  await buscar(page, 'Montes de las Cordilleras'); await page.keyboard.press('Enter'); await page.waitForTimeout(5000);
+  const escCalle = await texto(page, '#scalebar');
+  ok('buscar una calle repetida acerca el mapa a esas calles', /\d m$/.test(escCalle) && (await texto(page, '#scope-title')).includes('Tláhuac'), `${escCalle} · ${await texto(page, '#scope-title')}`);
   await page.screenshot({ path: path.join(SALIDA, 'escritorio.png') }); await ctx.close();
 
   // ---------- teléfono ----------

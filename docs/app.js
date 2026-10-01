@@ -281,7 +281,10 @@ function layers(){
     for(let i=0;i<idx.length;i++){ st[i]=n; n += src.st[idx[i]+1]-src.st[idx[i]]; }
     st[idx.length]=n; const p = new Float64Array(n*2); let o=0;
     for(const i of idx){ for(let k=src.st[i];k<src.st[i+1];k++){ p[o++]=src.pos[2*k]; p[o++]=src.pos[2*k+1]; } }
-    L.push(new PathLayer({id:'hl', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}}, _pathType:'open', widthUnits:'meters', getWidth:14, widthMinPixels:4, widthMaxPixels:16, getColor:[T.gold[0],T.gold[1],T.gold[2],160], pickable:false}));
+    // calle buscada: línea dorada con borde oscuro para que destaque sobre cualquier color de prioridad
+    const hd = {length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}};
+    L.push(new PathLayer({id:'hl-borde', data:hd, _pathType:'open', widthUnits:'meters', getWidth:24, widthMinPixels:9, widthMaxPixels:26, getColor:[36,38,42,235], pickable:false}));
+    L.push(new PathLayer({id:'hl', data:hd, _pathType:'open', widthUnits:'meters', getWidth:14, widthMinPixels:5, widthMaxPixels:16, getColor:[T.gold[0],T.gold[1],T.gold[2],255], pickable:false}));
   }
   L.push(new TextLayer({id:'alc-labels', data:ALC_LABELS, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:charset,
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:{sdf:true}, outlineWidth:5, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> d.text.length, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
@@ -1278,7 +1281,10 @@ function omniPick(it){
     const cols=[...s.cols.keys()].filter(Boolean);
     if (cols.length===1){ pickColonia(cols[0]); const key=it.nid*4096+cols[0]; const st=streetIdx.get(key); if (st){ highlightStreet(key, st); } setTab('list'); renderResults(); }
     else { const muns=[...s.muns]; if (muns.length===1){ if (sel!==muns[0] || selCol!==null){ selEl.value=String(muns[0]); setSel(String(muns[0])); } } else if (sel!==null || selCol!==null){ selEl.value=''; setSel(''); }
-      $('q').value = META.names[it.nid]; renderResults(); setTab('list'); } }
+      $('q').value = META.names[it.nid]; renderResults(); setTab('list');
+      // varias calles con el mismo nombre: se resaltan todas y el mapa se acerca a ellas
+      const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
+      if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet(); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
