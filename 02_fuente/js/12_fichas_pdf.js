@@ -212,18 +212,25 @@ function fichaCallePDF(){
   doc.setFontSize(7.5); doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.text('La calle por prioridad · en gris, calles vecinas · contorno de sus colonias', mx+2, my+mh-2);
   doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.rect(mx,my,mw,mh,'D');
   // tabla por colonia
-  y=y+62; doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS); doc.text('LA CALLE POR COLONIA', M, y);
-  const items=[...porCol.entries()].sort((a,b2)=>b2[1].kmp-a[1].kmp || b2[1].km-a[1].km);
-  const cols=[[M,'Colonia'],[M+70,'Prioridad de la colonia'],[M+112,'Km de frente'],[M+138,'Km prior.'],[M+160,'Frentes prior.']];
-  const rows = items.slice(0,14).map(([k,st])=>{ const cc=META.colonias[k]; return [k? cc.n : 'Colonia no identificada', k && cc.p>=0? META.prio[cc.p] : '—', f2.format(st.km), f2.format(st.kmp), `${st.np} de ${st.n}`]; });
+  // tabla: tramos de la calle (de esquina a esquina); si la calle abarca varias colonias, por colonia
+  y=y+62; doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
+  const trs = porCol.size===1? tramosDeCalle(idx) : null;
+  let items, cols, rows;
+  if (trs){ doc.text('TRAMOS DE LA CALLE, DE ESQUINA A ESQUINA', M, y); items = trs;
+    cols=[[M,'Tramo'],[M+13,'Ubicación'],[M+104,'Metros de calle'],[M+130,'Lados'],[M+144,'Predominante'],[M+168,'Km prior.']];
+    rows = items.slice(0,14).map(t=>[t.n, entreTxt(t), fmt.format(t.largo), t.lados, META.prio[dom({km:t.km})], f2.format(t.km[3]+t.km[4])]);
+  } else { doc.text('LA CALLE POR COLONIA', M, y);
+    items=[...porCol.entries()].sort((a,b2)=>b2[1].kmp-a[1].kmp || b2[1].km-a[1].km);
+    cols=[[M,'Colonia'],[M+70,'Prioridad de la colonia'],[M+112,'Km de frente'],[M+138,'Km prior.'],[M+160,'Frentes prior.']];
+    rows = items.slice(0,14).map(([k,st])=>{ const cc=META.colonias[k]; return [k? cc.n : 'Colonia no identificada', k && cc.p>=0? META.prio[cc.p] : '—', f2.format(st.km), f2.format(st.kmp), `${st.np} de ${st.n}`]; }); }
   y+=6; doc.setFillColor(...PANEL); doc.rect(M,y-4,W-2*M,6,'F'); doc.setFontSize(7.5); cols.forEach(([x,h])=>doc.text(h.toUpperCase(),x+1.5,y));
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK);
   rows.forEach((r,i)=>{ const yy=y+6+i*6.2; if(i%2){ doc.setFillColor(252,251,249); doc.rect(M,yy-4.2,W-2*M,6.2,'F'); }
     r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
-  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} colonias; el Excel de la calle trae todas.`, M+1.5, y+6+14*6.2); }
+  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} ${trs? 'tramos; el Excel de la calle trae todos' : 'colonias; el Excel de la calle trae todas'}.`, M+1.5, y+6+14*6.2); }
   // pie
   doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
-  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
+  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
 }
 $('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js').then(fichaCallePDF)

@@ -23,7 +23,7 @@ Imprime `OK` o `FALLA` por cada punto y termina con error si algo falla. Las des
 
 ## Prueba de coherencia de cifras
 
-`prueba_coherencia_cifras.js` (usa `lib_pruebas.js`) compara lo que muestra la pantalla con el **contenido** de los Excel y las fichas PDF y con un recálculo independiente desde `docs/datos/*.bin`: colonias con frentes en otra alcaldía (Tecpinco), unidades de la leyenda, tramos por `id_tramo`, avenida acotada a alcaldía y calles homónimas. Desde la v17.15 verifica además el cuadro «Quién atiende» (km de frente por responsable y prioridad), el universo de intervención (Muy Alta, Alta y Media) con sus cifras sin arbolado y con banqueta, la población de ese universo y el desglose de cada calle por prioridad.
+`prueba_coherencia_cifras.js` (usa `lib_pruebas.js`) compara lo que muestra la pantalla con el **contenido** de los Excel y las fichas PDF y con un recálculo independiente desde `docs/datos/*.bin`: colonias con frentes en otra alcaldía (Tecpinco), unidades de la leyenda, tramos por `id_tramo`, avenida acotada a alcaldía y calles homónimas. Desde la v17.15 verifica además el cuadro «Quién atiende» (km de frente por responsable y prioridad), el universo de intervención (Muy Alta, Alta y Media) con sus cifras sin arbolado y con banqueta, la población de ese universo y el desglose de cada calle por prioridad; desde la v17.16, los tramos de la calle consultada (cuadro, Excel y ficha).
 
 ```
 node 04_pruebas/prueba_coherencia_cifras.js

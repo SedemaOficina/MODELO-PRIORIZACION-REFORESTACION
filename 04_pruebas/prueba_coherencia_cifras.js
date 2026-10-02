@@ -187,6 +187,18 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('v17.15 el listado de calles desglosa cada calle por prioridad', li.length > 0 && li.every(l => l.partes.length >= 1 && l.partes.every(p => /^(Muy Alta|Alta|Media|Baja|Muy Baja) [\d.,]+ (km|m)$/.test(p))), JSON.stringify(li[0] || {}));
     ok('v17.15 las calles con más de una prioridad declaran la predominante', li.filter(l => l.partes.length > 1).every(l => l.pred)); }
 
+  // ---------- v17.16 · tramos de la calle consultada ----------
+  { const li0 = await page.$('#results li:not(.empty)'); const txt0 = (await li0.innerText()).replace(/\s+/g, ' '); await li0.click(); await page.waitForTimeout(700);
+    const nFr0 = +(txt0.match(/de (\d+) frentes prioritarios/) || [])[1];
+    const tr = await page.$eval('#tramos', b => b.hidden ? null : [...b.querySelectorAll('ol.tramos li')].map(l => l.textContent.replace(/\s+/g, ' ')));
+    ok('v17.16 al elegir una calle se listan sus tramos', !!tr && tr.length > 0, tr ? `${tr.length} tramos · ${tr[0].slice(0, 110)}` : 'sin cuadro de tramos');
+    const frT = (tr || []).reduce((s, t) => s + +((t.match(/(\d+) frentes?(?! de)/) || [])[1] || 0), 0);
+    ok('v17.16 los tramos reúnen todos los frentes de la calle, sin repetir', frT === nFr0, `tramos ${frT} · lista ${nFr0}`);
+    x = xlsx((await baja('dl-calle')).ruta); const h = x.datos[0], it = h.indexOf('tramo');
+    ok('v17.16 el Excel de la calle numera el tramo de cada frente y lo define en el diccionario', it > 0 && x.datos.slice(1).every(r => +r[it] >= 1) && new Set(x.datos.slice(1).map(r => r[it])).size === (tr || []).length && +dicVal(x, 'Tramos de la calle') === (tr || []).length && h.every(c => x.dic.some(q => q[0] === c)));
+    const f = await baja('dl-ficha-calle'); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+    ok('v17.16 la ficha de la calle trae la tabla de tramos', /TRAMOS DE LA CALLE/.test(t) && /confirman en campo/.test(t)); }
+
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();
   process.exit(ok.fin() ? 1 : 0);

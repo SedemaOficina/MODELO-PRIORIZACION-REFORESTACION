@@ -66,6 +66,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `07_leyenda_y_capas.js` | Leyenda-filtro, fila "Atiende" (alcaldías / Gobierno Central), casillas de capas, mapa de fondo | `setResp`, `setLayer`, `setFondo` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; universo de intervención (Muy Alta, Alta y Media) y cuadro «Quién atiende» en km de frente por responsable | `colStat`, `avStat`, `frSumm`, `repStat`, `repartoHtml`, `univHtml`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías; calle consultada (la resaltada) | `buildStreets`, `buildAvenues`, `desgHtml` (desglose de la calle por prioridad), `renderResults`, `highlightStreet`, `calleSel` |
+| `09_tramos.js` | Tramos de la calle consultada: agrupa sus frentes de esquina a esquina con una regla geométrica (casi paralelos, en lados opuestos y traslapados) y nombra las vialidades que los delimitan; se calcula al consultar, sin cambiar los datos | `tramosDeCalle`, `entreTxt`, `tramosSel`, `renderTramos` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
 | `11_descargas.js` | CSV y Excel con diccionario de datos; carga de librerías bajo demanda | `deliverTable`, `dictAoa`, `loadLib` |
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |

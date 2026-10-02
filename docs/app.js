@@ -822,6 +822,79 @@ function highlightStreet(nid, s){
 }
 $('q').addEventListener('input', renderResults);
 
+// Tramos de una calle de la red de las alcaldías: agrupa los frentes de manzana de la calle consultada en tramos
+// (de esquina a esquina, con sus dos lados) y nombra las vialidades que los delimitan. Se calcula al consultar la calle,
+// a partir de la geometría de los frentes; no cambia los datos ni el catálogo.
+// Regla: dos frentes de la misma calle forman un tramo cuando son casi paralelos (≤ 30°), están en lados opuestos
+// a no más de TR_ANCHO metros y se traslapan a lo largo de la calle. Es una aproximación geométrica: se verifica en campo.
+const TR_ANCHO = 45, TR_COS = Math.cos(30*Math.PI/180), TR_ESQ = 28;
+const trXY = (k, c) => [POS[2*k]*111320*c, POS[2*k+1]*110540];   // grados → metros (proyección local)
+function trFrente(i, c){ const a = trXY(start[i], c), b = trXY(start[i+1]-1, c); let dx=b[0]-a[0], dy=b[1]-a[1]; const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
+  return {i, a, b, m:[(a[0]+b[0])/2,(a[1]+b[1])/2], d:[dx,dy], L}; }
+// índice espacial de extremos de todos los frentes (se arma una sola vez, la primera vez que se consulta una calle)
+let TR_GRID = null; const TR_CELL = 0.0005;
+function trGrid(){ if (TR_GRID) return TR_GRID; TR_GRID = new Map();
+  const put = (k, i) => { const key = Math.floor(POS[2*k]/TR_CELL)*100000 + Math.floor(POS[2*k+1]/TR_CELL); let a = TR_GRID.get(key); if(!a){ a=[]; TR_GRID.set(key,a); } a.push(i); };
+  for(let i=0;i<N;i++){ put(start[i], i); put(start[i+1]-1, i); } return TR_GRID; }
+// nombre de la vialidad que cruza cerca de un punto (en metros), distinta de la calle consultada y no paralela a ella
+function trCruce(pt, c, nid, d){ const G = trGrid(); const lon = pt[0]/(111320*c), lat = pt[1]/110540; const cx=Math.floor(lon/TR_CELL), cy=Math.floor(lat/TR_CELL);
+  let best=null, bd=TR_ESQ;
+  for(let x=cx-1;x<=cx+1;x++) for(let y=cy-1;y<=cy+1;y++){ const a = G.get(x*100000+y); if(!a) continue;
+    for(const j of a){ const nj=F.name[j]; if (nj===nid || PLACEHOLDER.has(nj) || !META.names[nj]) continue; const f = trFrente(j, c);
+      if (Math.abs(f.d[0]*d[0]+f.d[1]*d[1]) > TR_COS) continue;
+      const dist = Math.min(Math.hypot(f.a[0]-pt[0], f.a[1]-pt[1]), Math.hypot(f.b[0]-pt[0], f.b[1]-pt[1])); if (dist<bd){ bd=dist; best=nj; } } }
+  return best; }
+// tramos de una calle: recibe los índices de sus frentes y devuelve [{n, idx, m, lados, km:[5], entre:[a,b], bounds}] ordenados a lo largo de la calle
+function tramosDeCalle(idx){
+  if (!idx.length) return [];
+  const c = Math.cos(POS[2*start[idx[0]]+1]*Math.PI/180); const fr = idx.map(i=>trFrente(i, c)); const n = fr.length;
+  const par = fr.map((_,k)=>k); const find = k => { while(par[k]!==k){ par[k]=par[par[k]]; k=par[k]; } return k; };
+  for(let p=0;p<n;p++) for(let q=p+1;q<n;q++){ const A=fr[p], B=fr[q];
+    if (Math.abs(A.d[0]*B.d[0]+A.d[1]*B.d[1]) < TR_COS) continue;
+    const rx=B.m[0]-A.m[0], ry=B.m[1]-A.m[1]; const perp = Math.abs(rx*A.d[1]-ry*A.d[0]); if (perp > TR_ANCHO || perp < 2) continue;
+    // traslape de B sobre el eje de A
+    const t1=(B.a[0]-A.a[0])*A.d[0]+(B.a[1]-A.a[1])*A.d[1], t2=(B.b[0]-A.a[0])*A.d[0]+(B.b[1]-A.a[1])*A.d[1];
+    const ov = Math.min(A.L, Math.max(t1,t2)) - Math.max(0, Math.min(t1,t2)); if (ov < Math.min(15, 0.3*Math.min(A.L,B.L))) continue;
+    par[find(p)] = find(q); }
+  const grupos = new Map(); fr.forEach((f,k)=>{ const r=find(k); let g=grupos.get(r); if(!g){ g=[]; grupos.set(r,g); } g.push(f); });
+  // eje general de la calle: de los dos puntos medios más alejados entre sí
+  let e0=fr[0].m, e1=fr[0].m, dm=-1; for(const A of fr) for(const B of fr){ const dd=Math.hypot(A.m[0]-B.m[0],A.m[1]-B.m[1]); if(dd>dm){ dm=dd; e0=A.m; e1=B.m; } }
+  let ex=e1[0]-e0[0], ey=e1[1]-e0[1]; const el=Math.hypot(ex,ey)||1; ex/=el; ey/=el; if (el<2){ ex=fr[0].d[0]; ey=fr[0].d[1]; }
+  const nid = F.name[idx[0]]; const out=[];
+  for(const g of grupos.values()){
+    // eje del tramo: el del frente más largo; extremos del tramo sobre ese eje
+    const ref = g.reduce((a,b)=> b.L>a.L? b : a, g[0]); let tmin=Infinity, tmax=-Infinity, pmin=null, pmax=null; const lado = new Set(); const km=[0,0,0,0,0]; let m=0;
+    for(const f of g){ for(const p of [f.a,f.b]){ const t=(p[0]-ref.a[0])*ref.d[0]+(p[1]-ref.a[1])*ref.d[1]; if(t<tmin){ tmin=t; pmin=p; } if(t>tmax){ tmax=t; pmax=p; } }
+      const s=(f.m[0]-ref.m[0])*ref.d[1]-(f.m[1]-ref.m[1])*ref.d[0]; lado.add(Math.abs(s)<2? 0 : s>0? 1 : -1); km[F.prio[f.i]]+=F.len[f.i]/1000; m+=F.len[f.i]; }
+    const lados = (lado.has(1) && lado.has(-1)) || (lado.has(0) && (lado.has(1)||lado.has(-1))) ? 2 : 1;
+    let w=180,s=90,e=-180,nn=-90; for(const f of g){ for(let k=start[f.i];k<start[f.i+1];k++){ const x=POS[2*k],y=POS[2*k+1]; if(x<w)w=x; if(x>e)e=x; if(y<s)s=y; if(y>nn)nn=y; } }
+    const cm = g.reduce((a,f)=>[a[0]+f.m[0]/g.length, a[1]+f.m[1]/g.length],[0,0]);
+    let ca = trCruce(pmin, c, nid, ref.d), cb = trCruce(pmax, c, nid, ref.d);
+    const pos = cm[0]*ex+cm[1]*ey; if ((pmax[0]-pmin[0])*ex+(pmax[1]-pmin[1])*ey < 0){ const t=ca; ca=cb; cb=t; }
+    out.push({idx:g.map(f=>f.i), m, largo:Math.round(tmax-tmin), lados, km, entre:[ca,cb], bounds:[w,s,e,nn], pos}); }
+  out.sort((a,b)=>a.pos-b.pos); out.forEach((t,k)=>{ t.n=k+1; }); return out;
+}
+// texto «entre A y B» de un tramo
+function entreTxt(t){ const a = t.entre[0]!==null? META.names[t.entre[0]] : null, b = t.entre[1]!==null? META.names[t.entre[1]] : null;
+  return a && b? (a===b? `a la altura de ${a}` : `entre ${a} y ${b}`) : (a||b)? `desde ${a||b}` : 'sin cruce identificado'; }
+let TR_SEL = null;   // tramos de la calle consultada: {key, lista}
+function tramosSel(){ const c = calleSel(); if (!c){ TR_SEL=null; return null; } const key = highlight.nameId; if (!TR_SEL || TR_SEL.key!==key) TR_SEL = {key, lista:tramosDeCalle(c.idx)}; return TR_SEL.lista; }
+// número de tramo de cada frente de la calle consultada (para el Excel)
+function tramoDeFrente(){ const m = new Map(); const l = tramosSel(); if (l) for(const t of l) for(const i of t.idx) m.set(i, t); return m; }
+function renderTramos(){
+  const box = $('tramos'); if (!box) return; const c = calleSel(); const l = c && !isGC()? tramosSel() : null;
+  if (!l){ box.hidden = true; box.innerHTML=''; return; }
+  const d = dom({km:l.reduce((a,t)=>a.map((v,k)=>v+t.km[k]),[0,0,0,0,0])});
+  box.hidden = false;
+  box.innerHTML = `<div class="section-title"><h2>Tramos de ${c.nombre}</h2><span>${l.length} tramo${l.length===1?'':'s'} · predominante ${META.prio[d]}</span></div>
+    <ol class="tramos">${l.map(t=>{ const pd = dom({km:t.km}); const partes=[]; for(let p=4;p>=0;p--) if(t.km[p]>0) partes.push(`<span><i style="background:var(--p${p})"></i>${META.prio[p]} ${kmFull(t.km[p])}</span>`);
+      return `<li tabindex="0" data-t="${t.n-1}"><b>${t.n}</b><div><div class="n">${entreTxt(t)}</div><div class="desg">${partes.join('')}</div><div class="t">${fmt.format(t.largo)} m de calle · ${t.lados===2? 'dos lados' : 'un lado'} · ${t.idx.length} frente${t.idx.length===1?'':'s'}${partes.length>1? ' · predominante '+META.prio[pd] : ''}</div></div></li>`; }).join('')}</ol>
+    <p class="note">Un tramo va de esquina a esquina y reúne los frentes de sus dos lados. Se arma con una regla geométrica a partir de los frentes de manzana; las vialidades que lo delimitan son las más cercanas a sus extremos y deben confirmarse en campo. Selecciona un tramo para ubicarlo en el mapa.</p>`;
+  box.querySelectorAll('li').forEach(li=>{ const go=()=>{ const t=l[+li.dataset.t]; const pad=0.0008; const vs=fitTo([t.bounds[0]-pad,t.bounds[1]-pad,t.bounds[2]+pad,t.bounds[3]+pad], 60); vs.zoom=Math.min(vs.zoom, 17.5);
+      box.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); collapseSheet(); flyTo(vs, 800); };
+    li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
+}
+
 // Selección de alcaldía, colonia y avenida, y refresh(): recalcula colores, cifras y listados del ámbito.
 // ---------- selección de alcaldía y refresh() ----------
 const selEl = $('alc');
@@ -853,7 +926,7 @@ function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); re
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
   $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); }
-function syncCalleBtns(){ const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;
+function syncCalleBtns(){ renderTramos(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;
   const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista para descargar su Excel o su ficha.`; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
@@ -937,7 +1010,7 @@ const DIC = {
       ['lat','Latitud del punto medio del frente.','Grados decimales'],
       ['lon','Longitud del punto medio del frente.','Grados decimales'] ] },
   calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. La calle es la de la colonia indicada en el ámbito; las calles con el mismo nombre en otras colonias no se incluyen.',
-    cols:[11,30,16,13,28,7,16,18,26,14,18,20,11,20,11,11], campos:null },
+    cols:[11,30,16,13,28,7,16,18,26,14,18,20,11,20,8,44,11,11], campos:null },
   calles: { titulo:'Resumen por calle', contenido:'Un renglón por calle dentro de su colonia, con la suma de sus frentes de manzana. Dos calles con el mismo nombre en colonias distintas son renglones distintos. Los frentes sin nombre de vialidad en INEGI no se incluyen; están en el Excel de frentes.',
     cols:[30,30,8,22,20,13,15,12,13,11,15,11,24,11],
     campos:[
@@ -990,6 +1063,9 @@ const DIC = {
       ['km_total','Kilómetros de la avenida en el ámbito.','Kilómetros'] ] }
 };
 DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Clase de prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
+DIC.calle.campos.splice(DIC.calle.campos.findIndex(f=>f[0]==='lat'), 0,
+  ['tramo','Número del tramo de la calle al que pertenece el frente. Un tramo va de esquina a esquina y reúne los frentes de sus dos lados; se numera a lo largo de la calle. Se arma con una regla geométrica (frentes casi paralelos, en lados opuestos y traslapados) y debe confirmarse en campo.','Entero'],
+  ['tramo_entre','Vialidades más cercanas a los extremos del tramo.','Texto']);
 function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Boolean))].map(k=>META.colonias[k].n); const muns=[...new Set(c.idx.map(i=>F.mun[i]))].map(m=>META.munNames[m]);
   return `Calle ${c.nombre} · ${cols.length>4? cols.length+' colonias' : cols.join(', ')} · ${muns.join(', ')}`; }
 function ambitoTxt(key){
@@ -1071,11 +1147,12 @@ $('dl-frentes').onclick = ()=>{
 };
 $('dl-calle').onclick = ()=>{
   const c = calleSel(); if (!c) return;
-  const rows=[['prioridad','vialidad','tipo_vialidad','responsable','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','lat','lon']];
-  const idx=[...c.idx].sort((a,b)=> (META.colonias[F.col[a]].n||'').localeCompare(META.colonias[F.col[b]].n||'','es') || F.prio[b]-F.prio[a]);
-  for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.pob||0, k.nbi||0, META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
+  const rows=[['prioridad','vialidad','tipo_vialidad','responsable','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','tramo','tramo_entre','lat','lon']];
+  const tr = tramoDeFrente(); const nt = i => tr.has(i)? tr.get(i).n : 0;
+  const idx=[...c.idx].sort((a,b)=> nt(a)-nt(b) || F.prio[b]-F.prio[a]);
+  for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.pob||0, k.nbi||0, META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], nt(i)||'', tr.has(i)? entreTxt(tr.get(i)) : '', num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
-  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}`, 'calle', rows);
+  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]]);
 };
 $('dl-calles').onclick = ()=>{
   if (sel===null) return;
@@ -1318,18 +1395,25 @@ function fichaCallePDF(){
   doc.setFontSize(7.5); doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.text('La calle por prioridad · en gris, calles vecinas · contorno de sus colonias', mx+2, my+mh-2);
   doc.setDrawColor(...LINE); doc.setLineWidth(0.2); doc.rect(mx,my,mw,mh,'D');
   // tabla por colonia
-  y=y+62; doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS); doc.text('LA CALLE POR COLONIA', M, y);
-  const items=[...porCol.entries()].sort((a,b2)=>b2[1].kmp-a[1].kmp || b2[1].km-a[1].km);
-  const cols=[[M,'Colonia'],[M+70,'Prioridad de la colonia'],[M+112,'Km de frente'],[M+138,'Km prior.'],[M+160,'Frentes prior.']];
-  const rows = items.slice(0,14).map(([k,st])=>{ const cc=META.colonias[k]; return [k? cc.n : 'Colonia no identificada', k && cc.p>=0? META.prio[cc.p] : '—', f2.format(st.km), f2.format(st.kmp), `${st.np} de ${st.n}`]; });
+  // tabla: tramos de la calle (de esquina a esquina); si la calle abarca varias colonias, por colonia
+  y=y+62; doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
+  const trs = porCol.size===1? tramosDeCalle(idx) : null;
+  let items, cols, rows;
+  if (trs){ doc.text('TRAMOS DE LA CALLE, DE ESQUINA A ESQUINA', M, y); items = trs;
+    cols=[[M,'Tramo'],[M+13,'Ubicación'],[M+104,'Metros de calle'],[M+130,'Lados'],[M+144,'Predominante'],[M+168,'Km prior.']];
+    rows = items.slice(0,14).map(t=>[t.n, entreTxt(t), fmt.format(t.largo), t.lados, META.prio[dom({km:t.km})], f2.format(t.km[3]+t.km[4])]);
+  } else { doc.text('LA CALLE POR COLONIA', M, y);
+    items=[...porCol.entries()].sort((a,b2)=>b2[1].kmp-a[1].kmp || b2[1].km-a[1].km);
+    cols=[[M,'Colonia'],[M+70,'Prioridad de la colonia'],[M+112,'Km de frente'],[M+138,'Km prior.'],[M+160,'Frentes prior.']];
+    rows = items.slice(0,14).map(([k,st])=>{ const cc=META.colonias[k]; return [k? cc.n : 'Colonia no identificada', k && cc.p>=0? META.prio[cc.p] : '—', f2.format(st.km), f2.format(st.kmp), `${st.np} de ${st.n}`]; }); }
   y+=6; doc.setFillColor(...PANEL); doc.rect(M,y-4,W-2*M,6,'F'); doc.setFontSize(7.5); cols.forEach(([x,h])=>doc.text(h.toUpperCase(),x+1.5,y));
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK);
   rows.forEach((r,i)=>{ const yy=y+6+i*6.2; if(i%2){ doc.setFillColor(252,251,249); doc.rect(M,yy-4.2,W-2*M,6.2,'F'); }
     r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
-  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} colonias; el Excel de la calle trae todas.`, M+1.5, y+6+14*6.2); }
+  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} ${trs? 'tramos; el Excel de la calle trae todos' : 'colonias; el Excel de la calle trae todas'}.`, M+1.5, y+6+14*6.2); }
   // pie
   doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
-  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
+  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
 }
 $('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js').then(fichaCallePDF)
