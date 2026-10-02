@@ -1281,14 +1281,15 @@ panelBtn.onclick = ()=>{ const off = document.body.classList.toggle('panel-off')
   setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 120); };
 const collapseSheet = ()=>{ if(!isPhone()) return; if(sheetState!=='half') setSheetState('half'); const k=$('answer'); if(k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
 const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle');
-function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); }
+function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); legendBtn.title = open? 'Minimizar el panel de capas' : 'Capas y prioridad'; }
 legendBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(!isPhone());
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
 let curTab = 'res';
-function setTab(t){ curTab=t; document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
+function setTab(t){ curTab=t; document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
+  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
 function updTabLabel(){
   const lbl = isGC()? 'Avenidas' : (alcOnly() && sel===null)? 'Alcaldías' : (colOnly() && selCol===null)? 'Colonias' : 'Calles';

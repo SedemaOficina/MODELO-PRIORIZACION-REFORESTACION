@@ -3,7 +3,7 @@
 <title>Calles Prioritarias para Reforestar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=afea32ae8d">
+<link rel="stylesheet" href="estilos.css?v=7a281fc274">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -112,7 +112,7 @@
       <button class="tool" id="zloc" title="Mi ubicación" aria-label="Mi ubicación" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
     </div>
     <div class="legend">
-      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar o mostrar el panel de capas"><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar el panel de capas" aria-label="Capas y prioridad"><svg class="lg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg class="lg-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
       <div id="legend-body">
       <div class="lg-sec"><span class="lg-cap" id="lvl-label">Ver en el mapa</span><div class="seg lvl pills" role="group" aria-labelledby="lvl-label">
             <button type="button" data-lvl="alc" aria-pressed="false"><i></i>Alcaldías</button>
@@ -271,5 +271,5 @@
 <script src="config.js?v=973064414d"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=bd86cddf60"></script>
+<script src="app.js?v=59d36007df"></script>
 </body></html>
