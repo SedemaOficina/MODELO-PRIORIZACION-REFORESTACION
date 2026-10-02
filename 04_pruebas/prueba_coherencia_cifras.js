@@ -109,8 +109,15 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   ok('H-020 nombre repetido: no se ofrece Excel ni ficha «de la calle»', !e.dl['dl-calle'].visible && !e.dl['dl-ficha-calle'].visible);
   ok('H-020 nombre repetido: aviso para elegir una calle', /Elige una en la lista/.test(e.dlStatus || ''), e.dlStatus);
   ok('H-020 la lista muestra las calles, cada una en su colonia', e.lista.filter(l => !l.empty).length > 1, e.listCount);
-  const li = (await page.$$('#results li:not(.empty)'))[0]; const txtLi = (await li.innerText()).replace(/\s+/g, ' ');
-  await li.evaluate(n => n.click()); await page.waitForTimeout(700); e = await L.estado(page);
+  // v17.17: sin alcaldía elegida, el nombre repetido se responde con un paso de ubicación (alcaldías y renglones sin cifras)
+  const chips = await page.$$eval('#locchips button', bs => bs.map(b => b.textContent.replace(/\s+/g, ' ').trim()));
+  const nTit = +((e.listTitle || '').replace(/,/g, '').match(/^(\d+) calles (se llaman|coinciden)/i) || [])[1];
+  ok('v17.17 nombre repetido en toda la ciudad: se pregunta la alcaldía, con las que tienen esa calle', chips.length > 1 && chips.reduce((s, c) => s + +(c.match(/(\d+)$/) || [0, 0])[1], 0) === nTit, `${e.listTitle} · ${chips.slice(0, 4).join(' | ')}`);
+  ok('v17.17 los renglones para ubicar no llevan cifras de prioridad', e.lista.filter(l => !l.empty).every(l => !/frentes prioritarios|Muy Alta|km/.test(l.t)), (e.lista[0] || {}).t);
+  const li = (await page.$$('#results li:not(.empty)'))[0];
+  await li.evaluate(n => n.click()); await page.waitForTimeout(900); e = await L.estado(page);
+  const txtLi = (e.lista.find(l => l.act) || { t: '' }).t;
+  ok('v17.17 al elegir, la consulta queda en la alcaldía de la calle y la calle resaltada', e.alcSel !== '' && txtLi.length > 0, `alc ${e.alcSel} · ${txtLi.slice(0, 90)}`);
   ok('H-020 al elegir una calle de la lista sí se ofrecen Excel y ficha', e.dl['dl-calle'].visible && e.dl['dl-ficha-calle'].visible, txtLi);
   d = await baja('dl-calle'); x = xlsx(d.ruta);
   const cols = new Set(x.datos.slice(1).map(r => r[x.datos[0].indexOf('colonia')]));
@@ -198,6 +205,21 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('v17.16 el Excel de la calle numera el tramo de cada frente y lo define en el diccionario', it > 0 && x.datos.slice(1).every(r => +r[it] >= 1) && new Set(x.datos.slice(1).map(r => r[it])).size === (tr || []).length && +dicVal(x, 'Tramos de la calle') === (tr || []).length && h.every(c => x.dic.some(q => q[0] === c)));
     const f = await baja('dl-ficha-calle'); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('v17.16 la ficha de la calle trae la tabla de tramos', /TRAMOS DE LA CALLE/.test(t) && /confirman en campo/.test(t)); }
+
+  // ---------- v17.17 · filtro de alcaldía y búsqueda de calle con su lugar ----------
+  await L.clic(page, '#zcity'); await page.waitForTimeout(400); await page.click('#tab-list'); await page.fill('#q', 'Ayuntamiento'); await page.waitForTimeout(500);
+  { const ch = await page.$$('#locchips button'); let bi = null; for (const b of ch) if (/Iztapalapa/.test(await b.innerText())) bi = b;
+    const nI = bi ? +((await bi.innerText()).match(/(\d+)\s*$/) || [])[1] : -1; const espI = new Set(D.F.filter(f => !f.gc && f.mun === izt && L.norm(M.names[f.name]).includes('ayuntamiento')).map(f => f.name * 4096 + f.col)).size;
+    ok('v17.17 el conteo de la alcaldía en el filtro = recálculo', nI === espI, `filtro ${nI} · recálculo ${espI}`);
+    if (bi) await bi.evaluate(b => b.click()); await page.waitForTimeout(700); e = await L.estado(page);
+    ok('v17.17 al elegir la alcaldía, la lista queda en ella y conserva la búsqueda', e.alcSel === String(izt) && e.q === 'Ayuntamiento' && e.lista.filter(l => !l.empty).length === espI && /frentes prioritarios/.test(e.lista[0].t), `alc ${e.alcSel} · q ${e.q} · ${e.lista.filter(l => !l.empty).length} renglones`);
+    ok('v17.17 con alcaldía elegida se ofrece buscar en otra alcaldía', /en otra alcaldía/.test(await page.$eval('#locchips', b => b.hidden ? '' : b.textContent))); }
+  await L.clic(page, '#zcity'); await page.waitForTimeout(300);
+  { const r = await L.buscar(page, 'ayuntamiento centro'); const op = r.find(o => /^Calle/.test(o.t) && /Centro/.test(o.t) && /Cuauht/.test(o.t));
+    ok('v17.17 el buscador acepta la calle con su colonia («ayuntamiento centro»)', !!op, r.map(o => o.t).slice(0, 4).join(' | ')); }
+  await page.fill('#omni', ''); await page.click('#tab-list'); await page.fill('#q', 'ayuntamiento centro'); await page.waitForTimeout(500); e = await L.estado(page);
+  ok('v17.17 el filtro del listado acepta la calle con su colonia', e.lista.filter(l => !l.empty).length >= 1 && e.lista.filter(l => !l.empty).every(l => /Centro/i.test(l.t)), e.lista.slice(0, 3).map(l => l.t).join(' | '));
+  await page.fill('#q', '');
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();

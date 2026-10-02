@@ -65,6 +65,7 @@
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
           <input id="q" type="search" placeholder="Filtrar este listado…" autocomplete="off" aria-label="Filtrar este listado">
         </div>
+        <div class="locchips" id="locchips" hidden></div>
         <ul class="results" id="results"></ul>
         <p class="note">Prioritario = categorías Muy Alta y Alta. Selecciona una calle o avenida para ubicarla en el mapa.</p>
       </div></div>
@@ -262,6 +263,7 @@
       <li><b>Empiece por Muy Alta y Alta.</b> Son las calles donde el arbolado tiene mayor efecto sobre calor, sombra y equidad. Media se atiende cuando se cubran las anteriores o cuando exista demanda vecinal.</li>
       <li><b>Distinga «prioritario» de «universo de intervención».</b> Prioritario es Muy Alta y Alta. El universo de intervención suma además la prioridad Media; la herramienta lo reporta aparte, con los kilómetros que no tienen arbolado y los que además disponen de banqueta según INEGI.</li>
       <li><b>Una calle no tiene una sola prioridad.</b> Cada calle reúne frentes de manzana que pueden tener prioridades distintas; el listado muestra sus kilómetros en cada prioridad y la predominante. Al elegir una calle, la pestaña Listado la divide en tramos de esquina a esquina, con las vialidades que los delimitan; es una aproximación geométrica que se confirma en campo.</li>
+      <li><b>Para encontrar una calle, diga dónde.</b> Muchos nombres de calle se repiten en la ciudad. Si busca uno sin elegir alcaldía, la herramienta muestra las alcaldías y colonias donde existe para que elija; también puede escribir la calle con su colonia o alcaldía, por ejemplo «Ayuntamiento Centro».</li>
       <li><b>Trabaje por colonia.</b> Escriba el nombre de la colonia para ver sus kilómetros prioritarios y sus calles con más frente por atender; el resumen por calle ordena las vialidades por kilómetros prioritarios.</li>
       <li><b>Use el listado descargable para programar cuadrillas.</b> Cada archivo de Excel trae dos hojas: <i>Datos</i>, con calle, tipo de vialidad, colonia, código postal, longitud del frente y coordenadas, y <i>Diccionario</i>, con la definición de cada campo, sus valores posibles, el ámbito consultado y las fuentes. Si no hay conexión para generar el Excel, la herramienta entrega el listado y el diccionario en dos archivos CSV.</li>
       <li><b>Distinga responsabilidades.</b> Si una calle no aparece en el listado de la alcaldía, revise en el mapa si es una vialidad primaria (en gris): la atiende el Gobierno Central y se consulta activando esa casilla en la fila Atiende.</li>

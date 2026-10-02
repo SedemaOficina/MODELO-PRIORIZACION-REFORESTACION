@@ -758,8 +758,41 @@ function renderAvenueByAlc(){
       <div class="k">${kmFull(kmPrio(s))}<small>${s.recsp.size} de ${s.recs.size} tramos prioritarios aquí</small></div>`;
     const go=()=>{ if(sel!==m){ selEl.value=String(m); sel=m; refresh(); } }; li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
 }
+// ---------- ubicar una calle cuyo nombre se repite ----------
+// Sin alcaldía ni colonia elegidas, un nombre que existe en varias colonias no se responde con cifras:
+// primero se pregunta dónde (alcaldías con ese nombre y renglones que solo dicen la colonia y la alcaldía).
+let COL_N = null; const colN = c => { if(!COL_N) COL_N = META.colonias.map(x=>norm(x.n||'')); return COL_N[c] || ''; };
+const MUN_N = META.munNames.map(norm);
+// la búsqueda acepta además la colonia o la alcaldía: «ayuntamiento centro», «reforma iztapalapa»
+function calleCoincide(s, q){ const nm = NAMES_N[s.nid]; if (nm.includes(q)) return true;
+  const ts = q.split(/\s+/).filter(Boolean); if (ts.length<2) return false; const ctx = colN(s.col)+' '+MUN_N[F.mun[s.idx[0]]];
+  let enNombre = 0; for (const t of ts){ if (nm.includes(t)) enNombre++; else if (!ctx.includes(t)) return false; } return enNombre>0; }
+function fijaAlcaldia(m){ selEl.value = m===null? '' : String(m); sel=m; selCol=null; selAv=null; highlight=null; hideCard(); refresh(); }
+function locChips(html){ const b=$('locchips'); if(!b) return; b.innerHTML = html||''; b.hidden = !html;
+  b.querySelectorAll('button').forEach(x=>{ x.onclick = ()=> fijaAlcaldia(x.dataset.m===''? null : +x.dataset.m); }); }
+function renderUbicar(items, qRaw){
+  const ul=$('results'); const uno = new Set(items.map(x=>x[1].nid)).size===1;
+  $('search-title').textContent = uno? `${fmt.format(items.length)} calles se llaman ${META.names[items[0][1].nid]}` : `${fmt.format(items.length)} calles coinciden con «${qRaw}»`;
+  $('search-count').textContent = 'Elige la alcaldía o la colonia';
+  const porMun = new Map(); for (const [,s] of items){ const m=F.mun[s.idx[0]]; porMun.set(m, (porMun.get(m)||0)+1); }
+  locChips('<span class="lc-cap">¿En qué alcaldía?</span>' + [...porMun.entries()].sort((a,b)=>META.munNames[a[0]].localeCompare(META.munNames[b[0]],'es')).map(([m,n])=>`<button type="button" class="lchip" data-m="${m}">${META.munNames[m]} <b>${n}</b></button>`).join(''));
+  // orden por ubicación: con Mi ubicación, la más cercana primero; si no, por alcaldía y colonia
+  const c0 = myPos? Math.cos(myPos.lat*Math.PI/180) : 0;
+  const dist = s => { let d=Infinity; for (const i of s.idx){ const dd=Math.hypot((midLon(i)-myPos.lon)*111320*c0, (midLat(i)-myPos.lat)*110540); if(dd<d) d=dd; } return d; };
+  const filas = items.map(([key,s])=>({key, s, m:F.mun[s.idx[0]], col: s.col? META.colonias[s.col].n : 'Colonia no identificada', d: myPos? dist(s) : 0}));
+  filas.sort((a,b)=> myPos? a.d-b.d : (META.munNames[a.m].localeCompare(META.munNames[b.m],'es') || a.col.localeCompare(b.col,'es') || (META.names[a.s.nid]||'').localeCompare(META.names[b.s.nid]||'','es')));
+  const MAXF = 40;
+  for (const f of filas.slice(0, MAXF)){ const li=document.createElement('li'); li.tabIndex=0; li.className='ubica';
+    const tl=[...f.s.tipos].filter(Boolean).slice(0,2).join(', ');
+    li.innerHTML = `<div><div class="n">${META.names[f.s.nid]||'Sin nombre'}</div><div class="t">${f.col} · ${META.munNames[f.m]}${tl? ' · '+tl : ''}</div></div><div class="k"><small>${myPos? 'a '+distTxt(f.d) : ''}</small></div>`;
+    // al elegir, la consulta queda en la alcaldía de la calle y la calle resaltada
+    const go = ()=>{ selEl.value=String(f.m); sel=f.m; selCol=null; selAv=null; highlight=null; hideCard(); keepView=true; refresh(); keepView=false;
+      const st=streetIdx.get(f.key); if (st){ highlightStreet(f.key, st); renderResults(); } };
+    li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
+  if (filas.length>MAXF){ const li=document.createElement('li'); li.className='empty'; li.textContent=`Se muestran ${MAXF} de ${fmt.format(filas.length)}. Elige una alcaldía para acotar la lista.`; ul.appendChild(li); }
+}
 function renderResults(){
-  const q = norm($('q').value.trim());
+  const q = norm($('q').value.trim()); locChips('');
   if (alcOnly() && sel===null && q.length<2){ renderAlcRanking(); return; }
   if (colOnly() && selCol===null && q.length<2){ renderColoniaRanking(); return; }
   if (isGC() && selAv!==null && q.length<2){ renderAvenueByAlc(); return; }
@@ -784,7 +817,9 @@ function renderResults(){
   let items = [];
   const scF = selCol!==null? 'en la colonia '+META.colonias[selCol].n : sel===null? 'en toda la ciudad' : 'en la alcaldía '+META.munNames[sel];
   if (q.length<2 && sel===null && selCol===null){ $('search-title').textContent='Buscar una calle'; $('search-count').textContent=''; ul.innerHTML='<li class="empty">Elige una alcaldía o una colonia arriba para ver sus calles con más frente prioritario, o escribe el nombre de una calle para consultarla en toda la ciudad.</li>'; return; }
-  if (q.length>=2){ for(const [key,s] of streetIdx){ if (NAMES_N[s.nid].includes(q)) items.push([key,s]); } $('search-title').textContent=`Calles encontradas ${scF}`; }
+  if (q.length>=2){ for(const [key,s] of streetIdx){ if (calleCoincide(s, q)) items.push([key,s]); } $('search-title').textContent=`Calles encontradas ${scF}`;
+    if (sel===null && selCol===null && new Set(items.map(x=>x[1].col)).size>1){ renderUbicar(items, $('q').value.trim()); return; }
+    if (sel!==null && selCol===null) locChips(`<button type="button" class="lchip" data-m="">Buscar «${$('q').value.trim().replace(/[<>&"]/g,'')}» en otra alcaldía</button>`); }
   else { for(const [key,s] of streetIdx){ if(s.kmp>0 && META.names[s.nid]) items.push([key,s]); } $('search-title').textContent=`Calles con más km de frente prioritario ${scF}`; }
   items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
   const total = items.length; items = items.slice(0, q.length>=2? 40 : 10);
@@ -1548,6 +1583,11 @@ function omniSearch(q){
     if(!s){ if(!I.avRV[a]) I.avRV[a] = [...avStat(a).nombres].map(n=>[n,toks(n)]); for(const [n,rt] of I.avRV[a]){ const s2=omniMatch(qt,rt); if(s2){ s=s2-0.5; via=n; break; } } }
     if(s) R.av.push({t:'av', a, s: s+1.5, via}); });
   I.st.forEach((ct,k)=>{ const s=omniMatch(qt,ct); if(s) R.st.push({t:'st', nid:I.stIds[k], s}); });
+  // calle + lugar: «ayuntamiento centro», «reforma iztapalapa». Parte de las palabras nombra la calle y el resto, su colonia o alcaldía
+  if (qt.length>=2) I.st.forEach((ct,k)=>{ if (omniMatch(qt,ct)) return;
+    const enCalle = qt.filter(t=>ct.some(c=>tokScore(t,c)>=1.5)); if (!enCalle.length || enCalle.length===qt.length) return; const resto = qt.filter(t=>!enCalle.includes(t));
+    const sc = omniMatch(enCalle, ct); if (!sc) return; const nid=I.stIds[k], s=I.stStat.get(nid); let n=0;
+    for (const c of s.cols.keys()){ if (!c || !I.col[c]) continue; const m=munIndex[META.colonias[c].m]; if (omniMatch(resto, I.col[c].concat(I.alc[m]||[]))){ R.st.push({t:'st', nid, col:c, s: sc+0.4}); if (++n>=3) break; } } });
   const kmpOf = it => it.t==='st'? I.stStat.get(it.nid).kmp : it.t==='av'? avStat(it.a).kmp : it.t==='col'? colStat(it.i).kmp : 0;
   for (const k in R) R[k].sort((x,y)=> y.s-x.s || kmpOf(y)-kmpOf(x));
   R.alc=R.alc.slice(0,3); R.col=R.col.slice(0,6); R.av=R.av.slice(0,4); R.st=R.st.slice(0,5);
@@ -1566,8 +1606,8 @@ function omniRender(){
       if (it.t==='alc'){ const d=domOf(it.i); html = `<span class="ty">Alc</span><span class="nm">${omniMark(META.munNames[it.i], R.qt)}</span><span class="k">${kmFull(kmPrio(summOf(it.i)))} prior.</span><span class="m">Prioridad predominante ${META.prio[d]}</span>`; }
       else if (it.t==='col'){ const c=META.colonias[it.i]; const pt=I.part.get(it.i); html = `<span class="ty">Col</span><span class="nm">${omniMark(c.n, R.qt)}${pt? ` <small>· parte ${pt[0]} de ${pt[1]}</small>`:''}</span><span class="k">${c.p>=0? META.prio[c.p] : '—'}</span><span class="m">${META.munNames[munIndex[c.m]]}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${it.via? ` · coincide con su unidad territorial: ${it.via}`:''}</span>`; }
       else if (it.t==='av'){ const s=avStat(it.a); html = `<span class="ty">Av</span><span class="nm">${omniMark(VPC.nomenclat[it.a], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${[...s.nombres].slice(0,2).join(', ')} · cruza ${s.muns.size} alcaldía${s.muns.size===1?'':'s'}${it.via? ` · coincide con la red vial ${it.via}`:''}</span>`; }
-      else { const s=I.stStat.get(it.nid); const cols=[...s.cols.keys()].filter(Boolean); const one = cols.length===1;
-        html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[[...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en distintas colonias · ver en el listado`}</span>`; }
+      else { const s=I.stStat.get(it.nid); const cols = it.col? [it.col] : [...s.cols.keys()].filter(Boolean); const one = cols.length===1;
+        html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(it.col? s.cols.get(it.col) : s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[it.col? munIndex[META.colonias[it.col].m] : [...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en ${s.muns.size===1? 'distintas colonias' : fmt.format(s.muns.size)+' alcaldías'} · elige dónde en el listado`}</span>`; }
       li.innerHTML = html; const n=omniItems.length; omniItems.push(it);
       li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[n]); }; omniList.appendChild(li); } }
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
@@ -1581,7 +1621,7 @@ function omniPick(it){
   else if (it.t==='col'){ pickColonia(it.i); }
   else if (it.t==='av'){ if (sel!==null && !avStat(it.a).muns.has(sel)){ sel=null; selEl.value=''; } pickAvenida(it.a); }
   else { const s=omniIndex().stStat.get(it.nid); if (isGC()) setResp('alc');
-    const cols=[...s.cols.keys()].filter(Boolean);
+    const cols = it.col? [it.col] : [...s.cols.keys()].filter(Boolean);
     if (cols.length===1){ pickColonia(cols[0]); const key=it.nid*4096+cols[0]; const st=streetIdx.get(key); if (st){ highlightStreet(key, st); } setTab('list'); renderResults(); }
     else { const muns=[...s.muns]; if (muns.length===1){ if (sel!==muns[0] || selCol!==null){ selEl.value=String(muns[0]); setSel(String(muns[0])); } } else if (sel!==null || selCol!==null){ selEl.value=''; setSel(''); }
       $('q').value = META.names[it.nid]; renderResults(); setTab('list');

@@ -36,6 +36,11 @@ function omniSearch(q){
     if(!s){ if(!I.avRV[a]) I.avRV[a] = [...avStat(a).nombres].map(n=>[n,toks(n)]); for(const [n,rt] of I.avRV[a]){ const s2=omniMatch(qt,rt); if(s2){ s=s2-0.5; via=n; break; } } }
     if(s) R.av.push({t:'av', a, s: s+1.5, via}); });
   I.st.forEach((ct,k)=>{ const s=omniMatch(qt,ct); if(s) R.st.push({t:'st', nid:I.stIds[k], s}); });
+  // calle + lugar: «ayuntamiento centro», «reforma iztapalapa». Parte de las palabras nombra la calle y el resto, su colonia o alcaldía
+  if (qt.length>=2) I.st.forEach((ct,k)=>{ if (omniMatch(qt,ct)) return;
+    const enCalle = qt.filter(t=>ct.some(c=>tokScore(t,c)>=1.5)); if (!enCalle.length || enCalle.length===qt.length) return; const resto = qt.filter(t=>!enCalle.includes(t));
+    const sc = omniMatch(enCalle, ct); if (!sc) return; const nid=I.stIds[k], s=I.stStat.get(nid); let n=0;
+    for (const c of s.cols.keys()){ if (!c || !I.col[c]) continue; const m=munIndex[META.colonias[c].m]; if (omniMatch(resto, I.col[c].concat(I.alc[m]||[]))){ R.st.push({t:'st', nid, col:c, s: sc+0.4}); if (++n>=3) break; } } });
   const kmpOf = it => it.t==='st'? I.stStat.get(it.nid).kmp : it.t==='av'? avStat(it.a).kmp : it.t==='col'? colStat(it.i).kmp : 0;
   for (const k in R) R[k].sort((x,y)=> y.s-x.s || kmpOf(y)-kmpOf(x));
   R.alc=R.alc.slice(0,3); R.col=R.col.slice(0,6); R.av=R.av.slice(0,4); R.st=R.st.slice(0,5);
@@ -54,8 +59,8 @@ function omniRender(){
       if (it.t==='alc'){ const d=domOf(it.i); html = `<span class="ty">Alc</span><span class="nm">${omniMark(META.munNames[it.i], R.qt)}</span><span class="k">${kmFull(kmPrio(summOf(it.i)))} prior.</span><span class="m">Prioridad predominante ${META.prio[d]}</span>`; }
       else if (it.t==='col'){ const c=META.colonias[it.i]; const pt=I.part.get(it.i); html = `<span class="ty">Col</span><span class="nm">${omniMark(c.n, R.qt)}${pt? ` <small>· parte ${pt[0]} de ${pt[1]}</small>`:''}</span><span class="k">${c.p>=0? META.prio[c.p] : '—'}</span><span class="m">${META.munNames[munIndex[c.m]]}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${it.via? ` · coincide con su unidad territorial: ${it.via}`:''}</span>`; }
       else if (it.t==='av'){ const s=avStat(it.a); html = `<span class="ty">Av</span><span class="nm">${omniMark(VPC.nomenclat[it.a], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${[...s.nombres].slice(0,2).join(', ')} · cruza ${s.muns.size} alcaldía${s.muns.size===1?'':'s'}${it.via? ` · coincide con la red vial ${it.via}`:''}</span>`; }
-      else { const s=I.stStat.get(it.nid); const cols=[...s.cols.keys()].filter(Boolean); const one = cols.length===1;
-        html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[[...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en distintas colonias · ver en el listado`}</span>`; }
+      else { const s=I.stStat.get(it.nid); const cols = it.col? [it.col] : [...s.cols.keys()].filter(Boolean); const one = cols.length===1;
+        html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(it.col? s.cols.get(it.col) : s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[it.col? munIndex[META.colonias[it.col].m] : [...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en ${s.muns.size===1? 'distintas colonias' : fmt.format(s.muns.size)+' alcaldías'} · elige dónde en el listado`}</span>`; }
       li.innerHTML = html; const n=omniItems.length; omniItems.push(it);
       li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[n]); }; omniList.appendChild(li); } }
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
@@ -69,7 +74,7 @@ function omniPick(it){
   else if (it.t==='col'){ pickColonia(it.i); }
   else if (it.t==='av'){ if (sel!==null && !avStat(it.a).muns.has(sel)){ sel=null; selEl.value=''; } pickAvenida(it.a); }
   else { const s=omniIndex().stStat.get(it.nid); if (isGC()) setResp('alc');
-    const cols=[...s.cols.keys()].filter(Boolean);
+    const cols = it.col? [it.col] : [...s.cols.keys()].filter(Boolean);
     if (cols.length===1){ pickColonia(cols[0]); const key=it.nid*4096+cols[0]; const st=streetIdx.get(key); if (st){ highlightStreet(key, st); } setTab('list'); renderResults(); }
     else { const muns=[...s.muns]; if (muns.length===1){ if (sel!==muns[0] || selCol!==null){ selEl.value=String(muns[0]); setSel(String(muns[0])); } } else if (sel!==null || selCol!==null){ selEl.value=''; setSel(''); }
       $('q').value = META.names[it.nid]; renderResults(); setTab('list');
