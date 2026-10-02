@@ -22,6 +22,14 @@ function repStat(mun, col){
     if ((fl&7)===1){ r.sa[g][p]+=k; if (((fl>>3)&7)===0) r.sb[g][p]+=k; } }
   if (REP_CACHE.size>40) REP_CACHE.clear(); REP_CACHE.set(key, r); return r; }
 const univ3 = a => a[2]+a[3]+a[4];
+// Equivalente en km de FRENTE DE MANZANA (aceras con manzana enfrente) de las vialidades primarias de un ámbito.
+// La cifra oficial del Gobierno Central es el km de vialidad medido sobre el eje; el km de frente es su dato complementario
+// y la única unidad con la que se compara o se suma con las alcaldías (auditoría H-018).
+const GCF_CACHE = new Map();
+function gcFrente(mun, av){ const key=mun+'|'+av; let r=GCF_CACHE.get(key); if (r) return r; r={km:[0,0,0,0,0]};
+  for(let i=0;i<N;i++){ if(!F.gc[i]) continue; if (mun!==null && F.mun[i]!==mun) continue; if (av!==null && (F.vp[i]<0 || VP.nom[F.vp[i]]!==av)) continue; r.km[F.prio[i]]+=F.len[i]/1000; }
+  if (GCF_CACHE.size>60) GCF_CACHE.clear(); GCF_CACHE.set(key,r); return r; }
+const gcFrenteTxt = (mun, av) => { const g=gcFrente(mun, av); return `Equivalen a ${kmFull(sum(g.km))} de frente de manzana (aceras con manzana enfrente), ${kmFull(kmPrio(g))} prioritarios`; };
 const km1 = v => v>0 && v<0.05? '<0.1' : fmt1.format(v);   // cuadro de reparto: siempre en km con un decimal
 function repartoHtml(){
   const R = repStat(sel, selCol);
@@ -96,6 +104,7 @@ function renderSummary(){
   const pb = $('pobbox'); if (pb){ pb.innerHTML = (resp==='both')? '' : pobLine; pb.hidden = !pb.innerHTML; }
   // universo de intervención (Muy Alta, Alta y Media) y cuadro de reparto por responsable
   const ub = $('univbox'); if (ub){ ub.innerHTML = univHtml(resp!=='gc' && !emptyCol? fs : null, (vs && !(resp==='both' && selCol!==null))? vs : null, amb, ambV1); ub.hidden = !ub.innerHTML; }
+  if (ub && vs && resp==='gc'){ ub.innerHTML += `<div class="univline eq"><span>${gcFrenteTxt(sel, selAv)}. Los kilómetros de vialidad se miden sobre el eje de la avenida; los de frente, por cada acera. Para comparar o sumar con las alcaldías se usa el kilómetro de frente.</span></div>`; ub.hidden=false; }
   const rp = $('reparto'); if (rp){ rp.hidden = selAv!==null; rp.innerHTML = rp.hidden? '' : repartoHtml(); }
   // resumen compacto sobre el mapa
   const ms = $('mapsum');
@@ -113,8 +122,8 @@ function renderSummary(){
         <div class="st opt"><b>${fmt.format(vs.recsp.size)}</b><small>tramos prioritarios ${scV2}</small></div>`;
     } else if (resp==='both'){
       // en una colonia no hay cifra de vialidades primarias: se muestra su población en su lugar
-      stats = `<div class="st"><b>${kmTxt(kmPrio(fs))}</b><small>${kmUn(kmPrio(fs))} prioritarios · a cargo de la Alcaldía</small></div>
-        ${selCol!==null? '' : `<div class="st opt"><b>${kmTxt(kmPrio(vs))}</b><small>${kmUn(kmPrio(vs))} prioritarios · a cargo del Gob. Central</small></div>`}
+      stats = `<div class="st"><b>${kmTxt(kmPrio(fs))}</b><small>${kmUn(kmPrio(fs))} de frente prioritarios · a cargo de la Alcaldía</small></div>
+        ${selCol!==null? '' : `<div class="st opt"><b>${kmTxt(kmPrio(vs))}</b><small>${kmUn(kmPrio(vs))} de vialidad prioritarios · a cargo del Gob. Central</small></div>`}
         <div class="st opt"><b>${habC(selCol!==null? (META.colonias[selCol].pob||0) : P.p)}</b><small>${selCol!==null? 'habitantes de la colonia' : 'habitantes en colonias prioritarias'}</small></div>`;
     } else if (emptyCol){
       stats = `<div class="st"><b>Sin frentes</b><small>a cargo de la alcaldía en esta colonia</small></div>

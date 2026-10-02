@@ -221,6 +221,24 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   ok('v17.17 el filtro del listado acepta la calle con su colonia', e.lista.filter(l => !l.empty).length >= 1 && e.lista.filter(l => !l.empty).every(l => /Centro/i.test(l.t)), e.lista.slice(0, 3).map(l => l.t).join(' | '));
   await page.fill('#q', '');
 
+  // ---------- v17.18 · H-018: km de vialidad (eje) y su equivalente en km de frente; H-071: banqueta como condición ----------
+  await L.clic(page, '#zcity'); await page.waitForTimeout(300); await L.ponResp(page, 'gc'); await page.click('#tab-res'); await page.waitForTimeout(500);
+  { const g = D.F.filter(f => f.gc); const kt = g.reduce((s, f) => s + f.len, 0) / 1000, kp = g.filter(f => f.prio >= 3).reduce((s, f) => s + f.len, 0) / 1000;
+    const t = await page.$eval('#univbox', b => b.hidden ? '' : b.textContent.replace(/\s+/g, ' '));
+    ok('v17.18 Gobierno Central, ciudad: equivalente en km de frente = recálculo', t.includes(`Equivalen a ${L.kmTxt(kt)} ${L.kmUn(kt)} de frente de manzana`) && t.includes(`${L.kmTxt(kp)} ${L.kmUn(kp)} prioritarios`) && /sobre el eje/.test(t), t.slice(-260));
+    await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500);
+    const gi = g.filter(f => f.mun === izt); const ki = gi.reduce((s, f) => s + f.len, 0) / 1000;
+    const ti = await page.$eval('#univbox', b => b.hidden ? '' : b.textContent.replace(/\s+/g, ' '));
+    ok('v17.18 Gobierno Central, alcaldía: equivalente en km de frente = recálculo', ti.includes(`Equivalen a ${L.kmTxt(ki)} ${L.kmUn(ki)} de frente de manzana`), ti.slice(-200));
+    x = xlsx((await baja('dl-tramos')).ruta);
+    ok('v17.18 el Excel de tramos declara la unidad y el equivalente en km de frente', /sobre el eje/.test(dicVal(x, 'Unidad de las longitudes') || '') && Math.abs(+dicVal(x, 'Equivalente del ámbito en km de frente de manzana (aceras con manzana enfrente)') - ki) < 0.006);
+    const f = await baja('dl-ficha-vpalc'); const tf = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+    ok('v17.18 la ficha de vialidades primarias declara la unidad y el equivalente', /se miden sobre el eje/.test(tf) && tf.includes(`Equivalen a ${L.kmTxt(ki)} ${L.kmUn(ki)} de frente de manzana`), (tf.match(/Los kilómetros de esta ficha.{0,200}/) || [''])[0]); }
+  await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
+  { x = xlsx((await baja('dl-frentes')).ruta);
+    ok('v17.18 H-071 el diccionario trata la banqueta como condición por verificar', /condición por verificar/.test((x.dic.find(r => r[0] === 'banqueta_inegi') || [])[1] || '')); }
+  ok('v17.18 la ayuda explica las dos unidades', /No sume unidades distintas/.test(await page.content()));
+
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();
   process.exit(ok.fin() ? 1 : 0);

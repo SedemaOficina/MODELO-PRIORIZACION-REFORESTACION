@@ -18,7 +18,7 @@ function featHtml(i, compact){
     <dl><dt>Responsable</dt><dd>${respTxt}</dd>
     <dt>Tipo de vialidad</dt><dd>${tp}</dd>
     <dt>Longitud del frente</dt><dd>${fmt.format(F.len[i])} m</dd>
-    <dt>Banqueta (INEGI)</dt><dd>${ban}</dd>
+    <dt>Banqueta (INEGI 2020)</dt><dd>${ban} <small>(por verificar en campo)</small></dd>
     ${dupCol? '' : `<dt>Prioridad de la colonia</dt><dd>${cc? dot(cc):''}${cp}</dd>
     <dt>Desarrollo social (IDS) de su unidad territorial</dt><dd>${col.ids||'—'}</dd>
     <dt>Población de la colonia</dt><dd>${col.pob? fmt.format(col.pob)+' hab.' : '—'}</dd>`}

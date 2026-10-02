@@ -30,6 +30,7 @@ const NOTAS_COMUNES = [
   'Coordenadas en grados decimales, WGS84 (EPSG:4326), correspondientes al punto medio del tramo.',
   'El contexto social se reporta con el Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX. El modelo de priorización vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020; la actualización del modelo con el IDS está en proceso.',
   `La meta de vialidades primarias se mide sobre los ${fmt.format(Math.round(VPC.cov.km_total))} km de la red completa, incluidos los tramos sin manzanas al frente.`,
+  'Dos unidades: las vialidades primarias del Gobierno Central se reportan en kilómetros de vialidad, medidos sobre el eje de la avenida; la red de las alcaldías, en kilómetros de frente de manzana, una medida por cada acera. Para comparar o sumar lo que atiende cada quien se usa siempre el kilómetro de frente.',
   'Los kilómetros prioritarios describen dónde es mayor la necesidad de arbolado según el modelo; no son una meta ni una obligación de plantación.',
   'Universo de intervención = clases Muy Alta, Alta y Media. Se reporta en kilómetros de frente de manzana (cada lado de la calle frente a una manzana cuenta por separado), que no son comparables con los kilómetros de vialidad primaria medidos sobre el eje. «Sin arbolado» es la clase del modelo; «con banqueta» es el registro de INEGI 2020 y no garantiza espacio de plantación.',
   'El Índice de Desarrollo Social y la población en pobreza corresponden a la unidad territorial de EVALÚA CDMX en la que se ubica la colonia, no a la colonia; no deben sumarse entre colonias.'
@@ -52,7 +53,7 @@ const DIC = {
       ['poblacion_pobreza_nbi','Población en pobreza por necesidades básicas insatisfechas de la unidad territorial —no de la colonia— (EVALÚA CDMX).','Personas'],
       ['alcaldia','Demarcación territorial.','Texto'],
       ['longitud_m','Longitud del frente de manzana.','Metros'],
-      ['banqueta_inegi','Disponibilidad de banqueta registrada por INEGI.','Dispone, No dispone, Conjunto habitacional, No aplica, No especificado'],
+      ['banqueta_inegi','Disponibilidad de banqueta registrada por INEGI (2020). Es una condición por verificar: no indica ancho, estado ni espacio de plantación.','Dispone, No dispone, Conjunto habitacional, No aplica, No especificado'],
       ['lat','Latitud del punto medio del frente.','Grados decimales'],
       ['lon','Longitud del punto medio del frente.','Grados decimales'] ] },
   calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. La calle es la de la colonia indicada en el ámbito; las calles con el mismo nombre en otras colonias no se incluyen.',
@@ -177,6 +178,11 @@ async function deliverTable(base, key, aoa, extra){
   await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
 }
 const num = v => { const n = Number(v); return Number.isFinite(n)? n : v; };
+// equivalente en km de frente del ámbito de vialidades primarias, para el diccionario de los Excel del Gobierno Central
+function gcExtra(){ const g = gcFrente(sel, selAv);
+  return [['Unidad de las longitudes', 'Metros o kilómetros de vialidad, medidos sobre el eje'],
+    ['Equivalente del ámbito en km de frente de manzana (aceras con manzana enfrente)', num(sum(g.km).toFixed(2))],
+    ['Equivalente prioritario (Muy Alta y Alta) en km de frente de manzana', num(kmPrio(g).toFixed(2))]]; }
 // cifras del universo de intervención del ámbito consultado, para el diccionario de los Excel de la red de las alcaldías
 function univExtra(){ const R = repStat(sel, selCol); const k = v => num(v.toFixed(2));
   return [['Universo de intervención del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía', k(univ3(R.km[0]))],
@@ -215,14 +221,14 @@ $('dl-tramos').onclick = ()=>{
   idx.sort((a,b)=> VP.prio[b]-VP.prio[a] || VPC.nomenclat[VP.nom[a]].localeCompare(VPC.nomenclat[VP.nom[b]],'es'));
   for(const i of idx){ const a=vstart[i], b=vstart[i+1]-1; rows.push([VP.rec[i], META.prio[VP.prio[i]], VPC.nomenclat[VP.nom[i]], VPC.nombres[VP.nombre[i]], VPC.tipos[VP.tipo[i]], VP.car[i], VPC.circula[VP.circ[i]], META.munNames[VP.mun[i]], VPC.alctxt[VP.alct[i]], VPC.claves[VP.clave[i]], VP.len[i], 'Gobierno Central', num(((VPOS[2*a+1]+VPOS[2*b+1])/2).toFixed(6)), num(((VPOS[2*a]+VPOS[2*b])/2).toFixed(6))]); }
   const nTramos = new Set(idx.map(i=>VP.rec[i])).size;
-  deliverTable(`tramos_prioritarios_vialidades_primarias_${scopeSlugVP()}`, 'tramos', rows, [['Tramos distintos (id_tramo)', nTramos]]);
+  deliverTable(`tramos_prioritarios_vialidades_primarias_${scopeSlugVP()}`, 'tramos', rows, [['Tramos distintos (id_tramo)', nTramos], ...gcExtra()]);
 };
 $('dl-avenidas').onclick = ()=>{
   const rows=[['vialidad','nombres_red_vial','tipos','alcaldias','tramos_total','tramos_prioritarios','km_muy_alta','km_alta','km_media','km_baja','km_muy_baja','km_prioritario','km_total']];
   const items=[]; for(const [a,s] of avIdx){ if (selAv!==null && a!==selAv) continue; const km=[0,0,0,0,0]; for(const i of s.idx) km[VP.prio[i]]+=VP.len[i]/1000;
     items.push([VPC.nomenclat[a], [...s.nombres].join('; '), [...s.tipos].join('; '), [...s.muns].map(m=>META.munNames[m]).join('; '), s.recs.size, s.recsp.size, num(km[4].toFixed(2)), num(km[3].toFixed(2)), num(km[2].toFixed(2)), num(km[1].toFixed(2)), num(km[0].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
   items.sort((x,y)=> y[11]-x[11]); for(const r of items) rows.push(r);
-  deliverTable(`resumen_avenidas_prioritarias_${scopeSlugVP()}`, 'avenidas', rows);
+  deliverTable(`resumen_avenidas_prioritarias_${scopeSlugVP()}`, 'avenidas', rows, gcExtra());
 };
 
 document.fonts && document.fonts.ready.then(()=> rerender());
