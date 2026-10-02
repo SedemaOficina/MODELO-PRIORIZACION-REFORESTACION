@@ -150,6 +150,43 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   const tec2 = M.colonias.findIndex(c => c && c.n === 'Tecpinco' && c.m === '007'); await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); e = await L.estado(page);
   ok('H-009 el desarrollo social se rotula como de la unidad territorial', /de su unidad territorial/.test(e.colinfo || '') && /unidad territorial/.test(e.pob || ''), `${(e.colinfo || '').slice(0, 120)} · ${e.pob}`);
 
+  // ---------- v17.15 · universo de intervención, reparto por responsable, calle por prioridad ----------
+  // recálculo independiente: km de frente por responsable y prioridad; sin arbolado = (flags & 7) === 1; con banqueta = ((flags >> 3) & 7) === 0
+  const rep = (filtro) => { const r = { km: [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]], sa: [0, 0], sb: [0, 0] };
+    for (const f of D.F) { if (!filtro(f)) continue; r.km[f.gc][f.prio] += f.len / 1000; if (f.prio >= 2 && (f.flags & 7) === 1) { r.sa[f.gc] += f.len / 1000; if (((f.flags >> 3) & 7) === 0) r.sb[f.gc] += f.len / 1000; } } return r; };
+  const u3 = a => a[2] + a[3] + a[4], k1 = v => L.f1.format(v);
+  const cuadro = () => page.$$eval('#reparto table.reparto tbody tr', trs => trs.map(tr => [...tr.children].map(c => c.textContent.replace(/\s+/g, ' ').trim())));
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(500);
+  let R = rep(() => true), T = await cuadro();
+  ok('v17.15 cuadro de reparto: nueve renglones (5 prioridades, total, universo y dos condiciones)', T.length === 9, String(T.length));
+  ok('v17.15 ciudad: Muy Alta por responsable = recálculo', T[0] && T[0][1] === k1(R.km[0][4]) && T[0][2] === k1(R.km[1][4]) && T[0][3] === k1(R.km[0][4] + R.km[1][4]), (T[0] || []).join(' | '));
+  const sm = a => a.reduce((x, y) => x + y, 0);
+  ok('v17.15 ciudad: total por responsable = recálculo', T[5] && T[5][1] === k1(sm(R.km[0])) && T[5][2] === k1(sm(R.km[1])), (T[5] || []).join(' | '));
+  ok('v17.15 ciudad: universo de intervención = Muy Alta + Alta + Media del recálculo', T[6] && T[6][1] === k1(u3(R.km[0])) && T[6][2] === k1(u3(R.km[1])) && T[6][3] === k1(u3(R.km[0]) + u3(R.km[1])), (T[6] || []).join(' | '));
+  ok('v17.15 ciudad: sin arbolado, y sin arbolado con banqueta = recálculo', T[8] && T[7][1] === k1(R.sa[0]) && T[7][2] === k1(R.sa[1]) && T[8][1] === k1(R.sb[0]) && T[8][2] === k1(R.sb[1]), `${(T[7] || []).join(' | ')} · ${(T[8] || []).join(' | ')}`);
+  let ub = await page.$eval('#univbox', x => x.hidden ? '' : x.textContent.replace(/\s+/g, ' '));
+  ok('v17.15 ciudad: cifra del universo de intervención en el panel = recálculo', ub.includes(`${L.kmTxt(u3(R.km[0]))} ${L.kmUn(u3(R.km[0]))}`) && /Muy Alta, Alta y Media/.test(ub), ub.slice(0, 140));
+  e = await L.estado(page);
+  const pobU = M.colonias.filter(c => c && c.n && c.p >= 2 && M.muns.includes(c.m)).reduce((t, c) => t + (c.pob || 0), 0);
+  ok('v17.15 población del universo de intervención (colonias Muy Alta, Alta y Media) = recálculo', (e.pob || '').includes(L.f1.format(pobU / 1e6) + ' millones de habitantes') && /prioridad Media/.test(e.pob || ''), (e.pob || '').slice(0, 260));
+  await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500);
+  R = rep(f => f.mun === izt); T = await cuadro();
+  ok('v17.15 alcaldía: universo y condiciones = recálculo', T[8] && T[6][1] === k1(u3(R.km[0])) && T[6][2] === k1(u3(R.km[1])) && T[8][1] === k1(R.sb[0]), `${(T[6] || []).join(' | ')} · ${(T[8] || []).join(' | ')}`);
+  x = xlsx((await baja('dl-calles')).ruta);
+  ok('v17.15 el diccionario del Excel trae el universo de intervención del ámbito', Math.abs(+dicVal(x, 'Universo de intervención del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía') - u3(R.km[0])) < 0.006 && Math.abs(+dicVal(x, 'De ese universo, km de frente sin arbolado y con banqueta (INEGI)') - R.sb[0]) < 0.006);
+  { const h = x.datos[0], iu = h.indexOf('km_universo_intervencion'), im = h.indexOf('km_media'), ip = h.indexOf('km_prioritario');
+    ok('v17.15 resumen por calle: km_universo_intervencion = km_prioritario + km_media en cada renglón', iu > 0 && im > 0 && x.datos.slice(1).every(r => Math.abs(r[iu] - r[ip] - r[im]) < 0.011) && h.every(c => x.dic.some(q => q[0] === c))); }
+  { const f = await baja('dl-ficha-alc'); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+    ok('v17.15 la ficha de alcaldía trae el universo de intervención = recálculo', t.includes(`Universo de intervención (Muy Alta, Alta y Media): ${L.kmTxt(u3(R.km[0]))} ${L.kmUn(u3(R.km[0]))}`) && /Versión/.test(t), (t.match(/Universo de intervención.{0,160}/) || [''])[0]); }
+  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
+  R = rep(f => f.col === tec2); T = await cuadro();
+  ok('v17.15 colonia: el cuadro usa el mismo territorio que el panel (manda la colonia)', T[5] && T[5][1] === k1(sm(R.km[0])) && T[6][1] === k1(u3(R.km[0])), `${(T[5] || []).join(' | ')} · ${(T[6] || []).join(' | ')}`);
+  // con la colonia elegida, el listado es de calles
+  await page.click('#tab-list'); await page.waitForTimeout(400);
+  { const li = await page.$$eval('#results li', ls => ls.filter(l => l.querySelector('.desg')).map(l => ({ partes: [...l.querySelectorAll('.desg span')].map(s => s.textContent.trim()), pred: /Prioridad predominante/.test(l.textContent) })));
+    ok('v17.15 el listado de calles desglosa cada calle por prioridad', li.length > 0 && li.every(l => l.partes.length >= 1 && l.partes.every(p => /^(Muy Alta|Alta|Media|Baja|Muy Baja) [\d.,]+ (km|m)$/.test(p))), JSON.stringify(li[0] || {}));
+    ok('v17.15 las calles con más de una prioridad declaran la predominante', li.filter(l => l.partes.length > 1).every(l => l.pred)); }
+
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();
   process.exit(ok.fin() ? 1 : 0);

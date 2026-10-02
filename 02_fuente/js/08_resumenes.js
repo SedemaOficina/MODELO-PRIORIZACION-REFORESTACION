@@ -8,11 +8,48 @@ function avStat(id){ if(!AVSTAT){ AVSTAT=new Map(); for(let i=0;i<NV;i++){ const
 // resumen de vialidades en un ámbito (alcaldía y/o avenida)
 function vpSumm(){ const s={n:[0,0,0,0,0],km:[0,0,0,0,0],recs:new Set(),recsp:new Set()}; for(let i=0;i<NV;i++){ if(sel!==null && VP.mun[i]!==sel) continue; if(selAv!==null && VP.nom[i]!==selAv) continue; const p=VP.prio[i], k=VP.len[i]/1000; s.n[p]++; s.km[p]+=k; s.recs.add(VP.rec[i]); if(p>=3) s.recsp.add(VP.rec[i]); } return s; }
 
+// ---------- reparto por responsable y universo de intervención ----------
+// Universo de intervención = prioridades Muy Alta, Alta y Media. «Prioritario» sigue siendo Muy Alta + Alta.
+const kmUniv = s => s.km[2]+s.km[3]+s.km[4];
+// Kilómetros de FRENTE DE MANZANA por responsable (0 = alcaldía, 1 = Gobierno Central) y prioridad en un ámbito:
+// total (km), sin arbolado (sa) y sin arbolado con banqueta registrada por INEGI (sb). Con colonia manda la colonia, igual que enAmbito().
+const REP_CACHE = new Map();
+function repStat(mun, col){
+  const key = mun+'|'+col; let r = REP_CACHE.get(key); if (r) return r;
+  r = {km:[[0,0,0,0,0],[0,0,0,0,0]], sa:[[0,0,0,0,0],[0,0,0,0,0]], sb:[[0,0,0,0,0],[0,0,0,0,0]]};
+  for(let i=0;i<N;i++){ if (col!==null? F.col[i]!==col : (mun!==null && F.mun[i]!==mun)) continue;
+    const g=F.gc[i], p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; r.km[g][p]+=k;
+    if ((fl&7)===1){ r.sa[g][p]+=k; if (((fl>>3)&7)===0) r.sb[g][p]+=k; } }
+  if (REP_CACHE.size>40) REP_CACHE.clear(); REP_CACHE.set(key, r); return r; }
+const univ3 = a => a[2]+a[3]+a[4];
+const km1 = v => v>0 && v<0.05? '<0.1' : fmt1.format(v);   // cuadro de reparto: siempre en km con un decimal
+function repartoHtml(){
+  const R = repStat(sel, selCol);
+  const amb = selCol!==null? 'colonia '+META.colonias[selCol].n : sel===null? 'toda la ciudad' : 'alcaldía '+META.munNames[sel];
+  const fila = (lab, a, g, cls, sw) => `<tr${cls? ' class="'+cls+'"':''}><th scope="row">${sw!==undefined? `<i style="background:var(--p${sw})"></i>`:''}${lab}</th><td>${km1(a)}</td><td>${km1(g)}</td><td>${km1(a+g)}</td></tr>`;
+  let h = `<div class="section-title"><h2>Quién atiende · km de frente de manzana</h2><span>${amb}</span></div>
+    <table class="reparto"><thead><tr><th scope="col">Prioridad</th><th scope="col">${sel===null? 'Alcaldías':'Alcaldía'}</th><th scope="col">Gobierno Central</th><th scope="col">Total</th></tr></thead><tbody>`;
+  for(let p=4;p>=0;p--) h += fila(META.prio[p], R.km[0][p], R.km[1][p], '', p);
+  h += fila('Total', sum(R.km[0]), sum(R.km[1]), 'tot');
+  h += fila('Universo de intervención <small>Muy Alta, Alta y Media</small>', univ3(R.km[0]), univ3(R.km[1]), 'univ');
+  h += fila('<span>de ese universo,</span> sin arbolado', univ3(R.sa[0]), univ3(R.sa[1]), 'sub');
+  h += fila('<span>de ese universo,</span> sin arbolado y con banqueta <small>INEGI</small>', univ3(R.sb[0]), univ3(R.sb[1]), 'sub');
+  h += `</tbody></table><p class="note">Cifras en kilómetros de frente de manzana: cada lado de la calle frente a una manzana cuenta por separado. No son comparables con los kilómetros de vialidad primaria, que se miden sobre el eje de la vialidad. El universo de intervención reúne las prioridades Muy Alta, Alta y Media; «prioritario» se reserva para Muy Alta y Alta. «Sin arbolado» es la clase del modelo; «con banqueta» es el registro de INEGI 2020 y no garantiza espacio de plantación, que debe verificarse en campo. La asignación entre alcaldía y Gobierno Central es preliminar.</p>`;
+  return h;
+}
+function univHtml(fs, vs, amb, ambV){
+  const linea = (km, tot, txt) => `<div class="univline"><b>${kmFull(km)}</b><span>${txt} · ${pct(km,tot)}</span></div>`;
+  let h='';
+  if (fs && sum(fs.km)>0) h += linea(kmUniv(fs), sum(fs.km), `de frente en el universo de intervención (Muy Alta, Alta y Media) ${amb}`);
+  if (vs) h += linea(kmUniv(vs), sum(vs.km), `de vialidad primaria en el universo de intervención (Muy Alta, Alta y Media) ${ambV}`);
+  return h;
+}
+
 // ---------- resumen del ámbito consultado ----------
-const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0,nbi:0})); let t=0,p=0,nbi=0;
+const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0,u:0,nbi:0})); let t=0,p=0,u=0,nbi=0;
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const m=munIndex[c.m]; if(m===undefined) continue;
-    const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(c.p>=3){ alc[m].p+=pb; p+=pb; alc[m].nbi+=c.nbi||0; nbi+=c.nbi||0; } }
-  return {alc, city:{t,p,nbi}}; })();
+    const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(c.p>=2){ alc[m].u+=pb; u+=pb; } if(c.p>=3){ alc[m].p+=pb; p+=pb; alc[m].nbi+=c.nbi||0; nbi+=c.nbi||0; } }
+  return {alc, city:{t,p,u,nbi}}; })();
 const hab = n => n>=1e6? fmt1.format(n/1e6)+' millones de habitantes' : fmt.format(n)+' habitantes';
 const habC = n => n>=1e6? fmt1.format(n/1e6)+' M' : fmt.format(n);
 const CITY = META.city;
@@ -55,8 +92,11 @@ function renderSummary(){
     if (selCol!==null){ const c=META.colonias[selCol]; if(!c.pob) return '';
       return `<div class="pobline"><b>${hab(c.pob)}</b> en la colonia${c.ids? ` · su unidad territorial tiene desarrollo social ${c.ids.toLowerCase()}`:''}</div>`; }
     const P = sel===null? POB.city : POB.alc[sel];
-    return `<div class="pobline"><b>${hab(P.p)}</b><span>residen en colonias de prioridad Alta o Muy Alta ${sel===null?'de la ciudad':'de la alcaldía'} · ${pct(P.p,P.t)} de su población<small class="pobnota">Población residente (Censo 2020); no equivale a población atendida.</small></span></div>`; })();
+    return `<div class="pobline"><b>${hab(P.p)}</b><span>residen en colonias de prioridad Alta o Muy Alta ${sel===null?'de la ciudad':'de la alcaldía'} · ${pct(P.p,P.t)} de su población<small class="pobnota">Con las colonias de prioridad Media, el universo de intervención reúne ${hab(P.u)} (${pct(P.u,P.t)}). Población residente (Censo 2020); no equivale a población atendida.</small></span></div>`; })();
   const pb = $('pobbox'); if (pb){ pb.innerHTML = (resp==='both')? '' : pobLine; pb.hidden = !pb.innerHTML; }
+  // universo de intervención (Muy Alta, Alta y Media) y cuadro de reparto por responsable
+  const ub = $('univbox'); if (ub){ ub.innerHTML = univHtml(resp!=='gc' && !emptyCol? fs : null, (vs && !(resp==='both' && selCol!==null))? vs : null, amb, ambV1); ub.hidden = !ub.innerHTML; }
+  const rp = $('reparto'); if (rp){ rp.hidden = selAv!==null; rp.innerHTML = rp.hidden? '' : repartoHtml(); }
   // resumen compacto sobre el mapa
   const ms = $('mapsum');
   if (ms){

@@ -31,6 +31,7 @@ const NOTAS_COMUNES = [
   'El contexto social se reporta con el Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX. El modelo de priorización vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020; la actualización del modelo con el IDS está en proceso.',
   `La meta de vialidades primarias se mide sobre los ${fmt.format(Math.round(VPC.cov.km_total))} km de la red completa, incluidos los tramos sin manzanas al frente.`,
   'Los kilómetros prioritarios describen dónde es mayor la necesidad de arbolado según el modelo; no son una meta ni una obligación de plantación.',
+  'Universo de intervención = clases Muy Alta, Alta y Media. Se reporta en kilómetros de frente de manzana (cada lado de la calle frente a una manzana cuenta por separado), que no son comparables con los kilómetros de vialidad primaria medidos sobre el eje. «Sin arbolado» es la clase del modelo; «con banqueta» es el registro de INEGI 2020 y no garantiza espacio de plantación.',
   'El Índice de Desarrollo Social y la población en pobreza corresponden a la unidad territorial de EVALÚA CDMX en la que se ubica la colonia, no a la colonia; no deben sumarse entre colonias.'
 ];
 const FUENTES = 'Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); SEDEMA, modelo de priorización de frentes de manzana, Sistema de Información Ambiental (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial; CONAPO, índice de marginación urbana 2020 (criterio de rezago social del modelo vigente); catálogo de colonias SEDEMA-SIA.';
@@ -57,7 +58,7 @@ const DIC = {
   calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. La calle es la de la colonia indicada en el ámbito; las calles con el mismo nombre en otras colonias no se incluyen.',
     cols:[11,30,16,13,28,7,16,18,26,14,18,20,11,20,11,11], campos:null },
   calles: { titulo:'Resumen por calle', contenido:'Un renglón por calle dentro de su colonia, con la suma de sus frentes de manzana. Dos calles con el mismo nombre en colonias distintas son renglones distintos. Los frentes sin nombre de vialidad en INEGI no se incluyen; están en el Excel de frentes.',
-    cols:[30,30,8,22,20,13,15,12,13,11,15,11],
+    cols:[30,30,8,22,20,13,15,12,13,11,15,11,24,11],
     campos:[
       ['vialidad','Nombre de la calle.','Texto'],
       ['colonia','Colonia en la que está este tramo de la calle.','Texto'],
@@ -70,6 +71,8 @@ const DIC = {
       ['km_muy_alta','Kilómetros de frente con prioridad Muy Alta.','Kilómetros'],
       ['km_alta','Kilómetros de frente con prioridad Alta.','Kilómetros'],
       ['km_prioritario','Suma de Muy Alta y Alta.','Kilómetros'],
+      ['km_media','Kilómetros de frente con prioridad Media.','Kilómetros'],
+      ['km_universo_intervencion','Universo de intervención: suma de Muy Alta, Alta y Media.','Kilómetros'],
       ['km_total','Kilómetros de frente de la calle en el ámbito, en todas las clases.','Kilómetros'] ] },
   tramos: { titulo:'Tramos prioritarios de vialidades primarias', contenido:'Un renglón por parte de tramo de vialidad primaria o de acceso controlado con prioridad Muy Alta o Alta, a cargo del Gobierno de la Ciudad. Un tramo (id_tramo) ocupa más de un renglón cuando cruza un límite de alcaldía o su trazo tiene varias partes; la herramienta cuenta los tramos por id_tramo, por eso el número de renglones puede ser mayor que el número de tramos que muestra la pantalla. Los kilómetros coinciden.',
     cols:[10,11,30,24,22,9,26,20,24,11,11,17,11,11],
@@ -171,13 +174,19 @@ async function deliverTable(base, key, aoa, extra){
   await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
 }
 const num = v => { const n = Number(v); return Number.isFinite(n)? n : v; };
+// cifras del universo de intervención del ámbito consultado, para el diccionario de los Excel de la red de las alcaldías
+function univExtra(){ const R = repStat(sel, selCol); const k = v => num(v.toFixed(2));
+  return [['Universo de intervención del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía', k(univ3(R.km[0]))],
+    ['De ese universo, km de frente sin arbolado', k(univ3(R.sa[0]))],
+    ['De ese universo, km de frente sin arbolado y con banqueta (INEGI)', k(univ3(R.sb[0]))],
+    ['Universo de intervención del ámbito, km de frente a cargo del Gobierno Central', k(univ3(R.km[1]))]]; }
 $('dl-frentes').onclick = ()=>{
   if (sel===null) return;
   const rows=[['prioridad','vialidad','tipo_vialidad','responsable','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','lat','lon']];
   const idx=[]; for(let i=0;i<N;i++) if(F.prio[i]>=3 && !F.gc[i] && enAmbito(i)) idx.push(i);
   idx.sort((a,b)=> F.prio[b]-F.prio[a] || (META.names[F.name[a]]||'').localeCompare(META.names[F.name[b]]||'') );
   for(const i of idx){ const c=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', c.n, c.cp? c.cp.padStart(5,'0'):'', c.p>=0? META.prio[c.p]:'', c.ids||'', c.ut||'', c.pob||0, c.nbi||0, META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
-  deliverTable(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows);
+  deliverTable(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows, univExtra());
 };
 $('dl-calle').onclick = ()=>{
   const c = calleSel(); if (!c) return;
@@ -189,12 +198,12 @@ $('dl-calle').onclick = ()=>{
 };
 $('dl-calles').onclick = ()=>{
   if (sel===null) return;
-  const rows=[['vialidad','colonia','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','km_muy_alta','km_alta','km_prioritario','km_total']];
+  const rows=[['vialidad','colonia','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','km_muy_alta','km_alta','km_prioritario','km_media','km_universo_intervencion','km_total']];
   const items=[]; for(const [key,s] of streetIdx){ if(!s.kmp) continue; let ma=0,a=0,kma=0,ka=0; for(const i of s.idx){ if(F.prio[i]===4){ma++;kma+=F.len[i]/1000;} else if(F.prio[i]===3){a++;ka+=F.len[i]/1000;} }
     const c = s.col? META.colonias[s.col] : null;
-    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
+    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.kp[2].toFixed(2)), num((s.kmp+s.kp[2]).toFixed(2)), num(s.km.toFixed(2))]); }
   items.sort((x,y)=> y[10]-x[10]); for(const r of items) rows.push(r);
-  deliverTable(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows);
+  deliverTable(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, univExtra());
 };
 $('dl-tramos').onclick = ()=>{
   const rows=[['id_tramo','prioridad','vialidad','nombre_red_vial','tipo','carriles','circulacion','alcaldia','alcaldia_capa','clave','longitud_m','responsable','lat','lon']];
