@@ -89,6 +89,8 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `fondo` | Mapa de fondo: `'no'`, `'calles'` o `'sat'` |
 | `opPrio` | Opacidad de las capas de prioridad (0.2 a 1) |
 
+**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía. Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición.
+
 **Flujo de un cambio de ámbito:** una acción (buscador, clic, ruta) cambia `sel`/`selCol`/`selAv` → `refresh()` recalcula colores y filtros por vértice, cifras, listados y botones → `rerender()` redibuja las capas → `flyTo(scopeView())` encuadra el mapa.
 
 ## 6. Estilos de `02_fuente/css/`

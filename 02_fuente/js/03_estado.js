@@ -26,8 +26,12 @@ const showsFrontsMode = ()=> resp!=='gc';
 
 // ---------- atributos por vértice (frentes) ----------
 let COLORS = new Uint8Array(V*4);
+// Filtro único de frentes del ámbito consultado. Lo usan el mapa, las cifras, el listado, los Excel y las fichas,
+// para que todos hablen del mismo territorio: con colonia elegida manda la colonia (aunque parte de sus frentes
+// pertenezca a otra alcaldía en el catálogo); sin colonia, manda la alcaldía.
+const enAmbito = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.mun[i]===sel);
 function buildColors(){
-  for(let i=0;i<N;i++){ const c=T.prio[F.prio[i]]; const a = ((sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol))? 255 : 38; for(let k=start[i];k<start[i+1];k++){ const o=4*k; COLORS[o]=c[0]; COLORS[o+1]=c[1]; COLORS[o+2]=c[2]; COLORS[o+3]=a; } }
+  for(let i=0;i<N;i++){ const c=T.prio[F.prio[i]]; const a = enAmbito(i)? 255 : 38; for(let k=start[i];k<start[i+1];k++){ const o=4*k; COLORS[o]=c[0]; COLORS[o+1]=c[1]; COLORS[o+2]=c[2]; COLORS[o+3]=a; } }
   COLORS = COLORS.slice(0);
 }
 buildColors();

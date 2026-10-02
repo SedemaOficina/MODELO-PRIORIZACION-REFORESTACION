@@ -55,9 +55,9 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 4. Cada cambio se documenta en `05_documentacion/bitacora/`.
 5. Claude nunca borra archivos de la carpeta: lo que sobre se mueve a `_to_delete/` para que Liber lo elimine.
 
-## Estado al 25 de septiembre de 2026
+## Estado al 2 de octubre de 2026
 
-- Versión vigente: **v17.10** (bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
+- Versión vigente: **v17.11** (coherencia de cifras entre pantalla, descargas y fichas, primer bloque de la auditoría integral del 2 de octubre; antes: bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
 - Publicada en GitHub Pages y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar" de Claude.
 
 ### Pendientes

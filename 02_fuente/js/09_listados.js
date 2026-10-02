@@ -4,7 +4,7 @@ let streetIdx = null; // Map clave -> {nid, col, idx:[], km, kmp, np, tipos:Set,
 let sinNombre = {km:0, kmp:0, n:0};  // frentes sin nombre de vialidad en INEGI dentro del ámbito
 function buildStreets(){
   streetIdx = new Map(); sinNombre = {km:0, kmp:0, n:0};
-  for(let i=0;i<N;i++){ if (F.gc[i]) continue; if (sel!==null && F.mun[i]!==sel) continue; if (selCol!==null && F.col[i]!==selCol) continue; const nid=F.name[i];
+  for(let i=0;i<N;i++){ if (F.gc[i] || !enAmbito(i)) continue; const nid=F.name[i];
     if (PLACEHOLDER.has(nid)){ const k=F.len[i]/1000; sinNombre.km+=k; sinNombre.n++; if(F.prio[i]>=3) sinNombre.kmp+=k; continue; }
     const col=F.col[i]; const key = nid*4096 + col; let s=streetIdx.get(key); if(!s){ s={nid, col, idx:[],km:0,kmp:0,np:0,tipos:new Set(),cols:new Set()}; streetIdx.set(key,s); }
     s.idx.push(i); s.km+=F.len[i]/1000; if(F.prio[i]>=3){ s.kmp+=F.len[i]/1000; s.np++; } s.tipos.add(META.tipos[F.tipo[i]]); if(col) s.cols.add(META.colonias[col].n); }
@@ -103,7 +103,11 @@ function renderResults(){
 }
 // calle consultada en la red de las alcaldías (la resaltada): nombre y frentes; null si no hay
 function calleSel(){ if (!highlight || highlight.avId!==undefined || isGC() || !highlight.idx.length) return null;
+  if (callesHomonimas()) return null; // un nombre repetido no es una calle: se elige una en la lista
   return {nombre: META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre', idx: highlight.idx}; }
+// número de colonias distintas entre los frentes resaltados cuando el resaltado reúne calles homónimas; 0 si es una sola calle
+function callesHomonimas(){ if (!highlight || highlight.avId!==undefined || !highlight.idx || !highlight.idx.length) return 0;
+  const cols = new Set(); for (const i of highlight.idx) cols.add(F.col[i]); return cols.size>1 ? cols.size : 0; }
 function highlightStreet(nid, s){
   highlight = {nameId:nid, idx:s.idx};
   let w=180,sN=90,e=-180,n=-90; for(const i of s.idx){ for(let k=start[i];k<start[i+1];k++){ const x=POS[2*k],y=POS[2*k+1]; if(x<w)w=x; if(x>e)e=x; if(y<sN)sN=y; if(y>n)n=y; } }

@@ -94,6 +94,8 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   await buscar(page, 'Montes de las Cordilleras'); await page.keyboard.press('Enter'); await page.waitForTimeout(5000);
   const escCalle = await texto(page, '#scalebar');
   ok('buscar una calle repetida acerca el mapa a esas calles', /\d m$/.test(escCalle) && (await texto(page, '#scope-title')).includes('Tláhuac'), `${escCalle} · ${await texto(page, '#scope-title')}`);
+  ok('un nombre repetido no ofrece descargas «de la calle» y pide elegir una', /Elige una en la lista/.test(await texto(page, '#dl-status')) && await page.$eval('#dl-calle', b => b.hidden));
+  await page.$eval('#results li:not(.empty)', li => li.click()); await page.waitForTimeout(3000);
   ok('con una calle consultada, los botones son los de la calle', (await page.$eval('#act-main', b => b.innerText)).includes('de la calle'));
   ok('Excel de la calle', (await descarga(page, '#act-main')).startsWith('frentes_calle_montes_de_las_cordilleras'));
   ok('ficha PDF de la calle', (await descarga(page, '#act-ficha')).startsWith('ficha_calle_montes_de_las_cordilleras'));

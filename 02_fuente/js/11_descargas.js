@@ -19,6 +19,8 @@ async function deliverBlob(filename, blob){
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); st.textContent=`Descargado: ${filename}`;
 }
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
+// las descargas de vialidades primarias no se filtran por colonia: su nombre y su ámbito tampoco la declaran
+const scopeSlugVP = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '');
 const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selCol!==null? '_'+slug(META.colonias[selCol].n) : '') + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '');
 // ---------- diccionario de datos ----------
 const NOTAS_COMUNES = [
@@ -50,7 +52,7 @@ const DIC = {
       ['banqueta_inegi','Disponibilidad de banqueta registrada por INEGI.','Dispone, No dispone, Conjunto habitacional, No aplica, No especificado'],
       ['lat','Latitud del punto medio del frente.','Grados decimales'],
       ['lon','Longitud del punto medio del frente.','Grados decimales'] ] },
-  calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. Si el nombre existe en varias colonias del ámbito, se incluyen todas.',
+  calle: { titulo:'Frentes de manzana de la calle consultada', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. La calle es la de la colonia indicada en el ámbito; las calles con el mismo nombre en otras colonias no se incluyen.',
     cols:[11,30,16,13,28,7,16,18,26,14,18,20,11,20,11,11], campos:null },
   calles: { titulo:'Resumen por calle', contenido:'Un renglón por calle dentro de su colonia, con la suma de sus frentes de manzana. Dos calles con el mismo nombre en colonias distintas son renglones distintos. Los frentes sin nombre de vialidad en INEGI no se incluyen; están en el Excel de frentes.',
     cols:[30,30,8,22,20,13,15,12,13,11,15,11],
@@ -67,9 +69,10 @@ const DIC = {
       ['km_alta','Kilómetros de frente con prioridad Alta.','Kilómetros'],
       ['km_prioritario','Suma de Muy Alta y Alta.','Kilómetros'],
       ['km_total','Kilómetros de frente de la calle en el ámbito, en todas las clases.','Kilómetros'] ] },
-  tramos: { titulo:'Tramos prioritarios de vialidades primarias', contenido:'Un renglón por tramo de vialidad primaria o de acceso controlado con prioridad Muy Alta o Alta, a cargo del Gobierno de la Ciudad.',
-    cols:[11,30,24,22,9,26,20,24,11,11,17,11,11],
+  tramos: { titulo:'Tramos prioritarios de vialidades primarias', contenido:'Un renglón por parte de tramo de vialidad primaria o de acceso controlado con prioridad Muy Alta o Alta, a cargo del Gobierno de la Ciudad. Un tramo (id_tramo) ocupa más de un renglón cuando cruza un límite de alcaldía o su trazo tiene varias partes; la herramienta cuenta los tramos por id_tramo, por eso el número de renglones puede ser mayor que el número de tramos que muestra la pantalla. Los kilómetros coinciden.',
+    cols:[10,11,30,24,22,9,26,20,24,11,11,17,11,11],
     campos:[
+      ['id_tramo','Identificador del tramo en la capa de vialidades primarias. Se repite cuando el tramo ocupa varios renglones.','Entero'],
       ['prioridad','Clase de prioridad del tramo en la capa de vialidades primarias.','Muy Alta o Alta'],
       ['vialidad','Nombre en calle del tramo.','Texto'],
       ['nombre_red_vial','Identificador del tramo dentro de la red vial primaria.','Eje, Radial, Ruta, Circuito, Anillo Periférico…'],
@@ -78,8 +81,8 @@ const DIC = {
       ['circulacion','Sentido de circulación.','Un sentido, Dos sentidos, Un sentido con carril de contraflujo'],
       ['alcaldia','Alcaldía en la que cae el punto medio del tramo.','Texto'],
       ['alcaldia_capa','Alcaldía tal como viene en la capa fuente; puede indicar dos cuando el tramo es limítrofe.','Texto'],
-      ['clave','Clave del tramo en la capa de vialidades primarias.','Texto, por ejemplo BJU-024'],
-      ['longitud_m','Longitud del tramo.','Metros'],
+      ['clave','Clave registrada en la capa de vialidades primarias. No identifica al tramo: varios tramos comparten la misma clave.','Texto, por ejemplo BJU-024'],
+      ['longitud_m','Longitud de la parte del tramo de este renglón.','Metros'],
       ['responsable','Orden de gobierno que atiende el tramo.','Gobierno Central'],
       ['lat','Latitud del punto medio del tramo.','Grados decimales'],
       ['lon','Longitud del punto medio del tramo.','Grados decimales'] ] },
@@ -103,18 +106,19 @@ const DIC = {
 DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Clase de prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
 function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Boolean))].map(k=>META.colonias[k].n); const muns=[...new Set(c.idx.map(i=>F.mun[i]))].map(m=>META.munNames[m]);
   return `Calle ${c.nombre} · ${cols.length>4? cols.length+' colonias' : cols.join(', ')} · ${muns.join(', ')}`; }
-function ambitoTxt(){
-  if (selAv!==null) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad');
-  if (selCol!==null) return META.colonias[selCol].n + ' · ' + META.munNames[sel];
+function ambitoTxt(key){
+  const vp = key==='tramos' || key==='avenidas';
+  if (selAv!==null && (vp || isGC())) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad');
+  if (selCol!==null && !vp) return META.colonias[selCol].n + ' · ' + META.munNames[sel];
   return sel===null? 'Ciudad de México' : META.munNames[sel];
 }
-function dictAoa(key, nreg, archivo){
+function dictAoa(key, nreg, archivo, extra){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
-    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt()],
+    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
-    ['Registros', nreg], ['Fecha de generación', hoy], [],
+    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
   for (const f of d.campos) a.push(f);
   a.push([], ['Notas']);
@@ -140,7 +144,7 @@ function loadXL(){
   return loadLib('xlsx.js', 'XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(x => (XL = x));
 }
 const wch = ws => ws.map(w=>({wch:w}));
-async function deliverTable(base, key, aoa){
+async function deliverTable(base, key, aoa, extra){
   const st = $('dl-status'); st.textContent = 'Preparando archivo…';
   const nreg = aoa.length - 1;
   let X; try { X = await loadXL(); }
@@ -148,7 +152,7 @@ async function deliverTable(base, key, aoa){
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\n');
     await deliver(base + '.csv', csv);
-    const dic = dictAoa(key, nreg, base + '.csv').map(r=>r.map(csvEsc).join(',')).join('\n');
+    const dic = dictAoa(key, nreg, base + '.csv', extra).map(r=>r.map(csvEsc).join(',')).join('\n');
     await deliver(base + '_diccionario.csv', dic);
     return;
   }
@@ -158,7 +162,7 @@ async function deliverTable(base, key, aoa){
   ws['!autofilter'] = { ref: X.utils.encode_range({ s:{r:0,c:0}, e:{r:Math.max(1,aoa.length-1), c:aoa[0].length-1} }) };
   ws['!freeze'] = { xSplit:'0', ySplit:'1', topLeftCell:'A2', activePane:'bottomLeft', state:'frozen' };
   X.utils.book_append_sheet(wb, ws, 'Datos');
-  const wd = X.utils.aoa_to_sheet(dictAoa(key, nreg, base + '.xlsx'));
+  const wd = X.utils.aoa_to_sheet(dictAoa(key, nreg, base + '.xlsx', extra));
   wd['!cols'] = wch([26, 78, 46]);
   X.utils.book_append_sheet(wb, wd, 'Diccionario');
   const buf = X.write(wb, { bookType:'xlsx', type:'array', compression:true });
@@ -168,9 +172,9 @@ const num = v => { const n = Number(v); return Number.isFinite(n)? n : v; };
 $('dl-frentes').onclick = ()=>{
   if (sel===null) return;
   const rows=[['prioridad','vialidad','tipo_vialidad','responsable','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','lat','lon']];
-  const idx=[]; for(let i=0;i<N;i++) if(F.mun[i]===sel && F.prio[i]>=3 && !F.gc[i] && (selCol===null || F.col[i]===selCol)) idx.push(i);
+  const idx=[]; for(let i=0;i<N;i++) if(F.prio[i]>=3 && !F.gc[i] && enAmbito(i)) idx.push(i);
   idx.sort((a,b)=> F.prio[b]-F.prio[a] || (META.names[F.name[a]]||'').localeCompare(META.names[F.name[b]]||'') );
-  for(const i of idx){ const c=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', c.n, c.cp? c.cp.padStart(5,'0'):'', c.p>=0? META.prio[c.p]:'', c.ids||'', c.ut||'', c.pob||0, c.nbi||0, META.munNames[sel], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
+  for(const i of idx){ const c=META.colonias[F.col[i]]; rows.push([META.prio[F.prio[i]], META.names[F.name[i]], META.tipos[F.tipo[i]], 'Alcaldía', c.n, c.cp? c.cp.padStart(5,'0'):'', c.p>=0? META.prio[c.p]:'', c.ids||'', c.ut||'', c.pob||0, c.nbi||0, META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   deliverTable(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows);
 };
 $('dl-calle').onclick = ()=>{
@@ -186,23 +190,24 @@ $('dl-calles').onclick = ()=>{
   const rows=[['vialidad','colonia','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','km_muy_alta','km_alta','km_prioritario','km_total']];
   const items=[]; for(const [key,s] of streetIdx){ if(!s.kmp) continue; let ma=0,a=0,kma=0,ka=0; for(const i of s.idx){ if(F.prio[i]===4){ma++;kma+=F.len[i]/1000;} else if(F.prio[i]===3){a++;ka+=F.len[i]/1000;} }
     const c = s.col? META.colonias[s.col] : null;
-    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[sel], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
+    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
   items.sort((x,y)=> y[10]-x[10]); for(const r of items) rows.push(r);
   deliverTable(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows);
 };
 $('dl-tramos').onclick = ()=>{
-  const rows=[['prioridad','vialidad','nombre_red_vial','tipo','carriles','circulacion','alcaldia','alcaldia_capa','clave','longitud_m','responsable','lat','lon']];
+  const rows=[['id_tramo','prioridad','vialidad','nombre_red_vial','tipo','carriles','circulacion','alcaldia','alcaldia_capa','clave','longitud_m','responsable','lat','lon']];
   const idx=[]; for(let i=0;i<NV;i++) if(VP.prio[i]>=3 && (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv)) idx.push(i);
   idx.sort((a,b)=> VP.prio[b]-VP.prio[a] || VPC.nomenclat[VP.nom[a]].localeCompare(VPC.nomenclat[VP.nom[b]],'es'));
-  for(const i of idx){ const a=vstart[i], b=vstart[i+1]-1; rows.push([META.prio[VP.prio[i]], VPC.nomenclat[VP.nom[i]], VPC.nombres[VP.nombre[i]], VPC.tipos[VP.tipo[i]], VP.car[i], VPC.circula[VP.circ[i]], META.munNames[VP.mun[i]], VPC.alctxt[VP.alct[i]], VPC.claves[VP.clave[i]], VP.len[i], 'Gobierno Central', num(((VPOS[2*a+1]+VPOS[2*b+1])/2).toFixed(6)), num(((VPOS[2*a]+VPOS[2*b])/2).toFixed(6))]); }
-  deliverTable(`tramos_prioritarios_vialidades_primarias_${scopeSlug()}`, 'tramos', rows);
+  for(const i of idx){ const a=vstart[i], b=vstart[i+1]-1; rows.push([VP.rec[i], META.prio[VP.prio[i]], VPC.nomenclat[VP.nom[i]], VPC.nombres[VP.nombre[i]], VPC.tipos[VP.tipo[i]], VP.car[i], VPC.circula[VP.circ[i]], META.munNames[VP.mun[i]], VPC.alctxt[VP.alct[i]], VPC.claves[VP.clave[i]], VP.len[i], 'Gobierno Central', num(((VPOS[2*a+1]+VPOS[2*b+1])/2).toFixed(6)), num(((VPOS[2*a]+VPOS[2*b])/2).toFixed(6))]); }
+  const nTramos = new Set(idx.map(i=>VP.rec[i])).size;
+  deliverTable(`tramos_prioritarios_vialidades_primarias_${scopeSlugVP()}`, 'tramos', rows, [['Tramos distintos (id_tramo)', nTramos]]);
 };
 $('dl-avenidas').onclick = ()=>{
   const rows=[['vialidad','nombres_red_vial','tipos','alcaldias','tramos_total','tramos_prioritarios','km_muy_alta','km_alta','km_media','km_baja','km_muy_baja','km_prioritario','km_total']];
-  const items=[]; for(const [a,s] of avIdx){ const km=[0,0,0,0,0]; for(const i of s.idx) km[VP.prio[i]]+=VP.len[i]/1000;
+  const items=[]; for(const [a,s] of avIdx){ if (selAv!==null && a!==selAv) continue; const km=[0,0,0,0,0]; for(const i of s.idx) km[VP.prio[i]]+=VP.len[i]/1000;
     items.push([VPC.nomenclat[a], [...s.nombres].join('; '), [...s.tipos].join('; '), [...s.muns].map(m=>META.munNames[m]).join('; '), s.recs.size, s.recsp.size, num(km[4].toFixed(2)), num(km[3].toFixed(2)), num(km[2].toFixed(2)), num(km[1].toFixed(2)), num(km[0].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
   items.sort((x,y)=> y[11]-x[11]); for(const r of items) rows.push(r);
-  deliverTable(`resumen_avenidas_prioritarias_${scopeSlug()}`, 'avenidas', rows);
+  deliverTable(`resumen_avenidas_prioritarias_${scopeSlugVP()}`, 'avenidas', rows);
 };
 
 document.fonts && document.fonts.ready.then(()=> rerender());
