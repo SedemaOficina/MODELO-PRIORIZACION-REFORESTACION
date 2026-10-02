@@ -47,6 +47,10 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 # Clave (API key) de ArcGIS Location Platform para el fondo satelital de Esri. Vacía = satélite Sentinel-2 de EOX.
 # La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
 ESRI_KEY = ''
+# Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
+# Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
+VERSION = '17.13'
+CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
 def leer(rel, binario=False):
@@ -106,7 +110,7 @@ for img, tipo in IMAGENES.items():
     cuerpo = cuerpo.replace('src="%s"' % img, 'src="data:%s;base64,%s"' % (tipo, base64.b64encode(leer(img, True)).decode()))
 cuerpo += ''.join('<script src="%s"></script>\n' % CDN[k] for k in ('deck.js', 'pako.js'))
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
-cuerpo += '<script>window.SIA_ESRI_KEY = %s;</script>\n' % json.dumps(ESRI_KEY)
+cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
 fragmento = cuerpo
 
@@ -134,7 +138,7 @@ for arch in sorted(os.listdir(os.path.join(FUENTE, 'fuentes'))):
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY))
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)

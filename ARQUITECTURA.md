@@ -154,6 +154,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Agregar una columna a un Excel | `js/11_descargas.js` (datos y diccionario van juntos) |
 | Cambiar qué muestra la tarjeta de un frente | `js/05_mapa_tarjetas.js` |
 | Actualizar los datos del modelo | Scripts de `03_procesamiento_datos/` → `construir.py` |
+| Publicar una versión nueva o cambiar el corte de los datos | `VERSION` y `CORTE_DATOS` en `construir.py` (aparecen en el panel, las fichas y el diccionario de los Excel) |
+| Retirar el aviso de asignación preliminar (cuando la regla del cruce esté validada) | `#prelim-note` en `plantilla.html`, `PRELIM_TXT` en `js/01_utilidades.js` y la frase de la ayuda |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
 | Activar el satélite de Esri | Poner la clave en `ESRI_KEY` de `construir.py` y reconstruir |

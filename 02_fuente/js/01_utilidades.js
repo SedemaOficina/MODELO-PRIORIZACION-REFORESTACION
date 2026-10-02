@@ -9,3 +9,7 @@ const kmTxt = v => v>=10? fmt0.format(v) : v>=1? fmt1.format(v) : v>0? fmt.forma
 const kmUn = v => (v>0 && v<1)? 'm' : 'km';
 const kmFull = v => kmTxt(v)+' '+kmUn(v);
 const sum = a => a.reduce((x,y)=>x+y,0);
+// Versión de la herramienta y corte de los datos: los fija construir.py (VERSION y CORTE_DATOS) y se muestran en el panel, las fichas y los Excel.
+const VERSION = Object.assign({v:'', corte:''}, window.SIA_VERSION || {});
+const VERSION_TXT = `Versión ${VERSION.v} · Datos: ${VERSION.corte}`;
+const PRELIM_TXT = 'La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: resulta de una regla geométrica en validación.';

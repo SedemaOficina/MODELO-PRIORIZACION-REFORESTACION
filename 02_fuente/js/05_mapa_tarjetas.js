@@ -8,7 +8,7 @@ function featHtml(i, compact){
   if (compact) return `<span class="pr" style="background:${rgb}"></span><b>${tp!=='—'? tp+' ':''}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${F.len[i]} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
   const cp = col.p>=0 ? META.prio[col.p] : '—';
   const cc = col.p>=0 ? T.prio[col.p] : null;
-  const respTxt = F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía';
+  const respTxt = (F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía') + ' <small>(asignación preliminar)</small>';
   // si la colonia del frente ya es la consultada, sus datos están en el panel: no se repiten aquí
   const dupCol = (selCol!==null && F.col[i]===selCol);
   return `<button class="close" aria-label="Cerrar">×</button>

@@ -486,6 +486,8 @@ body.tab-dl .panel-actions{display:none}
 .help-i{width:24px;height:24px;margin-left:auto;border-radius:50%;border:1px solid var(--line-strong);background:var(--panel);color:var(--ink-2);font:700 14px/1 Cabin,sans-serif;cursor:pointer;flex:none}
 .help-i[aria-expanded="true"]{background:var(--ink);color:var(--panel);border-color:var(--ink)}
 .resp-note{margin:0;font-size:12px}
+.prelim{margin:0;font-size:12px;line-height:1.35;color:var(--ink-2);border-left:3px solid var(--dorado);padding-left:8px}
+.prelim b{color:var(--ink)}
 /* ruta de navegación (auditoría I4) */
 .crumb{display:flex;align-items:center;flex-wrap:wrap;gap:4px 6px;font-size:14px;color:var(--ink-2);min-width:0}
 .crumb .cr-city{border:0;background:none;padding:2px 0;font:inherit;color:var(--ink-2);text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:3px;cursor:pointer}
@@ -520,7 +522,7 @@ body.tab-dl .panel-actions{display:none}
 @media (max-width:860px){
   .panel{max-height:56dvh}
   body.sheet-peek .panel{max-height:none}
-  body.sheet-peek .panel-head,body.sheet-peek .panel-actions,body.sheet-peek .answer,body.sheet-peek .crumb,body.sheet-peek .resp-note{display:none}
+  body.sheet-peek .panel-head,body.sheet-peek .panel-actions,body.sheet-peek .answer,body.sheet-peek .crumb,body.sheet-peek .resp-note,body.sheet-peek .prelim{display:none}
   body:not(.sheet-open) .panel-head{display:none}
   body.sheet-peek .panel-body{overflow:visible}
   body.sheet-open .panel{max-height:88dvh}

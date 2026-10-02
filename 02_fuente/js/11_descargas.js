@@ -26,7 +26,7 @@ const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selC
 const NOTAS_COMUNES = [
   'Prioritario = clases Muy Alta y Alta de la escala de cinco niveles (Muy Alta, Alta, Media, Baja, Muy Baja).',
   'Una calle no es una sola línea: se divide en tramos. En la red de las alcaldías cada tramo es el frente de una manzana y los dos lados de la calle son tramos distintos; en las vialidades primarias cada tramo va de cruce a cruce y se corta al cambiar de alcaldía.',
-  'Los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y no aparecen en los listados, cifras ni fichas de las alcaldías.',
+  'Los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y no aparecen en los listados, cifras ni fichas de las alcaldías. ' + PRELIM_TXT,
   'Coordenadas en grados decimales, WGS84 (EPSG:4326), correspondientes al punto medio del tramo.',
   'El contexto social se reporta con el Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX. El modelo de priorización vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020; la actualización del modelo con el IDS está en proceso.',
   'La meta de vialidades primarias se mide sobre los 2,267 km de la red completa, incluidos los tramos sin manzanas al frente.'
@@ -118,7 +118,7 @@ function dictAoa(key, nreg, archivo, extra){
   const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
     ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
-    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], [],
+    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Corte de los datos', VERSION.corte], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
   for (const f of d.campos) a.push(f);
   a.push([], ['Notas']);

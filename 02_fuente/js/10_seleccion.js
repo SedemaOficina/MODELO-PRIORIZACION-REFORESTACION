@@ -53,3 +53,4 @@ function pickAvenida(a){
 function clearAvenida(){ if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } }
 selEl.onchange = e=> setSel(e.target.value);
 $('n-total').textContent = `${fmt.format(N)} frentes de manzana y ${fmt.format(VPC.cov.registros)} tramos de vialidad primaria (${fmt0.format(VPC.cov.km_total)} km).`;
+$('ver-line').textContent = VERSION_TXT + '.';

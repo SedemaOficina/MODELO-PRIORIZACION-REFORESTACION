@@ -12,6 +12,10 @@ const kmTxt = v => v>=10? fmt0.format(v) : v>=1? fmt1.format(v) : v>0? fmt.forma
 const kmUn = v => (v>0 && v<1)? 'm' : 'km';
 const kmFull = v => kmTxt(v)+' '+kmUn(v);
 const sum = a => a.reduce((x,y)=>x+y,0);
+// Versión de la herramienta y corte de los datos: los fija construir.py (VERSION y CORTE_DATOS) y se muestran en el panel, las fichas y los Excel.
+const VERSION = Object.assign({v:'', corte:''}, window.SIA_VERSION || {});
+const VERSION_TXT = `Versión ${VERSION.v} · Datos: ${VERSION.corte}`;
+const PRELIM_TXT = 'La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: resulta de una regla geométrica en validación.';
 
 // Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin y vp.bin, descompresión y decodificación a arreglos (frentes F, geometría POS, vialidades primarias VP).
 // ---------- lectura y decodificación ----------
@@ -330,7 +334,7 @@ function featHtml(i, compact){
   if (compact) return `<span class="pr" style="background:${rgb}"></span><b>${tp!=='—'? tp+' ':''}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${F.len[i]} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
   const cp = col.p>=0 ? META.prio[col.p] : '—';
   const cc = col.p>=0 ? T.prio[col.p] : null;
-  const respTxt = F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía';
+  const respTxt = (F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía') + ' <small>(asignación preliminar)</small>';
   // si la colonia del frente ya es la consultada, sus datos están en el panel: no se repiten aquí
   const dupCol = (selCol!==null && F.col[i]===selCol);
   return `<button class="close" aria-label="Cerrar">×</button>
@@ -824,6 +828,7 @@ function pickAvenida(a){
 function clearAvenida(){ if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } }
 selEl.onchange = e=> setSel(e.target.value);
 $('n-total').textContent = `${fmt.format(N)} frentes de manzana y ${fmt.format(VPC.cov.registros)} tramos de vialidad primaria (${fmt0.format(VPC.cov.km_total)} km).`;
+$('ver-line').textContent = VERSION_TXT + '.';
 
 // Descargas: CSV y Excel (SheetJS bajo demanda) con diccionario de datos.
 // ---------- descargas ----------
@@ -853,7 +858,7 @@ const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selC
 const NOTAS_COMUNES = [
   'Prioritario = clases Muy Alta y Alta de la escala de cinco niveles (Muy Alta, Alta, Media, Baja, Muy Baja).',
   'Una calle no es una sola línea: se divide en tramos. En la red de las alcaldías cada tramo es el frente de una manzana y los dos lados de la calle son tramos distintos; en las vialidades primarias cada tramo va de cruce a cruce y se corta al cambiar de alcaldía.',
-  'Los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y no aparecen en los listados, cifras ni fichas de las alcaldías.',
+  'Los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y no aparecen en los listados, cifras ni fichas de las alcaldías. ' + PRELIM_TXT,
   'Coordenadas en grados decimales, WGS84 (EPSG:4326), correspondientes al punto medio del tramo.',
   'El contexto social se reporta con el Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX. El modelo de priorización vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020; la actualización del modelo con el IDS está en proceso.',
   'La meta de vialidades primarias se mide sobre los 2,267 km de la red completa, incluidos los tramos sin manzanas al frente.'
@@ -945,7 +950,7 @@ function dictAoa(key, nreg, archivo, extra){
   const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
     ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
-    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], [],
+    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Corte de los datos', VERSION.corte], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
   for (const f of d.campos) a.push(f);
   a.push([], ['Notas']);
@@ -1173,11 +1178,11 @@ function fichaPDF(kind){
     r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
   if(!rows.length){ doc.setTextColor(...GRIS); doc.text('Sin registros prioritarios.', M+1.5, y+6); }
   // pie
-  doc.setDrawColor(...LINE); doc.line(M,262,W-M,262); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
+  doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
   const fuentes = isVP
-    ? `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros. Las vialidades primarias y de acceso controlado corresponden al Gobierno de la Ciudad de México. Fuentes: SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); modelo de priorización del Sistema de Información Ambiental. La meta se mide sobre los 2,267 km de la red primaria completa. Generado el ${hoy} desde la herramienta Calles prioritarias para reforestar.`
-    : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX). Generado el ${hoy} desde la herramienta Calles prioritarias para reforestar.`;
-  doc.text(doc.splitTextToSize(fuentes, W-2*M), M, 266);
+    ? `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros. Las vialidades primarias y de acceso controlado corresponden al Gobierno de la Ciudad de México. Fuentes: SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); modelo de priorización del Sistema de Información Ambiental. La meta se mide sobre los 2,267 km de la red primaria completa. ${PRELIM_TXT} Generado el ${hoy} desde la herramienta Calles prioritarias para reforestar. ${VERSION_TXT}.`
+    : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX). ${PRELIM_TXT} Generado el ${hoy} desde la herramienta Calles prioritarias para reforestar. ${VERSION_TXT}.`;
+  doc.text(doc.splitTextToSize(fuentes, W-2*M), M, 258);
   const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(c.n)}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}_toda_la_ciudad.pdf`;
   deliverBlob(fname, doc.output('blob'));
 }
@@ -1255,8 +1260,8 @@ function fichaCallePDF(){
     r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
   if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} colonias; el Excel de la calle trae todas.`, M+1.5, y+6+14*6.2); }
   // pie
-  doc.setDrawColor(...LINE); doc.line(M,262,W-M,262); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
-  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '.', W-2*M), M, 266);
+  doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
+  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
 }
 $('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js').then(fichaCallePDF)

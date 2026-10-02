@@ -120,6 +120,19 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   d = await baja('dl-ficha-calle');
   ok('H-020 la ficha de la calle pesa menos de 3 MB', d && d.bytes < 3e6, d && (d.bytes / 1e6).toFixed(2) + ' MB');
 
+  // ---------- H-005 y H-068 · asignación preliminar, versión y corte de datos visibles ----------
+  const cfg = await page.evaluate(() => window.SIA_VERSION);
+  ok('H-068 la página conoce su versión y el corte de los datos', cfg && /^\d+\.\d+$/.test(cfg.v) && cfg.corte.length > 10, JSON.stringify(cfg));
+  ok('H-068 versión y corte visibles en el panel', (await page.$eval('#ver-line', x => x.textContent)).includes('Versión ' + cfg.v));
+  ok('H-005 aviso de asignación preliminar visible bajo «Atiende»', await page.$eval('#prelim-note', x => !x.hidden && getComputedStyle(x).display !== 'none' && /preliminar/.test(x.textContent)));
+  ok('H-068 el diccionario del Excel trae versión y corte', dicVal(x, 'Versión de la herramienta') == cfg.v && dicVal(x, 'Corte de los datos') === cfg.corte, `${dicVal(x, 'Versión de la herramienta')} · ${dicVal(x, 'Corte de los datos')}`);
+  ok('H-005 el diccionario del Excel declara la asignación preliminar', x.dic.some(r => /asignación de cada frente .* es preliminar/.test(String(r[0]))));
+  if (d) { const t = cp.execFileSync('pdftotext', ['-layout', d.ruta, '-']).toString().replace(/\s+/g, ' ');
+    ok('H-005 y H-068 la ficha declara la asignación preliminar y la versión', /es preliminar/.test(t) && t.includes('Versión ' + cfg.v), t.slice(-160)); }
+  await L.clic(page, '#zcity'); await page.selectOption('#alc', String(izt)); await page.waitForTimeout(400);
+  for (const id of ['dl-ficha-alc']) { const f = await baja(id); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+    ok(`H-005 y H-068 ${id}: asignación preliminar y versión en el pie`, /es preliminar/.test(t) && t.includes('Versión ' + cfg.v)); }
+
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();
   process.exit(ok.fin() ? 1 : 0);
