@@ -158,7 +158,8 @@ let showAlcB = false, showColB = true, showFrB = true, colBefore = false;
 // Modo ligero: si el navegador dibuja sin tarjeta gráfica (o se pide con ?modo=ligero), las calles se dibujan
 // solo desde el zoom ZOOM_LIGERO y, más lejos, las colonias muestran la prioridad. Ver 06_mapa_interaccion.js.
 let modoLigero = false;
-let fondoSat = false;   // mapa de fondo satelital (Sentinel-2) encendido
+let opPrio = 1;          // opacidad de las capas de prioridad (0.2 a 1), la ajusta el usuario en el panel de capas
+let fondo = 'no';        // mapa de fondo: 'no' | 'calles' | 'sat'
 const ZOOM_LIGERO = 13;
 const frVisibles = ()=> showFrB && !(modoLigero && viewState.zoom < ZOOM_LIGERO);
 const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
@@ -230,15 +231,27 @@ function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 4007
   el.querySelector('i').style.width = Math.round(m/mpp)+'px'; el.querySelector('span').textContent = m>=1000? (m/1000)+' km' : m+' m'; }
 let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
-// Mapa de fondo satelital: Sentinel-2 cloudless 2024 de EOX (10 m por píxel), gratuito para uso no comercial con
-// atribución (CC BY-NC-SA 4.0; ver SAT_ATRIB). Para cambiar de fuente basta con cambiar SAT_URL y SAT_ATRIB.
-const SAT_URL = 'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg';
-const SAT_ATRIB = 'Imagen: <a href="https://s2maps.eu" target="_blank" rel="noopener">Sentinel-2 cloudless 2024</a> por EOX IT Services GmbH (contiene datos modificados de Copernicus Sentinel 2024) · CC BY-NC-SA 4.0';
-let satFallas = 0;
-function capaSatelite(){
-  return new deck.TileLayer({id:'satelite', data:SAT_URL, minZoom:0, maxZoom:15, tileSize:256,
-    opacity:0.85,
-    onTileError: ()=>{ if (++satFallas===3) avisoSatelite(); },
+// Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
+//  · calles: CARTO Positron sobre OpenStreetMap; no requiere clave.
+//  · sat: Esri World Imagery con nombres de calles si hay clave de ArcGIS Location Platform (window.SIA_ESRI_KEY,
+//    se define en construir.py); sin clave, Sentinel-2 cloudless 2024 de EOX (10 m por píxel, CC BY-NC-SA 4.0).
+const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
+const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';
+const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener">${t}</a>`;
+const FONDOS = {
+  calles: { url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', size:256, max:19, op:1, nota:'',
+    atrib:`Mapa: © ${enlace('https://www.openstreetmap.org/copyright','OpenStreetMap')} · © ${enlace('https://carto.com/attributions','CARTO')}` },
+  sat: ESRI_KEY
+    ? { url: ESRI_TILES+'arcgis/imagery/static/tile/{z}/{y}/{x}?token='+encodeURIComponent(ESRI_KEY), size:512, max:19, op:.9, nota:'',
+        atrib:`Powered by ${enlace('https://www.esri.com','Esri')} · Imagen: Esri, Vantor, Earthstar Geographics y GIS User Community · Vías y lugares: Esri, HERE, Garmin, © OpenStreetMap contributors` }
+    : { url:'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg', size:256, max:15, op:.85,
+        nota:'Imagen de satélite de 10 m por píxel: muestra zonas verdes y mancha urbana, no árboles individuales.',
+        atrib:`Imagen: ${enlace('https://s2maps.eu','Sentinel-2 cloudless 2024')} por EOX IT Services GmbH (contiene datos modificados de Copernicus Sentinel 2024) · CC BY-NC-SA 4.0` }
+};
+let fondoFallas = 0;
+function capaFondo(){ const f = FONDOS[fondo];
+  return new deck.TileLayer({id:'fondo-'+fondo, data:f.url, minZoom:0, maxZoom:f.max, tileSize:f.size, opacity:f.op,
+    onTileError: ()=>{ if (++fondoFallas===3) avisoFondo(); },
     renderSubLayers: p=>{ const b = p.tile.boundingBox;
       return new deck.BitmapLayer(p, {data:null, image:p.data, bounds:[b[0][0], b[0][1], b[1][0], b[1][1]]}); }});
 }
@@ -246,15 +259,15 @@ function capaSatelite(){
 function layers(){
   const z = viewState.zoom;
   const L = [];
-  if (fondoSat) L.push(capaSatelite());
-  if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
-  if (showCol()) L.push(new PolygonLayer({id:'col-fill', data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
+  if (fondo!=='no') L.push(capaFondo());
+  if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', opacity:opPrio, data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
+  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
   L.push(new PolygonLayer({id:'alc', data:ALC_PARTS, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.alc, lineWidthMinPixels:1, lineWidthMaxPixels:1.5, updateTriggers:{getLineColor:[T.alc]}}));
   if ((z>=12.2 && !isGC()) || colOnly()) L.push(new PathLayer({id:'cols', data:COL_PATHS, getPath:d=>d.path, getColor:T.col, widthMinPixels:0.7, widthMaxPixels:1, opacity:.7, updateTriggers:{getColor:[T.col]}}));
   // frentes de manzana (responsabilidad de las alcaldías)
   // los frentes solo responden al cursor desde el zoom 12: más lejos son demasiado finos y revisar 372 mil tramos
   // en cada movimiento del ratón vuelve lento el mapa (se consultan las colonias)
-  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', data:frontsData(), _pathType:'open', widthUnits:'meters', getWidth:6, widthMinPixels:1, widthMaxPixels:9,
+  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', opacity:opPrio, data:frontsData(), _pathType:'open', widthUnits:'meters', getWidth:6, widthMinPixels:1, widthMaxPixels:9,
     pickable: z>=12, autoHighlight: z>=12, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[COLORS], getFilterValue:[FILTER]}}));
@@ -269,7 +282,7 @@ function layers(){
     else { mk(highlight.idx.filter(i=>VP.mun[i]!==sel), 32, 'av-halo-out'); mk(highlight.idx.filter(i=>VP.mun[i]===sel), 120, 'av-halo'); }
   }
   // vialidades primarias (Gobierno Central): contexto en gris en modo Alcaldía; coloreadas por prioridad en los otros modos
-  if (showFr() || isGC()) L.push(new PathLayer({id:'vias', data:vpData(), _pathType:'open', widthUnits:'meters', getWidth: resp==='alc'? 7 : 14, widthMinPixels: resp==='alc'? 1.2 : 2.2, widthMaxPixels: resp==='alc'? 5 : 12, capRounded:true, jointRounded:true,
+  if (showFr() || isGC()) L.push(new PathLayer({id:'vias', opacity:opPrio, data:vpData(), _pathType:'open', widthUnits:'meters', getWidth: resp==='alc'? 7 : 14, widthMinPixels: resp==='alc'? 1.2 : 2.2, widthMaxPixels: resp==='alc'? 5 : 12, capRounded:true, jointRounded:true,
     pickable:true, autoHighlight:true, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[VCOLORS], getFilterValue:[VFILTER], getWidth:[resp]}}));
@@ -502,16 +515,21 @@ document.querySelectorAll('.seg.lvl button').forEach(b=>{ b.onclick = ()=>{
   else if (isGC()){ if (cur) return; setLayer('alc',false); setLayer('fr',true); }
   else { if (showAlcB){ setLayer('alc',false); setLayer(k,true); } else { const other = k==='col'? showFrB : showColB; if (cur && !other) return; setLayer(k, !cur); } }
   hideCard(); renderResults(); rerender(); }; });
-// mapa de fondo: sin fondo (predeterminado) o satélite
+// opacidad de las capas de prioridad (alcaldías, colonias, calles y vialidades primarias)
+$('op-prio').oninput = e=>{ opPrio = Math.min(1, Math.max(0.2, (+e.target.value||100)/100)); $('op-val').textContent = Math.round(opPrio*100)+' %'; rerender(); };
+// mapa de fondo: sin fondo (predeterminado), calles o satélite
 const ATRIB_BASE = $('attrib').innerHTML;
-function setFondo(sat){ fondoSat = sat; satFallas = 0;
-  document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String((b.dataset.fondo==='sat')===sat)));
-  $('attrib').innerHTML = sat? SAT_ATRIB : ATRIB_BASE; $('attrib').classList.toggle('sat', sat); document.body.classList.toggle('fondo-sat', sat);
-  const n = $('fondo-note'); n.hidden = !sat; n.textContent = sat? 'Imagen de satélite de 10 m por píxel: muestra zonas verdes y mancha urbana, no árboles individuales.' : '';
-  rerender(); }
-function avisoSatelite(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar la imagen de satélite (revisa la conexión a internet).'; }
-document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ const sat = b.dataset.fondo==='sat'; if (sat!==fondoSat) setFondo(sat); }; });
-$('reset-all').onclick = ()=>{ setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); selEl.value=''; setSel(''); };
+function setFondo(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
+  document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
+  $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con);
+  const n = $('fondo-note'); n.hidden = !(con && f.nota); n.textContent = con? f.nota : '';
+  ajustaEscala(); rerender(); }
+// la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
+function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }
+addEventListener('resize', ajustaEscala);
+function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
+document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
+$('reset-all').onclick = ()=>{ opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); selEl.value=''; setSel(''); };
 
 // Estadísticas por colonia, avenida y ámbito; cifras principales, barras por prioridad y textos de contexto del panel.
 // estadísticas por colonia (frentes a cargo de la alcaldía)
@@ -1266,7 +1284,7 @@ const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); }
 legendBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(!isPhone());
-addEventListener('resize', ()=>{ if(!isPhone()){ setLegend(true); document.body.classList.remove('sheet-open','sheet-peek'); } });
+addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
 let curTab = 'res';

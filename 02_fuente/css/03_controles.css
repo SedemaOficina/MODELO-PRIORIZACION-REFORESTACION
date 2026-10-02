@@ -52,8 +52,8 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
   .mapsum .st b{font-size:14px}
 }
 /* --- cabecera de la leyenda (plegable en móvil) --- */
-.legend-head{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:0;border:0;background:none;text-align:left;cursor:default;color:inherit}
-.legend-head svg{display:none;width:16px;height:16px;stroke:var(--ink-3);fill:none;stroke-width:2;flex:none;transition:transform .18s ease}
+.legend-head{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:0;border:0;background:none;text-align:left;cursor:pointer;color:inherit}
+.legend-head svg{display:block;width:16px;height:16px;stroke:var(--ink-3);fill:none;stroke-width:2;flex:none;transition:transform .18s ease}
 .legend-head h3{margin:0}
 .lg-short{display:none}
 :root{--people:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M16 14.2c2.4.2 4.5 2 4.5 4.8'/%3E%3C/svg%3E")}
@@ -87,10 +87,6 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
   .combo-list li{padding:10px 10px}
   .results li{padding:11px 12px}
   .legend{left:10px;bottom:10px;right:auto;max-width:min(74vw,250px);padding:9px 11px}
-  .legend-head{cursor:pointer}
-  .legend-head svg{display:block}
-  .legend:not(.open) #legend-body{display:none}
-  .legend:not(.open) .legend-head svg{transform:rotate(-90deg)}
   .seg.pills button{padding:9px 13px}
   .lg-long{display:none}
   .lg-short{display:inline}
@@ -128,7 +124,19 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 @media (max-width:860px){.aviso-ligero{top:auto;left:12px;right:60px;transform:none;max-width:none;bottom:calc(200px + env(safe-area-inset-bottom,0px))}}
 
 /* atribución del mapa de fondo satelital (obligatoria por la licencia; también visible en teléfono) */
-.attrib.sat{max-width:min(640px,58%);line-height:1.35;font-size:11px}
+.attrib.sat{max-width:min(620px,calc(100% - 320px));line-height:1.35;font-size:11px}
 .attrib a{color:inherit;text-decoration:underline}
-@media (min-width:861px){body.fondo-sat .scalebar{bottom:58px}}
 @media (max-width:860px){.attrib.sat{display:block;max-width:none;left:12px;right:60px;bottom:auto;top:64px;font-size:10px}}
+
+/* panel de capas: se minimiza con su encabezado (también en escritorio) y no se sale del mapa */
+.legend:not(.open) #legend-body{display:none}
+.legend:not(.open) .legend-head svg{transform:rotate(-90deg)}
+.legend-head:hover h3{color:var(--guinda)}
+@media (min-width:861px){.legend.open{max-height:calc(100% - 96px);overflow-y:auto}}
+/* opacidad de la prioridad */
+.op-row{display:flex;align-items:center;gap:8px}
+.op-row input[type=range]{flex:1;min-width:0;accent-color:var(--guinda);height:22px;margin:0}
+.op-row output{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink-2);min-width:44px;text-align:right}
+/* listados: la cifra de la derecha no aplasta el nombre cuando el panel es angosto o el navegador tiene zoom */
+.results .k{max-width:11.5em}
+.results .k small{white-space:normal;line-height:1.3}

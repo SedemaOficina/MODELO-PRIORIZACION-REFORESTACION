@@ -34,7 +34,7 @@ const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); }
 legendBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(!isPhone());
-addEventListener('resize', ()=>{ if(!isPhone()){ setLegend(true); document.body.classList.remove('sheet-open','sheet-peek'); } });
+addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
 let curTab = 'res';

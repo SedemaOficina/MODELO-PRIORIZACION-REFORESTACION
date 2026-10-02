@@ -40,6 +40,9 @@ CDN = {'deck.js': 'https://cdn.jsdelivr.net/npm/deck.gl@9.4.0/dist.min.js',
        'pako.js': 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako_inflate.min.js'}
 IMAGENES = {'img/logo_sedema_reforestacion.png': 'image/png', 'img/composicion_frentes_manzana.jpg': 'image/jpeg'}
 DATOS = ('meta', 'data', 'vp')
+# Clave (API key) de ArcGIS Location Platform para el fondo satelital de Esri. Vacía = satélite Sentinel-2 de EOX.
+# La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
+ESRI_KEY = ''
 
 
 def leer(rel, binario=False):
@@ -90,6 +93,7 @@ for img, tipo in IMAGENES.items():
     cuerpo = cuerpo.replace('src="%s"' % img, 'src="data:%s;base64,%s"' % (tipo, base64.b64encode(leer(img, True)).decode()))
 cuerpo += ''.join('<script src="%s"></script>\n' % CDN[k] for k in ('deck.js', 'pako.js'))
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
+cuerpo += '<script>window.SIA_ESRI_KEY = %s;</script>\n' % json.dumps(ESRI_KEY)
 cuerpo += '<script>\n' + app + '</script>\n'
 fragmento = cuerpo
 
@@ -111,7 +115,7 @@ for lib in sorted(os.listdir(os.path.join(FUENTE, 'libs'))):
     lver[lib] = huella(b)
 for img in IMAGENES:
     poner(img, leer(img, True))
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\n' % json.dumps({'v': ver, 'total': total})
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY))
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)

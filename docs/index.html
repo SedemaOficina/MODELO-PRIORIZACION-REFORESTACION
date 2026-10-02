@@ -3,7 +3,7 @@
 <title>Calles Prioritarias para Reforestar</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cabin:wght@500;600;700&family=Roboto:wght@400;500;700&display=swap">
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=2f438f4103">
+<link rel="stylesheet" href="estilos.css?v=afea32ae8d">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -112,7 +112,7 @@
       <button class="tool" id="zloc" title="Mi ubicación" aria-label="Mi ubicación" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
     </div>
     <div class="legend">
-      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body"><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar o mostrar el panel de capas"><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
       <div id="legend-body">
       <div class="lg-sec"><span class="lg-cap" id="lvl-label">Ver en el mapa</span><div class="seg lvl pills" role="group" aria-labelledby="lvl-label">
             <button type="button" data-lvl="alc" aria-pressed="false"><i></i>Alcaldías</button>
@@ -121,8 +121,11 @@
           </div><p class="lg-note" id="lvl-note">Colonias y Calles se combinan; Alcaldías va sola.</p></div>
       <div class="lg-sec"><span class="lg-cap" id="fondo-label">Mapa de fondo</span><div class="seg fondo pills" role="group" aria-labelledby="fondo-label">
             <button type="button" data-fondo="no" aria-pressed="true"><i></i>Sin fondo</button>
+            <button type="button" data-fondo="calles" aria-pressed="false"><i></i>Calles</button>
             <button type="button" data-fondo="sat" aria-pressed="false"><i></i>Satélite</button>
           </div><p class="lg-note" id="fondo-note" hidden></p></div>
+      <div class="lg-sec lg-op"><label class="lg-cap" for="op-prio">Opacidad de la prioridad</label>
+          <div class="op-row"><input type="range" id="op-prio" min="20" max="100" step="5" value="100" aria-describedby="op-val"><output id="op-val" for="op-prio">100 %</output></div></div>
       <span class="lg-cap" id="lg-scope">Prioridad · km de frente de la ciudad</span>
       <div id="legend-rows"></div>
       <div class="row static" id="legend-vp"></div>
@@ -265,8 +268,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=70619027da"></script>
+<script src="config.js?v=973064414d"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=8f08424cbc"></script>
+<script src="app.js?v=bd86cddf60"></script>
 </body></html>

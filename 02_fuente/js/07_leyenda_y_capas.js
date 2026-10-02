@@ -45,13 +45,18 @@ document.querySelectorAll('.seg.lvl button').forEach(b=>{ b.onclick = ()=>{
   else if (isGC()){ if (cur) return; setLayer('alc',false); setLayer('fr',true); }
   else { if (showAlcB){ setLayer('alc',false); setLayer(k,true); } else { const other = k==='col'? showFrB : showColB; if (cur && !other) return; setLayer(k, !cur); } }
   hideCard(); renderResults(); rerender(); }; });
-// mapa de fondo: sin fondo (predeterminado) o satélite
+// opacidad de las capas de prioridad (alcaldías, colonias, calles y vialidades primarias)
+$('op-prio').oninput = e=>{ opPrio = Math.min(1, Math.max(0.2, (+e.target.value||100)/100)); $('op-val').textContent = Math.round(opPrio*100)+' %'; rerender(); };
+// mapa de fondo: sin fondo (predeterminado), calles o satélite
 const ATRIB_BASE = $('attrib').innerHTML;
-function setFondo(sat){ fondoSat = sat; satFallas = 0;
-  document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String((b.dataset.fondo==='sat')===sat)));
-  $('attrib').innerHTML = sat? SAT_ATRIB : ATRIB_BASE; $('attrib').classList.toggle('sat', sat); document.body.classList.toggle('fondo-sat', sat);
-  const n = $('fondo-note'); n.hidden = !sat; n.textContent = sat? 'Imagen de satélite de 10 m por píxel: muestra zonas verdes y mancha urbana, no árboles individuales.' : '';
-  rerender(); }
-function avisoSatelite(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar la imagen de satélite (revisa la conexión a internet).'; }
-document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ const sat = b.dataset.fondo==='sat'; if (sat!==fondoSat) setFondo(sat); }; });
-$('reset-all').onclick = ()=>{ setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); selEl.value=''; setSel(''); };
+function setFondo(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
+  document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
+  $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con);
+  const n = $('fondo-note'); n.hidden = !(con && f.nota); n.textContent = con? f.nota : '';
+  ajustaEscala(); rerender(); }
+// la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
+function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }
+addEventListener('resize', ajustaEscala);
+function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
+document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
+$('reset-all').onclick = ()=>{ opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); selEl.value=''; setSel(''); };

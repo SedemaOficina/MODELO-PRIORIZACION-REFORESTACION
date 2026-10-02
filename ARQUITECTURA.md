@@ -86,7 +86,8 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `viewState` | Vista actual del mapa |
 | `myPos` | Última posición de Mi ubicación (solo en memoria) |
 | `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
-| `fondoSat` | Mapa de fondo satelital encendido |
+| `fondo` | Mapa de fondo: `'no'`, `'calles'` o `'sat'` |
+| `opPrio` | Opacidad de las capas de prioridad (0.2 a 1) |
 
 **Flujo de un cambio de ámbito:** una acción (buscador, clic, ruta) cambia `sel`/`selCol`/`selAv` → `refresh()` recalcula colores y filtros por vértice, cifras, listados y botones → `rerender()` redibuja las capas → `flyTo(scopeView())` encuadra el mapa.
 
@@ -137,7 +138,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Tipografías Cabin y Roboto | Google Fonts | Pendiente servirlas desde el sitio para el SIA |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
-| Mapa de fondo satelital (opcional) | Sentinel-2 cloudless 2024 de EOX, `tiles.maps.eox.at` | 10 m por píxel; gratuito para uso no comercial con atribución (CC BY-NC-SA 4.0). Solo se pide si el usuario lo enciende. No funciona dentro del artefacto de Claude (bloquea servidores externos) |
+| Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Sin clave; atribución obligatoria. Solo se pide si el usuario lo enciende |
+| Mapa de fondo satelital (opcional) | Con clave: Esri World Imagery, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes). Sin clave: Sentinel-2 cloudless 2024 de EOX, `tiles.maps.eox.at` (10 m, CC BY-NC-SA 4.0) | La clave va en `ESRI_KEY` de `construir.py`. No funciona dentro del artefacto de Claude (bloquea servidores externos) |
 
 ## 9. Cambios comunes
 
@@ -150,7 +152,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Cambiar qué muestra la tarjeta de un frente | `js/05_mapa_tarjetas.js` |
 | Actualizar los datos del modelo | Scripts de `03_procesamiento_datos/` → `construir.py` |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
-| Cambiar la fuente de la imagen satelital (p. ej., Esri con licencia) | `SAT_URL` y `SAT_ATRIB` en `js/04_mapa_capas.js` |
+| Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
+| Activar el satélite de Esri | Poner la clave en `ESRI_KEY` de `construir.py` y reconstruir |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
 Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_pruebas/prueba_sitio.js`.
