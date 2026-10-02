@@ -106,11 +106,12 @@
       <button class="tool" id="zin" title="Acercar" aria-label="Acercar">+</button>
       <button class="tool" id="zout" title="Alejar" aria-label="Alejar">−</button>
       <button class="tool" id="zcity" title="Ver toda la ciudad (reinicia la consulta)" aria-label="Ver toda la ciudad y reiniciar la consulta"><svg viewBox="0 0 24 24"><path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 9.5V20h13V9.5"/><path d="M10 20v-5h4v5"/></svg></button>
+      <button class="tool" id="zcapas" title="Capas y prioridad" aria-label="Capas y prioridad" aria-expanded="true" aria-controls="legend-body"><svg viewBox="0 0 24 24"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/></svg></button>
       <button class="tool" id="info-btn" title="¿Cómo se priorizó?" aria-label="Cómo se priorizó y cómo se usa">?</button>
       <button class="tool" id="zloc" title="Mi ubicación" aria-label="Mi ubicación" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
     </div>
     <div class="legend">
-      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar el panel de capas" aria-label="Capas y prioridad"><svg class="lg-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5z"/><path d="m3 13 9 5 9-5"/></svg><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg class="lg-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10l5 5 5-5"/></svg></button>
+      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar el panel de capas" aria-label="Minimizar el panel de capas"><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg class="lg-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <div id="legend-body">
       <div class="lg-sec"><span class="lg-cap" id="lvl-label">Ver en el mapa</span><div class="seg lvl pills" role="group" aria-labelledby="lvl-label">
             <button type="button" data-lvl="alc" aria-pressed="false"><i></i>Alcaldías</button>

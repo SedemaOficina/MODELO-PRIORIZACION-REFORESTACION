@@ -31,8 +31,11 @@ panelBtn.onclick = ()=>{ const off = document.body.classList.toggle('panel-off')
   setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 120); };
 const collapseSheet = ()=>{ if(!isPhone()) return; if(sheetState!=='half') setSheetState('half'); const k=$('answer'); if(k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
 const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle');
-function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); legendBtn.title = open? 'Minimizar el panel de capas' : 'Capas y prioridad'; }
-legendBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
+// el panel de capas se abre y se cierra con el botón de capas de la barra de herramientas; su × lo cierra
+const capasBtn = $('zcapas');
+function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
+legendBtn.onclick = ()=> setLegend(false);
+capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(!isPhone());
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
