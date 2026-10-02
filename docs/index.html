@@ -2,7 +2,7 @@
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 <title>Calles Prioritarias para Reforestar</title>
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=7f996fa868">
+<link rel="stylesheet" href="estilos.css?v=83c653bb77">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -183,7 +183,7 @@
     </div>
 
     <h3><span class="step">2</span>Prioridad de cada calle (frente de manzana)</h3>
-    <p>Un frente de manzana es el tramo de calle que da a un lado de una manzana. Para cada uno de los 372,534 frentes de la ciudad (INEGI, 2020) se midió cuánta vegetación tiene hoy a partir de imágenes satelitales (índice de vegetación NDVI) y se clasificó en cinco clases: a menos vegetación en la calle, clase más alta.</p>
+    <p>Un frente de manzana es el tramo de calle que da a un lado de una manzana. Para cada uno de los <span id="m-n-fr">—</span> frentes de la ciudad (INEGI, 2020) se midió cuánta vegetación tiene hoy a partir de imágenes satelitales (índice de vegetación NDVI) y se clasificó en cinco clases: a menos vegetación en la calle, clase más alta.</p>
     <p>La <b>prioridad final del frente</b> combina la prioridad de la colonia con el verdor de la propia calle. Así, una calle sin árboles en una colonia con calor y rezago queda en <b>Muy Alta</b>; una calle ya arbolada en una colonia fresca y con baja marginación queda en <b>Muy Baja</b>. Este es el nivel de detalle con el que se delimitaron las 20,000 manzanas a intervenir en el programa, y permite ordenar el trabajo calle por calle dentro de cada colonia.</p>
     <p><b>Una calle no es una sola línea en el mapa: son varios tramos.</b> Cada línea de color que se dibuja es un tramo independiente y tiene su propia prioridad, así que una misma avenida puede aparecer oscura en unas cuadras y clara en otras. Por eso, al buscar una calle por su nombre, la herramienta resalta y suma todos sus tramos: los kilómetros que reporta son la suma de esos tramos, no la longitud de un solo trazo.</p>
     <figure class="diag">
@@ -196,8 +196,8 @@
         </g>
         <text x="228" y="134" text-anchor="middle" font-family="Roboto, sans-serif" font-size="10.5" letter-spacing="1.4" fill="#B5B0A6">CALLE</text>
         <g stroke-width="7" stroke-linecap="round" fill="none">
-          <path d="M14 108H92" stroke="#A3141C"/><path d="M108 108H186" stroke="#EF7A2A"/><path d="M202 108H280" stroke="#F2C11E"/>
-          <path d="M14 150H92" stroke="#EF7A2A"/><path d="M108 150H186" stroke="#F2C11E"/><path d="M202 150H280" stroke="#93C64A"/>
+          <path d="M14 108H92" stroke="#7F1D12"/><path d="M108 108H186" stroke="#C2421B"/><path d="M202 108H280" stroke="#E88A2E"/>
+          <path d="M14 150H92" stroke="#C2421B"/><path d="M108 150H186" stroke="#E88A2E"/><path d="M202 150H280" stroke="#F4C56E"/>
         </g>
         <rect x="8" y="101" width="90" height="14" rx="7" fill="none" stroke="#8A8C8E" stroke-width="1" stroke-dasharray="3 3"/>
         <text x="53" y="134" text-anchor="middle" font-family="Roboto, sans-serif" font-size="10.5" fill="#55585A">1 tramo</text>
@@ -207,7 +207,7 @@
         <text x="348" y="30" font-family="Roboto, sans-serif" font-size="11" fill="#8A8C8E">un tramo = de cruce a cruce</text>
         <g stroke="#E7E2D9" stroke-width="13" stroke-linecap="round"><path d="M446 52V196"/><path d="M556 52V196"/></g>
         <g stroke-width="10" stroke-linecap="round" fill="none">
-          <path d="M354 124H436" stroke="#A3141C"/><path d="M456 124H546" stroke="#EF7A2A"/><path d="M566 124H650" stroke="#93C64A"/>
+          <path d="M354 124H436" stroke="#7F1D12"/><path d="M456 124H546" stroke="#C2421B"/><path d="M566 124H650" stroke="#F4C56E"/>
         </g>
         <g font-family="Roboto, sans-serif" font-size="10.5" fill="#55585A" text-anchor="middle">
           <text x="395" y="150">tramo</text><text x="501" y="150">tramo</text><text x="608" y="150">tramo</text>
@@ -217,14 +217,14 @@
         </g>
         <text x="348" y="232" font-family="Roboto, sans-serif" font-size="11" fill="#8A8C8E">La avenida también se corta al cambiar de alcaldía.</text>
       </svg>
-      <figcaption>Los colores son las cinco clases de prioridad. La red de las alcaldías está formada por 372,534 frentes de manzana y la de vialidades primarias por <span id="m-vp-tramos">—</span> tramos; al seleccionar una calle o una avenida, el panel indica cuántos de sus tramos son prioritarios y cuántos kilómetros suman.</figcaption>
+      <figcaption>Los colores son las cinco clases de prioridad. La red de las alcaldías está formada por <span id="m-n-alc">—</span> frentes de manzana y la de vialidades primarias por <span id="m-vp-tramos">—</span> tramos; al seleccionar una calle o una avenida, el panel indica cuántos de sus tramos son prioritarios y cuántos kilómetros suman.</figcaption>
     </figure>
     <figure><img loading="lazy" src="img/composicion_frentes_manzana.jpg?v=fc3c72613c" alt="Ortofoto de un conjunto de manzanas y la misma zona con sus frentes clasificados: en verde los que tienen arbolado y en rojo los que no"><figcaption>Así se clasifica el verdor de cada frente de manzana: en verde los tramos con arbolado y en rojo los que no lo tienen. Es el nivel de detalle con el que se prioriza al interior de las colonias.</figcaption></figure>
 
     <h3><span class="step">3</span>Quién atiende cada calle: alcaldías y Gobierno Central</h3>
     <p>Las <b>vialidades primarias y de acceso controlado</b> (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales) corresponden al Gobierno de la Ciudad de México; el resto de la red la atienden las alcaldías. La capa de vialidades primarias (<span id="m-vp-km">—</span> km) trae su propia prioridad de reforestación en la misma escala de cinco niveles: <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</p>
     <p>Para no contar dos veces la misma calle, los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y se excluyen de las cifras, listados y fichas de las alcaldías: son <span id="m-gc-fr">—</span> frentes (<span id="m-gc-km">—</span> km). Un frente se considera sobre la vialidad primaria cuando corre paralelo a ella (diferencia de rumbo de 30° o menos) y está a 18 m o menos de su eje, o hasta 60 m cuando además coincide el nombre de la calle. <b>Esta regla es preliminar y está en validación</b>: la asignación de un frente a la alcaldía o al Gobierno Central puede cambiar cuando se valide. El <span id="m-cov">—</span> de los kilómetros de vialidad primaria tiene frentes asociados; el resto son tramos sin manzanas al frente (vías de acceso controlado, puentes y entronques). La meta del Gobierno de la Ciudad se mide sobre la red primaria completa —los <span id="m-vp-km2">—</span> km—, no sobre el subconjunto con frentes.</p>
-    <p>Por eso el panel separa dos consultas. La primera, <b>Atribución</b>, define de quién es la calle: con <b>Alcaldías</b> se consultan los frentes que planta cada demarcación; con <b>Gobierno Central</b>, las vialidades primarias con su prioridad, su buscador de avenida y sus descargas; ambas casillas pueden estar activas para ver las dos redes juntas. La segunda, <b>Modelo de priorización</b>, define el territorio y el detalle con que se consulta ese universo: alcaldía, colonia o avenida, y si el mapa dibuja alcaldías, colonias o calles. Las cifras, los listados, las fichas y los archivos descargables siempre corresponden a la combinación elegida en ambas.</p>
+    <p>Por eso el panel separa dos consultas. La primera, <b>Atiende</b>, define de quién es la calle: con <b>Alcaldías</b> se consultan los frentes que planta cada demarcación; con <b>Gobierno Central</b>, las vialidades primarias con su prioridad, su buscador de avenida y sus descargas; ambas casillas pueden estar activas para ver las dos redes juntas. La segunda, bajo el título <b>Lo que indica el modelo de priorización</b>, define el territorio y el detalle con que se consulta ese universo: alcaldía, colonia o avenida, y si el mapa dibuja alcaldías, colonias o calles. Las cifras, los listados, las fichas y los archivos descargables siempre corresponden a la combinación elegida en ambas.</p>
     <p><b>Nada de esto es una atribución nueva.</b> El reparto que ordena la herramienta ya está en la ley: la Ley Orgánica de Alcaldías encomienda a las demarcaciones los programas de reforestación <b>en las vías secundarias</b>, de modo que las vialidades primarias y de acceso controlado quedan fuera de ese ámbito y corresponden al Gobierno de la Ciudad.</p>
     <div class="fund">
       <div class="col">
@@ -261,7 +261,8 @@
       <li><b>Empiece por Muy Alta y Alta.</b> Son las calles donde el arbolado tiene mayor efecto sobre calor, sombra y equidad. Media se atiende cuando se cubran las anteriores o cuando exista demanda vecinal.</li>
       <li><b>Trabaje por colonia.</b> Escriba el nombre de la colonia para ver sus kilómetros prioritarios y sus calles con más frente por atender; el resumen por calle ordena las vialidades por kilómetros prioritarios.</li>
       <li><b>Use el listado descargable para programar cuadrillas.</b> Cada archivo de Excel trae dos hojas: <i>Datos</i>, con calle, tipo de vialidad, colonia, código postal, longitud del frente y coordenadas, y <i>Diccionario</i>, con la definición de cada campo, sus valores posibles, el ámbito consultado y las fuentes. Si no hay conexión para generar el Excel, la herramienta entrega el listado y el diccionario en dos archivos CSV.</li>
-      <li><b>Distinga responsabilidades.</b> Si una calle no aparece en el listado de la alcaldía, revise en el mapa si es una vialidad primaria (en gris): la atiende el Gobierno Central y se consulta activando esa casilla en Atribución.</li>
+      <li><b>Distinga responsabilidades.</b> Si una calle no aparece en el listado de la alcaldía, revise en el mapa si es una vialidad primaria (en gris): la atiende el Gobierno Central y se consulta activando esa casilla en la fila Atiende.</li>
+      <li><b>Lea las cifras como diagnóstico.</b> Los kilómetros prioritarios describen dónde es mayor la necesidad de arbolado según el modelo; no son una meta ni una obligación de plantación, y la participación de cada alcaldía en el total de la ciudad no es una calificación.</li>
       <li><b>Verifique en campo.</b> El modelo indica dónde es prioritario, no cuántos árboles caben: el espacio de plantación, la banqueta, el cableado y las instalaciones deben confirmarse en sitio.</li>
       <li><b>Especies y mantenimiento.</b> La selección de especies nativas y el riego y mantenimiento por dos años se acuerdan con la Secretaría conforme al Programa de Reforestación Urbana.</li>
     </ul>
@@ -269,8 +270,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=55fbd35050"></script>
+<script src="config.js?v=89e5febba2"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=4414905912"></script>
+<script src="app.js?v=597945961e"></script>
 </body></html>

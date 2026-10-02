@@ -53,7 +53,7 @@ function locHtml(){
   const p = myPos, w = whereAmI(p.lon, p.lat);
   const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
   const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
-  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; no se envía ni se guarda.</div>`;
+  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`;
   if (w.alc===null) return head + `<h3>Estás fuera de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> Acércate a la ciudad o busca un territorio con el buscador.</div>` + privacy;
   const col = w.col!==null? META.colonias[w.col] : null;
   const nb = nearby(p.lon, p.lat);
@@ -67,7 +67,7 @@ function locHtml(){
     + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista
     + `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>` + privacy;
 }
-function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; no se envía ni se guarda.</div>`; c.hidden=false; c.querySelector('.close').onclick=hideCard; }
+function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; c.hidden=false; c.querySelector('.close').onclick=hideCard; }
 function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }

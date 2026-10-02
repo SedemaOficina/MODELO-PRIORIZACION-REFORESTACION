@@ -113,6 +113,8 @@ button,input,select{font:inherit;color:inherit}
 .pobline{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid var(--dorado-soft);border-left:3px solid var(--dorado);border-radius:7px;background:#FBF6EE;font-size:12px;line-height:1.45;color:var(--ink-2)}
 .pobline::before{content:"";width:16px;height:16px;flex:none;margin-top:1px;background:var(--guinda);-webkit-mask:var(--people) center/100% no-repeat;mask:var(--people) center/100% no-repeat}
 .pobline b{font-family:Cabin,sans-serif;font-size:14px;color:var(--ink)}
+.pobline b{min-width:7.8em}
+.pobline .pobnota{display:block;font-size:12px;color:var(--ink-3);margin-top:2px}
 .kpis.dual .cap.pob{padding:8px 10px;background:var(--panel)}
 .kpis.dual .cap.pob .pobline{text-transform:none;letter-spacing:0;font-weight:400}
 /* bars */

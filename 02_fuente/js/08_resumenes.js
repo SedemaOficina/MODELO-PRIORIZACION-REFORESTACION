@@ -18,6 +18,12 @@ const habC = n => n>=1e6? fmt1.format(n/1e6)+' M' : fmt.format(n);
 const CITY = META.city;
 const cityPrioKm = kmPrio(CITY), cityTotKm = sum(CITY.km);
 const VCITY = VPC.city, vCityPrioKm = kmPrio(VCITY), vCityTotKm = sum(VCITY.km);
+// Participación de una alcaldía en los km prioritarios de la ciudad. Sustituye al «lugar entre 16 alcaldías»:
+// describe dónde se concentra la necesidad sin ordenar a las alcaldías como si fuera una calificación (auditoría H-072).
+const partTxt = (i, gc) => pct(kmPrio((gc? VPC.summ : META.summ)[META.muns[i]]), gc? vCityPrioKm : cityPrioKm) + ' de los km prioritarios de la ciudad';
+// Las dos alcaldías con más km prioritarios, calculadas de los datos (antes estaban escritas a mano).
+const top2Txt = (S, tot) => { const o = META.muns.map((m,i)=>[i, kmPrio(S[m])]).sort((a,b)=>b[1]-a[1]);
+  return `${META.munNames[o[0][0]]} y ${META.munNames[o[1][0]]} concentran ${pct(o[0][1]+o[1][1], tot)} de los km prioritarios de la ciudad.`; };
 function frSumm(){
   if (selCol!==null){ const s={n:[0,0,0,0,0], km:[0,0,0,0,0]}; for(let i=0;i<N;i++){ if(F.col[i]!==selCol || F.gc[i]) continue; const p=F.prio[i], k=F.len[i]/1000; s.n[p]++; s.km[p]+=k; } return s; }
   return sel===null? CITY : META.summ[META.muns[sel]];
@@ -39,17 +45,17 @@ function renderSummary(){
   const fs = frSumm(); const nprioF = fs.n[3]+fs.n[4];
   const emptyCol = selCol!==null && sum(fs.n)===0;  // colonia sin frentes a cargo de la alcaldía (auditoría I3)
   const EMPTY_MSG = 'Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. Puede ser una unidad habitacional o un predio sin vía pública propia.';
-  const kFr = emptyCol? `<div class="kpi-empty"><b>Sin frentes a cargo de la alcaldía</b>${EMPTY_MSG.replace('Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. ','')}</div>` : kpiHtml(fs, {nprio:nprioF, l1:`de frente prioritario ${amb}<br>(Muy Alta + Alta)`, l2:`de frentes ${amb}`, l3:`frentes prioritarios ${amb}`+(sel!==null && selCol===null? '<br>'+rank[sel]+'.º lugar de 16 alcaldías en km prioritarios':'')});
+  const kFr = emptyCol? `<div class="kpi-empty"><b>Sin frentes a cargo de la alcaldía</b>${EMPTY_MSG.replace('Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. ','')}</div>` : kpiHtml(fs, {nprio:nprioF, l1:`de frente prioritario ${amb}<br>(Muy Alta + Alta)`, l2:`de frentes ${amb}`, l3:`frentes prioritarios ${amb}`+(sel!==null && selCol===null? '<br>'+partTxt(sel,false):'')});
   const vs = (resp!=='alc')? vpSumm() : null;
   const ambV = selAv!==null? (sel===null? 'de la avenida en toda la ciudad' : 'de la avenida dentro de la alcaldía') : sel===null? 'de vialidad primaria de la ciudad' : 'de vialidad primaria de la alcaldía';
   const ambV1 = selAv!==null? (sel===null? 'de la avenida' : 'de la avenida en la alcaldía') : sel===null? 'de la ciudad' : 'de la alcaldía';
-  const kVp = vs? kpiHtml(vs, {nprio:vs.recsp.size, l1:`de vialidad primaria prioritaria ${ambV1}<br>(Muy Alta + Alta)`, l2:ambV, l3:`tramos prioritarios ${ambV1}<br>de ${fmt.format(vs.recs.size)} tramos`+(sel!==null && selAv===null? '<br>'+rankVP[sel]+'.º lugar de 16 alcaldías en km prioritarios':'')}) : '';
+  const kVp = vs? kpiHtml(vs, {nprio:vs.recsp.size, l1:`de vialidad primaria prioritaria ${ambV1}<br>(Muy Alta + Alta)`, l2:ambV, l3:`tramos prioritarios ${ambV1}<br>de ${fmt.format(vs.recs.size)} tramos`+(sel!==null && selAv===null? '<br>'+partTxt(sel,true):'')}) : '';
   const pobLine = (()=>{ if (isGC()) return '';
     if (selAv!==null) return '';
     if (selCol!==null){ const c=META.colonias[selCol]; if(!c.pob) return '';
-      return `<div class="pobline"><b>${hab(c.pob)}</b> en la colonia${c.ids? ` · desarrollo social ${c.ids.toLowerCase()}`:''}</div>`; }
+      return `<div class="pobline"><b>${hab(c.pob)}</b> en la colonia${c.ids? ` · su unidad territorial tiene desarrollo social ${c.ids.toLowerCase()}`:''}</div>`; }
     const P = sel===null? POB.city : POB.alc[sel];
-    return `<div class="pobline"><b>${hab(P.p)}</b> viven en colonias prioritarias ${sel===null?'de la ciudad':'de la alcaldía'} · ${pct(P.p,P.t)} de su población</div>`; })();
+    return `<div class="pobline"><b>${hab(P.p)}</b><span>residen en colonias de prioridad Alta o Muy Alta ${sel===null?'de la ciudad':'de la alcaldía'} · ${pct(P.p,P.t)} de su población<small class="pobnota">Población residente (Censo 2020); no equivale a población atendida.</small></span></div>`; })();
   const pb = $('pobbox'); if (pb){ pb.innerHTML = (resp==='both')? '' : pobLine; pb.hidden = !pb.innerHTML; }
   // resumen compacto sobre el mapa
   const ms = $('mapsum');
@@ -102,13 +108,13 @@ function renderSummary(){
   if (resp==='gc'){
     const tot=sum(vs.km);
     note.textContent = sel===null
-      ? `En toda la ciudad, ${pct(vCityPrioKm,vCityTotKm)} de los ${fmt0.format(vCityTotKm)} km de vialidades primarias a cargo del Gobierno Central son prioritarios. Iztapalapa y Gustavo A. Madero concentran ${pct(kmPrio(VPC.summ['007'])+kmPrio(VPC.summ['005']), vCityPrioKm)} de los km prioritarios de la ciudad.`
+      ? `En toda la ciudad, ${pct(vCityPrioKm,vCityTotKm)} de los ${fmt0.format(vCityTotKm)} km de vialidades primarias a cargo del Gobierno Central son prioritarios. ${top2Txt(VPC.summ, vCityPrioKm)}`
       : `${selAv!==null? 'En toda la ciudad, '+pct(vCityPrioKm,vCityTotKm)+' de la red primaria es prioritaria. ' : ''}${fmt.format(vs.recsp.size)} de ${fmt.format(vs.recs.size)} tramos ${selAv!==null? (sel===null? 'de la avenida':'de la avenida en la alcaldía '+META.munNames[sel]) : 'de vialidad primaria en la alcaldía '+META.munNames[sel]} son prioritarios (${pct(kmPrio(vs),tot)} de sus km).`;
   } else if (emptyCol){
     note.textContent = EMPTY_MSG;
   } else {
     note.textContent = (sel===null
-      ? `En toda la ciudad, ${pct(cityPrioKm,cityTotKm)} del frente de manzana a cargo de las alcaldías es prioritario. Iztapalapa y Gustavo A. Madero concentran ${pct(kmPrio(META.summ['007'])+kmPrio(META.summ['005']), cityPrioKm)} de los km prioritarios de la ciudad.`
+      ? `En toda la ciudad, ${pct(cityPrioKm,cityTotKm)} del frente de manzana a cargo de las alcaldías es prioritario. ${top2Txt(META.summ, cityPrioKm)}`
       : `${selCol!==null? 'En la alcaldía '+META.munNames[sel]+', '+pct(kmPrio(META.summ[META.muns[sel]]), sum(META.summ[META.muns[sel]].km))+' del frente a cargo de la alcaldía es prioritario. ' : 'En toda la ciudad, '+pct(cityPrioKm,cityTotKm)+' del frente a cargo de las alcaldías es prioritario. '}${selCol!==null? fmt0.format(fs.n[3]+fs.n[4])+' de '+fmt0.format(sum(fs.n))+' frentes de esta colonia son prioritarios.' : ''}`)
       + (resp==='alc' && selCol===null? ` Además, ${fmt0.format(sum(gcs.km))} km de frentes sobre vialidades primarias ${sel===null?'de la ciudad':'de la alcaldía'} (${fmt0.format(kmPrio(gcs))} km prioritarios) quedan a cargo del Gobierno Central y no se cuentan aquí.` : '');
   }

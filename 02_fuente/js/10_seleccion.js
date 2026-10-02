@@ -7,13 +7,13 @@ function renderAlcInfo(){
   const s=summOf(sel); const tot=sum(s.km); const d=domOf(sel); const pc=T.prio[d];
   const gcs = META.summ_gc[META.muns[sel]]; const vs = VPC.summ[META.muns[sel]];
   box.hidden=false; box.innerHTML = isGC()
-    ? `${dot(pc)}<b>Vialidades primarias · prioridad predominante: ${META.prio[d]}</b> (${pct(s.km[d],tot)} de los km de vialidad primaria de la alcaldía)<br>${rankVP[sel]}.º lugar de 16 alcaldías en km prioritarios de vialidad primaria · ${fmt0.format(tot)} km de vialidad primaria en toda la alcaldía`
-    : `${dot(pc)}<b>Prioridad predominante: ${META.prio[d]}</b> (${pct(s.km[d],tot)} de los frentes de la alcaldía)<br>${rank[sel]}.º lugar de 16 alcaldías en km prioritarios · ${fmt0.format(tot)} km de frentes en toda la alcaldía${resp==='alc'? `<br><span class="gcline">Gobierno Central atiende en esta alcaldía ${fmt0.format(sum(vs.km))} km de vialidades primarias (${fmt0.format(kmPrio(vs))} km prioritarios).</span>`:''}`;
+    ? `${dot(pc)}<b>Vialidades primarias · prioridad predominante: ${META.prio[d]}</b> (${pct(s.km[d],tot)} de los km de vialidad primaria de la alcaldía)<br>${partTxt(sel,true)} · ${fmt0.format(tot)} km de vialidad primaria en toda la alcaldía`
+    : `${dot(pc)}<b>Prioridad predominante: ${META.prio[d]}</b> (${pct(s.km[d],tot)} de los frentes de la alcaldía)<br>${partTxt(sel,false)} · ${fmt0.format(tot)} km de frentes en toda la alcaldía${resp==='alc'? `<br><span class="gcline">Gobierno Central atiende en esta alcaldía ${fmt0.format(sum(vs.km))} km de vialidades primarias (${fmt0.format(kmPrio(vs))} km prioritarios).</span>`:''}`;
 }
 function renderColInfo(){
   const box = $('colinfo'); if (selCol===null){ box.hidden=true; return; }
   const c = META.colonias[selCol]; const pc = c.p>=0? T.prio[c.p] : null;
-  box.hidden=false; box.innerHTML = `${pc? dot(pc):''}<b>Prioridad de la colonia: ${c.p>=0? META.prio[c.p] : '—'}</b><br>Desarrollo social (IDS): ${c.ids||'—'}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${c.pob? ' · '+fmt.format(c.pob)+' hab.':''}${c.ut? `<br><span class="utline">Unidad territorial ${c.ut}: ${fmt.format(c.utpob||0)} hab., ${fmt.format(c.nbi||0)} en pobreza (NBI)</span>`:''}`;
+  box.hidden=false; box.innerHTML = `${pc? dot(pc):''}<b>Prioridad de la colonia: ${c.p>=0? META.prio[c.p] : '—'}</b><br>Desarrollo social (IDS) de su unidad territorial: ${c.ids||'—'}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${c.pob? ' · '+fmt.format(c.pob)+' hab.':''}${c.ut? `<br><span class="utline">Unidad territorial ${c.ut}: ${fmt.format(c.utpob||0)} hab., ${fmt.format(c.nbi||0)} en pobreza (NBI)</span>`:''}`;
 }
 function renderAvInfo(){
   const box=$('avinfo'); if (selAv===null){ box.hidden=true; return; }

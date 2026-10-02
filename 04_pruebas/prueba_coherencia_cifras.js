@@ -133,6 +133,23 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   for (const id of ['dl-ficha-alc']) { const f = await baja(id); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok(`H-005 y H-068 ${id}: asignación preliminar y versión en el pie`, /es preliminar/.test(t) && t.includes('Versión ' + cfg.v)); }
 
+  // ---------- H-072, H-085, H-009 y H-017 · rótulos y cifras que salen de los datos ----------
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(400); e = await L.estado(page);
+  const kmpAlc = M.muns.map((m, i) => D.F.filter(f => !f.gc && f.mun === i && f.prio >= 3).reduce((t, f) => t + f.len, 0) / 1000);
+  const totP = kmpAlc.reduce((a, b) => a + b, 0); const ord = kmpAlc.map((v, i) => [i, v]).sort((a, b) => b[1] - a[1]);
+  const frase = `${M.munNames[ord[0][0]]} y ${M.munNames[ord[1][0]]} concentran ${L.f1.format(100 * (ord[0][1] + ord[1][1]) / totP)} %`;
+  ok('H-085 las dos alcaldías con más km prioritarios se calculan de los datos', (e.nota || '').includes(frase), `${frase} · nota: ${(e.nota || '').slice(0, 160)}`);
+  ok('H-017 la población se rotula como residente y no como atendida', /residen en colonias de prioridad Alta o Muy Alta/.test(e.pob || '') && /no equivale a población atendida/.test(e.pob || ''), e.pob);
+  await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500); e = await L.estado(page);
+  const part = `${L.f1.format(100 * kmpAlc[izt] / totP)} % de los km prioritarios de la ciudad`;
+  ok('H-072 el panel ya no ordena a la alcaldía por «lugar»', !/lugar de 16|º de 16/.test(e.panelTxt));
+  ok('H-072 el panel da la participación de la alcaldía en los km prioritarios de la ciudad', (e.alcinfo || '').includes(part) && e.kpisTxt.includes(part), `${part} · ${(e.alcinfo || '').slice(0, 140)}`);
+  const ay = await page.evaluate(() => ({ fr: document.getElementById('m-n-fr').textContent, alc: document.getElementById('m-n-alc').textContent, t: document.querySelector('.modal-card') ? document.querySelector('.modal-card').textContent : '' }));
+  ok('H-085 la ayuda toma de los datos el total de frentes y los de alcaldías', num(ay.fr) === D.F.length && num(ay.alc) === D.F.filter(f => !f.gc).length, `${ay.fr} · ${ay.alc}`);
+  ok('H-067 la ayuda nombra los controles como aparecen en pantalla', !/<b>Atribución<\/b>|casilla en Atribución/.test(await page.content()));
+  const tec2 = M.colonias.findIndex(c => c && c.n === 'Tecpinco' && c.m === '007'); await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); e = await L.estado(page);
+  ok('H-009 el desarrollo social se rotula como de la unidad territorial', /de su unidad territorial/.test(e.colinfo || '') && /unidad territorial/.test(e.pob || ''), `${(e.colinfo || '').slice(0, 120)} · ${e.pob}`);
+
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();
   process.exit(ok.fin() ? 1 : 0);

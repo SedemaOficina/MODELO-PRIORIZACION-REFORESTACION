@@ -13,6 +13,7 @@ infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); }
 addEventListener('keydown', e=>{ if(e.key==='Escape' && !infoModal.hidden) closeInfo(); });
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
+$('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N - META.cruce.frentes_gc);
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
 // ---------- móvil: hoja inferior y leyenda plegable ----------

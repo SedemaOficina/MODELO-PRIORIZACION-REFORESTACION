@@ -20,7 +20,7 @@ function featHtml(i, compact){
     <dt>Longitud del frente</dt><dd>${fmt.format(F.len[i])} m</dd>
     <dt>Banqueta (INEGI)</dt><dd>${ban}</dd>
     ${dupCol? '' : `<dt>Prioridad de la colonia</dt><dd>${cc? dot(cc):''}${cp}</dd>
-    <dt>Desarrollo social (IDS) de la colonia</dt><dd>${col.ids||'—'}</dd>
+    <dt>Desarrollo social (IDS) de su unidad territorial</dt><dd>${col.ids||'—'}</dd>
     <dt>Población de la colonia</dt><dd>${col.pob? fmt.format(col.pob)+' hab.' : '—'}</dd>`}
     <dt>Coordenadas del frente</dt><dd>${midLat(i).toFixed(5)}, ${midLon(i).toFixed(5)}</dd></dl>
     ${dupCol? '<div class="cardnote">Los datos de la colonia se muestran arriba, en Resultados.</div>' : ''}
@@ -67,7 +67,7 @@ function colHtml(id){
     <dt>Frentes prioritarios</dt><dd>${fmt.format(s.np)} de ${fmt.format(ntot)}</dd>
     <dt>Frente total</dt><dd>${kmFull(tot)}</dd>` : ''}
     <dt>Población</dt><dd>${c.pob? fmt.format(c.pob)+' hab.' : '—'}</dd>
-    <dt>Desarrollo social (IDS)</dt><dd>${c.ids||'—'}</dd>
+    <dt>Desarrollo social (IDS) de su unidad territorial</dt><dd>${c.ids||'—'}</dd>
     ${c.nbi? `<dt>Pobreza (NBI)</dt><dd>${fmt.format(c.nbi)} personas en su unidad territorial</dd>`:''}</dl>
     <div class="acts">${!ntot? '<button class="btn secondary act" id="card-alc" type="button">Ver la alcaldía</button>' : showFrB? '' : '<button class="btn secondary act" id="card-calles" type="button">Ver sus calles</button>'}${ntot? '<button class="btn secondary act" id="card-ficha" type="button">Ficha (PDF)</button>' : ''}</div>`;
 }
