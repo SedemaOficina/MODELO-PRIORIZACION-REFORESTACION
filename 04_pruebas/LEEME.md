@@ -30,3 +30,11 @@ node 04_pruebas/prueba_coherencia_cifras.js
 ```
 
 Requiere además Python 3 con `openpyxl` y la utilidad `pdftotext`. Termina con error si alguna cifra no coincide. Si Playwright no encuentra el navegador, indicar su ruta en la variable `PW_CHROME`.
+
+## Prueba de arranque sin terceros
+
+`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos.
+
+```
+node 04_pruebas/prueba_sin_terceros.js
+```

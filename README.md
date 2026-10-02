@@ -18,7 +18,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 
 | Carpeta | Contenido |
 |---|---|
-| `02_fuente/` | **Aquí se edita.** `plantilla.html` (estructura), `css/` (6 archivos de estilos), `js/` (16 módulos de lógica, uno por tema), `datos/*.bin`, `img/`, `libs/` y `construir.py`, que lo ensambla todo. |
+| `02_fuente/` | **Aquí se edita.** `plantilla.html` (estructura), `css/` (6 archivos de estilos), `js/` (16 módulos de lógica, uno por tema), `datos/*.bin`, `img/`, `libs/`, `fuentes/` (tipografías) y `construir.py`, que lo ensambla todo. |
 | `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA). Lo genera `construir.py`; no se edita a mano. Necesita un servidor web: no se abre con doble clic. |
 | `03_procesamiento_datos/` | Scripts de Python numerados en el orden en que se corren, con `insumos/` e `intermedios/`. Ver su `LEEME.md`. |
 | `04_pruebas/` | `prueba_sitio.js`: prueba integral en escritorio y teléfono. Ver su `LEEME.md`. |
@@ -57,11 +57,11 @@ Para verificar: `node 04_pruebas/prueba_sitio.js` (ver `04_pruebas/LEEME.md`).
 
 ## Estado al 2 de octubre de 2026
 
-- Versión vigente: **v17.11** (coherencia de cifras entre pantalla, descargas y fichas, primer bloque de la auditoría integral del 2 de octubre; antes: bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
+- Versión vigente: **v17.12** (tipografías servidas desde el propio sitio: la página ya no pide nada a terceros para arrancar; v17.11: coherencia de cifras entre pantalla, descargas y fichas, primer bloque de la auditoría integral del 2 de octubre; antes: bloques 1 y 2 de la auditoría UX, carga en archivos aparte, Mi ubicación, limpieza y organización del código, ayuda que siempre se cierra, botón "toda la ciudad", zoom rápido con modo ligero para equipos sin aceleración gráfica y mapa de fondo satelital opcional).
 - Publicada en GitHub Pages y, como respaldo, en el artefacto "Calles Prioritarias para Reforestar" de Claude.
 
 ### Pendientes
-1. **Paquete de entrega al SIA:** configuración de nginx para `/calles-prioritarias/`, compatibilidad con sus cabeceras de seguridad (tipografías locales), guía de instalación y actualización y lista de verificación.
+1. **Paquete de entrega al SIA:** configuración de nginx para `/calles-prioritarias/`, compatibilidad con sus cabeceras de seguridad (las tipografías ya se sirven desde el sitio; falta retirar los estilos en línea), guía de instalación y actualización y lista de verificación.
 2. **Login** (opcional para una herramienta de consulta): nueve decisiones con recomendación y responsable en `bitacora/15_despliegue-sia-y-login.md`.
 3. **Prueba con personal de alcaldías** con la guía de `06_entregables/`.
 4. **Visto bueno institucional de la rampa de calor** que sustituyó al semáforo.

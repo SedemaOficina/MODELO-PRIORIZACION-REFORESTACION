@@ -19,7 +19,8 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   ├── js/                    lógica, un archivo por tema, en orden de ejecución
 │   ├── datos/                 meta.bin, data.bin, vp.bin (los genera 03_procesamiento_datos)
 │   ├── img/                   logotipo y lámina de la metodología
-│   └── libs/                  deck.gl, pako, jsPDF, SheetJS + LICENCIAS.md
+│   ├── libs/                  deck.gl, pako, jsPDF, SheetJS + LICENCIAS.md
+│   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ (ver su LEEME.md)
 ├── 04_pruebas/                prueba integral en escritorio y teléfono (ver su LEEME.md)
@@ -34,7 +35,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Salida | Para qué | Cómo quedan las piezas |
 |---|---|---|
-| `docs/` | GitHub Pages y el servidor del SIA | `index.html` (29 KB) + `estilos.css` + `config.js` + `app.js` + `datos/` + `libs/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. Sin código en línea. |
+| `docs/` | GitHub Pages y el servidor del SIA | `index.html` (31 KB) + `estilos.css` + `config.js` + `app.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. Sin código en línea. |
 | `_local/calles_prioritarias.html` | Abrir con doble clic, sin servidor | Todo incrustado en un archivo (6.7 MB); librerías desde CDN. No se publica. |
 | `--artefacto RUTA` | Respaldo como artefacto de Claude | Igual que el anterior, sin la envoltura `<html>`. |
 
@@ -137,7 +138,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Qué | Dónde | Nota |
 |---|---|---|
 | deck.gl 9.4, pako 2.1, jsPDF 2.5.2, SheetJS 0.18.5 | `docs/libs/` (sitio) · CDN (archivo único y artefacto) | Licencias en `libs/LICENCIAS.md` |
-| Tipografías Cabin y Roboto | Google Fonts | Pendiente servirlas desde el sitio para el SIA |
+| Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único y artefacto) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
 | Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Sin clave; atribución obligatoria. Solo se pide si el usuario lo enciende |

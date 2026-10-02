@@ -9,6 +9,8 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
   img/             logotipo y lámina de la metodología
   libs/            deck.gl, pako, jsPDF y SheetJS (copias locales, con LICENCIAS.md)
+  fuentes/         tipografías Cabin y Roboto (woff2 variables, subconjunto latino) con su licencia OFL;
+                   se sirven desde el propio sitio: la página no pide nada a terceros para arrancar
 
 Salidas:
   ../docs/                               sitio para GitHub Pages y el SIA: página, estilos, código,
@@ -40,6 +42,8 @@ CDN = {'deck.js': 'https://cdn.jsdelivr.net/npm/deck.gl@9.4.0/dist.min.js',
        'pako.js': 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako_inflate.min.js'}
 IMAGENES = {'img/logo_sedema_reforestacion.png': 'image/png', 'img/composicion_frentes_manzana.jpg': 'image/jpeg'}
 DATOS = ('meta', 'data', 'vp')
+# Tipografías servidas desde el sitio (familia -> archivo en fuentes/). Peso variable de 400 a 700.
+FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 # Clave (API key) de ArcGIS Location Platform para el fondo satelital de Esri. Vacía = satélite Sentinel-2 de EOX.
 # La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
 ESRI_KEY = ''
@@ -80,7 +84,15 @@ def unir(carpeta, extension):
     return ''.join(leer(carpeta + '/' + n).rstrip('\n') + '\n\n' for n in nombres).rstrip('\n') + '\n'
 
 
+def css_fuentes(direccion):
+    """Reglas @font-face; direccion(archivo) devuelve la dirección de cada tipografía."""
+    return ''.join("@font-face{font-family:%s;font-style:normal;font-weight:400 700;font-display:swap;src:url(%s) format('woff2')}\n"
+                   % (fam, direccion(arch)) for fam, arch in FUENTES.items())
+
+
 plantilla = leer('plantilla.html')
+# Ningún recurso de terceros en la ruta de arranque (auditoría H-002): la plantilla no puede enlazar hojas ni código externos.
+assert 'fonts.googleapis' not in plantilla and 'fonts.gstatic' not in plantilla, 'la plantilla no debe pedir tipografías a terceros'
 estilos = '/* ' + AVISO % 'css/' + ' */\n' + unir('css', '.css')
 app = '// ' + AVISO % 'js/' + '\n' + APERTURA + unir('js', '.js') + CIERRE
 assert plantilla.count('<!-- ESTILOS -->') == 1, 'la plantilla debe tener un solo marcador <!-- ESTILOS -->'
@@ -88,7 +100,8 @@ for img in IMAGENES:
     assert ('src="%s"' % img) in plantilla, 'la plantilla no usa ' + img
 
 # ---------- 1) versión en un solo archivo: estilos, imágenes y datos incrustados; librerías del CDN ----------
-cuerpo = plantilla.replace('<!-- ESTILOS -->', '<style>\n' + estilos + '</style>')
+incrustadas = css_fuentes(lambda a: 'data:font/woff2;base64,' + base64.b64encode(leer('fuentes/' + a, True)).decode())
+cuerpo = plantilla.replace('<!-- ESTILOS -->', '<style>\n' + incrustadas + estilos + '</style>')
 for img, tipo in IMAGENES.items():
     cuerpo = cuerpo.replace('src="%s"' % img, 'src="data:%s;base64,%s"' % (tipo, base64.b64encode(leer(img, True)).decode()))
 cuerpo += ''.join('<script src="%s"></script>\n' % CDN[k] for k in ('deck.js', 'pako.js'))
@@ -115,6 +128,12 @@ for lib in sorted(os.listdir(os.path.join(FUENTE, 'libs'))):
     lver[lib] = huella(b)
 for img in IMAGENES:
     poner(img, leer(img, True))
+fver = {}
+for arch in sorted(os.listdir(os.path.join(FUENTE, 'fuentes'))):
+    b = leer('fuentes/' + arch, True)
+    poner('fuentes/' + arch, b)
+    fver[arch] = huella(b)
+estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
 config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY))
 poner('config.js', config)
 poner('estilos.css', estilos)
@@ -133,6 +152,7 @@ sitio += ('<script src="config.js?v=%s"></script>\n' % v(config)
           + '<script src="app.js?v=%s"></script>\n' % v(app))
 # que el navegador empiece a bajar los datos desde el primer momento, en paralelo con las librerías
 precarga = ''.join('<link rel="preload" href="datos/%s?v=%s" as="fetch" crossorigin>' % (n, ver[n]) for n in ('data.bin', 'meta.bin', 'vp.bin'))
+precarga += ''.join('<link rel="preload" href="fuentes/%s?v=%s" as="font" type="font/woff2" crossorigin>' % (a, fver[a]) for a in FUENTES.values())
 pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + precarga) + '<!-- ' + AVISO % 'plantilla.html, css/ y js/' + ' -->\n'
           + sitio + '</body></html>\n')
 poner('index.html', pagina)

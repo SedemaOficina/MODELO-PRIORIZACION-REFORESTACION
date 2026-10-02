@@ -1,3 +1,5 @@
+@font-face{font-family:Cabin;font-style:normal;font-weight:400 700;font-display:swap;src:url(fuentes/cabin.woff2?v=51380ccf10) format('woff2')}
+@font-face{font-family:Roboto;font-style:normal;font-weight:400 700;font-display:swap;src:url(fuentes/roboto.woff2?v=0722b859b4) format('woff2')}
 /* Generado por 02_fuente/construir.py a partir de 02_fuente/css/. No editar aquí. */
 /* Variables: paleta institucional, rampa de prioridad (--p0 Muy Baja … --p4 Muy Alta), colores del mapa y sombras. Cambiar un color aquí lo cambia en toda la herramienta; los colores del mapa se leen desde app (03_estado.js). */
 :root{
