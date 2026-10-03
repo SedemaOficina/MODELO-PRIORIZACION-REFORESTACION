@@ -168,15 +168,17 @@ function loadXL(){
 }
 const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
-function excelAparte(aoa, cols, dic){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
+// Propiedades del libro (auditoría H-052): título, autoría e idioma
+const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Calles prioritarias para reforestar, versión ' + VERSION.v, CreatedDate: new Date() });
+function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
-  w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic}); }); }
+  w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic, props}); }); }
 const GRANDE = 20000;   // renglones a partir de los cuales se avisa del tamaño y de la espera
 async function deliverTable(base, key, aoa, extra){
   const nreg = aoa.length - 1;
   const st = $('dl-status'); st.textContent = nreg>GRANDE? `Preparando un archivo grande: ${fmt.format(nreg)} renglones, alrededor de ${fmt0.format(Math.max(1, nreg*0.19/1000))} MB. Puede tardar hasta un minuto…` : 'Preparando archivo…';
   if (window.SIA_LIBS && window.Worker){
-    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra));
+    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra), propsExcel(base));
       await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); return; }
     catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
   }
@@ -190,7 +192,7 @@ async function deliverTable(base, key, aoa, extra){
     st.textContent = 'Descargado en CSV (dos archivos: listado y diccionario), porque no se pudo cargar el generador de Excel.';
     return;
   }
-  const wb = X.utils.book_new();
+  const wb = X.utils.book_new(); wb.Props = propsExcel(base);
   const ws = X.utils.aoa_to_sheet(aoa);
   ws['!cols'] = wch(DIC[key].cols);
   ws['!autofilter'] = { ref: X.utils.encode_range({ s:{r:0,c:0}, e:{r:Math.max(1,aoa.length-1), c:aoa[0].length-1} }) };

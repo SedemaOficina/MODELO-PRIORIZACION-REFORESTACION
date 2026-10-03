@@ -36,25 +36,25 @@ body.panel-off .app{grid-template-columns:1fr}
 body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 .mapsum{display:flex;align-items:center;gap:14px;min-width:0;padding:8px 15px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 14px rgba(36,38,42,.12)}
 .mapsum .scope{display:flex;flex-direction:column;min-width:0}
-.mapsum .scope b{font-family:Cabin,sans-serif;font-size:14px;font-weight:700;line-height:1.15;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch}
-.mapsum .scope span{font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;font-family:Cabin,sans-serif}
+.mapsum .scope b{font-family:Cabin,sans-serif;font-size:.875rem;font-weight:700;line-height:1.15;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch}
+.mapsum .scope span{font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;font-family:Cabin,sans-serif}
 .mapsum .scope i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;vertical-align:1px}
 .mapsum .sep{width:1px;align-self:stretch;background:var(--line);flex:none}
 .mapsum .st{display:flex;flex-direction:column;white-space:nowrap}
-.mapsum .st b{font-family:Cabin,sans-serif;font-size:16px;font-weight:700;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
-.mapsum .st small{font-size:12px;color:var(--ink-2);line-height:1.3}
+.mapsum .st b{font-family:Cabin,sans-serif;font-size:1rem;font-weight:700;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
+.mapsum .st small{font-size:.75rem;color:var(--ink-2);line-height:1.3}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   .mapbar{left:10px;top:10px;max-width:calc(100% - 62px)}
   .panel-toggle{display:none}
   .mapsum{padding:6px 11px;gap:10px}
-  .mapsum .scope b{font-size:14px;max-width:14ch}
+  .mapsum .scope b{font-size:.875rem;max-width:14ch}
   .mapsum .st.opt{display:none}
-  .mapsum .st b{font-size:14px}
+  .mapsum .st b{font-size:.875rem}
 }
 /* --- cabecera de la leyenda (plegable en móvil) --- */
 .legend-head{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;padding:0;border:0;background:none;text-align:left;cursor:pointer;color:inherit}
 .legend-head svg{display:block;width:16px;height:16px;stroke:var(--ink-3);fill:none;stroke-width:2;flex:none;transition:transform .18s ease}
-.legend-head h3{margin:0}
+.legend-head .lg-tit{margin:0}
 .lg-short{display:none}
 :root{--people:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M16 14.2c2.4.2 4.5 2 4.5 4.8'/%3E%3C/svg%3E")}
 /* --- asa de la hoja inferior (solo móvil) --- */
@@ -68,21 +68,21 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
   body.sheet-open .panel{max-height:88dvh}
   .sheet-grip{display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;padding:8px 16px 4px;border:0;background:var(--panel);cursor:pointer;flex:none}
   .sheet-grip i{width:40px;height:4px;border-radius:2px;background:var(--line-strong)}
-  .sheet-grip b{font-family:Cabin,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
+  .sheet-grip b{font-family:Cabin,sans-serif;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
   .panel-head{padding:10px 16px 10px;border-bottom-width:3px}
   .panel-head .logo{max-width:250px}
   .panel-head p{display:none}
-  .panel-head h1{font-size:16px}
+  .panel-head h1{font-size:1rem}
   .panel-body{padding:14px 16px 26px;gap:18px}
   
   .kpi{padding:10px 9px 9px}
-  .kpi .v{font-size:20px}
-  .kpi .l{font-size:12px}
+  .kpi .v{font-size:1.25rem}
+  .kpi .l{font-size:.75rem}
   .btn{min-height:46px}
   .tool{width:40px;height:40px}
   .toolbar{right:10px;top:10px}
   .attrib{display:none}
-  .combo input,.search input{font-size:16px}
+  .combo input,.search input{font-size:1rem}
   .combo-list{max-height:44dvh}
   .combo-list li{padding:10px 10px}
   .results li{padding:11px 12px}
@@ -93,12 +93,12 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
   .legend{max-width:none;width:auto}
   .legend .row{padding:5px 5px}
   .card{position:fixed;left:0;right:0;bottom:0;width:auto;max-height:64dvh;overflow-y:auto;border-radius:12px 12px 0 0;z-index:12;box-shadow:0 -10px 30px rgba(36,38,42,.22)}
-  .card .close{width:34px;height:34px;font-size:20px}
+  .card .close{width:34px;height:34px;font-size:1.25rem}
   .modal{padding:0}
 }
 @media (max-width:420px){
-  .kpi .v{font-size:20px}
-  .kpi .v small{font-size:12px}
+  .kpi .v{font-size:1.25rem}
+  .kpi .v small{font-size:.75rem}
   
   .panel-head .logo{max-width:210px}
 }
@@ -115,26 +115,26 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 /* diagrama de tramos en la metodología */
 .diag{margin:14px 0 4px;border:1px solid var(--line);border-radius:10px;background:var(--panel-2);padding:14px 16px 10px}
 .diag svg{display:block;width:100%;height:auto}
-.diag figcaption{font-size:12px;color:var(--ink-3);margin-top:8px;line-height:1.45}
+.diag figcaption{font-size:.75rem;color:var(--ink-3);margin-top:8px;line-height:1.45}
 /* aviso de modo ligero (navegador sin aceleración gráfica; ver 06_mapa_interaccion.js) */
-.aviso-ligero{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:6;max-width:min(560px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--dorado);border-radius:8px;box-shadow:var(--shadow);padding:10px 36px 10px 12px;font-size:12px;line-height:1.45;color:var(--ink-2)}
+.aviso-ligero{position:absolute;left:50%;top:64px;transform:translateX(-50%);z-index:6;max-width:min(560px,calc(100% - 32px));background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--dorado);border-radius:8px;box-shadow:var(--shadow);padding:10px 36px 10px 12px;font-size:.75rem;line-height:1.45;color:var(--ink-2)}
 .aviso-ligero b{color:var(--ink)}
-.aviso-ligero button{position:absolute;right:6px;top:6px;width:28px;height:28px;border:0;background:transparent;color:var(--ink-3);font-size:18px;cursor:pointer;border-radius:4px}
+.aviso-ligero button{position:absolute;right:6px;top:6px;width:28px;height:28px;border:0;background:transparent;color:var(--ink-3);font-size:1.125rem;cursor:pointer;border-radius:4px}
 .aviso-ligero button:hover{background:var(--panel-2)}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.aviso-ligero{top:auto;left:12px;right:60px;transform:none;max-width:none;bottom:calc(200px + env(safe-area-inset-bottom,0px))}}
 
 /* atribución del mapa de fondo satelital (obligatoria por la licencia; también visible en teléfono) */
-.attrib.sat{max-width:min(620px,calc(100% - 320px));line-height:1.35;font-size:11px}
+.attrib.sat{max-width:min(620px,calc(100% - 320px));line-height:1.35;font-size:.75rem}
 .attrib a{color:inherit;text-decoration:underline}
-@media (max-width:860px) and (min-height:481px), (max-width:600px){.attrib.sat{display:block;max-width:none;left:12px;right:60px;bottom:auto;top:64px;font-size:10px}}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.attrib.sat{display:block;max-width:none;left:12px;right:60px;bottom:auto;top:64px;font-size:.75rem}}
 
 /* panel de capas: se minimiza con su encabezado (también en escritorio) y no se sale del mapa */
-.legend-head:hover h3{color:var(--guinda)}
+.legend-head:hover .lg-tit{color:var(--guinda)}
 @media (min-width:861px), (min-width:601px) and (max-height:480px){.legend.open{max-height:calc(100% - 96px);overflow-y:auto}}
 /* opacidad de la prioridad */
 .op-row{display:flex;align-items:center;gap:8px}
 .op-row input[type=range]{flex:1;min-width:0;accent-color:var(--guinda);height:22px;margin:0}
-.op-row output{font-variant-numeric:tabular-nums;font-size:12px;color:var(--ink-2);min-width:44px;text-align:right}
+.op-row output{font-variant-numeric:tabular-nums;font-size:.75rem;color:var(--ink-2);min-width:44px;text-align:right}
 /* listados: la cifra de la derecha no aplasta el nombre cuando el panel es angosto o el navegador tiene zoom */
 .results .k{max-width:11.5em}
 .results .k small{white-space:normal;line-height:1.3}

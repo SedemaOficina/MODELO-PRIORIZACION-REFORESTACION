@@ -40,11 +40,17 @@ function rerender(){ if (NOMAP) return;
     dibT = setTimeout(()=>{ dk.setProps({layers: layers()}); requestAnimationFrame(()=>requestAnimationFrame(()=>{ d.hidden = true; })); }, 40); return; }
   dk.setProps({layers: layers()}); }
 $('loader').hidden = true; window.SIA_LISTO = true; updateScale();
+// el lienzo del mapa, que es el que recibe el teclado, lleva nombre y rol (auditoría H-049)
+{ const cv = mapEl.querySelector('canvas'); if (cv){ cv.setAttribute('role','application'); cv.setAttribute('aria-label', mapEl.dataset.nombre); cv.tabIndex = 0; } }
 
 function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
+// La ficha recibe el foco al abrirse y lo devuelve al cerrarse (auditoría H-048). cardOrigen = control desde el que se abrió.
+let cardOrigen = null;
+function enfocaFicha(){ const c=$('card'); const a=document.activeElement; if (a && a!==document.body && !c.contains(a)) cardOrigen = a;
+  const h=c.querySelector('h3'); c.setAttribute('aria-label', 'Ficha: ' + (h? h.textContent : 'elemento seleccionado')); try { c.focus({preventScroll:true}); } catch(e){ c.focus(); } }
 function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i}; const c=$('card');
   c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : featHtml(i,false);
-  c.hidden=false; c.querySelector('.close').onclick=hideCard;
+  c.hidden=false; c.querySelector('.close').onclick=()=>hideCard(true); enfocaFicha();
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
   const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); renderResults(); rerender(); showCard('col', i); };
@@ -54,7 +60,11 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
     const fb=()=>{ const r=document.createRange(); r.selectNodeContents(lab); lab.textContent=t; const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); };
     try { navigator.clipboard.writeText(t).then(ok, fb); } catch(e){ fb(); } };
 }
-function hideCard(){ pinned=null; $('card').hidden=true; }
+function hideCard(devuelve){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
+  if (devuelve===true || dentro){ const o = cardOrigen && cardOrigen.isConnected && cardOrigen.offsetParent!==null? cardOrigen : $('scope-title'); cardOrigen=null; try { o.focus({preventScroll:true}); } catch(e){} } }
+// En teléfono la ficha tapa parte del panel: si el foco llega a un control tapado, la ficha se cierra para que se vea (auditoría H-048, WCAG 2.4.11)
+document.addEventListener('focusin', e=>{ const c=$('card'); if (c.hidden || !isPhone() || c.contains(e.target) || !e.target.closest || !e.target.closest('.panel')) return;
+  const a=e.target.getBoundingClientRect(), b=c.getBoundingClientRect(); if (a.bottom>b.top+4 && a.top<b.bottom-4) hideCard(); });
 $('zin').onclick = ()=> flyTo({...viewState, zoom:Math.min(18.5, viewState.zoom+1)}, 0);   // acercar y alejar son inmediatos
 $('zout').onclick = ()=> flyTo({...viewState, zoom:Math.max(9.4, viewState.zoom-1)}, 0);
 

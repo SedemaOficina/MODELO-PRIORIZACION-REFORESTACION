@@ -76,7 +76,7 @@ function locHtml(){
     + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista
     + `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>` + privacy;
 }
-function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; c.hidden=false; c.querySelector('.close').onclick=hideCard; }
+function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
 function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
@@ -93,7 +93,7 @@ function selectHere(){ // selecciona la colonia (modo Alcaldías) o la alcaldía
   else if (sel!==w.alc || selCol!==null || selAv!==null){ selEl.value=String(w.alc); setSel(String(w.alc)); }
   keepView = false; locSel = false;
 }
-function showLoc(){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = locHtml(); c.hidden=false; c.querySelector('.close').onclick=hideCard; wireLocCard(c); }
+function showLoc(){ const c=$('card'); pinned={kind:'loc', i:0}; const era=c.hidden; c.innerHTML = locHtml(); c.hidden=false; c.querySelector('.close').onclick=hideCard; wireLocCard(c); if (era) enfocaFicha(); }
 function onPos(pos, first){
   myPos = {lon:pos.coords.longitude, lat:pos.coords.latitude, acc:pos.coords.accuracy||0, t:Date.now()};
   locBtn.classList.add('on');

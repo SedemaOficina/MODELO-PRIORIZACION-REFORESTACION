@@ -3,7 +3,7 @@
 importScripts('xlsx.js');
 onmessage = function(e){
   try {
-    var d = e.data, X = XLSX, wb = X.utils.book_new();
+    var d = e.data, X = XLSX, wb = X.utils.book_new(); if (d.props) wb.Props = d.props;
     var ws = X.utils.aoa_to_sheet(d.aoa);
     ws['!cols'] = d.cols.map(function(w){ return {wch:w}; });
     ws['!autofilter'] = { ref: X.utils.encode_range({ s:{r:0,c:0}, e:{r:Math.max(1,d.aoa.length-1), c:d.aoa[0].length-1} }) };

@@ -62,7 +62,7 @@ function omniRender(){
   if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
   const I = omniIndex();
   for (const [k,title] of groups){ const g=document.createElement('li'); g.className='grp'; g.setAttribute('role','presentation'); g.textContent=title; omniList.appendChild(g);
-    for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.id='om-'+omniItems.length; let html='';
+    for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-'+omniItems.length; let html='';
       if (it.t==='alc'){ const d=domOf(it.i); html = `<span class="ty">Alc</span><span class="nm">${omniMark(META.munNames[it.i], R.qt)}</span><span class="k">${kmFull(kmPrio(summOf(it.i)))} prior.</span><span class="m">Prioridad predominante ${META.prio[d]}</span>`; }
       else if (it.t==='col'){ const c=META.colonias[it.i]; const pt=I.part.get(it.i); html = `<span class="ty">Col</span><span class="nm">${omniMark(c.n, R.qt)}${pt? ` <small>· parte ${pt[0]} de ${pt[1]}</small>`:''}</span><span class="k">${c.p>=0? META.prio[c.p] : '—'}</span><span class="m">${META.munNames[munIndex[c.m]]}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${it.via? ` · coincide con su unidad territorial: ${it.via}`:''}</span>`; }
       else if (it.t==='av'){ const s=avStat(it.a); html = `<span class="ty">Av</span><span class="nm">${omniMark(VPC.nomenclat[it.a], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${[...s.nombres].slice(0,2).join(', ')} · cruza ${s.muns.size} alcaldía${s.muns.size===1?'':'s'}${it.via? ` · coincide con la red vial ${it.via}`:''}</span>`; }
@@ -74,7 +74,7 @@ function omniRender(){
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
   omniList.hidden=false; omni.setAttribute('aria-expanded','true'); }
 function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; if(!lis.length) return; omniActive=(i+lis.length)%lis.length;
-  lis.forEach((l,k)=>l.classList.toggle('active',k===omniActive)); lis[omniActive].scrollIntoView({block:'nearest'}); omni.setAttribute('aria-activedescendant', lis[omniActive].id); }
+  lis.forEach((l,k)=>{ l.classList.toggle('active',k===omniActive); l.setAttribute('aria-selected', String(k===omniActive)); }); lis[omniActive].scrollIntoView({block:'nearest'}); omni.setAttribute('aria-activedescendant', lis[omniActive].id); }
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }
 function omniPick(it){
   omniClose(); omni.value=''; omniClear.hidden=true; omni.blur();
@@ -89,7 +89,9 @@ function omniPick(it){
       // varias calles con el mismo nombre: se resaltan todas y el mapa se acerca a ellas
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
-  collapseSheet(); }
+  collapseSheet();
+  // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí (auditoría H-048)
+  setTimeout(()=>{ try { $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }, 0); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));

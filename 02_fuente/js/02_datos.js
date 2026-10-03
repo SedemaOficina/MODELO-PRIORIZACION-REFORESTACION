@@ -10,7 +10,7 @@ async function gunzip(bytes){
   catch(e){ throw errAmable('Un archivo de datos llegó dañado o incompleto. Suele deberse a una descarga interrumpida.', 'descompresión: ' + (e && e.message || e)); }
 }
 // La barra se reparte según lo que tarda cada etapa: la descarga de los datos es casi toda la espera (auditoría H-053)
-const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar'); b.parentElement.classList.remove('indet'); b.style.width = (p*100)+'%'; };
+const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar'); b.parentElement.classList.remove('indet'); b.style.width = (p*100)+'%'; b.parentElement.setAttribute('aria-valuenow', String(Math.round(p*100))); };
 // datos: incrustados en la página (artefacto, versión de un solo archivo) o en archivos aparte (docs/datos)
 const DATOS = window.SIA_DATOS || null;
 let dlDone = 0, dlShow = true;

@@ -35,9 +35,9 @@ DOCS = os.path.join(RAIZ, 'docs')
 # Esqueleto de página completa (el mismo que agrega el artefacto) más idioma y la instrucción de no
 # aparecer en buscadores. Para permitir la difusión, dejar ROBOTS = ''.
 ROBOTS = '<meta name="robots" content="noindex, nofollow">'
-ESQUELETO = ('<!doctype html><html lang="es"><head><meta charset=utf8>'
-             '<meta name=viewport content="width=device-width,initial-scale=1">'
-             '<style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;'
+ESQUELETO = ('<!doctype html><html lang="es-MX"><head><meta charset="utf-8">'
+             '<meta name="viewport" content="width=device-width,initial-scale=1">'
+             '<style>:root{color-scheme:light}body{margin:0;padding:0;font:.875rem -apple-system,BlinkMacSystemFont,sans-serif;'
              'background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>'
              '{CABEZA}</head><body>\n')
 # Librerías: en el arranque (deck, pako) y bajo demanda (Excel y fichas PDF). Todas salen de libs/, en el sitio y en el archivo único.
@@ -57,7 +57,7 @@ ESRI_KEY = ''
 CARTO_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.23'
+VERSION = '17.24'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -86,14 +86,14 @@ AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar
 # cargar, el cargador muestra el error en lugar del mapa.
 APERTURA = "(async function(){\n'use strict';\n"
 CIERRE = ("})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent='';"
-          " const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:16px'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t);"
-          " const m=document.createElement('div'); m.style.cssText='font-size:12px;margin-top:6px;max-width:320px';"
+          " const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:1rem'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t);"
+          " const m=document.createElement('div'); m.style.cssText='font-size:.75rem;margin-top:6px;max-width:320px'; m.setAttribute('role','alert');"
           " m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m);"
           " const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });\n")
 # Vigilancia del arranque (auditoría H-035). Va en un archivo aparte de app.js para que funcione aunque app.js no llegue:
 # avisa si un programa no se pudo descargar y ofrece reintentar cuando la carga tarda demasiado.
 VIGIA = ("(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=document.getElementById('loader'); if(!l || l.querySelector('.lento')) return; var d=l.querySelector('div');"
-         " var p=document.createElement('div'); p.className='lento'; p.textContent=t; d.appendChild(p);"
+         " var p=document.createElement('div'); p.className='lento'; p.setAttribute('role','alert'); p.textContent=t; d.appendChild(p);"
          " var b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=function(){ location.reload(); }; d.appendChild(b); }"
          " addEventListener('error', function(e){ var x=e.target; if (x && x.tagName==='SCRIPT' && !window.SIA_LISTO) aviso('No se pudo descargar una parte del programa ('+String(x.src||'').split('/').pop().split('?')[0]+'). Revisa tu conexión.'); }, true);"
          " var cx=navigator.connection; if (cx && (cx.saveData || /2g|3g/.test(cx.effectiveType||''))){ var l0=document.getElementById('loader'); if (l0){ var n0=document.createElement('div'); n0.className='conex'; n0.textContent='Con esta conexión la primera carga puede tardar más de un minuto.'; l0.querySelector('div').appendChild(n0); } }"
@@ -112,18 +112,23 @@ def css_fuentes(direccion):
 
 
 plantilla = leer('plantilla.html')
+# Lo que la plantilla trae antes del marcador de estilos (<title>, <meta>) va en <head>, no en <body> (auditoría H-092).
+CABEZA_PL, plantilla = plantilla.split('<!-- ESTILOS -->')
+CABEZA_PL = CABEZA_PL.strip().replace('\n', '')
+assert CABEZA_PL.startswith('<title>') and '<div' not in CABEZA_PL, 'antes de <!-- ESTILOS --> solo van <title> y <meta>'
+plantilla = '<!-- ESTILOS -->' + plantilla
 # Ningún recurso de terceros en la ruta de arranque (auditoría H-002): la plantilla no puede enlazar hojas ni código externos.
 assert 'fonts.googleapis' not in plantilla and 'fonts.gstatic' not in plantilla, 'la plantilla no debe pedir tipografías a terceros'
 estilos = '/* ' + AVISO % 'css/' + ' */\n' + unir('css', '.css')
 app = '// ' + AVISO % 'js/' + '\n' + APERTURA + unir('js', '.js') + CIERRE
-assert plantilla.count('<!-- ESTILOS -->') == 1, 'la plantilla debe tener un solo marcador <!-- ESTILOS -->'
 for img in IMAGENES:
     assert ('src="%s"' % img) in plantilla, 'la plantilla no usa ' + img
 
 # ---------- 1) versión en un solo archivo: estilos, tipografías, imágenes, datos y librerías incrustados ----------
 # No pide nada a terceros (auditoría H-058 y H-095): sirve en redes que bloquean dominios externos.
 incrustadas = css_fuentes(lambda a: 'data:font/woff2;base64,' + base64.b64encode(leer('fuentes/' + a, True)).decode())
-cuerpo = plantilla.replace('<!-- ESTILOS -->', '<style>\n' + incrustadas + estilos + '</style>')
+ESTILOS_UNICO = '<style>\n' + incrustadas + estilos + '</style>'
+cuerpo = plantilla.replace('<!-- ESTILOS -->', '')
 for img, tipo in IMAGENES.items():
     cuerpo = cuerpo.replace('src="%s"' % img, 'src="data:%s;base64,%s"' % (tipo, base64.b64encode(leer(img, True)).decode()))
 cuerpo += '<script>' + VIGIA + '</script>\n'
@@ -135,10 +140,10 @@ cuerpo += ''.join('<script id="lib-%s-b64" type="text/plain">%s</script>\n' % (k
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
 cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
-fragmento = cuerpo
+fragmento = CABEZA_PL + ESTILOS_UNICO + cuerpo   # el artefacto no tiene <head> propio: todo va junto
 
 os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
-unico = ESQUELETO.replace('{CABEZA}', ROBOTS) + fragmento + '</body></html>\n'
+unico = ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + ESTILOS_UNICO) + cuerpo + '</body></html>\n'
 open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(unico)
 
 # ---------- 2) sitio: cada pieza en su archivo, con huella ?v= para la caché del navegador ----------
@@ -167,7 +172,8 @@ poner('estilos.css', estilos)
 poner('app.js', app)
 
 v = lambda b: huella(b.encode('utf-8') if isinstance(b, str) else b)
-sitio = plantilla.replace('<!-- ESTILOS -->', '<link rel="stylesheet" href="estilos.css?v=%s">' % v(estilos))
+HOJA = '<link rel="stylesheet" href="estilos.css?v=%s">' % v(estilos)
+sitio = plantilla.replace('<!-- ESTILOS -->', '')
 for img in IMAGENES:
     sitio = sitio.replace('src="%s"' % img, 'src="%s?v=%s"' % (img, v(leer(img, True))))
 sitio = sitio.replace('<img src="img/composicion_frentes_manzana.jpg', '<img loading="lazy" src="img/composicion_frentes_manzana.jpg')
@@ -180,7 +186,7 @@ sitio += ('<script src="config.js?v=%s"></script>\n' % v(config)
 # que el navegador empiece a bajar los datos desde el primer momento, en paralelo con las librerías
 precarga = ''.join('<link rel="preload" href="datos/%s?v=%s" as="fetch" crossorigin>' % (n, ver[n]) for n in ('data.bin', 'meta.bin', 'vp.bin'))
 precarga += ''.join('<link rel="preload" href="fuentes/%s?v=%s" as="font" type="font/woff2" crossorigin>' % (a, fver[a]) for a in FUENTES.values())
-pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + precarga) + '<!-- ' + AVISO % 'plantilla.html, css/ y js/' + ' -->\n'
+pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + precarga + HOJA) + '<!-- ' + AVISO % 'plantilla.html, css/ y js/' + ' -->\n'
           + sitio + '</body></html>\n')
 poner('index.html', pagina)
 

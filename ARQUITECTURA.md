@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.23 (2 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.24 (2 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -25,7 +25,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
-├── 04_pruebas/                cinco pruebas automáticas (ver su LEEME.md)
+├── 04_pruebas/                seis pruebas automáticas (ver su LEEME.md)
 ├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, auditoría UX
 │                              y bitácora de decisiones (la bitácora solo en la copia local)
 ├── 06_entregables/            guía de prueba con alcaldías, listas de catálogos para el SIA y lámina de frentes de manzana
@@ -39,7 +39,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Salida | Para qué | Cómo quedan las piezas |
 |---|---|---|
-| `docs/` | GitHub Pages y el servidor del SIA | `index.html` + `estilos.css` + `config.js` + `app.js` + `sw.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. **Sin programas en línea:** todo el JavaScript va en archivos. **Sí hay estilos en línea:** el bloque `<style>` del esqueleto y algunos atributos `style`; retirarlos es requisito para la política de seguridad de contenido del SIA (Fase 2). |
+| `docs/` | GitHub Pages y el servidor del SIA | `index.html` + `estilos.css` + `config.js` + `app.js` + `sw.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. **Sin programas en línea:** todo el JavaScript va en archivos. `<title>`, `<meta>` y la hoja de estilos van en `<head>`: lo que la plantilla trae antes del marcador `<!-- ESTILOS -->` pasa al encabezado. **Sí hay estilos en línea:** el bloque `<style>` del esqueleto y algunos atributos `style`; retirarlos es requisito para la política de seguridad de contenido del SIA (Fase 2). |
 | `_local/calles_prioritarias.html` | Abrir con doble clic, sin servidor, también en redes que bloquean dominios externos | Todo incrustado en un archivo: estilos, tipografías, imágenes, datos y las cuatro librerías (deck.gl y pako como programa; SheetJS y jsPDF en base64, se activan al pedir un Excel o una ficha). No pide nada a terceros. No se publica. |
 | `05_documentacion/cifras_de_la_construccion.md` | Documentación | Tamaños y conteos medidos en la construcción. |
 | `--artefacto RUTA` | Respaldo como artefacto de Claude | Igual que el anterior, sin la envoltura `<html>`. |
@@ -102,6 +102,13 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 **Errores y arranque:** `errAmable(mensaje, detalle)` (en `01_utilidades.js`) crea errores cuyo `amable` es lo que ve la persona; el cierre de `app.js` lo muestra con «Reintentar». `config.js` lleva además un vigía (definido en `construir.py`) que avisa si un programa no llega o la carga tarda más de 45 s. `02_datos.js` verifica que cada archivo traiga exactamente los registros declarados. Los textos de los catálogos se neutralizan al cargar (`limpioCat`).
 
+**Accesibilidad (bloque F1-B5):**
+- *Anuncios:* `anunciaAmbito()` (`10_seleccion.js`) escribe el ámbito y su cifra en `#sr-estado` (región viva); el conteo del listado, el estado de las descargas y el mensaje del cargador tienen `role="status"`; los errores de carga, `role="alert"`.
+- *Foco:* al elegir en el buscador el foco pasa a `#scope-title`; `showCard` enfoca la ficha (`enfocaFicha`) y `hideCard(true)` lo devuelve al control de origen; Esc cierra ayuda, ficha y capas (`13_interfaz.js`); con la ayuda abierta `.app` queda `inert`. En teléfono, si el foco llega a un control tapado por la ficha, la ficha se cierra.
+- *Listados:* los renglones son `li` con `role="button"`, se activan con Entrar o barra espaciadora (delegado en `09_listados.js`). Elegir un tramo abre la ficha de su frente de mayor prioridad: es la vía de teclado a la ficha de un frente.
+- *Mapa:* el lienzo lleva `role="application"` y un nombre que remite al listado; el texto está en `data-nombre` de `#map`.
+- *Documentos:* `propsPDF` y `propsExcel` ponen idioma, título y autoría. Las fichas no están etiquetadas (jsPDF no puede).
+
 **La consulta en la dirección:** `guardaURL()` anota cada cambio con `pushState` y `aplicarURL()` la restaura al abrir y en `popstate` (`10_seleccion.js`).
 
 **Flujo de un cambio de ámbito:** una acción (buscador, clic, ruta) cambia `sel`/`selCol`/`selAv` → `refresh()` recalcula colores y filtros por vértice, cifras, listados y botones → `rerender()` redibuja las capas → `flyTo(scopeView())` encuadra el mapa.
@@ -117,7 +124,9 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `05_auditoria_bloque2.css` | Ajustes del bloque 2 (panel en tres partes, pestañas, hoja inferior, ayuda) |
 | `06_mi_ubicacion.css` | Botón y tarjeta de Mi ubicación |
 
-Los archivos 04 y 05 ajustan reglas de los anteriores: **el orden importa**. Para cambiar un componente, buscar su clase en todos los archivos de `css/`.
+| `07_accesibilidad.css` | Texto solo para lector de pantalla, enlace de salto, indicador de foco, bordes de controles, objetivos táctiles en teléfono, tabla y lámina de la ayuda, movimiento reducido e impresión |
+
+Los archivos 04, 05 y 07 ajustan reglas de los anteriores: **el orden importa**. Los tamaños de letra van en `rem` (16 px = 1 rem) para respetar el tamaño configurado en el navegador; el mínimo es 0.75 rem. Para cambiar un componente, buscar su clase en todos los archivos de `css/`.
 
 Los códigos entre paréntesis en los comentarios, como "(auditoría C3)", remiten a los hallazgos del informe `05_documentacion/auditoria_ux_calles.html`.
 
@@ -174,7 +183,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Generar las listas de catálogos para el SIA | `python3 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
-Después de cualquier cambio: `python3 02_fuente/construir.py` y las cinco pruebas de `04_pruebas/` (ver su `LEEME.md`).
+Después de cualquier cambio: `python3 02_fuente/construir.py` y las seis pruebas de `04_pruebas/` (ver su `LEEME.md`).
 
 ### 9 bis. Rendimiento y modo ligero
 

@@ -3,14 +3,20 @@
 const infoModal = $('info-modal'); let lastFocus = null;
 // La ventana se cierra con la × (siempre visible), con "Volver al mapa" al final, con Esc, tocando fuera
 // de ella o con el botón Atrás del teléfono (se registra un paso en el historial al abrirla).
-function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
+// Mientras la ayuda está abierta, el resto de la página queda inerte: el foco no sale de la ventana (auditoría H-048)
+const appEl = document.querySelector('.app');
+function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; appEl.inert = true; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
   try { history.pushState({ayuda:true}, ''); } catch(e){} }
-function hideInfo(){ infoModal.hidden=true; if(lastFocus) lastFocus.focus(); }
+function hideInfo(){ infoModal.hidden=true; appEl.inert = false; if(lastFocus && lastFocus.isConnected) lastFocus.focus(); }
 function closeInfo(){ if (history.state && history.state.ayuda){ history.back(); setTimeout(()=>{ if(!infoModal.hidden) hideInfo(); }, 400); } else hideInfo(); }
 addEventListener('popstate', ()=>{ if (!infoModal.hidden) hideInfo(); });
 $('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-close').onclick = closeInfo; $('info-back').onclick = closeInfo;
 infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); });
-addEventListener('keydown', e=>{ if(e.key==='Escape' && !infoModal.hidden) closeInfo(); });
+// Esc cierra, en este orden: la ayuda, la ficha abierta y el panel de capas; el foco vuelve al control que los abrió (auditoría H-048)
+addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) return;
+  if (!infoModal.hidden) return closeInfo();
+  if (!$('card').hidden){ e.preventDefault(); return hideCard(true); }
+  if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
 $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N - META.cruce.frentes_gc);
@@ -35,7 +41,7 @@ const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle
 // el panel de capas se abre y se cierra con el botón de capas de la barra de herramientas; su × lo cierra
 const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
-legendBtn.onclick = ()=> setLegend(false);
+legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(!isPhone() && innerHeight>480);   // en pantallas bajas el panel de capas empieza cerrado
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });

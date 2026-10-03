@@ -10,7 +10,9 @@ function generaFicha(f){ try { f(); } catch(e){ console.error(e); $('dl-status')
 // texto en una sola línea: si no cabe, se recorta con puntos suspensivos en lugar de cortarse en seco (auditoría H-046)
 function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.length<2) return t; let x = ls[0]; while (x.length>1 && doc.getTextWidth(x+'…')>w) x = x.slice(0,-1); return x.replace(/[\s·,;(]+$/,'')+'…'; }
 // título de ficha: se reduce hasta caber en el ancho útil
-function tituloFicha(doc, t, w, x, y){ let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
+// Propiedades del documento (auditoría H-052): idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
+function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Calles prioritarias para reforestar, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
+function tituloFicha(doc, t, w, x, y){ try { doc.setProperties({ title: 'Ficha · ' + t }); } catch(e){} let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1400, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
 // El logotipo se entrega a jsPDF como lienzo ya dibujado. Si se le pasa el elemento <img>, jsPDF vuelve a pedir el archivo
@@ -23,7 +25,7 @@ function fichaPDF(kind){
   if (!window.jspdf) return;
   const isCol = kind==='col', isAlc = kind==='alc', isVpAlc = kind==='vpalc', isVpAv = kind==='vpav'; const isVP = isVpAlc || isVpAv;
   if ((isCol && selCol===null) || ((isAlc||isVpAlc) && sel===null) || (isVpAv && selAv===null)) return;
-  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'});
+  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'}); propsPDF(doc);
   const W=215.9, M=15, GUINDA=[157,33,72], PIZARRA=[39,58,69], GRIS=[85,88,90], INK=[36,38,42], LINE=[226,221,213], PANEL=[248,246,242];
   const f2 = new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
   const c = isCol? META.colonias[selCol] : null; const av = isVpAv? avStat(selAv) : null;
@@ -168,7 +170,7 @@ function fichaPDF(kind){
 // Misma composición que las demás fichas: encabezado, cifras, barras por prioridad, mapa y tabla por colonia.
 function fichaCallePDF(){
   const c = calleSel(); if (!c || !window.jspdf) return;
-  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'});
+  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'}); propsPDF(doc);
   const W=215.9, M=15, GUINDA=[157,33,72], PIZARRA=[39,58,69], GRIS=[85,88,90], INK=[36,38,42], LINE=[226,221,213], PANEL=[248,246,242];
   const f2 = new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
   const idx = c.idx, enCalle = new Set(idx);

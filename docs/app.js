@@ -47,7 +47,7 @@ async function gunzip(bytes){
   catch(e){ throw errAmable('Un archivo de datos llegó dañado o incompleto. Suele deberse a una descarga interrumpida.', 'descompresión: ' + (e && e.message || e)); }
 }
 // La barra se reparte según lo que tarda cada etapa: la descarga de los datos es casi toda la espera (auditoría H-053)
-const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar'); b.parentElement.classList.remove('indet'); b.style.width = (p*100)+'%'; };
+const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar'); b.parentElement.classList.remove('indet'); b.style.width = (p*100)+'%'; b.parentElement.setAttribute('aria-valuenow', String(Math.round(p*100))); };
 // datos: incrustados en la página (artefacto, versión de un solo archivo) o en archivos aparte (docs/datos)
 const DATOS = window.SIA_DATOS || null;
 let dlDone = 0, dlShow = true;
@@ -510,11 +510,17 @@ function rerender(){ if (NOMAP) return;
     dibT = setTimeout(()=>{ dk.setProps({layers: layers()}); requestAnimationFrame(()=>requestAnimationFrame(()=>{ d.hidden = true; })); }, 40); return; }
   dk.setProps({layers: layers()}); }
 $('loader').hidden = true; window.SIA_LISTO = true; updateScale();
+// el lienzo del mapa, que es el que recibe el teclado, lleva nombre y rol (auditoría H-049)
+{ const cv = mapEl.querySelector('canvas'); if (cv){ cv.setAttribute('role','application'); cv.setAttribute('aria-label', mapEl.dataset.nombre); cv.tabIndex = 0; } }
 
 function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
+// La ficha recibe el foco al abrirse y lo devuelve al cerrarse (auditoría H-048). cardOrigen = control desde el que se abrió.
+let cardOrigen = null;
+function enfocaFicha(){ const c=$('card'); const a=document.activeElement; if (a && a!==document.body && !c.contains(a)) cardOrigen = a;
+  const h=c.querySelector('h3'); c.setAttribute('aria-label', 'Ficha: ' + (h? h.textContent : 'elemento seleccionado')); try { c.focus({preventScroll:true}); } catch(e){ c.focus(); } }
 function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i}; const c=$('card');
   c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : featHtml(i,false);
-  c.hidden=false; c.querySelector('.close').onclick=hideCard;
+  c.hidden=false; c.querySelector('.close').onclick=()=>hideCard(true); enfocaFicha();
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
   const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); renderResults(); rerender(); showCard('col', i); };
@@ -524,7 +530,11 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
     const fb=()=>{ const r=document.createRange(); r.selectNodeContents(lab); lab.textContent=t; const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); };
     try { navigator.clipboard.writeText(t).then(ok, fb); } catch(e){ fb(); } };
 }
-function hideCard(){ pinned=null; $('card').hidden=true; }
+function hideCard(devuelve){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
+  if (devuelve===true || dentro){ const o = cardOrigen && cardOrigen.isConnected && cardOrigen.offsetParent!==null? cardOrigen : $('scope-title'); cardOrigen=null; try { o.focus({preventScroll:true}); } catch(e){} } }
+// En teléfono la ficha tapa parte del panel: si el foco llega a un control tapado, la ficha se cierra para que se vea (auditoría H-048, WCAG 2.4.11)
+document.addEventListener('focusin', e=>{ const c=$('card'); if (c.hidden || !isPhone() || c.contains(e.target) || !e.target.closest || !e.target.closest('.panel')) return;
+  const a=e.target.getBoundingClientRect(), b=c.getBoundingClientRect(); if (a.bottom>b.top+4 && a.top<b.bottom-4) hideCard(); });
 $('zin').onclick = ()=> flyTo({...viewState, zoom:Math.min(18.5, viewState.zoom+1)}, 0);   // acercar y alejar son inmediatos
 $('zout').onclick = ()=> flyTo({...viewState, zoom:Math.max(9.4, viewState.zoom-1)}, 0);
 
@@ -850,7 +860,7 @@ function renderAlcRanking(){
   const items = META.muns.map((m,i)=>i).sort((a,b)=> rankOf(a)-rankOf(b));
   $('search-title').textContent = isGC()? 'Alcaldías ordenadas por km prioritarios de vialidad primaria' : 'Alcaldías ordenadas por km de frente prioritario'; $('search-count').textContent='16 alcaldías de la ciudad';
   const ul=$('results'); ul.innerHTML='';
-  for(const i of items){ const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; const li=document.createElement('li'); li.tabIndex=0;
+  for(const i of items){ const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
     li.innerHTML = `<div><div class="n">${dot(pc)}${META.munNames[i]}</div><div class="t">Prioridad predominante ${META.prio[d]} · ${pct(kmPrio(s),tot)} de ${isGC()? 'sus km de vialidad primaria':'sus km de frente'} es prioritario</div></div>
       <div class="k">${kmFull(kmPrio(s))}<small>${isGC()? fmt.format(VP_RECS[i].rp.size)+' de '+fmt.format(VP_RECS[i].r.size)+' tramos prioritarios' : fmt.format(s.n[3]+s.n[4])+' frentes prioritarios'} en la alcaldía</small></div>`;
     const go=()=>{ selEl.value=String(i); setSel(String(i)); }; li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
@@ -861,7 +871,7 @@ function renderColoniaRanking(){
   items.sort((a,b)=> b[1].kmp-a[1].kmp);
   $('search-title').textContent = `Colonias con más km de frente prioritario ${sel===null? 'en toda la ciudad' : 'en la alcaldía '+META.munNames[sel]}`; $('search-count').textContent = `${fmt.format(items.length)} colonia${items.length===1?'':'s'} con frente prioritario`;
   const ul=$('results'); ul.innerHTML='';
-  for(const [i,s] of items.slice(0,10)){ const c=META.colonias[i]; const pc=c.p>=0? T.prio[c.p]:null; const li=document.createElement('li'); li.tabIndex=0;
+  for(const [i,s] of items.slice(0,10)){ const c=META.colonias[i]; const pc=c.p>=0? T.prio[c.p]:null; const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
     li.innerHTML = `<div><div class="n">${pc? dot(pc):''}${c.n}</div><div class="t">${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.ids? ' · Unidad territorial con desarrollo social '+c.ids.toLowerCase():''}</div></div>
       <div class="k">${kmFull(s.kmp)}<small>${fmt.format(s.np)} de ${fmt.format(sum(s.n))} frentes de la colonia son prioritarios</small></div>`;
     const go=()=>pickColonia(i); li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
@@ -876,7 +886,7 @@ function renderAvenueByAlc(){
   const items=[...per.entries()].sort((a,b)=> kmPrio(b[1])-kmPrio(a[1]));
   $('search-title').textContent=`Tramos de ${VPC.nomenclat[selAv]} por alcaldía`; $('search-count').textContent=`cruza ${items.length} alcaldía${items.length===1?'':'s'}`;
   const ul=$('results'); ul.innerHTML='';
-  for(const [m,s] of items){ const d=dom(s); const pc=T.prio[d]; const li=document.createElement('li'); li.tabIndex=0;
+  for(const [m,s] of items){ const d=dom(s); const pc=T.prio[d]; const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
     li.innerHTML = `<div><div class="n">${dot(pc)}${META.munNames[m]}</div><div class="t">Prioridad predominante ${META.prio[d]} · ${fmt1.format(sum(s.km))} km de la avenida en esta alcaldía</div></div>
       <div class="k">${kmFull(kmPrio(s))}<small>${s.recsp.size} de ${s.recs.size} tramos prioritarios aquí</small></div>`;
     const go=()=>{ if(sel!==m){ selEl.value=String(m); sel=m; refresh(); } }; li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
@@ -905,7 +915,7 @@ function renderUbicar(items, qRaw){
   const filas = items.map(([key,s])=>({key, s, m:F.mun[s.idx[0]], col: s.col? META.colonias[s.col].n : 'Colonia no identificada', d: myPos? dist(s) : 0}));
   filas.sort((a,b)=> myPos? a.d-b.d : (META.munNames[a.m].localeCompare(META.munNames[b.m],'es') || a.col.localeCompare(b.col,'es') || (META.names[a.s.nid]||'').localeCompare(META.names[b.s.nid]||'','es')));
   const MAXF = 40;
-  for (const f of filas.slice(0, MAXF)){ const li=document.createElement('li'); li.tabIndex=0; li.className='ubica';
+  for (const f of filas.slice(0, MAXF)){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button'); li.className='ubica';
     const tl=[...f.s.tipos].filter(Boolean).slice(0,2).join(', ');
     li.innerHTML = `<div><div class="n">${META.names[f.s.nid]||'Sin nombre'}</div><div class="t">${f.col} · ${META.munNames[f.m]}${tl? ' · '+tl : ''}</div></div><div class="k"><small>${myPos? 'a '+distTxt(f.d) : ''}</small></div>`;
     // al elegir, la consulta queda en la alcaldía de la calle y la calle resaltada
@@ -930,7 +940,7 @@ function renderResults(){
     const total=items.length; items = items.slice(0, q.length>=2? 40 : 10);
     $('search-count').textContent = `${fmt.format(total)} avenida${total===1?'':'s'}${q.length>=2?'':' con km prioritarios'}`;
     if(!items.length){ ul.innerHTML = q.length>=2? `<li class="empty">Sin coincidencias${sel!==null?' en '+META.munNames[sel]:''}.</li>` : '<li class="empty">Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta o Alta).</li>'; return; }
-    for(const [a,s] of items){ const li=document.createElement('li'); li.tabIndex=0; const nb=[...s.nombres]; const ms=[...s.muns];
+    for(const [a,s] of items){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button'); const nb=[...s.nombres]; const ms=[...s.muns];
       li.innerHTML = `<div><div class="n">${VPC.nomenclat[a]}</div><div class="t">${nb.slice(0,2).join(', ')}${nb.length>2?' +'+(nb.length-2):''}${sel===null? ' · '+ms.slice(0,2).map(m=>META.munNames[m]).join(', ')+(ms.length>2?' +'+(ms.length-2):''):''}</div></div>
         <div class="k">${kmFull(s.kmp)}<small>${s.recsp.size} de ${s.recs.size} tramos de la avenida son prioritarios</small></div>`;
       if (selAv===a) li.classList.add('active');
@@ -952,7 +962,7 @@ function renderResults(){
     : `${fmt.format(total)} calles con frente prioritario, contadas por colonia`;
   if(!items.length){ ul.innerHTML = q.length>=2? `<li class="empty">Sin coincidencias${sel!==null?' en '+META.munNames[sel]:''}.</li>` : '<li class="empty">Este ámbito no tiene calles con frente prioritario (Muy Alta o Alta).</li>'; return; }
   for(const [key,s] of items){
-    const li = document.createElement('li'); li.tabIndex=0;
+    const li = document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
     const tl=[...s.tipos].filter(Boolean); const tipos = tl.slice(0,2).join(', ')+(tl.length>2?' +'+(tl.length-2):'');
     const donde = selCol!==null? '' : (s.col? META.colonias[s.col].n : 'Colonia no identificada') + (sel===null? ' · '+META.munNames[F.mun[s.idx[0]]] : '');
     li.innerHTML = `<div><div class="n">${META.names[s.nid]||'Sin nombre'}</div><div class="t">${donde? donde+' · ':''}${tipos}</div>${desgHtml(s)}</div>
@@ -979,6 +989,12 @@ function highlightStreet(nid, s){
   hideCard(); collapseSheet(); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns();
 }
 $('q').addEventListener('input', renderResults);
+// Renglones de los listados (auditoría H-049): se activan también con la barra espaciadora y, como el listado se vuelve a
+// armar al elegir, el foco pasa al título de la respuesta (cambio de ámbito) o regresa al renglón elegido (calle consultada).
+for (const id of ['results','tramos']) $(id).addEventListener('keydown', e=>{ const li = e.target; if (!li.matches || !li.matches('li[tabindex]')) return;
+  if (e.key===' '){ e.preventDefault(); li.click(); } if (e.key!==' ' && e.key!=='Enter') return;
+  setTimeout(()=>{ const a = document.activeElement; if (a && a!==document.body && a.isConnected) return;
+    ($('results').querySelector('li.active') || $('scope-title')).focus(); }, 60); });
 
 // Tramos de una calle de la red de las alcaldías: agrupa los frentes de manzana de la calle consultada en tramos
 // (de esquina a esquina, con sus dos lados) y nombra las vialidades que los delimitan. Se calcula al consultar la calle,
@@ -1046,10 +1062,12 @@ function renderTramos(){
   box.hidden = false;
   box.innerHTML = `<div class="section-title"><h2>Tramos de ${c.nombre}</h2><span>${l.length} tramo${l.length===1?'':'s'} · predominante ${META.prio[d]}</span></div>
     <ol class="tramos">${l.map(t=>{ const pd = dom({km:t.km}); const partes=[]; for(let p=4;p>=0;p--) if(t.km[p]>0) partes.push(`<span><i style="background:var(--p${p})"></i>${META.prio[p]} ${kmFull(t.km[p])}</span>`);
-      return `<li tabindex="0" data-t="${t.n-1}"><b>${t.n}</b><div><div class="n">${entreTxt(t)}</div><div class="desg">${partes.join('')}</div><div class="t">${fmt.format(t.largo)} m de calle · ${t.lados===2? 'dos lados' : 'un lado'} · ${t.idx.length} frente${t.idx.length===1?'':'s'}${partes.length>1? ' · predominante '+META.prio[pd] : ''}</div></div></li>`; }).join('')}</ol>
-    <p class="note">Un tramo va de esquina a esquina y reúne los frentes de sus dos lados. Se arma con una regla geométrica a partir de los frentes de manzana; las vialidades que lo delimitan son las más cercanas a sus extremos y deben confirmarse en campo. Selecciona un tramo para ubicarlo en el mapa.</p>`;
+      return `<li tabindex="0" role="button" data-t="${t.n-1}"><b>${t.n}</b><div><div class="n">${entreTxt(t)}</div><div class="desg">${partes.join('')}</div><div class="t">${fmt.format(t.largo)} m de calle · ${t.lados===2? 'dos lados' : 'un lado'} · ${t.idx.length} frente${t.idx.length===1?'':'s'}${partes.length>1? ' · predominante '+META.prio[pd] : ''}</div></div></li>`; }).join('')}</ol>
+    <p class="note">Un tramo va de esquina a esquina y reúne los frentes de sus dos lados. Se arma con una regla geométrica a partir de los frentes de manzana; las vialidades que lo delimitan son las más cercanas a sus extremos y deben confirmarse en campo. Selecciona un tramo para ubicarlo en el mapa y abrir la ficha de su frente de mayor prioridad.</p>`;
   box.querySelectorAll('li').forEach(li=>{ const go=()=>{ const t=l[+li.dataset.t]; const pad=0.0008; const vs=fitTo([t.bounds[0]-pad,t.bounds[1]-pad,t.bounds[2]+pad,t.bounds[3]+pad], 60); vs.zoom=Math.min(vs.zoom, 17.5);
-      box.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); collapseSheet(); flyTo(vs, 800); };
+      box.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); collapseSheet(); flyTo(vs, 800);
+      // ficha del frente de mayor prioridad del tramo (el más largo si hay varios): así la ficha de un frente se alcanza sin el puntero (auditoría H-049)
+      const rep = t.idx.reduce((a,b)=> (F.prio[b]>F.prio[a] || (F.prio[b]===F.prio[a] && F.len[b]>F.len[a]))? b : a, t.idx[0]); showCard('fr', rep); };
     li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
 }
 
@@ -1077,8 +1095,13 @@ function renderAvInfo(){
   box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b> (${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad)<br>Red vial: ${[...s.nombres].join(', ')} · ${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta o Alta)':''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
 }
 let keepView = false;
+// Anuncio para lectores de pantalla (auditoría H-047): al cambiar la consulta se dice el ámbito y su cifra principal.
+let anuncioT = null;
+function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
+  const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
   buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
+  anunciaAmbito();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
   // sin registros que entregar: el botón se deshabilita y se dice por qué, en lugar de entregar un archivo vacío (auditoría H-043)
@@ -1306,15 +1329,17 @@ function loadXL(){
 }
 const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
-function excelAparte(aoa, cols, dic){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
+// Propiedades del libro (auditoría H-052): título, autoría e idioma
+const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Calles prioritarias para reforestar, versión ' + VERSION.v, CreatedDate: new Date() });
+function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
-  w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic}); }); }
+  w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic, props}); }); }
 const GRANDE = 20000;   // renglones a partir de los cuales se avisa del tamaño y de la espera
 async function deliverTable(base, key, aoa, extra){
   const nreg = aoa.length - 1;
   const st = $('dl-status'); st.textContent = nreg>GRANDE? `Preparando un archivo grande: ${fmt.format(nreg)} renglones, alrededor de ${fmt0.format(Math.max(1, nreg*0.19/1000))} MB. Puede tardar hasta un minuto…` : 'Preparando archivo…';
   if (window.SIA_LIBS && window.Worker){
-    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra));
+    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra), propsExcel(base));
       await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); return; }
     catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
   }
@@ -1328,7 +1353,7 @@ async function deliverTable(base, key, aoa, extra){
     st.textContent = 'Descargado en CSV (dos archivos: listado y diccionario), porque no se pudo cargar el generador de Excel.';
     return;
   }
-  const wb = X.utils.book_new();
+  const wb = X.utils.book_new(); wb.Props = propsExcel(base);
   const ws = X.utils.aoa_to_sheet(aoa);
   ws['!cols'] = wch(DIC[key].cols);
   ws['!autofilter'] = { ref: X.utils.encode_range({ s:{r:0,c:0}, e:{r:Math.max(1,aoa.length-1), c:aoa[0].length-1} }) };
@@ -1409,7 +1434,9 @@ function generaFicha(f){ try { f(); } catch(e){ console.error(e); $('dl-status')
 // texto en una sola línea: si no cabe, se recorta con puntos suspensivos en lugar de cortarse en seco (auditoría H-046)
 function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.length<2) return t; let x = ls[0]; while (x.length>1 && doc.getTextWidth(x+'…')>w) x = x.slice(0,-1); return x.replace(/[\s·,;(]+$/,'')+'…'; }
 // título de ficha: se reduce hasta caber en el ancho útil
-function tituloFicha(doc, t, w, x, y){ let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
+// Propiedades del documento (auditoría H-052): idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
+function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Calles prioritarias para reforestar, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
+function tituloFicha(doc, t, w, x, y){ try { doc.setProperties({ title: 'Ficha · ' + t }); } catch(e){} let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1400, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
 // El logotipo se entrega a jsPDF como lienzo ya dibujado. Si se le pasa el elemento <img>, jsPDF vuelve a pedir el archivo
@@ -1422,7 +1449,7 @@ function fichaPDF(kind){
   if (!window.jspdf) return;
   const isCol = kind==='col', isAlc = kind==='alc', isVpAlc = kind==='vpalc', isVpAv = kind==='vpav'; const isVP = isVpAlc || isVpAv;
   if ((isCol && selCol===null) || ((isAlc||isVpAlc) && sel===null) || (isVpAv && selAv===null)) return;
-  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'});
+  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'}); propsPDF(doc);
   const W=215.9, M=15, GUINDA=[157,33,72], PIZARRA=[39,58,69], GRIS=[85,88,90], INK=[36,38,42], LINE=[226,221,213], PANEL=[248,246,242];
   const f2 = new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
   const c = isCol? META.colonias[selCol] : null; const av = isVpAv? avStat(selAv) : null;
@@ -1567,7 +1594,7 @@ function fichaPDF(kind){
 // Misma composición que las demás fichas: encabezado, cifras, barras por prioridad, mapa y tabla por colonia.
 function fichaCallePDF(){
   const c = calleSel(); if (!c || !window.jspdf) return;
-  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'});
+  const {jsPDF} = window.jspdf; const doc = new jsPDF({unit:'mm', format:'letter'}); propsPDF(doc);
   const W=215.9, M=15, GUINDA=[157,33,72], PIZARRA=[39,58,69], GRIS=[85,88,90], INK=[36,38,42], LINE=[226,221,213], PANEL=[248,246,242];
   const f2 = new Intl.NumberFormat('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});
   const idx = c.idx, enCalle = new Set(idx);
@@ -1676,14 +1703,20 @@ new MutationObserver(()=>{ const t = $('dl-status').textContent.trim(); const a 
 const infoModal = $('info-modal'); let lastFocus = null;
 // La ventana se cierra con la × (siempre visible), con "Volver al mapa" al final, con Esc, tocando fuera
 // de ella o con el botón Atrás del teléfono (se registra un paso en el historial al abrirla).
-function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
+// Mientras la ayuda está abierta, el resto de la página queda inerte: el foco no sale de la ventana (auditoría H-048)
+const appEl = document.querySelector('.app');
+function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; appEl.inert = true; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
   try { history.pushState({ayuda:true}, ''); } catch(e){} }
-function hideInfo(){ infoModal.hidden=true; if(lastFocus) lastFocus.focus(); }
+function hideInfo(){ infoModal.hidden=true; appEl.inert = false; if(lastFocus && lastFocus.isConnected) lastFocus.focus(); }
 function closeInfo(){ if (history.state && history.state.ayuda){ history.back(); setTimeout(()=>{ if(!infoModal.hidden) hideInfo(); }, 400); } else hideInfo(); }
 addEventListener('popstate', ()=>{ if (!infoModal.hidden) hideInfo(); });
 $('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-close').onclick = closeInfo; $('info-back').onclick = closeInfo;
 infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); });
-addEventListener('keydown', e=>{ if(e.key==='Escape' && !infoModal.hidden) closeInfo(); });
+// Esc cierra, en este orden: la ayuda, la ficha abierta y el panel de capas; el foco vuelve al control que los abrió (auditoría H-048)
+addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) return;
+  if (!infoModal.hidden) return closeInfo();
+  if (!$('card').hidden){ e.preventDefault(); return hideCard(true); }
+  if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
 $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N - META.cruce.frentes_gc);
@@ -1708,7 +1741,7 @@ const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle
 // el panel de capas se abre y se cierra con el botón de capas de la barra de herramientas; su × lo cierra
 const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
-legendBtn.onclick = ()=> setLegend(false);
+legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(!isPhone() && innerHeight>480);   // en pantallas bajas el panel de capas empieza cerrado
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
@@ -1828,7 +1861,7 @@ function omniRender(){
   if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
   const I = omniIndex();
   for (const [k,title] of groups){ const g=document.createElement('li'); g.className='grp'; g.setAttribute('role','presentation'); g.textContent=title; omniList.appendChild(g);
-    for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.id='om-'+omniItems.length; let html='';
+    for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-'+omniItems.length; let html='';
       if (it.t==='alc'){ const d=domOf(it.i); html = `<span class="ty">Alc</span><span class="nm">${omniMark(META.munNames[it.i], R.qt)}</span><span class="k">${kmFull(kmPrio(summOf(it.i)))} prior.</span><span class="m">Prioridad predominante ${META.prio[d]}</span>`; }
       else if (it.t==='col'){ const c=META.colonias[it.i]; const pt=I.part.get(it.i); html = `<span class="ty">Col</span><span class="nm">${omniMark(c.n, R.qt)}${pt? ` <small>· parte ${pt[0]} de ${pt[1]}</small>`:''}</span><span class="k">${c.p>=0? META.prio[c.p] : '—'}</span><span class="m">${META.munNames[munIndex[c.m]]}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${it.via? ` · coincide con su unidad territorial: ${it.via}`:''}</span>`; }
       else if (it.t==='av'){ const s=avStat(it.a); html = `<span class="ty">Av</span><span class="nm">${omniMark(VPC.nomenclat[it.a], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${[...s.nombres].slice(0,2).join(', ')} · cruza ${s.muns.size} alcaldía${s.muns.size===1?'':'s'}${it.via? ` · coincide con la red vial ${it.via}`:''}</span>`; }
@@ -1840,7 +1873,7 @@ function omniRender(){
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
   omniList.hidden=false; omni.setAttribute('aria-expanded','true'); }
 function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; if(!lis.length) return; omniActive=(i+lis.length)%lis.length;
-  lis.forEach((l,k)=>l.classList.toggle('active',k===omniActive)); lis[omniActive].scrollIntoView({block:'nearest'}); omni.setAttribute('aria-activedescendant', lis[omniActive].id); }
+  lis.forEach((l,k)=>{ l.classList.toggle('active',k===omniActive); l.setAttribute('aria-selected', String(k===omniActive)); }); lis[omniActive].scrollIntoView({block:'nearest'}); omni.setAttribute('aria-activedescendant', lis[omniActive].id); }
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }
 function omniPick(it){
   omniClose(); omni.value=''; omniClear.hidden=true; omni.blur();
@@ -1855,7 +1888,9 @@ function omniPick(it){
       // varias calles con el mismo nombre: se resaltan todas y el mapa se acerca a ellas
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
-  collapseSheet(); }
+  collapseSheet();
+  // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí (auditoría H-048)
+  setTimeout(()=>{ try { $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }, 0); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));
@@ -1944,7 +1979,7 @@ function locHtml(){
     + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista
     + `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>` + privacy;
 }
-function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; c.hidden=false; c.querySelector('.close').onclick=hideCard; }
+function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
 function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
@@ -1961,7 +1996,7 @@ function selectHere(){ // selecciona la colonia (modo Alcaldías) o la alcaldía
   else if (sel!==w.alc || selCol!==null || selAv!==null){ selEl.value=String(w.alc); setSel(String(w.alc)); }
   keepView = false; locSel = false;
 }
-function showLoc(){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = locHtml(); c.hidden=false; c.querySelector('.close').onclick=hideCard; wireLocCard(c); }
+function showLoc(){ const c=$('card'); pinned={kind:'loc', i:0}; const era=c.hidden; c.innerHTML = locHtml(); c.hidden=false; c.querySelector('.close').onclick=hideCard; wireLocCard(c); if (era) enfocaFicha(); }
 function onPos(pos, first){
   myPos = {lon:pos.coords.longitude, lat:pos.coords.latitude, acc:pos.coords.accuracy||0, t:Date.now()};
   locBtn.classList.add('on');
@@ -2014,4 +2049,4 @@ addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('
 // archivos de la propia herramienta (programas, datos, tipografías y generadores de Excel y PDF). No guarda consultas ni datos personales.
 if ('serviceWorker' in navigator && window.SIA_LIBS && /^https?:$/.test(location.protocol) && window.self===window.top)
   navigator.serviceWorker.register('sw.js').catch(()=>{});
-})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent=''; const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:16px'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t); const m=document.createElement('div'); m.style.cssText='font-size:12px;margin-top:6px;max-width:320px'; m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m); const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });
+})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent=''; const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:1rem'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t); const m=document.createElement('div'); m.style.cssText='font-size:.75rem;margin-top:6px;max-width:320px'; m.setAttribute('role','alert'); m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m); const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });

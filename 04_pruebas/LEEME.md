@@ -1,6 +1,6 @@
 # Pruebas
 
-Cinco pruebas automáticas. Todas terminan con error si algo falla; después de cualquier cambio se corren las cinco.
+Seis pruebas automáticas. Todas terminan con error si algo falla; después de cualquier cambio se corren las seis.
 
 | Prueba | Qué cuida | Duración aproximada sin tarjeta gráfica |
 |---|---|---|
@@ -9,6 +9,7 @@ Cinco pruebas automáticas. Todas terminan con error si algo falla; después de 
 | `prueba_sin_terceros.js` | Que el sitio y el archivo único arranquen y trabajen sin pedir nada a otros dominios | 2 min |
 | `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 5 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 12 min |
+| `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste de controles, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 6 min |
 
 ## Prueba integral
 
@@ -70,3 +71,13 @@ node 04_pruebas/prueba_telefono_y_sin_conexion.js
 ```
 
 Tarda unos 12 minutos sin tarjeta gráfica. Las demás pruebas bloquean el proceso de servicio (`serviceWorkers: 'block'`) para poder intervenir la red; esta lo deja activo en su última sección.
+
+## Prueba de accesibilidad
+
+`prueba_accesibilidad.js` recorre la herramienta con teclado y comprueba: `<title>` y estilos en `<head>`, `<main>` y enlace de salto; anuncio del cambio de ámbito; foco tras elegir en el buscador, al abrir y cerrar la ficha, el panel de capas y la ayuda (fondo inerte); renglones de listado con rol, foco visible y barra espaciadora; ficha de un frente abierta desde un tramo sin usar el puntero; contraste de bordes e indicador de foco; objetivos táctiles en teléfono (44 px en herramientas, pestañas y selector; 38 px en capas); ningún texto por debajo de 12 px ni tamaños en píxeles; impresión; movimiento reducido, e idioma, título y autoría en la ficha PDF y el Excel.
+
+```
+node 04_pruebas/prueba_accesibilidad.js
+```
+
+Requiere la utilidad `unzip`. Cada corrección de la auditoría de accesibilidad queda así como comprobación automática (H-076). **No sustituye** la lectura con un lector de pantalla real ni una revisión con una herramienta como axe.

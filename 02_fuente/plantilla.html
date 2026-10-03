@@ -1,8 +1,10 @@
 <title>Calles Prioritarias para Reforestar</title>
 <meta name="color-scheme" content="light only">
 <!-- ESTILOS -->
-<!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
-<div class="app">
+<!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. Lo que va antes de ESTILOS pasa al <head>. -->
+<a class="salto" href="#scope-title">Saltar a la respuesta</a>
+<p class="sr" id="sr-estado" role="status" aria-live="polite"></p>
+<main class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
   <aside class="panel">
     <button class="sheet-grip" id="sheet" type="button" aria-expanded="false" aria-controls="panel-body"><i></i><b id="sheet-label">Ver la consulta</b></button>
@@ -24,7 +26,7 @@
         <div class="resp-row"><span class="lab" id="resp-label">Atiende</span><div class="chips" role="group" aria-labelledby="resp-label">
           <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
           <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
-        </div><button type="button" class="help-i" id="resp-help" aria-expanded="false" aria-controls="resp-note" title="¿Qué atiende cada quien?">?</button></div>
+        </div><button type="button" class="help-i" id="resp-help" aria-expanded="false" aria-controls="resp-note" title="¿Qué atiende cada quien?" aria-label="Qué atiende cada quien">?</button></div>
         <p class="note resp-note" id="resp-note" hidden>Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.</p>
         <p class="note prelim" id="prelim-note"><b>Asignación preliminar.</b> Qué frentes quedan a cargo de la alcaldía o del Gobierno Central se determinó con una regla geométrica que está en validación.</p>
         <nav class="crumb" id="crumb" aria-label="Ruta de la consulta">
@@ -36,7 +38,7 @@
 
       <!-- respuesta: ámbito, cifras, pestañas Resumen / Listado / Descargas (js/08, 09, 11) -->
       <div class="answer" id="answer">
-        <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title">Ciudad de México</h2></div><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div>
+        <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title" tabindex="-1">Ciudad de México</h2></div><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div>
         <div class="colinfo" id="alcinfo" hidden></div>
         <div class="colinfo" id="colinfo" hidden></div>
         <div class="colinfo" id="avinfo" hidden></div>
@@ -60,7 +62,7 @@
       </div></div>
         <div class="tabpanel" id="tp-list" role="tabpanel" aria-labelledby="tab-list" hidden><div>
         <div class="tramosbox" id="tramos" hidden></div>
-        <div class="section-title"><h2 id="search-title">Calles con más frente prioritario</h2><span id="search-count"></span></div>
+        <div class="section-title"><h2 id="search-title">Calles con más frente prioritario</h2><span id="search-count" role="status"></span></div>
         <div class="search">
           <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
           <input id="q" type="search" placeholder="Filtrar este listado…" autocomplete="off" aria-label="Filtrar este listado">
@@ -101,9 +103,9 @@
 
   <!-- ===== Mapa: barra de resumen, herramientas, leyenda-filtro y tarjeta (js/04 a 07) ===== -->
   <div class="mapwrap">
-    <div id="map"></div>
+    <div id="map" data-nombre="Mapa de prioridades de reforestación. Las flechas lo mueven; las teclas más y menos acercan y alejan. La misma información está en el listado del panel."></div>
     <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
-    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descomprimiendo datos…</div><div class="bar indet"><i id="load-bar"></i></div></div></div>
+    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:1rem">Cargando frentes de manzana</div><div id="load-msg" role="status" style="font-size:.75rem;margin-top:4px">Descomprimiendo datos…</div><div class="bar indet" id="load-prog" role="progressbar" aria-label="Avance de la carga" aria-valuemin="0" aria-valuemax="100"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
       <div class="mapsum" id="mapsum"></div>
@@ -116,8 +118,8 @@
       <button class="tool" id="info-btn" title="¿Cómo se priorizó?" aria-label="Cómo se priorizó y cómo se usa">?</button>
       <button class="tool" id="zloc" title="Mi ubicación" aria-label="Mi ubicación" aria-pressed="false"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="8"/></svg></button>
     </div>
-    <div class="legend">
-      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar el panel de capas" aria-label="Minimizar el panel de capas"><h3><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></h3><svg class="lg-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+    <div class="legend" id="legend" role="region" aria-label="Capas y prioridad">
+      <button class="legend-head" id="legend-toggle" type="button" aria-expanded="true" aria-controls="legend-body" title="Minimizar el panel de capas" aria-label="Minimizar el panel de capas"><span class="lg-tit"><span class="lg-long">Capas y prioridad</span><span class="lg-short">Capas</span></span><svg class="lg-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       <div id="legend-body">
       <div class="lg-sec"><span class="lg-cap" id="lvl-label">Ver en el mapa</span><div class="seg lvl pills" role="group" aria-labelledby="lvl-label">
             <button type="button" data-lvl="alc" aria-pressed="false"><i></i>Alcaldías</button>
@@ -139,10 +141,10 @@
       </div>
     </div>
     <div class="dibujando" id="dibujando" role="status" hidden>Dibujando calles…</div>
-    <div class="card" id="card" hidden></div>
+    <div class="card" id="card" hidden tabindex="-1" role="region" aria-label="Ficha del elemento seleccionado"></div>
     <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib" id="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
   </div>
-</div>
+</main>
 
 
 <!-- ===== Ventana "Cómo funciona": ayuda de uso, glosario y metodología ===== -->
@@ -172,14 +174,14 @@
 
     <h3><span class="step">1</span>Prioridad de la colonia</h3>
     <p>Cada zona de la ciudad se evaluó con tres criterios técnicos. Cada criterio se clasificó en cinco clases, donde 1 significa menor necesidad de arbolado y 5 la mayor:</p>
-    <table class="tbl">
+    <div class="tbl-wrap" tabindex="0" role="region" aria-label="Criterios de la prioridad de la colonia"><table class="tbl">
       <thead><tr><th>Criterio</th><th>Fuente</th><th>Clase 1 (menor necesidad)</th><th>Clase 5 (mayor necesidad)</th></tr></thead>
       <tbody>
         <tr><td>Calor: temperatura de la superficie urbana (isla de calor)</td><td>SEDEMA, 2024</td><td>Menos de 28.8 °C</td><td>Más de 43.1 °C</td></tr>
         <tr><td>Rezago social: grado de marginación</td><td>CONAPO, 2020</td><td>Muy bajo</td><td>Muy alto</td></tr>
         <tr><td>Sombra: superficie cubierta por copas de árboles</td><td>SEDEMA</td><td>55.6 % a 100 % de la zona</td><td>0 % a 12.6 % de la zona</td></tr>
       </tbody>
-    </table>
+    </table></div>
     <p>La suma de las tres clases define la <b>prioridad de la colonia</b> en cinco niveles, de Muy Alta a Muy Baja. Es el dato que aparece al seleccionar una colonia y en la ficha de cada calle.</p>
     <p>El contexto social que reporta el programa —el que se muestra en la caja de la colonia, en las fichas y en los archivos descargables— es el <b>Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX</b>, instrumento oficial de focalización de la Ciudad, con su estrato y su población en pobreza por necesidades básicas insatisfechas. El modelo vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020, como indica la tabla; la actualización del modelo para clasificarlo con el Índice de Desarrollo Social está en proceso.</p>
     <div class="scale" aria-label="Escala de prioridad de Muy Alta a Muy Baja">
@@ -225,7 +227,7 @@
       </svg>
       <figcaption>Los colores son las cinco clases de prioridad. La red de las alcaldías está formada por <span id="m-n-alc">—</span> frentes de manzana y la de vialidades primarias por <span id="m-vp-tramos">—</span> tramos; al seleccionar una calle o una avenida, el panel indica cuántos de sus tramos son prioritarios y cuántos kilómetros suman.</figcaption>
     </figure>
-    <figure><img src="img/composicion_frentes_manzana.jpg" alt="Ortofoto de un conjunto de manzanas y la misma zona con sus frentes clasificados: en verde los que tienen arbolado y en rojo los que no"><figcaption>Así se clasifica el verdor de cada frente de manzana: en verde los tramos con arbolado y en rojo los que no lo tienen. Es el nivel de detalle con el que se prioriza al interior de las colonias.</figcaption></figure>
+    <figure class="lamina" tabindex="0" role="group" aria-label="Lámina de la clasificación de frentes; en teléfono se desplaza hacia los lados"><img src="img/composicion_frentes_manzana.jpg" alt="Ortofoto de un conjunto de manzanas y la misma zona con sus frentes clasificados: en verde los que tienen arbolado y en rojo los que no"><figcaption>Así se clasifica el verdor de cada frente de manzana: en verde los tramos con arbolado y en rojo los que no lo tienen. Es el nivel de detalle con el que se prioriza al interior de las colonias.</figcaption></figure>
 
     <h3><span class="step">3</span>Quién atiende cada calle: alcaldías y Gobierno Central</h3>
     <p>Las <b>vialidades primarias y de acceso controlado</b> (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales) corresponden al Gobierno de la Ciudad de México; el resto de la red la atienden las alcaldías. La capa de vialidades primarias (<span id="m-vp-km">—</span> km) trae su propia prioridad de reforestación en la misma escala de cinco niveles: <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</p>
@@ -277,6 +279,14 @@
       <li><b>Especies y mantenimiento.</b> La selección de especies nativas y el riego y mantenimiento por dos años se acuerdan con la Secretaría conforme al Programa de Reforestación Urbana.</li>
     </ul>
     <p class="fine">Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); CONAPO, Índice de marginación urbana 2020; EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial (población, población en pobreza por necesidades básicas insatisfechas y estrato de desarrollo social); SEDEMA, temperatura superficial urbana 2024 y cobertura de copa; Sistema de Información Ambiental, modelo de priorización de frentes de manzana (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026).</p>
+    <h3><span class="step">5</span>Uso con teclado y lector de pantalla</h3>
+    <ul>
+      <li><b>Tabulador</b> recorre los controles; el enlace «Saltar a la respuesta», al inicio, lleva a las cifras de la consulta.</li>
+      <li><b>Buscador:</b> flechas arriba y abajo para recorrer las opciones, Entrar para elegir y Esc para cerrar la lista. Al elegir, el foco pasa al título de la respuesta y se anuncia el nuevo ámbito.</li>
+      <li><b>Listados:</b> cada renglón se activa con Entrar o con la barra espaciadora. Al elegir un tramo de una calle se abre la ficha de su frente de mayor prioridad, con longitud, banqueta, coordenadas y enlaces para llegar.</li>
+      <li><b>Mapa:</b> con el mapa enfocado, las flechas lo mueven y las teclas más y menos acercan y alejan. Todo lo que el mapa muestra con color está también en el listado, en los Excel y en las fichas.</li>
+      <li><b>Esc</b> cierra la ficha abierta, el panel de capas y esta ayuda, y devuelve el foco al control que los abrió.</li>
+    </ul>
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
