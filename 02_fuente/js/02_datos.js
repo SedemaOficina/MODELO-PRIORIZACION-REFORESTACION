@@ -52,8 +52,14 @@ for(let i=0;i<N;i++){
 start[N]=vcount;
 const POS = tmpPos.slice(0, vcount*2);
 const V = vcount;
-const midLon = i => { const a=start[i], b=start[i+1]; return (POS[2*a]+POS[2*(b-1)])/2; };
-const midLat = i => { const a=start[i], b=start[i+1]; return (POS[2*a+1]+POS[2*(b-1)+1])/2; };
+// Punto a media longitud SOBRE la línea (no el promedio de sus extremos, que en una curva cae fuera de la calle).
+// Es la única regla de «punto medio» de la herramienta: tarjeta, Excel, enlaces de campo y Mi ubicación (auditoría H-089).
+function puntoMedio(P, a, b){ const c=Math.cos(P[2*a+1]*Math.PI/180); let L=0; for(let k=a;k<b-1;k++) L+=Math.hypot((P[2*k+2]-P[2*k])*c, P[2*k+3]-P[2*k+1]);
+  if (!L) return [P[2*a], P[2*a+1]]; let h=L/2;
+  for(let k=a;k<b-1;k++){ const d=Math.hypot((P[2*k+2]-P[2*k])*c, P[2*k+3]-P[2*k+1]); if (h<=d){ const t=d? h/d : 0; return [P[2*k]+(P[2*k+2]-P[2*k])*t, P[2*k+1]+(P[2*k+3]-P[2*k+1])*t]; } h-=d; }
+  return [P[2*(b-1)], P[2*(b-1)+1]]; }
+const midLon = i => puntoMedio(POS, start[i], start[i+1])[0];
+const midLat = i => puntoMedio(POS, start[i], start[i+1])[1];
 
 // vialidades primarias (Gobierno Central)
 setLoad('Cargando vialidades primarias…', .7);

@@ -50,7 +50,7 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 ESRI_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.19'
+VERSION = '17.20'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 

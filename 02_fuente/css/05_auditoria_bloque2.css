@@ -130,3 +130,7 @@
 /* v17.18 · equivalente en km de frente del ámbito de vialidades primarias */
 .univline.eq{border-left-color:var(--dorado)}
 .card dd small{color:var(--ink-3);font-size:12px}
+
+/* v17.19 · aviso del filtro de la leyenda */
+#lg-filter-note{margin-top:6px}
+#lg-filter-note.warn{color:var(--guinda);font-weight:600}

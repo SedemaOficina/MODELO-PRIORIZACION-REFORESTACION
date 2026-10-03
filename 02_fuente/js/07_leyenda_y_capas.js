@@ -4,10 +4,13 @@ const lg = $('legend-rows');
 META.prio.slice().reverse().forEach((p, ri)=>{
   const k = 4-ri; const row = document.createElement('div'); row.className='row'; row.tabIndex=0; row.setAttribute('role','checkbox'); row.setAttribute('aria-checked','true');
   row.innerHTML = `<b class="lg-cb" aria-hidden="true"></b><i style="background:var(--p${k})"></i><span>${p}</span><em class="lg-km" data-k="${k}"></em>`;
-  const toggle = ()=>{ visible[k]=!visible[k]; row.classList.toggle('off',!visible[k]); row.setAttribute('aria-checked',String(visible[k])); buildFilter(); buildVP(); rerender(); };
+  const toggle = ()=>{ visible[k]=!visible[k]; row.classList.toggle('off',!visible[k]); row.setAttribute('aria-checked',String(visible[k])); buildFilter(); buildVP(); rerender(); notaFiltro(); };
   row.onclick = toggle; row.onkeydown = e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } };
   lg.appendChild(row);
 });
+// el filtro por prioridad solo cambia el mapa: se dice siempre, y se avisa si no queda ninguna prioridad visible (auditoría H-041)
+function notaFiltro(){ const n=$('lg-filter-note'); if(!n) return; const ninguna = !visible.some(Boolean); n.classList.toggle('warn', ninguna);
+  n.textContent = ninguna? 'Ninguna prioridad está visible: el mapa no muestra calles. Activa al menos una casilla.' : 'Estas casillas solo cambian lo que se ve en el mapa. Las cifras, los listados y las descargas incluyen todas las prioridades.'; }
 function renderLegendNote(){
   $('legend-vp').innerHTML = resp==='alc'
     ? `<i class="sw ctx"></i><span>Vialidades primarias (Gobierno Central)</span>`
@@ -59,4 +62,4 @@ function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone(
 addEventListener('resize', ajustaEscala);
 function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
 document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
-$('reset-all').onclick = ()=>{ opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); selEl.value=''; setSel(''); };
+$('reset-all').onclick = ()=>{ opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); notaFiltro(); if (fondo!=='no') setFondo('no'); selEl.value=''; setSel(''); };

@@ -77,6 +77,14 @@ let fondo = 'no';        // mapa de fondo: 'no' | 'calles' | 'sat'
 const ZOOM_LIGERO = 13;
 const frVisibles = ()=> showFrB && !(modoLigero && viewState.zoom < ZOOM_LIGERO);
 const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
+// Sumas exactas por alcaldía, calculadas una sola vez de los frentes y los tramos (auditoría H-087): los resúmenes de meta.bin
+// vienen redondeados a dos decimales y volver a redondearlos movía la cifra hasta 0.1 km respecto del recálculo.
+(()=>{ const z = ()=>[0,0,0,0,0]; const A=META.muns.map(z), G=META.muns.map(z), W=META.muns.map(z);
+  for(let i=0;i<N;i++) (F.gc[i]? G : A)[F.mun[i]][F.prio[i]] += F.len[i]/1000;
+  for(let i=0;i<NV;i++) W[VP.mun[i]][VP.prio[i]] += VP.len[i]/1000;
+  const tot = M => M.reduce((t,a)=>t.map((v,k)=>v+a[k]), z());
+  META.muns.forEach((m,i)=>{ META.summ[m].km=A[i]; META.summ_gc[m].km=G[i]; if (VPC.summ[m]) VPC.summ[m].km=W[i]; });
+  META.city.km=tot(A); META.city_gc.km=tot(G); VPC.city.km=tot(W); })();
 // prioridad predominante y ranking por alcaldía — frentes (Alcaldía) y vialidades primarias (Gobierno Central)
 const kmPrio = s => s.km[3]+s.km[4];
 const rank = META.muns.map(m=>kmPrio(META.summ[m])).map((v,i,arr)=>1+arr.filter(x=>x>v).length);

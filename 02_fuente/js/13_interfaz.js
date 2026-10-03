@@ -55,7 +55,7 @@ function renderScopeTitle(){
 function renderActions(){
   const m=$('act-main'), f=$('act-ficha'), lbl=$('act-main-lbl'), hint=$('act-hint');
   let main=null, ficha=null, txt='', why='';
-  if (isGC()){ main='dl-tramos'; txt='Descargar tramos prioritarios (Excel)'; ficha = selAv!==null? 'dl-ficha-av' : sel!==null? 'dl-ficha-vpalc' : null; }
+  if (isGC()){ main='dl-tramos'; txt='Descargar tramos prioritarios (Excel)'; if ($('dl-tramos').disabled) why='Este ámbito no tiene tramos de prioridad Muy Alta o Alta que descargar.'; ficha = selAv!==null? 'dl-ficha-av' : sel!==null? 'dl-ficha-vpalc' : null; }
   else {
     txt='Descargar frentes prioritarios (Excel)';
     const vacia = selCol!==null && sum(colStat(selCol).n)===0;
@@ -65,9 +65,9 @@ function renderActions(){
     // con una calle consultada, los botones principales son los de la calle
     const calle = calleSel();
     if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frentes de la calle (Excel)';
-      why = `Calle consultada: ${calle.nombre}. Los archivos de la ${selCol!==null? 'colonia' : 'alcaldía'} completa están en la pestaña Descargas.`; }
+      why = `Calle consultada: ${calle.nombre}. ` + (sel===null? 'Para descargar un ámbito completo, elige primero una alcaldía.' : `Los archivos de la ${selCol!==null? 'colonia' : 'alcaldía'} completa están en la pestaña Descargas.`); }
   }
-  lbl.textContent = txt; m.disabled = !main; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
+  lbl.textContent = txt; m.disabled = !main || $(main).disabled; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
   hint.hidden = !why; hint.textContent = why; }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
@@ -81,6 +81,9 @@ function renderCrumb(){
   const rest=$('cr-rest'); let h='';
   if (selCol!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${META.colonias[selCol].n}</span><button type="button" class="cr-up" data-up="col" title="Quitar la colonia y volver a ${META.munNames[sel]}" aria-label="Quitar la colonia y volver a ${META.munNames[sel]}">×</button></span>`;
   else if (selAv!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${VPC.nomenclat[selAv]}</span><button type="button" class="cr-up" data-up="av" title="Quitar la avenida" aria-label="Quitar la avenida">×</button></span>`;
-  rest.innerHTML = h; const up = rest.querySelector('.cr-up'); if (up) up.onclick = ()=>{ up.dataset.up==='col'? clearColonia() : clearAvenida(); };
+  // la calle consultada es el último nivel de la ruta y se puede soltar (auditoría H-087)
+  const cs = calleSel(); if (cs) h += `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${cs.nombre}</span><button type="button" class="cr-up" data-up="calle" title="Quitar la calle" aria-label="Quitar la calle consultada">×</button></span>`;
+  rest.innerHTML = h; rest.querySelectorAll('.cr-up').forEach(up=>{ up.onclick = ()=>{ const k=up.dataset.up;
+    if (k==='calle'){ highlight=null; hideCard(); rerender(); renderResults(); renderActions(); syncCalleBtns(); } else if (k==='col') clearColonia(); else clearAvenida(); }; });
 }
 $('cr-city').onclick = ()=>{ if (sel===null && selCol===null && selAv===null) return; selAv=null; highlight=null; selEl.value=''; setSel(''); };

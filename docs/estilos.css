@@ -593,6 +593,10 @@ body.tab-dl .panel-actions{display:none}
 .univline.eq{border-left-color:var(--dorado)}
 .card dd small{color:var(--ink-3);font-size:12px}
 
+/* v17.19 · aviso del filtro de la leyenda */
+#lg-filter-note{margin-top:6px}
+#lg-filter-note.warn{color:var(--guinda);font-weight:600}
+
 /* Mi ubicación: estados del botón y tarjeta "Tu ubicación". */
 #zloc.on{color:var(--loc)}
 #zloc.follow{background:var(--loc);color:#fff}

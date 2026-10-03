@@ -2,7 +2,7 @@
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 <title>Calles Prioritarias para Reforestar</title>
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=fab8d76947">
+<link rel="stylesheet" href="estilos.css?v=d6b2c535c6">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -88,7 +88,7 @@
         <div class="status" id="dl-status"></div>
       </div></div>
         <div class="source">
-        Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
+        Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
       </div>
       </div>
     </div>
@@ -133,6 +133,7 @@
           <div class="op-row"><input type="range" id="op-prio" min="20" max="100" step="5" value="100" aria-describedby="op-val"><output id="op-val" for="op-prio">100 %</output></div></div>
       <span class="lg-cap" id="lg-scope">Prioridad · km de frente de la ciudad</span>
       <div id="legend-rows"></div>
+      <p class="lg-note" id="lg-filter-note">Estas casillas solo cambian lo que se ve en el mapa. Las cifras, los listados y las descargas incluyen todas las prioridades.</p>
       <div class="row static" id="legend-vp"></div>
       
       </div>
@@ -278,8 +279,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=677c440df4"></script>
+<script src="config.js?v=fa86c66134"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=10fc4c6ba8"></script>
+<script src="app.js?v=3ada3f3ecb"></script>
 </body></html>

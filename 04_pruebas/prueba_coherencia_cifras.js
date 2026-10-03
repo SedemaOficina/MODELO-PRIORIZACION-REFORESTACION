@@ -82,7 +82,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   d = await baja('dl-tramos'); x = xlsx(d.ruta);
   ok('H-013 Excel de tramos de la avenida en la alcaldía: renglones = recálculo', x.datos.length - 1 === vAI.filter(v => v.prio >= 3).length, `${x.datos.length - 1}`);
   d = await baja('dl-ficha-av');
-  ok('H-013 la ficha de avenida ya no lleva el nombre de la alcaldía', d && /_toda_la_ciudad\.pdf$/.test(d.nombre) && !/iztapalapa/.test(d.nombre), d && d.nombre);
+  ok('H-013 la ficha de avenida ya no lleva el nombre de la alcaldía', d && /_toda_la_ciudad(_\d{8})?\.pdf$/.test(d.nombre) && !/iztapalapa/.test(d.nombre), d && d.nombre);
   if (d) { const txt = cp.execFileSync('pdftotext', ['-layout', d.ruta, '-']).toString();
     const vA = D.VP.filter(v => v.nom === avId); const kmI = vAI.reduce((s, v) => s + v.len, 0) / 1000, kmpI = vAI.filter(v => v.prio >= 3).reduce((s, v) => s + v.len, 0) / 1000;
     ok('H-013 la ficha declara que sus cifras son de la avenida completa', /avenida completa/.test(txt.replace(/\s+/g, ' ')));
@@ -238,6 +238,48 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   { x = xlsx((await baja('dl-frentes')).ruta);
     ok('v17.18 H-071 el diccionario trata la banqueta como condición por verificar', /condición por verificar/.test((x.dic.find(r => r[0] === 'banqueta_inegi') || [])[1] || '')); }
   ok('v17.18 la ayuda explica las dos unidades', /No sume unidades distintas/.test(await page.content()));
+
+  // ---------- v17.19 · bloque B: H-008, H-028, H-041, H-043, H-044, H-087, H-088, H-089 ----------
+  const generico = n => { n = L.norm(n); return n === '' || n === 'sin referencia' || n === 'sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion'); };
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(300); await page.selectOption('#alc', String(izt)); await page.waitForTimeout(600); e = await L.estado(page);
+  { const espI = D.F.map((f, i) => [f, i]).filter(([f]) => !f.gc && f.mun === izt && f.prio >= 3);
+    d = await baja('dl-frentes'); x = xlsx(d.ruta); const h = x.datos[0], iv = h.indexOf('vialidad'), ii = h.indexOf('id_frente'), ila = h.indexOf('lat'), ilo = h.indexOf('lon'), ip = h.indexOf('poblacion_colonia');
+    const nSn = espI.filter(([f]) => generico(M.names[f.name])).length;
+    ok('v17.19 H-008 el Excel de frentes no usa nombres genéricos de INEGI como calle', x.datos.slice(1).every(r => !generico(r[iv]) ) && x.datos.slice(1).filter(r => r[iv] === 'Frente sin nombre de calle (INEGI)').length === nSn, `sin nombre ${nSn}`);
+    ok('v17.19 H-008 el diccionario reporta los frentes sin nombre de calle', +dicVal(x, 'Frentes sin nombre de calle (INEGI) en este archivo') === nSn, String(dicVal(x, 'Frentes sin nombre de calle (INEGI) en este archivo')));
+    const idsX = x.datos.slice(1).map(r => r[ii]);
+    ok('v17.19 H-088 cada renglón trae un id_frente único que existe en los datos', ii === 0 && new Set(idsX).size === idsX.length && idsX.length === espI.length && idsX.every(i => D.F[i] && !D.F[i].gc && D.F[i].mun === izt));
+    ok('v17.19 H-088 el nombre del archivo lleva la fecha AAAAMMDD', /_\d{8}\.xlsx$/.test(d.nombre), d.nombre);
+    // punto a media longitud, recalculado de forma independiente
+    const medio = pts => { const n = pts.length / 2, c = Math.cos(pts[1] * Math.PI / 180); let Lt = 0; const sg = []; for (let k = 0; k < n - 1; k++) { const dd = Math.hypot((pts[2 * k + 2] - pts[2 * k]) * c, pts[2 * k + 3] - pts[2 * k + 1]); sg.push(dd); Lt += dd; }
+      if (!Lt) return [pts[0], pts[1]]; let hh = Lt / 2; for (let k = 0; k < n - 1; k++) { if (hh <= sg[k]) { const t = sg[k] ? hh / sg[k] : 0; return [pts[2 * k] + (pts[2 * k + 2] - pts[2 * k]) * t, pts[2 * k + 1] + (pts[2 * k + 3] - pts[2 * k + 1]) * t]; } hh -= sg[k]; } return [pts[2 * n - 2], pts[2 * n - 1]]; };
+    const malos = x.datos.slice(1).filter(r => { const m = medio(D.F[r[ii]].pts); return Math.abs(m[0] - r[ilo]) > 2e-6 || Math.abs(m[1] - r[ila]) > 2e-6; }).length;
+    ok('v17.19 H-089 las coordenadas del Excel son el punto a media longitud sobre la línea', malos === 0, `${malos} renglones fuera`);
+    ok('v17.19 H-087 la predominante se expresa en km de frente', /de los km de frente de la alcaldía/.test(e.alcinfo || ''), (e.alcinfo || '').slice(0, 110));
+    const kmMB = D.F.filter(f => !f.gc && f.mun === izt && f.prio === 0).reduce((s, f) => s + f.len, 0) / 1000; const bMB = (e.bars.find(b => b.lab === 'Muy Baja') || {}).val || '';
+    ok('v17.19 H-087 las barras redondean una sola vez desde la suma exacta', bMB.startsWith(`${L.kmTxt(kmMB)} ${L.kmUn(kmMB)}`), `${bMB} · exacto ${kmMB.toFixed(3)}`); }
+  // H-028 frentes sin colonia
+  await L.clic(page, '#zcity'); await page.waitForTimeout(400); e = await L.estado(page);
+  { const sc = D.F.filter(f => !f.gc && !f.col); ok('v17.19 H-028 el resumen de la ciudad reporta los frentes sin colonia = recálculo', (e.nota || '').includes(`${L.fN.format(sc.length)} frentes`) && /no tienen colonia asignada/.test(e.nota || ''), (e.nota || '').slice(-230));
+    ok('v17.19 H-028 la página declara su cobertura (ámbito urbano)', /Cobertura: frentes de manzana del ámbito urbano/.test(e.panelTxt)); }
+  // H-041 filtro de la leyenda
+  { const n0 = await page.$eval('#lg-filter-note', n => n.textContent); await L.ponPrio(page, [0, 0, 0, 0, 0]); const n1 = await page.$eval('#lg-filter-note', n => n.textContent); await L.ponPrio(page, [1, 1, 1, 1, 1]);
+    ok('v17.19 H-041 la leyenda declara que solo afecta al mapa y avisa si no queda prioridad visible', /solo cambian lo que se ve en el mapa/.test(n0) && /Ninguna prioridad está visible/.test(n1), n1); }
+  // H-043 colonia sin frentes a cargo de la alcaldía
+  { const conFr = new Set(D.F.filter(f => !f.gc).map(f => f.col)); const cid = M.colonias.findIndex((c, i) => i > 0 && c && c.n && !conFr.has(i) && M.colonias.filter(q => q && q.n === c.n).length === 1);
+    const cn = M.colonias[cid]; const hecho2 = await L.elegirTipo(page, cn.n, 'Col'); await page.waitForTimeout(600); e = await L.estado(page);
+    ok('v17.19 H-043 colonia sin frentes: descargas deshabilitadas con explicación', hecho2 && e.dl['dl-frentes'].disabled && e.dl['dl-calles'].disabled && e.dl['dl-ficha'].disabled && /no tiene frentes de manzana a cargo de la alcaldía/.test(e.dlStatus || ''), `${cn.n} · ${e.dlStatus}`); }
+  // H-044 avenidas homónimas separadas
+  await L.clic(page, '#zcity'); await page.waitForTimeout(300); await L.ponResp(page, 'gc');
+  { const okAv = await L.elegirTipo(page, 'Avenida Chapultepec', 'Av'); await page.waitForTimeout(600); e = await L.estado(page);
+    ok('v17.19 H-044 una avenida cuyo nombre reúne vialidades separadas lo advierte', okAv && /vialidades separadas entre sí/.test(e.avinfo || '') && /Xochimilco/.test(e.avinfo || ''), (e.avinfo || '').slice(-260)); }
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(300);
+  // H-087 la calle consultada aparece en la ruta y se puede soltar
+  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); await page.click('#tab-list'); await page.waitForTimeout(300);
+  { await (await page.$('#results li:not(.empty)')).evaluate(n => n.click()); await page.waitForTimeout(600); e = await L.estado(page);
+    const tiene = /Quitar la calle|×/.test(await page.$eval('#cr-rest', r => r.innerHTML)) && (await page.$$('#cr-rest .cr-up[data-up="calle"]')).length === 1;
+    await page.$eval('#cr-rest .cr-up[data-up="calle"]', b => b.click()); await page.waitForTimeout(400); const e2 = await L.estado(page);
+    ok('v17.19 H-087 la calle consultada es un nivel de la ruta y se puede soltar', tiene && !e2.dl['dl-calle'].visible && e.dl['dl-calle'].visible, e.crRest); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close();
