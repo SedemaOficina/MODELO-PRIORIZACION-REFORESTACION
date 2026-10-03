@@ -44,12 +44,13 @@ IMAGENES = {'img/logo_sedema_reforestacion.png': 'image/png', 'img/composicion_f
 DATOS = ('meta', 'data', 'vp')
 # Tipografías servidas desde el sitio (familia -> archivo en fuentes/). Peso variable de 400 a 700.
 FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
-# Clave (API key) de ArcGIS Location Platform para el fondo satelital de Esri. Vacía = satélite Sentinel-2 de EOX.
+# Clave (API key) de ArcGIS Location Platform para el fondo satelital de Esri. Vacía = World Imagery y nombres de
+# vías (World_Transportation) desde services.arcgisonline.com, sin clave (pendiente de regularizar con cuenta de Esri).
 # La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
 ESRI_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.18'
+VERSION = '17.19'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 

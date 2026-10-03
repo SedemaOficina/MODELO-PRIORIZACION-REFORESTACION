@@ -241,10 +241,12 @@ let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
 // Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
 //  · calles: CARTO Positron sobre OpenStreetMap; no requiere clave.
-//  · sat: Esri World Imagery con nombres de calles si hay clave de ArcGIS Location Platform (window.SIA_ESRI_KEY,
-//    se define en construir.py); sin clave, Sentinel-2 cloudless 2024 de EOX (10 m por píxel, CC BY-NC-SA 4.0).
+//  · sat: imagen de satélite de Esri (World Imagery) con la capa de referencia de nombres de vías encima
+//    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY, se define en
+//    construir.py) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
 const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
 const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';
+const ESRI_AGOL = 'https://services.arcgisonline.com/ArcGIS/rest/services/';
 const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener">${t}</a>`;
 const FONDOS = {
   calles: { url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', size:256, max:19, op:1, nota:'',
@@ -252,22 +254,26 @@ const FONDOS = {
   sat: ESRI_KEY
     ? { url: ESRI_TILES+'arcgis/imagery/static/tile/{z}/{y}/{x}?token='+encodeURIComponent(ESRI_KEY), size:512, max:19, op:.9, nota:'',
         atrib:`Powered by ${enlace('https://www.esri.com','Esri')} · Imagen: Esri, Vantor, Earthstar Geographics y GIS User Community · Vías y lugares: Esri, HERE, Garmin, © OpenStreetMap contributors` }
-    : { url:'https://tiles.maps.eox.at/wmts/1.0.0/s2cloudless-2024_3857/default/g/{z}/{y}/{x}.jpg', size:256, max:15, op:.85,
-        nota:'Imagen de satélite de 10 m por píxel: muestra zonas verdes y mancha urbana, no árboles individuales.',
-        atrib:`Imagen: ${enlace('https://s2maps.eu','Sentinel-2 cloudless 2024')} por EOX IT Services GmbH (contiene datos modificados de Copernicus Sentinel 2024) · CC BY-NC-SA 4.0` }
+    : { url: ESRI_AGOL+'World_Imagery/MapServer/tile/{z}/{y}/{x}', size:256, max:19, op:.9, nota:'',
+        ref: ESRI_AGOL+'Reference/World_Transportation/MapServer/tile/{z}/{y}/{x}',
+        atrib:`Powered by ${enlace('https://www.esri.com','Esri')} · Imagen: Esri, Vantor, Earthstar Geographics y GIS User Community · Vías: Esri, HERE, Garmin, © OpenStreetMap contributors` }
 };
 let fondoFallas = 0;
-function capaFondo(){ const f = FONDOS[fondo];
-  return new deck.TileLayer({id:'fondo-'+fondo, data:f.url, minZoom:0, maxZoom:f.max, tileSize:f.size, opacity:f.op,
-    onTileError: ()=>{ if (++fondoFallas===3) avisoFondo(); },
+// teselas de un servicio de mapas; `ref` = capa de referencia (nombres de vías) que va encima de la imagen
+function capaTeselas(id, url, f, op, avisa){
+  return new deck.TileLayer({id, data:url, minZoom:0, maxZoom:f.max, tileSize:f.size, opacity:op,
+    onTileError: ()=>{ if (avisa && ++fondoFallas===3) avisoFondo(); },
     renderSubLayers: p=>{ const b = p.tile.boundingBox;
       return new deck.BitmapLayer(p, {data:null, image:p.data, bounds:[b[0][0], b[0][1], b[1][0], b[1][1]]}); }});
 }
+function capasFondo(){ const f = FONDOS[fondo], L = [capaTeselas('fondo-'+fondo, f.url, f, f.op, true)];
+  if (f.ref) L.push(capaTeselas('fondo-'+fondo+'-vias', f.ref, f, 1, false));
+  return L; }
 
 function layers(){
   const z = viewState.zoom;
   const L = [];
-  if (fondo!=='no') L.push(capaFondo());
+  if (fondo!=='no') L.push(...capasFondo());
   if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', opacity:opPrio, data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
   if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
   L.push(new PolygonLayer({id:'alc', data:ALC_PARTS, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.alc, lineWidthMinPixels:1, lineWidthMaxPixels:1.5, updateTriggers:{getLineColor:[T.alc]}}));

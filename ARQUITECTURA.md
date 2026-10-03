@@ -143,7 +143,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
 | Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Sin clave; atribución obligatoria. Solo se pide si el usuario lo enciende |
-| Mapa de fondo satelital (opcional) | Con clave: Esri World Imagery, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes). Sin clave: Sentinel-2 cloudless 2024 de EOX, `tiles.maps.eox.at` (10 m, CC BY-NC-SA 4.0) | La clave va en `ESRI_KEY` de `construir.py`. No funciona dentro del artefacto de Claude (bloquea servidores externos) |
+| Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave va en `ESRI_KEY` de `construir.py`. El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 
 ## 9. Cambios comunes
 
