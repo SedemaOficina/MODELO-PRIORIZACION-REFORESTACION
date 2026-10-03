@@ -103,7 +103,7 @@
   <div class="mapwrap">
     <div id="map"></div>
     <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
-    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descomprimiendo datos…</div><div class="bar"><i id="load-bar"></i></div></div></div>
+    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descomprimiendo datos…</div><div class="bar indet"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
       <div class="mapsum" id="mapsum"></div>
@@ -138,6 +138,7 @@
       
       </div>
     </div>
+    <div class="dibujando" id="dibujando" role="status" hidden>Dibujando calles…</div>
     <div class="card" id="card" hidden></div>
     <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib" id="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
   </div>

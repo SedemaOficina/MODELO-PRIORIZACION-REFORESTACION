@@ -17,7 +17,7 @@ $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
 // ---------- móvil: hoja inferior y leyenda plegable ----------
-const isPhone = ()=> matchMedia('(max-width:860px)').matches;
+const isPhone = ()=> matchMedia(MQ_TEL).matches;
 const sheetBtn = $('sheet'), sheetLbl = $('sheet-label');
 // hoja inferior con tres alturas: mínima (buscador), media (respuesta) y completa
 let sheetState = 'half';
@@ -37,7 +37,7 @@ const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
 legendBtn.onclick = ()=> setLegend(false);
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
-setLegend(!isPhone());
+setLegend(!isPhone() && innerHeight>480);   // en pantallas bajas el panel de capas empieza cerrado
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
@@ -62,6 +62,9 @@ function renderActions(){
     main = (sel!==null && !vacia)? 'dl-frentes' : null;
     ficha = vacia? null : selCol!==null? 'dl-ficha' : sel!==null? 'dl-ficha-alc' : null;
     why = vacia? 'Esta colonia no tiene frentes a cargo de la alcaldía que descargar.' : sel===null? 'Elige una alcaldía o una colonia para descargar su listado.' : '';
+    // en teléfono, un listado de decenas de miles de frentes pesa demasiado: se ofrece primero el resumen por calle (auditoría H-045)
+    if (main==='dl-frentes' && isPhone() && selCol===null){ const fsG = frSumm(), nG = fsG.n[3]+fsG.n[4];
+      if (nG>GRANDE){ main='dl-calles'; txt='Descargar resumen por calle (Excel)'; why=`En teléfono se ofrece primero el resumen por calle. El listado completo (${fmt.format(nG)} frentes) está en la pestaña Descargas.`; } }
     // con una calle consultada, los botones principales son los de la calle
     const calle = calleSel();
     if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frentes de la calle (Excel)';

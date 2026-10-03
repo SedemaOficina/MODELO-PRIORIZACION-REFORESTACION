@@ -1,6 +1,11 @@
 // Mi ubicación: GPS del teléfono, colonia donde está la persona y tramos prioritarios cercanos. La posición no sale del dispositivo.
 // ---------- Mi ubicación (GPS del teléfono; la posición no sale del dispositivo) ----------
 let locFollow = false, locWatch = null, locLastSel = null, locLastUpd = 0;
+// Reglas de prudencia (auditoría H-040): con más de LOC_PRECISO metros de incertidumbre no se afirma colonia ni calle;
+// una respuesta del GPS que llega después de que la persona hizo otra consulta se ignora (locReq);
+// y si la persona cambia de ámbito a mano, el seguimiento deja de mover la consulta (locAuto).
+const LOC_PRECISO = 100; let locReq = 0, locAuto = true;
+function locManual(){ locAuto = false; if (locBtn.classList.contains('busy')){ locReq++; locBtn.classList.remove('busy'); } }
 const locBtn = $('zloc');
 const toRad = d => d*Math.PI/180;
 function metersXY(lon, lat, lon0, lat0){ const k = 111320; return [(lon-lon0)*k*Math.cos(toRad(lat0)), (lat-lat0)*110574]; }
@@ -53,8 +58,12 @@ function locHtml(){
   const p = myPos, w = whereAmI(p.lon, p.lat);
   const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
   const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
+  const impreciso = p.acc > LOC_PRECISO;
   const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`;
   if (w.alc===null) return head + `<h3>Estás fuera de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> Acércate a la ciudad o busca un territorio con el buscador.</div>` + privacy;
+  if (impreciso) return head + `<h3>Tu ubicación es aproximada</h3><div class="sub">Zona de ${META.munNames[w.alc]}, con ±${fmt0.format(Math.round(p.acc))} m de incertidumbre</div>
+    <div class="empty-note"><b>Con esta precisión no es posible decir en qué colonia o calle estás.</b> Sal al aire libre, revisa que el teléfono tenga activada la ubicación precisa y vuelve a intentarlo. Mientras tanto puedes buscar la colonia por su nombre.</div>
+    <div class="acts"><button class="btn secondary act" id="loc-retry" type="button">Intentar de nuevo</button></div>` + privacy;
   const col = w.col!==null? META.colonias[w.col] : null;
   const nb = nearby(p.lon, p.lat);
   const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">Junto a ti: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
@@ -72,22 +81,25 @@ function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
     else { showCard('vp', i); const [la,lo]=vpMid(i); flyTo({...viewState, longitude:lo, latitude:la, zoom:Math.max(viewState.zoom, 17)}, 700); } });
-  const f = c.querySelector('#loc-follow'); if (f) f.onclick = ()=> locFollow? stopFollow(true) : startFollow();
+  const f = c.querySelector('#loc-follow'); if (f) f.onclick = ()=> locFollow? stopFollow(true) : (locAuto = true, startFollow());
+  const rt = c.querySelector('#loc-retry'); if (rt) rt.onclick = ()=>{ stopFollow(); locate(); };
 }
 function selectHere(){ // selecciona la colonia (modo Alcaldías) o la alcaldía (modo Gobierno Central) donde está la persona
+  if (!locAuto || myPos.acc > LOC_PRECISO) return;
   const w = whereAmI(myPos.lon, myPos.lat); const key = w.alc+'_'+w.col; if (key===locLastSel) return; locLastSel = key;
   if (w.alc===null) return;
-  keepView = true;
+  keepView = true; locSel = true;
   if (!isGC() && w.col!==null){ if (isPhone() && !showFrB) setLayer('fr', true); if (selCol!==w.col) pickColonia(w.col); }
   else if (sel!==w.alc || selCol!==null || selAv!==null){ selEl.value=String(w.alc); setSel(String(w.alc)); }
-  keepView = false;
+  keepView = false; locSel = false;
 }
 function showLoc(){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = locHtml(); c.hidden=false; c.querySelector('.close').onclick=hideCard; wireLocCard(c); }
 function onPos(pos, first){
   myPos = {lon:pos.coords.longitude, lat:pos.coords.latitude, acc:pos.coords.accuracy||0, t:Date.now()};
   locBtn.classList.add('on');
   const w = whereAmI(myPos.lon, myPos.lat); const wasLoc = first || (pinned && pinned.kind==='loc');
-  if (w.alc!==null){ selectHere(); if (first || locFollow) flyTo({...viewState, longitude:myPos.lon, latitude:myPos.lat, zoom: first? Math.max(viewState.zoom, 17) : viewState.zoom, bearing:0, pitch:0}, first? 900 : 500); }
+  const zAprox = Math.max(10.5, Math.min(15, 16 - Math.log2(Math.max(myPos.acc,1)/100)));   // con poca precisión, el mapa muestra toda la zona posible
+  if (w.alc!==null){ selectHere(); if (first || locFollow) flyTo({...viewState, longitude:myPos.lon, latitude:myPos.lat, zoom: myPos.acc>LOC_PRECISO? zAprox : first? Math.max(viewState.zoom, 17) : viewState.zoom, bearing:0, pitch:0}, first? 900 : 500); }
   rerender();
   if (wasLoc || (pinned && pinned.kind==='loc')) showLoc();
 }
@@ -101,9 +113,11 @@ function locError(e){
 }
 function locate(){
   if (!navigator.geolocation || !window.isSecureContext){ locMsg('Tu navegador no permite usar la ubicación', '<b>Abre la herramienta desde su dirección segura (https)</b> en Chrome o Safari.'); return; }
-  locBtn.classList.add('busy'); locMsg('Buscando tu ubicación…', 'El navegador puede pedirte permiso. <b>Tu ubicación solo se usa en este teléfono.</b>');
-  locLastSel = null;
-  navigator.geolocation.getCurrentPosition(p=>{ locBtn.classList.remove('busy'); onPos(p, true); }, locError, {enableHighAccuracy:true, timeout:20000, maximumAge:15000});
+  locBtn.classList.add('busy'); locMsg('Buscando tu ubicación…', 'El navegador puede pedirte permiso. <b>Tu ubicación solo se usa en este teléfono.</b><div class="acts"><button class="btn secondary act" id="loc-cancel" type="button">Cancelar</button></div>');
+  locLastSel = null; locAuto = true; const req = ++locReq;
+  const cn = $('card').querySelector('#loc-cancel'); if (cn) cn.onclick = ()=>{ locReq++; locBtn.classList.remove('busy'); hideCard(); };
+  // si mientras tanto la persona hizo otra consulta o canceló, la respuesta del GPS ya no se aplica
+  navigator.geolocation.getCurrentPosition(p=>{ if (req!==locReq) return; locBtn.classList.remove('busy'); onPos(p, true); }, e=>{ if (req!==locReq) return; locError(e); }, {enableHighAccuracy:true, timeout:20000, maximumAge:15000});
 }
 function startFollow(){ if (!navigator.geolocation) return; locFollow = true; locBtn.classList.add('follow'); locBtn.setAttribute('aria-pressed','true'); locBtn.title='Dejar de seguir mi ubicación';
   if (myPos) flyTo({...viewState, longitude:myPos.lon, latitude:myPos.lat}, 500);
@@ -112,6 +126,6 @@ function startFollow(){ if (!navigator.geolocation) return; locFollow = true; lo
 function stopFollow(redraw){ locFollow = false; locBtn.classList.remove('follow'); locBtn.setAttribute('aria-pressed','false'); locBtn.title='Mi ubicación';
   if (locWatch!==null){ navigator.geolocation.clearWatch(locWatch); locWatch = null; }
   if (redraw && pinned && pinned.kind==='loc') showLoc(); }
-locBtn.onclick = ()=>{ if (!myPos) locate(); else if (!locFollow) { locLastSel = null; startFollow(); if (!(pinned && pinned.kind==='loc')) showLoc(); } else stopFollow(true); };
+locBtn.onclick = ()=>{ if (locBtn.classList.contains('busy')) return; if (!myPos) locate(); else if (!locFollow) { locLastSel = null; locAuto = true; startFollow(); if (!(pinned && pinned.kind==='loc')) showLoc(); } else stopFollow(true); };
 // arrastrar el mapa suspende el seguimiento, como en las apps de mapas
 mapEl.addEventListener('pointermove', e=>{ if (locFollow && e.buttons && pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>12) stopFollow(true); });

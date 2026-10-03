@@ -161,9 +161,19 @@ function loadXL(){
   return loadLib('xlsx.js', 'XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(x => (XL = x));
 }
 const wch = ws => ws.map(w=>({wch:w}));
+// Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
+function excelAparte(aoa, cols, dic){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
+  w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
+  w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic}); }); }
+const GRANDE = 20000;   // renglones a partir de los cuales se avisa del tamaño y de la espera
 async function deliverTable(base, key, aoa, extra){
-  const st = $('dl-status'); st.textContent = 'Preparando archivo…';
   const nreg = aoa.length - 1;
+  const st = $('dl-status'); st.textContent = nreg>GRANDE? `Preparando un archivo grande: ${fmt.format(nreg)} renglones, alrededor de ${fmt0.format(Math.max(1, nreg*0.19/1000))} MB. Puede tardar hasta un minuto…` : 'Preparando archivo…';
+  if (window.SIA_LIBS && window.Worker){
+    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra));
+      await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); return; }
+    catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
+  }
   let X; try { X = await loadXL(); }
   catch(e){ // sin conexión al CDN: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
@@ -171,6 +181,7 @@ async function deliverTable(base, key, aoa, extra){
     await deliver(base + '.csv', csv);
     const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '_diccionario.csv', dic);
+    st.textContent = 'Descargado en CSV (dos archivos: listado y diccionario), porque no se pudo cargar el generador de Excel.';
     return;
   }
   const wb = X.utils.book_new();

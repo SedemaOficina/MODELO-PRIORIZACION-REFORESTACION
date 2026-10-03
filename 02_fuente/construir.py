@@ -50,7 +50,7 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 ESRI_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.21'
+VERSION = '17.22'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -89,6 +89,7 @@ VIGIA = ("(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=do
          " var p=document.createElement('div'); p.className='lento'; p.textContent=t; d.appendChild(p);"
          " var b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=function(){ location.reload(); }; d.appendChild(b); }"
          " addEventListener('error', function(e){ var x=e.target; if (x && x.tagName==='SCRIPT' && !window.SIA_LISTO) aviso('No se pudo descargar una parte del programa ('+String(x.src||'').split('/').pop().split('?')[0]+'). Revisa tu conexión.'); }, true);"
+         " var cx=navigator.connection; if (cx && (cx.saveData || /2g|3g/.test(cx.effectiveType||''))){ var l0=document.getElementById('loader'); if (l0){ var n0=document.createElement('div'); n0.className='conex'; n0.textContent='Con esta conexión la primera carga puede tardar más de un minuto.'; l0.querySelector('div').appendChild(n0); } }"
          " setTimeout(function(){ aviso('La carga está tardando más de lo normal. Puede ser una conexión lenta; si no avanza, vuelve a intentarlo.'); }, 45000); })();\n")
 
 
@@ -159,7 +160,7 @@ for img in IMAGENES:
     sitio = sitio.replace('src="%s"' % img, 'src="%s?v=%s"' % (img, v(leer(img, True))))
 sitio = sitio.replace('<img src="img/composicion_frentes_manzana.jpg', '<img loading="lazy" src="img/composicion_frentes_manzana.jpg')
 assert sitio.count('Descomprimiendo datos…</div>') == 1
-sitio = sitio.replace('Descomprimiendo datos…</div>', 'Descargando la herramienta…</div>')
+sitio = sitio.replace('Descomprimiendo datos…</div>', 'Descargando la herramienta y sus datos (%.0f MB la primera vez)…</div>' % ((total + len(leer('libs/deck.js', True)) / 3.5) / 1048576))
 sitio += ('<script src="config.js?v=%s"></script>\n' % v(config)
           + '<script src="libs/deck.js?v=%s"></script>\n' % lver['deck.js']
           + '<script src="libs/pako.js?v=%s"></script>\n' % lver['pako.js']
@@ -170,6 +171,27 @@ precarga += ''.join('<link rel="preload" href="fuentes/%s?v=%s" as="font" type="
 pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + precarga) + '<!-- ' + AVISO % 'plantilla.html, css/ y js/' + ' -->\n'
           + sitio + '</body></html>\n')
 poner('index.html', pagina)
+
+# ---------- proceso de servicio: la herramienta abre sin conexión después de la primera visita (auditoría H-057) ----------
+# Guarda solo archivos propios, por su dirección exacta (con huella). No guarda respuestas con error, redirigidas ni de otro origen,
+# para convivir con el login de la Fase 2 (un 401 o un 302 nunca quedan en la caché).
+PRE = (['./', 'config.js?v=%s' % v(config), 'app.js?v=%s' % v(app), 'estilos.css?v=%s' % v(estilos)]
+       + ['libs/%s?v=%s' % (l, lver[l]) for l in ('deck.js', 'pako.js')]
+       + ['libs/%s' % l for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')]
+       + ['datos/%s?v=%s' % (n, ver[n]) for n in sorted(ver)]
+       + ['fuentes/%s?v=%s' % (a, fver[a]) for a in FUENTES.values()]
+       + ['%s?v=%s' % (img, v(leer(img, True))) for img in IMAGENES])
+SW = '''// %s
+const CACHE = 'calles-%s';
+const PRE = %s;
+const sirve = r => r && r.ok && !r.redirected && r.type === 'basic';
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => Promise.all(PRE.map(u => fetch(u, {cache: 'reload'}).then(r => sirve(r) ? c.put(u, r) : null).catch(() => null)))).then(() => self.skipWaiting())));
+self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('calles-') && k !== CACHE).map(k => caches.delete(k))))));
+self.addEventListener('fetch', e => { const q = e.request; if (q.method !== 'GET' || new URL(q.url).origin !== location.origin) return;
+  if (q.mode === 'navigate') { e.respondWith(fetch(q).then(r => { if (sirve(r)) { const cp = r.clone(); caches.open(CACHE).then(c => c.put('./', cp)); } return r; }).catch(() => caches.open(CACHE).then(c => c.match('./')).then(m => m || Response.error()))); return; }
+  e.respondWith(caches.open(CACHE).then(c => c.match(q)).then(m => m || fetch(q))); });
+''' % (AVISO % 'construir.py', v(pagina + json.dumps(PRE)), json.dumps(PRE))
+poner('sw.js', SW)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
 
 if '--artefacto' in sys.argv:

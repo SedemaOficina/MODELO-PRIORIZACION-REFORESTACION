@@ -91,8 +91,8 @@ function omniPick(it){
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet(); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
-omni.addEventListener('focus', ()=>{ if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
-omni.addEventListener('blur', ()=> setTimeout(omniClose, 150));
+omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
+omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));
 omni.addEventListener('keydown', e=>{
   if (e.key==='ArrowDown'){ e.preventDefault(); if (omniList.hidden) omniRender(); omniSetActive(omniActive+1); }
   else if (e.key==='ArrowUp'){ e.preventDefault(); omniSetActive(omniActive-1); }

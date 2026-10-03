@@ -13,6 +13,11 @@ function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.lengt
 function tituloFicha(doc, t, w, x, y){ let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1400, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
+// El logotipo se entrega a jsPDF como lienzo ya dibujado. Si se le pasa el elemento <img>, jsPDF vuelve a pedir el archivo
+// con una solicitud síncrona, que falla sin conexión y bloquea la página; así, además, la ficha se genera aunque el logotipo no cargue.
+let LOGO_LIENZO = null;
+function ponLogo(doc, x, y, w, h){ try { if (!LOGO_LIENZO && LOGO_IMG && LOGO_IMG.naturalWidth){ const c = document.createElement('canvas'); c.width = LOGO_IMG.naturalWidth; c.height = LOGO_IMG.naturalHeight; c.getContext('2d').drawImage(LOGO_IMG, 0, 0); LOGO_LIENZO = c; }
+  if (LOGO_LIENZO) doc.addImage(LOGO_LIENZO, 'PNG', x, y, w, h); } catch(e){ console.warn('ficha sin logotipo', e); } }
 function fichaPDF(kind){
   // kind: 'col' | 'alc' | 'vpalc' | 'vpav'
   if (!window.jspdf) return;
@@ -31,7 +36,7 @@ function fichaPDF(kind){
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const unit = isVP? 'tramos' : 'frentes';
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_IMG, 'PNG', M, 9, lw, lh);
+  const lw = 118, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 9, lw, lh);
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(isCol? 'Ficha de colonia' : isAlc? 'Ficha de alcaldía' : isVpAlc? 'Ficha de vialidades primarias' : 'Ficha de avenida', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
@@ -173,7 +178,7 @@ function fichaCallePDF(){
   const tot=sum(km), kmp=km[3]+km[4], ntot=idx.length, np=n[3]+n[4];
   const muns=[...munSet].map(m=>META.munNames[m]); const colNoms=[...porCol.keys()].filter(Boolean).map(k=>META.colonias[k].n);
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_IMG, 'PNG', M, 9, lw, lh);
+  const lw = 118, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 9, lw, lh);
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text('Ficha de calle', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});

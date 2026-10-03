@@ -10,7 +10,7 @@ const bin = n => fs.readFileSync(path.join(L.DOCS, 'datos', n));
 (async () => {
   const srv = await L.servidor(0); const browser = await L.lanzar(); const U = srv.url + '?modo=ligero#nomap';
   // abre la página con una intervención en la red y devuelve lo que muestra el cargador cuando la carga falla
-  const conFalla = async (prepara) => { const ctx = await browser.newContext({ locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });
+  const conFalla = async (prepara) => { const ctx = await browser.newContext({ serviceWorkers: 'block', locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });
     const page = await ctx.newPage(); await prepara(page); await page.goto(U); let t = '';
     try { await page.waitForSelector('#loader .reintenta', { timeout: 120000 }); t = await page.$eval('#loader', l => l.innerText.replace(/\s+/g, ' ')); } catch (e) { t = 'SIN AVISO: ' + await page.$eval('#loader', l => (l.hidden ? '[cargó] ' : '') + l.innerText.replace(/\s+/g, ' ')).catch(() => ''); }
     await ctx.close(); return t; };
@@ -29,7 +29,7 @@ const bin = n => fs.readFileSync(path.join(L.DOCS, 'datos', n));
   ok('H-034 sin el componente del mapa: mensaje con los navegadores mínimos, no «deck is not defined»', /componente del mapa/.test(t) && /Chrome o Edge 80/.test(t) && !tecnico.test(t), t.slice(0, 220));
 
   // ---------- H-037 · catálogo con marcado ----------
-  { const ctx = await browser.newContext({ locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); const page = await ctx.newPage();
+  { const ctx = await browser.newContext({ serviceWorkers: 'block', locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); const page = await ctx.newPage();
     const meta = JSON.parse(zlib.gunzipSync(bin('meta.bin')).toString('utf8')); const tec = meta.colonias.findIndex(c => c && c.n === 'Tecpinco');
     const malo = '<img src=x onerror="window.__inyectado=1">'; meta.colonias[tec].n = 'Tecpinco ' + malo; meta.colonias[tec].ut = 'UT ' + malo;
     const fr = D.F.find(f => !f.gc && f.col === tec && f.prio >= 3); meta.names[fr.name] = meta.names[fr.name] + ' ' + malo;
@@ -80,13 +80,13 @@ const bin = n => fs.readFileSync(path.join(L.DOCS, 'datos', n));
     const cols = (await page.$$eval('#omni-list li.opt', ls => ls.filter(l => l.innerText.trim().startsWith('Col')).length));
     ok('H-039 «ver todas» muestra las colonias que no cabían', !!mas && cols > 6, `colonias visibles ${cols} · opciones antes ${antes}`); await page.fill('#omni', ''); }
   // H-090 CSV de respaldo
-  { const ctx2 = await browser.newContext({ acceptDownloads: true, locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx2.addInitScript(() => { window.SIA_PRUEBA = true; }); const p2 = await ctx2.newPage();
+  { const ctx2 = await browser.newContext({ serviceWorkers: 'block', acceptDownloads: true, locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx2.addInitScript(() => { window.SIA_PRUEBA = true; }); const p2 = await ctx2.newPage();
     await p2.route(/libs\/xlsx\.js/, r => r.abort()); await p2.goto(srv.url + '?modo=ligero&a=' + cveI + '#nomap'); await p2.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 }); await p2.waitForTimeout(600);
     const d = await L.descargar(p2, '#dl-calles', SAL); const txt = d ? fs.readFileSync(d.ruta, 'utf8') : '';
     ok('H-090 sin la librería de Excel se entrega CSV con saltos CRLF', !!d && /\.csv$/.test(d.nombre) && /\r\n/.test(txt) && !/[^\r]\n/.test(txt.slice(0, 5000)), d && d.nombre);
     ok('H-042 la dirección con ?a= abre directamente la alcaldía', (await L.estado(p2)).alcSel === String(izt)); await ctx2.close(); }
   // H-086 #nomap solo existe para las pruebas
-  { const ctx3 = await browser.newContext({ locale: 'es-MX' }); const p3 = await ctx3.newPage(); const src = fs.readFileSync(path.join(L.DOCS, 'app.js'), 'utf8');
+  { const ctx3 = await browser.newContext({ serviceWorkers: 'block', locale: 'es-MX' }); const p3 = await ctx3.newPage(); const src = fs.readFileSync(path.join(L.DOCS, 'app.js'), 'utf8');
     ok('H-086 #nomap exige la bandera de prueba y el código no nombra el entorno de desarrollo', /window\.SIA_PRUEBA===true && location\.hash==='#nomap'/.test(src) && !/Dentro de Claude/.test(src) && /typeof claude !== 'undefined'/.test(src)); await ctx3.close(); }
 
   ok('sin errores de JavaScript durante la sesión normal', errores.length === 0, errores.slice(0, 3).join(' | '));

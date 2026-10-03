@@ -2,7 +2,7 @@
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 <title>Calles Prioritarias para Reforestar</title>
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=1ae7fc9521">
+<link rel="stylesheet" href="estilos.css?v=7975656aac">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -105,7 +105,7 @@
   <div class="mapwrap">
     <div id="map"></div>
     <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
-    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descargando la herramienta…</div><div class="bar"><i id="load-bar"></i></div></div></div>
+    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descargando la herramienta y sus datos (5 MB la primera vez)…</div><div class="bar indet"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
       <div class="mapsum" id="mapsum"></div>
@@ -140,6 +140,7 @@
       
       </div>
     </div>
+    <div class="dibujando" id="dibujando" role="status" hidden>Dibujando calles…</div>
     <div class="card" id="card" hidden></div>
     <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib" id="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
   </div>
@@ -281,8 +282,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=8b594ad52c"></script>
+<script src="config.js?v=9335184c3f"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=35a67554c5"></script>
+<script src="app.js?v=bf06da27bf"></script>
 </body></html>

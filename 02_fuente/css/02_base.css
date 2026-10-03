@@ -226,7 +226,7 @@ button,input,select{font:inherit;color:inherit}
 .loader[hidden]{display:none}
 .attrib{position:absolute;right:16px;bottom:16px;font-size:12px;color:var(--ink-3);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 6px;border-radius:4px}
 .card:not([hidden]) ~ .attrib:not(.sat){display:none}
-@media (max-width:860px){
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
   .app{grid-template-columns:1fr;grid-template-rows:1fr auto}
   .panel{order:2;border-right:0;border-top:1px solid var(--line);max-height:48vh}
   .panel-head{padding:12px 16px 10px}

@@ -9,11 +9,12 @@ async function gunzip(bytes){
   try { const out = pako.inflate(bytes); if (!out || !out.length) throw new Error('descompresión vacía'); return out; }
   catch(e){ throw errAmable('Un archivo de datos llegó dañado o incompleto. Suele deberse a una descarga interrumpida.', 'descompresión: ' + (e && e.message || e)); }
 }
-const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; $('load-bar').style.width = (p*100)+'%'; };
+// La barra se reparte según lo que tarda cada etapa: la descarga de los datos es casi toda la espera (auditoría H-053)
+const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar'); b.parentElement.classList.remove('indet'); b.style.width = (p*100)+'%'; };
 // datos: incrustados en la página (artefacto, versión de un solo archivo) o en archivos aparte (docs/datos)
 const DATOS = window.SIA_DATOS || null;
 let dlDone = 0, dlShow = true;
-function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .02 + .2*Math.min(1, dlDone/DATOS.total)); }
+function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .03 + .72*Math.min(1, dlDone/DATOS.total)); }
 async function fetchBytes(name){
   let r;
   try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
@@ -43,9 +44,9 @@ META.colonias.forEach(c=>{ c.n = limpioCat(c.n); c.ut = limpioCat(c.ut); c.ids =
 ['prio','disp','tipos'].forEach(k=>{ META[k] = META[k].map(limpioCat); });
 const Q = META.Q;
 const rawGz = await pData; dlShow = false;
-setLoad('Descomprimiendo 372 mil frentes…', .25);
+setLoad('Descomprimiendo 372 mil frentes…', .78);
 const raw = await gunzip(rawGz);
-setLoad('Construyendo geometría…', .45);
+setLoad('Construyendo geometría…', .84);
 await new Promise(r=>setTimeout(r,20));
 
 // frentes de manzana
@@ -75,7 +76,7 @@ const midLon = i => puntoMedio(POS, start[i], start[i+1])[0];
 const midLat = i => puntoMedio(POS, start[i], start[i+1])[1];
 
 // vialidades primarias (Gobierno Central)
-setLoad('Cargando vialidades primarias…', .7);
+setLoad('Cargando vialidades primarias…', .9);
 const vraw = await gunzip(await pVp);
 rv = reader(vraw);
 const NV = rv();
@@ -90,5 +91,5 @@ for(let i=0;i<NV;i++){
 if (NV!==+META.vp.n || rv.pos()!==vraw.length) throw errAmable('El archivo de vialidades primarias no corresponde con su catálogo o llegó incompleto. Recarga la página.', `vp.bin: NV=${NV} META.vp.n=${META.vp.n} pos=${rv.pos()} de ${vraw.length}`);
 vstart[NV]=vc; const VPOS = vtmp.slice(0, vc*2); const VV = vc;
 const VPC = META.vp; // catálogos de la capa
-setLoad('Preparando capas…', .85);
+setLoad('Preparando capas…', .95);
 await new Promise(r=>setTimeout(r,20));

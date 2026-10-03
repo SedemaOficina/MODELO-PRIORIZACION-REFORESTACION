@@ -16,7 +16,7 @@ const dk = new DeckGL({
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" style="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
     if (info.layer.id.startsWith('col-fill')){ const id=info.object.i; const c=META.colonias[id]; if (sel!==null && munIndex[c.m]!==sel) return null; const cs=colStat(id); const pc=c.p>=0? T.prio[c.p]:null; return {html:`<div class="tip">${pc? `<span class="pr" style="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span>`:''}<b>${c.n}</b><br><span class="m">${META.munNames[munIndex[c.m]]} · Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'} · ${fmt1.format(cs.kmp)} km prioritarios</span></div>`, style:st}; }
     if (info.layer.id==='vias' && !pinned) return {html:`<div class="tip">${vpHtml(info.index,true)}</div>`, style:st};
-    return (info.layer.id==='fronts' && !pinned && inScope(info.index)) ? {html:`<div class="tip">${featHtml(info.index,true)}</div>`, style:st} : null;
+    return (info.layer.id==='fronts' && !pinned && inScope(frReal(info.index))) ? {html:`<div class="tip">${featHtml(frReal(info.index),true)}</div>`, style:st} : null;
   },
 });
 // si el equipo o el navegador retiran el contexto gráfico (memoria, suspensión, cambio de tarjeta), el mapa queda en blanco: se avisa
@@ -29,11 +29,16 @@ mapEl.addEventListener('click', e=>{
   if (p && p.layer && p.layer.id.startsWith('alcaldias') && p.object){ const i=p.object.i; if (sel!==i || selCol!==null || selAv!==null){ selEl.value=String(i); setSel(String(i)); } return; }
   if (p && p.layer && p.layer.id.startsWith('col-fill') && p.object){ const id=p.object.i; pickColonia(id); showCard('col', id); return; }
   if (p && p.layer && p.layer.id==='vias' && p.index>=0){ showCard('vp', p.index); return; }
-  if (p && p.layer && p.layer.id==='fronts' && p.index>=0){ const i=p.index, cid=F.col[i];
+  if (p && p.layer && p.layer.id==='fronts' && p.index>=0){ const i=frReal(p.index), cid=F.col[i];
     if (cid && cid!==selCol) pickColonia(cid); else if (!cid && sel!==null && F.mun[i]!==sel){ selEl.value=String(F.mun[i]); setSel(String(F.mun[i])); }
     showCard('fr', i); } else hideCard();
 });
-function rerender(){ if (NOMAP) return; dk.setProps({layers: layers()}); }
+// En modo ligero, dibujar las calles puede tardar: se avisa ANTES de empezar, porque durante el dibujo la página no responde (auditoría H-055)
+let dibT = null;
+function rerender(){ if (NOMAP) return;
+  if (modoLigero && frVisibles() && showsFrontsMode()){ const d = $('dibujando'); d.hidden = false; clearTimeout(dibT);
+    dibT = setTimeout(()=>{ dk.setProps({layers: layers()}); requestAnimationFrame(()=>requestAnimationFrame(()=>{ d.hidden = true; })); }, 40); return; }
+  dk.setProps({layers: layers()}); }
 $('loader').hidden = true; window.SIA_LISTO = true; updateScale();
 
 function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
@@ -68,11 +73,20 @@ function revisarRendimiento(){
   if (pedido==='completo' || !(pedido==='ligero' || sinGPU)) return;
   modoLigero = true; document.body.classList.add('modo-ligero');
   dk.setProps({useDevicePixels: 1}); rerender(); renderLegendNote();
-  if (pedido!=='ligero'){ const n = document.createElement('div'); n.className = 'aviso-ligero'; n.setAttribute('role','status');
-    n.innerHTML = '<b>Tu navegador está dibujando el mapa sin aceleración gráfica.</b> Para que no se trabe, las calles aparecen al acercarte y las colonias muestran la prioridad. Para verlo completo y fluido, activa la aceleración por hardware del navegador (en Chrome: Configuración › Sistema › "Usar aceleración de gráficos") y recarga la página. <button type="button" aria-label="Cerrar aviso">×</button>';
-    n.querySelector('button').onclick = ()=> n.remove(); mapEl.parentElement.appendChild(n); }
+  $('lvl-note').textContent = 'Modo ligero: las calles se dibujan al acercarte y solo las del ámbito elegido.';
+  // etiqueta fija: recuerda que las calles se dibujan solo al acercarse y permite volver a leer el aviso
+  const et = document.createElement('button'); et.type = 'button'; et.className = 'etq-ligero'; et.textContent = 'Modo ligero'; et.title = 'El mapa se dibuja sin aceleración gráfica: las calles aparecen al acercarte y solo las del ámbito elegido'; mapEl.parentElement.appendChild(et);
+  const yaVisto = (()=>{ try { return localStorage.getItem('sia.avisoLigero')==='1'; } catch(e){ return false; } })();
+  et.onclick = ()=> avisoLigero(true);
+  if (pedido!=='ligero' && !yaVisto) avisoLigero(false);
 }
-function scopeView(){ const P = matchMedia('(max-width:860px)').matches? 0.45 : 1;
+// aviso de modo ligero; al cerrarlo se recuerda en este navegador para no repetirlo en cada carga (solo esa preferencia)
+function avisoLigero(aPeticion){ if (document.querySelector('.aviso-ligero:not(.aviso-error)')) return;
+  { const n = document.createElement('div'); n.className = 'aviso-ligero'; n.setAttribute('role','status');
+    n.innerHTML = '<b>Tu navegador está dibujando el mapa sin aceleración gráfica.</b> Para que no se trabe, las calles aparecen al acercarte y las colonias muestran la prioridad. Para verlo completo y fluido, activa la aceleración por hardware del navegador (en Chrome: Configuración › Sistema › "Usar aceleración de gráficos") y recarga la página. <button type="button" aria-label="Cerrar aviso">×</button>';
+    n.querySelector('button').onclick = ()=>{ n.remove(); try { localStorage.setItem('sia.avisoLigero','1'); } catch(e){} }; mapEl.parentElement.appendChild(n); }
+}
+function scopeView(){ const P = matchMedia(MQ_TEL).matches? 0.45 : 1;
   if (selAv!==null){ const b=avBounds(selAv, sel); const pad=0.003; const vs=fitTo([b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad], 60*P); vs.zoom=Math.min(vs.zoom,15.5); return vs; }
   return selCol!==null? fitTo(colBounds(selCol), 60*P) : sel===null? fitTo(CITY_BOUNDS,24*P) : fitTo(META.bounds[META.muns[sel]], 40*P); }
 // botón de la casa: regresa a toda la ciudad y reinicia la consulta (alcaldía, colonia y avenida); conserva

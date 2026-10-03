@@ -33,7 +33,8 @@ function setResp(v){
   document.querySelector('.seg.lvl button[data-lvl="col"]').hidden = isGC();
   document.querySelector('.seg.lvl button[data-lvl="fr"]').innerHTML = isGC()? '<i></i>Vialidades' : '<i></i>Calles';
   document.querySelector('.seg.lvl').classList.toggle('two', isGC());
-  $('lvl-note').textContent = isGC()? 'Alcaldías va sola, con la prioridad de sus vialidades primarias.' : 'Colonias y Calles se combinan; Alcaldías va sola.';
+  if (modoLigero){ $('lvl-note').textContent = 'Modo ligero: las calles se dibujan al acercarte y solo las del ámbito elegido.'; }
+  else $('lvl-note').textContent = isGC()? 'Alcaldías va sola, con la prioridad de sus vialidades primarias.' : 'Colonias y Calles se combinan; Alcaldías va sola.';
   $('resp-note').textContent = v==='alc' ? 'Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.'
     : v==='gc' ? 'Vialidades primarias y de acceso controlado que atiende el Gobierno de la Ciudad, con su propia prioridad.'
     : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para cada responsable.';

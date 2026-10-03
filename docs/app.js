@@ -31,6 +31,9 @@ const NAVEGADORES = 'Chrome o Edge 80, Firefox 79, Safari 15 o posteriores';
 if (typeof deck === 'undefined') throw errAmable(`No se pudo cargar el componente del mapa. Puede ser una descarga interrumpida o un navegador antiguo (se requiere ${NAVEGADORES}).`, 'deck.gl no está definido');
 if (!(()=>{ try { return !!document.createElement('canvas').getContext('webgl2'); } catch(e){ return false; } })())
   throw errAmable(`Este navegador o equipo no puede dibujar el mapa: no tiene disponible WebGL 2. Usa ${NAVEGADORES}, y revisa que la aceleración gráfica esté activada.`, 'sin WebGL2');
+// Disposición de teléfono (hoja inferior): pantallas angostas. Un teléfono en horizontal (poco alto, más de 600 px de ancho)
+// usa la disposición de panel lateral, más angosto (auditoría H-056). La misma consulta está en las hojas de estilo.
+const MQ_TEL = '(max-width:860px) and (min-height:481px), (max-width:600px)';
 
 // Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin y vp.bin, descompresión y decodificación a arreglos (frentes F, geometría POS, vialidades primarias VP).
 // ---------- lectura y decodificación ----------
@@ -43,11 +46,12 @@ async function gunzip(bytes){
   try { const out = pako.inflate(bytes); if (!out || !out.length) throw new Error('descompresión vacía'); return out; }
   catch(e){ throw errAmable('Un archivo de datos llegó dañado o incompleto. Suele deberse a una descarga interrumpida.', 'descompresión: ' + (e && e.message || e)); }
 }
-const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; $('load-bar').style.width = (p*100)+'%'; };
+// La barra se reparte según lo que tarda cada etapa: la descarga de los datos es casi toda la espera (auditoría H-053)
+const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar'); b.parentElement.classList.remove('indet'); b.style.width = (p*100)+'%'; };
 // datos: incrustados en la página (artefacto, versión de un solo archivo) o en archivos aparte (docs/datos)
 const DATOS = window.SIA_DATOS || null;
 let dlDone = 0, dlShow = true;
-function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .02 + .2*Math.min(1, dlDone/DATOS.total)); }
+function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .03 + .72*Math.min(1, dlDone/DATOS.total)); }
 async function fetchBytes(name){
   let r;
   try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
@@ -77,9 +81,9 @@ META.colonias.forEach(c=>{ c.n = limpioCat(c.n); c.ut = limpioCat(c.ut); c.ids =
 ['prio','disp','tipos'].forEach(k=>{ META[k] = META[k].map(limpioCat); });
 const Q = META.Q;
 const rawGz = await pData; dlShow = false;
-setLoad('Descomprimiendo 372 mil frentes…', .25);
+setLoad('Descomprimiendo 372 mil frentes…', .78);
 const raw = await gunzip(rawGz);
-setLoad('Construyendo geometría…', .45);
+setLoad('Construyendo geometría…', .84);
 await new Promise(r=>setTimeout(r,20));
 
 // frentes de manzana
@@ -109,7 +113,7 @@ const midLon = i => puntoMedio(POS, start[i], start[i+1])[0];
 const midLat = i => puntoMedio(POS, start[i], start[i+1])[1];
 
 // vialidades primarias (Gobierno Central)
-setLoad('Cargando vialidades primarias…', .7);
+setLoad('Cargando vialidades primarias…', .9);
 const vraw = await gunzip(await pVp);
 rv = reader(vraw);
 const NV = rv();
@@ -124,7 +128,7 @@ for(let i=0;i<NV;i++){
 if (NV!==+META.vp.n || rv.pos()!==vraw.length) throw errAmable('El archivo de vialidades primarias no corresponde con su catálogo o llegó incompleto. Recarga la página.', `vp.bin: NV=${NV} META.vp.n=${META.vp.n} pos=${rv.pos()} de ${vraw.length}`);
 vstart[NV]=vc; const VPOS = vtmp.slice(0, vc*2); const VV = vc;
 const VPC = META.vp; // catálogos de la capa
-setLoad('Preparando capas…', .85);
+setLoad('Preparando capas…', .95);
 await new Promise(r=>setTimeout(r,20));
 
 // Estado de la consulta (ámbito, responsable, capas), colores del tema, atributos por vértice para el mapa y geometría de contexto (alcaldías y colonias).
@@ -147,6 +151,7 @@ let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobi
 let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
 let pinned = null;        // {kind:'fr'|'vp', i}
 let viewState = null;
+let locSel = false;       // true mientras Mi ubicación cambia el ámbito por sí misma (no es un cambio hecho a mano)
 let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
 const LOC_BLUE = hex(css('--loc')).slice(0,3);   // azul de Mi ubicación (variable --loc en 01_variables.css)
 let myPos = null;          // Mi ubicación: {lon, lat, acc, t}; nunca sale del teléfono
@@ -261,6 +266,17 @@ function frontsData(){
   if (!FR_DATA || FR_DATA.attributes.getColor.value!==COLORS || FR_DATA.attributes.getFilterValue.value!==FILTER)
     FR_DATA = {length:N, startIndices:start, attributes:{ getPath:{value:POS,size:2}, getColor:{value:COLORS,size:4,normalized:true}, getFilterValue:{value:FILTER,size:2} }};
   return FR_DATA; }
+// En modo ligero, con una alcaldía o colonia elegida, solo se dibujan los frentes de ese ámbito (auditoría H-055):
+// sin tarjeta gráfica el costo crece con cada vértice enviado, aunque quede fuera de la vista.
+let FR_SUB = null;
+const frParcial = ()=> modoLigero && (sel!==null || selCol!==null);
+function frontsSub(){ const key = sel+'|'+selCol; if (FR_SUB && FR_SUB.key===key && FR_SUB.colors===COLORS && FR_SUB.filter===FILTER) return FR_SUB;
+  const idx = []; let nv = 0; for(let i=0;i<N;i++){ if (!enAmbito(i)) continue; idx.push(i); nv += start[i+1]-start[i]; }
+  const P = new Float64Array(2*nv), C = new Uint8Array(4*nv), Fl = new Float32Array(2*nv), st = new Uint32Array(idx.length+1); let v = 0;
+  idx.forEach((i,k)=>{ st[k]=v; const a=start[i], n=start[i+1]-a; P.set(POS.subarray(2*a, 2*(a+n)), 2*v); C.set(COLORS.subarray(4*a, 4*(a+n)), 4*v); Fl.set(FILTER.subarray(2*a, 2*(a+n)), 2*v); v+=n; }); st[idx.length]=v;
+  return FR_SUB = {key, colors:COLORS, filter:FILTER, idx, data:{length:idx.length, startIndices:st, attributes:{ getPath:{value:P,size:2}, getColor:{value:C,size:4,normalized:true}, getFilterValue:{value:Fl,size:2} }}}; }
+// índice real de un frente a partir del índice del objeto en la capa (difiere cuando la capa trae solo el ámbito)
+const frReal = k => frParcial() && FR_SUB? FR_SUB.idx[k] : k;
 function vpData(){
   if (!VP_DATA || VP_DATA.attributes.getColor.value!==VCOLORS || VP_DATA.attributes.getFilterValue.value!==VFILTER)
     VP_DATA = {length:NV, startIndices:vstart, attributes:{ getPath:{value:VPOS,size:2}, getColor:{value:VCOLORS,size:4,normalized:true}, getFilterValue:{value:VFILTER,size:2} }};
@@ -327,10 +343,10 @@ function layers(){
   // frentes de manzana (responsabilidad de las alcaldías)
   // los frentes solo responden al cursor desde el zoom 12: más lejos son demasiado finos y revisar 372 mil tramos
   // en cada movimiento del ratón vuelve lento el mapa (se consultan las colonias)
-  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', opacity:opPrio, data:frontsData(), _pathType:'open', widthUnits:'meters', getWidth:6, widthMinPixels:1, widthMaxPixels:9,
+  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', opacity:opPrio, data: frParcial()? frontsSub().data : frontsData(), _pathType:'open', widthUnits:'meters', getWidth:6, widthMinPixels:1, widthMaxPixels:9,
     pickable: z>=12, autoHighlight: z>=12, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
-    updateTriggers:{getColor:[COLORS], getFilterValue:[FILTER]}}));
+    updateTriggers:{getColor:[COLORS, frParcial()? sel+'|'+selCol : ''], getFilterValue:[FILTER, frParcial()? sel+'|'+selCol : '']}}));
   if (highlight && highlight.avId!==undefined){
     // con alcaldía seleccionada, el tramo que sí cuentan las cifras va marcado; el resto de la avenida, tenue
     const mk = (idx, alpha, id)=>{ if(!idx.length) return; const st=new Uint32Array(idx.length+1); let n=0;
@@ -468,7 +484,7 @@ const dk = new DeckGL({
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" style="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
     if (info.layer.id.startsWith('col-fill')){ const id=info.object.i; const c=META.colonias[id]; if (sel!==null && munIndex[c.m]!==sel) return null; const cs=colStat(id); const pc=c.p>=0? T.prio[c.p]:null; return {html:`<div class="tip">${pc? `<span class="pr" style="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span>`:''}<b>${c.n}</b><br><span class="m">${META.munNames[munIndex[c.m]]} · Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'} · ${fmt1.format(cs.kmp)} km prioritarios</span></div>`, style:st}; }
     if (info.layer.id==='vias' && !pinned) return {html:`<div class="tip">${vpHtml(info.index,true)}</div>`, style:st};
-    return (info.layer.id==='fronts' && !pinned && inScope(info.index)) ? {html:`<div class="tip">${featHtml(info.index,true)}</div>`, style:st} : null;
+    return (info.layer.id==='fronts' && !pinned && inScope(frReal(info.index))) ? {html:`<div class="tip">${featHtml(frReal(info.index),true)}</div>`, style:st} : null;
   },
 });
 // si el equipo o el navegador retiran el contexto gráfico (memoria, suspensión, cambio de tarjeta), el mapa queda en blanco: se avisa
@@ -481,11 +497,16 @@ mapEl.addEventListener('click', e=>{
   if (p && p.layer && p.layer.id.startsWith('alcaldias') && p.object){ const i=p.object.i; if (sel!==i || selCol!==null || selAv!==null){ selEl.value=String(i); setSel(String(i)); } return; }
   if (p && p.layer && p.layer.id.startsWith('col-fill') && p.object){ const id=p.object.i; pickColonia(id); showCard('col', id); return; }
   if (p && p.layer && p.layer.id==='vias' && p.index>=0){ showCard('vp', p.index); return; }
-  if (p && p.layer && p.layer.id==='fronts' && p.index>=0){ const i=p.index, cid=F.col[i];
+  if (p && p.layer && p.layer.id==='fronts' && p.index>=0){ const i=frReal(p.index), cid=F.col[i];
     if (cid && cid!==selCol) pickColonia(cid); else if (!cid && sel!==null && F.mun[i]!==sel){ selEl.value=String(F.mun[i]); setSel(String(F.mun[i])); }
     showCard('fr', i); } else hideCard();
 });
-function rerender(){ if (NOMAP) return; dk.setProps({layers: layers()}); }
+// En modo ligero, dibujar las calles puede tardar: se avisa ANTES de empezar, porque durante el dibujo la página no responde (auditoría H-055)
+let dibT = null;
+function rerender(){ if (NOMAP) return;
+  if (modoLigero && frVisibles() && showsFrontsMode()){ const d = $('dibujando'); d.hidden = false; clearTimeout(dibT);
+    dibT = setTimeout(()=>{ dk.setProps({layers: layers()}); requestAnimationFrame(()=>requestAnimationFrame(()=>{ d.hidden = true; })); }, 40); return; }
+  dk.setProps({layers: layers()}); }
 $('loader').hidden = true; window.SIA_LISTO = true; updateScale();
 
 function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
@@ -520,11 +541,20 @@ function revisarRendimiento(){
   if (pedido==='completo' || !(pedido==='ligero' || sinGPU)) return;
   modoLigero = true; document.body.classList.add('modo-ligero');
   dk.setProps({useDevicePixels: 1}); rerender(); renderLegendNote();
-  if (pedido!=='ligero'){ const n = document.createElement('div'); n.className = 'aviso-ligero'; n.setAttribute('role','status');
-    n.innerHTML = '<b>Tu navegador está dibujando el mapa sin aceleración gráfica.</b> Para que no se trabe, las calles aparecen al acercarte y las colonias muestran la prioridad. Para verlo completo y fluido, activa la aceleración por hardware del navegador (en Chrome: Configuración › Sistema › "Usar aceleración de gráficos") y recarga la página. <button type="button" aria-label="Cerrar aviso">×</button>';
-    n.querySelector('button').onclick = ()=> n.remove(); mapEl.parentElement.appendChild(n); }
+  $('lvl-note').textContent = 'Modo ligero: las calles se dibujan al acercarte y solo las del ámbito elegido.';
+  // etiqueta fija: recuerda que las calles se dibujan solo al acercarse y permite volver a leer el aviso
+  const et = document.createElement('button'); et.type = 'button'; et.className = 'etq-ligero'; et.textContent = 'Modo ligero'; et.title = 'El mapa se dibuja sin aceleración gráfica: las calles aparecen al acercarte y solo las del ámbito elegido'; mapEl.parentElement.appendChild(et);
+  const yaVisto = (()=>{ try { return localStorage.getItem('sia.avisoLigero')==='1'; } catch(e){ return false; } })();
+  et.onclick = ()=> avisoLigero(true);
+  if (pedido!=='ligero' && !yaVisto) avisoLigero(false);
 }
-function scopeView(){ const P = matchMedia('(max-width:860px)').matches? 0.45 : 1;
+// aviso de modo ligero; al cerrarlo se recuerda en este navegador para no repetirlo en cada carga (solo esa preferencia)
+function avisoLigero(aPeticion){ if (document.querySelector('.aviso-ligero:not(.aviso-error)')) return;
+  { const n = document.createElement('div'); n.className = 'aviso-ligero'; n.setAttribute('role','status');
+    n.innerHTML = '<b>Tu navegador está dibujando el mapa sin aceleración gráfica.</b> Para que no se trabe, las calles aparecen al acercarte y las colonias muestran la prioridad. Para verlo completo y fluido, activa la aceleración por hardware del navegador (en Chrome: Configuración › Sistema › "Usar aceleración de gráficos") y recarga la página. <button type="button" aria-label="Cerrar aviso">×</button>';
+    n.querySelector('button').onclick = ()=>{ n.remove(); try { localStorage.setItem('sia.avisoLigero','1'); } catch(e){} }; mapEl.parentElement.appendChild(n); }
+}
+function scopeView(){ const P = matchMedia(MQ_TEL).matches? 0.45 : 1;
   if (selAv!==null){ const b=avBounds(selAv, sel); const pad=0.003; const vs=fitTo([b[0]-pad,b[1]-pad,b[2]+pad,b[3]+pad], 60*P); vs.zoom=Math.min(vs.zoom,15.5); return vs; }
   return selCol!==null? fitTo(colBounds(selCol), 60*P) : sel===null? fitTo(CITY_BOUNDS,24*P) : fitTo(META.bounds[META.muns[sel]], 40*P); }
 // botón de la casa: regresa a toda la ciudad y reinicia la consulta (alcaldía, colonia y avenida); conserva
@@ -567,7 +597,8 @@ function setResp(v){
   document.querySelector('.seg.lvl button[data-lvl="col"]').hidden = isGC();
   document.querySelector('.seg.lvl button[data-lvl="fr"]').innerHTML = isGC()? '<i></i>Vialidades' : '<i></i>Calles';
   document.querySelector('.seg.lvl').classList.toggle('two', isGC());
-  $('lvl-note').textContent = isGC()? 'Alcaldías va sola, con la prioridad de sus vialidades primarias.' : 'Colonias y Calles se combinan; Alcaldías va sola.';
+  if (modoLigero){ $('lvl-note').textContent = 'Modo ligero: las calles se dibujan al acercarte y solo las del ámbito elegido.'; }
+  else $('lvl-note').textContent = isGC()? 'Alcaldías va sola, con la prioridad de sus vialidades primarias.' : 'Colonias y Calles se combinan; Alcaldías va sola.';
   $('resp-note').textContent = v==='alc' ? 'Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.'
     : v==='gc' ? 'Vialidades primarias y de acceso controlado que atiende el Gobierno de la Ciudad, con su propia prioridad.'
     : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para cada responsable.';
@@ -1044,7 +1075,8 @@ function renderAvInfo(){
   box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b> (${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad)<br>Red vial: ${[...s.nombres].join(', ')} · ${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta o Alta)':''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
 }
 let keepView = false;
-function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
+function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
+  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
   // sin registros que entregar: el botón se deshabilita y se dice por qué, en lugar de entregar un archivo vacío (auditoría H-043)
@@ -1265,9 +1297,19 @@ function loadXL(){
   return loadLib('xlsx.js', 'XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(x => (XL = x));
 }
 const wch = ws => ws.map(w=>({wch:w}));
+// Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
+function excelAparte(aoa, cols, dic){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
+  w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
+  w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic}); }); }
+const GRANDE = 20000;   // renglones a partir de los cuales se avisa del tamaño y de la espera
 async function deliverTable(base, key, aoa, extra){
-  const st = $('dl-status'); st.textContent = 'Preparando archivo…';
   const nreg = aoa.length - 1;
+  const st = $('dl-status'); st.textContent = nreg>GRANDE? `Preparando un archivo grande: ${fmt.format(nreg)} renglones, alrededor de ${fmt0.format(Math.max(1, nreg*0.19/1000))} MB. Puede tardar hasta un minuto…` : 'Preparando archivo…';
+  if (window.SIA_LIBS && window.Worker){
+    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra));
+      await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); return; }
+    catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
+  }
   let X; try { X = await loadXL(); }
   catch(e){ // sin conexión al CDN: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
@@ -1275,6 +1317,7 @@ async function deliverTable(base, key, aoa, extra){
     await deliver(base + '.csv', csv);
     const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '_diccionario.csv', dic);
+    st.textContent = 'Descargado en CSV (dos archivos: listado y diccionario), porque no se pudo cargar el generador de Excel.';
     return;
   }
   const wb = X.utils.book_new();
@@ -1361,6 +1404,11 @@ function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.lengt
 function tituloFicha(doc, t, w, x, y){ let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1400, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
+// El logotipo se entrega a jsPDF como lienzo ya dibujado. Si se le pasa el elemento <img>, jsPDF vuelve a pedir el archivo
+// con una solicitud síncrona, que falla sin conexión y bloquea la página; así, además, la ficha se genera aunque el logotipo no cargue.
+let LOGO_LIENZO = null;
+function ponLogo(doc, x, y, w, h){ try { if (!LOGO_LIENZO && LOGO_IMG && LOGO_IMG.naturalWidth){ const c = document.createElement('canvas'); c.width = LOGO_IMG.naturalWidth; c.height = LOGO_IMG.naturalHeight; c.getContext('2d').drawImage(LOGO_IMG, 0, 0); LOGO_LIENZO = c; }
+  if (LOGO_LIENZO) doc.addImage(LOGO_LIENZO, 'PNG', x, y, w, h); } catch(e){ console.warn('ficha sin logotipo', e); } }
 function fichaPDF(kind){
   // kind: 'col' | 'alc' | 'vpalc' | 'vpav'
   if (!window.jspdf) return;
@@ -1379,7 +1427,7 @@ function fichaPDF(kind){
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const unit = isVP? 'tramos' : 'frentes';
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_IMG, 'PNG', M, 9, lw, lh);
+  const lw = 118, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 9, lw, lh);
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(isCol? 'Ficha de colonia' : isAlc? 'Ficha de alcaldía' : isVpAlc? 'Ficha de vialidades primarias' : 'Ficha de avenida', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
@@ -1521,7 +1569,7 @@ function fichaCallePDF(){
   const tot=sum(km), kmp=km[3]+km[4], ntot=idx.length, np=n[3]+n[4];
   const muns=[...munSet].map(m=>META.munNames[m]); const colNoms=[...porCol.keys()].filter(Boolean).map(k=>META.colonias[k].n);
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; doc.addImage(LOGO_IMG, 'PNG', M, 9, lw, lh);
+  const lw = 118, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 9, lw, lh);
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text('Ficha de calle', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
@@ -1634,7 +1682,7 @@ $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
 // ---------- móvil: hoja inferior y leyenda plegable ----------
-const isPhone = ()=> matchMedia('(max-width:860px)').matches;
+const isPhone = ()=> matchMedia(MQ_TEL).matches;
 const sheetBtn = $('sheet'), sheetLbl = $('sheet-label');
 // hoja inferior con tres alturas: mínima (buscador), media (respuesta) y completa
 let sheetState = 'half';
@@ -1654,7 +1702,7 @@ const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
 legendBtn.onclick = ()=> setLegend(false);
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
-setLegend(!isPhone());
+setLegend(!isPhone() && innerHeight>480);   // en pantallas bajas el panel de capas empieza cerrado
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
@@ -1679,6 +1727,9 @@ function renderActions(){
     main = (sel!==null && !vacia)? 'dl-frentes' : null;
     ficha = vacia? null : selCol!==null? 'dl-ficha' : sel!==null? 'dl-ficha-alc' : null;
     why = vacia? 'Esta colonia no tiene frentes a cargo de la alcaldía que descargar.' : sel===null? 'Elige una alcaldía o una colonia para descargar su listado.' : '';
+    // en teléfono, un listado de decenas de miles de frentes pesa demasiado: se ofrece primero el resumen por calle (auditoría H-045)
+    if (main==='dl-frentes' && isPhone() && selCol===null){ const fsG = frSumm(), nG = fsG.n[3]+fsG.n[4];
+      if (nG>GRANDE){ main='dl-calles'; txt='Descargar resumen por calle (Excel)'; why=`En teléfono se ofrece primero el resumen por calle. El listado completo (${fmt.format(nG)} frentes) está en la pestaña Descargas.`; } }
     // con una calle consultada, los botones principales son los de la calle
     const calle = calleSel();
     if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frentes de la calle (Excel)';
@@ -1798,8 +1849,8 @@ function omniPick(it){
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet(); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
-omni.addEventListener('focus', ()=>{ if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
-omni.addEventListener('blur', ()=> setTimeout(omniClose, 150));
+omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
+omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));
 omni.addEventListener('keydown', e=>{
   if (e.key==='ArrowDown'){ e.preventDefault(); if (omniList.hidden) omniRender(); omniSetActive(omniActive+1); }
   else if (e.key==='ArrowUp'){ e.preventDefault(); omniSetActive(omniActive-1); }
@@ -1810,6 +1861,11 @@ omniClear.onclick = ()=>{ omni.value=''; omniClear.hidden=true; omniClose(); omn
 // Mi ubicación: GPS del teléfono, colonia donde está la persona y tramos prioritarios cercanos. La posición no sale del dispositivo.
 // ---------- Mi ubicación (GPS del teléfono; la posición no sale del dispositivo) ----------
 let locFollow = false, locWatch = null, locLastSel = null, locLastUpd = 0;
+// Reglas de prudencia (auditoría H-040): con más de LOC_PRECISO metros de incertidumbre no se afirma colonia ni calle;
+// una respuesta del GPS que llega después de que la persona hizo otra consulta se ignora (locReq);
+// y si la persona cambia de ámbito a mano, el seguimiento deja de mover la consulta (locAuto).
+const LOC_PRECISO = 100; let locReq = 0, locAuto = true;
+function locManual(){ locAuto = false; if (locBtn.classList.contains('busy')){ locReq++; locBtn.classList.remove('busy'); } }
 const locBtn = $('zloc');
 const toRad = d => d*Math.PI/180;
 function metersXY(lon, lat, lon0, lat0){ const k = 111320; return [(lon-lon0)*k*Math.cos(toRad(lat0)), (lat-lat0)*110574]; }
@@ -1862,8 +1918,12 @@ function locHtml(){
   const p = myPos, w = whereAmI(p.lon, p.lat);
   const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
   const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i style="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
+  const impreciso = p.acc > LOC_PRECISO;
   const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`;
   if (w.alc===null) return head + `<h3>Estás fuera de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> Acércate a la ciudad o busca un territorio con el buscador.</div>` + privacy;
+  if (impreciso) return head + `<h3>Tu ubicación es aproximada</h3><div class="sub">Zona de ${META.munNames[w.alc]}, con ±${fmt0.format(Math.round(p.acc))} m de incertidumbre</div>
+    <div class="empty-note"><b>Con esta precisión no es posible decir en qué colonia o calle estás.</b> Sal al aire libre, revisa que el teléfono tenga activada la ubicación precisa y vuelve a intentarlo. Mientras tanto puedes buscar la colonia por su nombre.</div>
+    <div class="acts"><button class="btn secondary act" id="loc-retry" type="button">Intentar de nuevo</button></div>` + privacy;
   const col = w.col!==null? META.colonias[w.col] : null;
   const nb = nearby(p.lon, p.lat);
   const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">Junto a ti: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
@@ -1881,22 +1941,25 @@ function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
     else { showCard('vp', i); const [la,lo]=vpMid(i); flyTo({...viewState, longitude:lo, latitude:la, zoom:Math.max(viewState.zoom, 17)}, 700); } });
-  const f = c.querySelector('#loc-follow'); if (f) f.onclick = ()=> locFollow? stopFollow(true) : startFollow();
+  const f = c.querySelector('#loc-follow'); if (f) f.onclick = ()=> locFollow? stopFollow(true) : (locAuto = true, startFollow());
+  const rt = c.querySelector('#loc-retry'); if (rt) rt.onclick = ()=>{ stopFollow(); locate(); };
 }
 function selectHere(){ // selecciona la colonia (modo Alcaldías) o la alcaldía (modo Gobierno Central) donde está la persona
+  if (!locAuto || myPos.acc > LOC_PRECISO) return;
   const w = whereAmI(myPos.lon, myPos.lat); const key = w.alc+'_'+w.col; if (key===locLastSel) return; locLastSel = key;
   if (w.alc===null) return;
-  keepView = true;
+  keepView = true; locSel = true;
   if (!isGC() && w.col!==null){ if (isPhone() && !showFrB) setLayer('fr', true); if (selCol!==w.col) pickColonia(w.col); }
   else if (sel!==w.alc || selCol!==null || selAv!==null){ selEl.value=String(w.alc); setSel(String(w.alc)); }
-  keepView = false;
+  keepView = false; locSel = false;
 }
 function showLoc(){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = locHtml(); c.hidden=false; c.querySelector('.close').onclick=hideCard; wireLocCard(c); }
 function onPos(pos, first){
   myPos = {lon:pos.coords.longitude, lat:pos.coords.latitude, acc:pos.coords.accuracy||0, t:Date.now()};
   locBtn.classList.add('on');
   const w = whereAmI(myPos.lon, myPos.lat); const wasLoc = first || (pinned && pinned.kind==='loc');
-  if (w.alc!==null){ selectHere(); if (first || locFollow) flyTo({...viewState, longitude:myPos.lon, latitude:myPos.lat, zoom: first? Math.max(viewState.zoom, 17) : viewState.zoom, bearing:0, pitch:0}, first? 900 : 500); }
+  const zAprox = Math.max(10.5, Math.min(15, 16 - Math.log2(Math.max(myPos.acc,1)/100)));   // con poca precisión, el mapa muestra toda la zona posible
+  if (w.alc!==null){ selectHere(); if (first || locFollow) flyTo({...viewState, longitude:myPos.lon, latitude:myPos.lat, zoom: myPos.acc>LOC_PRECISO? zAprox : first? Math.max(viewState.zoom, 17) : viewState.zoom, bearing:0, pitch:0}, first? 900 : 500); }
   rerender();
   if (wasLoc || (pinned && pinned.kind==='loc')) showLoc();
 }
@@ -1910,9 +1973,11 @@ function locError(e){
 }
 function locate(){
   if (!navigator.geolocation || !window.isSecureContext){ locMsg('Tu navegador no permite usar la ubicación', '<b>Abre la herramienta desde su dirección segura (https)</b> en Chrome o Safari.'); return; }
-  locBtn.classList.add('busy'); locMsg('Buscando tu ubicación…', 'El navegador puede pedirte permiso. <b>Tu ubicación solo se usa en este teléfono.</b>');
-  locLastSel = null;
-  navigator.geolocation.getCurrentPosition(p=>{ locBtn.classList.remove('busy'); onPos(p, true); }, locError, {enableHighAccuracy:true, timeout:20000, maximumAge:15000});
+  locBtn.classList.add('busy'); locMsg('Buscando tu ubicación…', 'El navegador puede pedirte permiso. <b>Tu ubicación solo se usa en este teléfono.</b><div class="acts"><button class="btn secondary act" id="loc-cancel" type="button">Cancelar</button></div>');
+  locLastSel = null; locAuto = true; const req = ++locReq;
+  const cn = $('card').querySelector('#loc-cancel'); if (cn) cn.onclick = ()=>{ locReq++; locBtn.classList.remove('busy'); hideCard(); };
+  // si mientras tanto la persona hizo otra consulta o canceló, la respuesta del GPS ya no se aplica
+  navigator.geolocation.getCurrentPosition(p=>{ if (req!==locReq) return; locBtn.classList.remove('busy'); onPos(p, true); }, e=>{ if (req!==locReq) return; locError(e); }, {enableHighAccuracy:true, timeout:20000, maximumAge:15000});
 }
 function startFollow(){ if (!navigator.geolocation) return; locFollow = true; locBtn.classList.add('follow'); locBtn.setAttribute('aria-pressed','true'); locBtn.title='Dejar de seguir mi ubicación';
   if (myPos) flyTo({...viewState, longitude:myPos.lon, latitude:myPos.lat}, 500);
@@ -1921,7 +1986,7 @@ function startFollow(){ if (!navigator.geolocation) return; locFollow = true; lo
 function stopFollow(redraw){ locFollow = false; locBtn.classList.remove('follow'); locBtn.setAttribute('aria-pressed','false'); locBtn.title='Mi ubicación';
   if (locWatch!==null){ navigator.geolocation.clearWatch(locWatch); locWatch = null; }
   if (redraw && pinned && pinned.kind==='loc') showLoc(); }
-locBtn.onclick = ()=>{ if (!myPos) locate(); else if (!locFollow) { locLastSel = null; startFollow(); if (!(pinned && pinned.kind==='loc')) showLoc(); } else stopFollow(true); };
+locBtn.onclick = ()=>{ if (locBtn.classList.contains('busy')) return; if (!myPos) locate(); else if (!locFollow) { locLastSel = null; locAuto = true; startFollow(); if (!(pinned && pinned.kind==='loc')) showLoc(); } else stopFollow(true); };
 // arrastrar el mapa suspende el seguimiento, como en las apps de mapas
 mapEl.addEventListener('pointermove', e=>{ if (locFollow && e.buttons && pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>12) stopFollow(true); });
 
@@ -1937,4 +2002,8 @@ aplicarURL(); restaurando = false;
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
 // errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
 addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });
+// Uso sin conexión después de la primera visita (auditoría H-057): un proceso de servicio guarda en este navegador los
+// archivos de la propia herramienta (programas, datos, tipografías y generadores de Excel y PDF). No guarda consultas ni datos personales.
+if ('serviceWorker' in navigator && window.SIA_LIBS && /^https?:$/.test(location.protocol) && window.self===window.top)
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
 })().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent=''; const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:16px'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t); const m=document.createElement('div'); m.style.cssText='font-size:12px;margin-top:6px;max-width:320px'; m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m); const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });

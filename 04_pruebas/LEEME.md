@@ -48,3 +48,13 @@ node 04_pruebas/prueba_robustez.js
 ```
 
 Las pruebas abren la página con `?modo=ligero#nomap`. `#nomap` evita redibujar el mapa para que corran rápido sin tarjeta gráfica y **solo tiene efecto cuando la prueba define `window.SIA_PRUEBA`** (lo hace `lib_pruebas.js`); en el sitio publicado no hace nada.
+
+## Prueba de teléfono y uso sin conexión
+
+`prueba_telefono_y_sin_conexion.js` comprueba el GPS impreciso (±5,000 m) y la respuesta tardía de «Mi ubicación», que el Excel de una alcaldía grande no congela la página, el avance de la carga, el modo ligero, el teléfono en horizontal (844 × 390) y que la herramienta vuelve a abrir y entrega Excel y PDF sin conexión después de la primera visita.
+
+```
+node 04_pruebas/prueba_telefono_y_sin_conexion.js
+```
+
+Tarda unos 12 minutos sin tarjeta gráfica. Las demás pruebas bloquean el proceso de servicio (`serviceWorkers: 'block'`) para poder intervenir la red; esta lo deja activo en su última sección.

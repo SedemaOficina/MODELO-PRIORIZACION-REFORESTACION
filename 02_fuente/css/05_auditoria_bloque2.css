@@ -57,9 +57,9 @@
 .panel-actions .btn:disabled{opacity:.45;cursor:not-allowed}
 .panel-actions .act-hint{grid-column:1/-1;margin:0;font-size:12px;color:var(--ink-2)}
 /* con el panel abierto, la barra del mapa solo nombra el ámbito y su cifra principal (auditoría I4) */
-@media (min-width:861px){ body:not(.panel-off) .mapsum .st.opt{display:none} }
+@media (min-width:861px), (min-width:601px) and (max-height:480px){ body:not(.panel-off) .mapsum .st.opt{display:none} }
 /* flujo móvil: hoja inferior de tres alturas */
-@media (max-width:860px){
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
   .panel{max-height:56dvh}
   body.sheet-peek .panel{max-height:none}
   body.sheet-peek .panel-head,body.sheet-peek .panel-actions,body.sheet-peek .answer,body.sheet-peek .crumb,body.sheet-peek .resp-note,body.sheet-peek .prelim{display:none}
@@ -137,7 +137,7 @@
 
 /* v17.21 · bloque B4: errores, estado de descargas, atribución del mapa de fondo */
 .card:not([hidden]) ~ .attrib.sat{right:332px;left:auto;max-width:min(520px,calc(100% - 640px))}   /* la atribución del fondo es obligatoria: se recorre, no se oculta */
-@media (max-width:860px){ .card:not([hidden]) ~ .attrib.sat{right:60px;max-width:none} }
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .card:not([hidden]) ~ .attrib.sat{right:60px;max-width:none} }
 .panel-actions .act-status{grid-column:1/-1;margin:0;font-size:12px;color:var(--ink);font-weight:500}
 body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor:progress}
 .aviso-error{border-left-color:var(--guinda)}
@@ -146,3 +146,33 @@ body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor
 .loader .reintenta{margin-top:10px;padding:6px 12px;border:1.5px solid var(--guinda);border-radius:6px;background:var(--panel);color:var(--guinda);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
 .loader .lento{margin-top:8px;font-size:12px;max-width:320px}
 .omni-list li.mas{cursor:pointer;color:var(--guinda);font-weight:600}
+
+/* v17.22 · bloque B6: teléfono y rendimiento */
+/* barra de carga sin avance conocido (mientras bajan los programas) */
+.loader .bar.indet i{width:35%;animation:indet 1.4s ease-in-out infinite}
+@keyframes indet{0%{transform:translateX(-110%)}100%{transform:translateX(300%)}}
+@media (prefers-reduced-motion:reduce){ .loader .bar.indet i{animation:none;width:12%} }
+.loader .conex{margin-top:8px;font-size:12px;max-width:320px}
+/* modo ligero: etiqueta fija y aviso antes de dibujar */
+.etq-ligero{position:absolute;left:16px;top:78px;z-index:5;padding:3px 9px;border:1px solid var(--line-strong);border-radius:999px;background:var(--panel);color:var(--ink-2);font:inherit;font-size:12px;cursor:pointer}
+.dibujando{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;padding:8px 14px;border-radius:8px;background:var(--ink);color:#fff;font-size:14px;box-shadow:var(--shadow)}
+/* teléfono en horizontal y pantallas bajas: panel lateral angosto en lugar de hoja inferior */
+@media (min-width:601px) and (max-height:480px){
+  .app{grid-template-columns:300px 1fr}
+  .panel-head{padding:6px 12px}
+  .panel-head .logo{max-width:150px}
+  .panel-actions{padding-top:6px;padding-bottom:6px}
+  .panel-actions .btn{min-height:36px}
+  .legend.open{max-height:calc(100% - 20px);overflow-y:auto}
+  .card{width:260px;max-height:calc(100% - 24px);overflow-y:auto}
+  .toolbar{top:8px;right:8px}
+  .mapbar{top:8px;left:8px}
+  .etq-ligero{top:66px;left:8px}
+  .resp-row .lab{display:none}
+  .resp-row .chip{padding:5px 8px 5px 7px}
+  .resp-row .chip b{font-size:12px}
+  .panel-actions .act-hint{display:none}
+  .query{padding-top:8px;padding-bottom:8px}
+}
+/* buscador enfocado en teléfono: se ocultan encabezado y acciones para que las sugerencias quepan sobre el teclado */
+body.buscando .panel-head,body.buscando .panel-actions{display:none}

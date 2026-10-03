@@ -19,7 +19,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   ├── js/                    lógica, un archivo por tema, en orden de ejecución
 │   ├── datos/                 meta.bin, data.bin, vp.bin (los genera 03_procesamiento_datos)
 │   ├── img/                   logotipo y lámina de la metodología
-│   ├── libs/                  deck.gl, pako, jsPDF, SheetJS + LICENCIAS.md
+│   ├── libs/                  deck.gl, pako, jsPDF, SheetJS + excel_worker.js (arma los Excel grandes aparte) + LICENCIAS.md
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ (ver su LEEME.md)
@@ -52,6 +52,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 3. `02_datos.js` descarga los tres `.bin` con barra de avance, los descomprime (`DecompressionStream`, o pako si no existe) y los decodifica.
 4. `03_estado.js` a `15_mi_ubicacion.js` preparan estado, mapa, panel y eventos; `16_arranque.js` fija el estado inicial.
 5. jsPDF y SheetJS se cargan solo al pedir una ficha o un Excel (`loadLib`).
+6. `16_arranque.js` registra `sw.js` (lo genera `construir.py`): guarda en el navegador los archivos de la herramienta con el nombre de caché `calles-<huella>`, de modo que la siguiente visita abre sin conexión. La página se pide primero a la red y solo si falla se usa la copia; cada publicación cambia la huella y descarta la copia anterior. No se registra en el archivo único ni dentro de un marco. **Fase 2:** revisar junto con el inicio de sesión del SIA, para que no sirva la herramienta a quien no ha entrado.
 
 ## 5. Módulos de `02_fuente/js/`
 
@@ -172,6 +173,9 @@ Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_prueba
 
 - Lo pesado es **dibujar** los 372 mil frentes (≈1 millón de vértices), no el código. Con tarjeta gráfica es fluido; sin ella (aceleración por hardware desactivada, escritorios remotos o máquinas virtuales) cada zoom puede tardar decenas de segundos.
 - Al cargar, `revisarRendimiento()` lee el nombre del dibujante de WebGL. Si es por software (SwiftShader, llvmpipe, Microsoft Basic Render), activa el **modo ligero**: sin animaciones, resolución 1×, frentes solo a partir del zoom 13 (antes, las colonias pintadas por prioridad) y un aviso con los pasos para activar la aceleración.
+- En modo ligero, con una alcaldía, colonia o calle consultada solo se dibujan los frentes de esa consulta (`frontsSub`, `frReal` en `04_mapa_capas.js`) y aparece el indicador «Dibujando calles…».
+- Excel de más de 20 mil filas (`GRANDE` en `11_descargas.js`): se arma en `libs/excel_worker.js` y se avisa del tamaño; si el proceso auxiliar no está disponible se arma en la página.
+- Teléfono: la regla única es `MQ_TEL` (`01_utilidades.js`) y su equivalente en CSS: angosto y alto = hoja inferior; teléfono en horizontal (alto ≤ 480 px) = panel lateral de 300 px.
 - Forzar un modo desde la dirección: `?modo=ligero` (sin aviso) o `?modo=completo`.
 - Siempre: los botones + y − cambian de zoom sin animación, las capas solo se rehacen al cruzar un corte de zoom (`ZOOM_CORTES`) y la resolución se limita a 1.5× en pantallas de alta densidad.
 

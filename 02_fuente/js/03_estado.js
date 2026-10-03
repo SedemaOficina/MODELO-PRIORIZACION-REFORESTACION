@@ -18,6 +18,7 @@ let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobi
 let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
 let pinned = null;        // {kind:'fr'|'vp', i}
 let viewState = null;
+let locSel = false;       // true mientras Mi ubicación cambia el ámbito por sí misma (no es un cambio hecho a mano)
 let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
 const LOC_BLUE = hex(css('--loc')).slice(0,3);   // azul de Mi ubicación (variable --loc en 01_variables.css)
 let myPos = null;          // Mi ubicación: {lon, lat, acc, t}; nunca sale del teléfono

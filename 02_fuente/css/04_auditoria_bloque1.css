@@ -10,7 +10,7 @@
 .kpi,.kpi .l,.results li > div,.chip > span{min-width:0}
 .kpi .l,.results li > div{overflow-wrap:break-word}
 .kpi .v{white-space:nowrap;font-size:20px}
-@media (max-width:860px){
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
   .app{grid-template-columns:minmax(0,1fr)!important}
   .panel,.panel-head,.panel-body,.sheet-grip{min-width:0;max-width:100vw}
   .panel-body{padding-inline:16px}
@@ -20,7 +20,7 @@
 /* barra de escala (auditoría C3) */
 .scalebar{position:absolute;right:16px;bottom:40px;z-index:5;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.88);border-radius:6px;padding:3px 8px;font-size:12px;color:var(--ink-2);pointer-events:none}
 .scalebar i{display:block;height:6px;border:1.5px solid var(--ink-2);border-top:0}
-@media (max-width:860px){.scalebar{right:62px;bottom:10px}}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.scalebar{right:62px;bottom:10px}}
 /* capas y leyenda-filtro sobre el mapa (auditoría I1 + M1) */
 .legend{max-width:268px}
 .legend .lg-cap{display:block;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2);font-weight:600;margin:8px 0 5px}
@@ -42,7 +42,7 @@
 .panel-head h1{margin:0;font-size:16px;line-height:1.25;text-wrap:nowrap;overflow:hidden;text-overflow:ellipsis}
 .panel-head p{display:none}
 .panel-head #open-info{white-space:nowrap;font-size:12px}
-@media (max-width:860px){.panel-head .logo{max-width:200px}}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.panel-head .logo{max-width:200px}}
 /* estados vacíos (auditoría I3) */
 .kpi-empty,.card .empty-note{grid-column:1/-1;background:var(--panel-2);border-radius:8px;padding:12px 14px;font-size:14px;color:var(--ink-2);line-height:1.45}
 .kpi-empty b,.card .empty-note b{display:block;color:var(--ink);margin-bottom:2px}
@@ -56,4 +56,4 @@
 /* ajustes tras la verificación */
 .card:not([hidden]) ~ .scalebar{display:none}
 .attrib{color:var(--ink-2)}
-@media (max-width:860px){.legend.open{max-height:calc(100% - 72px);overflow-y:auto}.legend.open ~ .scalebar{display:none}}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.legend.open{max-height:calc(100% - 72px);overflow-y:auto}.legend.open ~ .scalebar{display:none}}

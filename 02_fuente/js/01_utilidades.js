@@ -28,3 +28,6 @@ const NAVEGADORES = 'Chrome o Edge 80, Firefox 79, Safari 15 o posteriores';
 if (typeof deck === 'undefined') throw errAmable(`No se pudo cargar el componente del mapa. Puede ser una descarga interrumpida o un navegador antiguo (se requiere ${NAVEGADORES}).`, 'deck.gl no está definido');
 if (!(()=>{ try { return !!document.createElement('canvas').getContext('webgl2'); } catch(e){ return false; } })())
   throw errAmable(`Este navegador o equipo no puede dibujar el mapa: no tiene disponible WebGL 2. Usa ${NAVEGADORES}, y revisa que la aceleración gráfica esté activada.`, 'sin WebGL2');
+// Disposición de teléfono (hoja inferior): pantallas angostas. Un teléfono en horizontal (poco alto, más de 600 px de ancho)
+// usa la disposición de panel lateral, más angosto (auditoría H-056). La misma consulta está en las hojas de estilo.
+const MQ_TEL = '(max-width:860px) and (min-height:481px), (max-width:600px)';
