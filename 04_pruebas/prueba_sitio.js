@@ -37,7 +37,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
 
   // ---------- escritorio ----------
   const { page, ctx, seg } = await abrir({ viewport: { width: 1440, height: 900 }, geolocation: GPS, permissions: ['geolocation'] });
-  ok('carga en escritorio', true, `${seg.toFixed(0)} s (con GPU simulada)`);
+  ok('carga en escritorio en menos de 2 minutos', seg < 120, `${seg.toFixed(0)} s (con GPU simulada)`);
   ok('sin aceleración gráfica entra en modo ligero y avisa', await page.evaluate(() => document.body.classList.contains('modo-ligero') && !!document.querySelector('.aviso-ligero:not([hidden])')));
   const e0 = await texto(page, '#scalebar'); await page.$eval('#zin', b => b.click()); await page.waitForTimeout(1500);
   ok('botón + acerca el mapa', (await texto(page, '#scalebar')) !== e0, `${e0} → ${await texto(page, '#scalebar')}`);
@@ -78,9 +78,10 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   ok('botón de la casa responde después de acercar con la rueda', escRueda !== escCiudad && (await texto(page, '#scalebar')) === escCiudad, `${escRueda} → ${await texto(page, '#scalebar')}`);
   // mapa de fondo satelital: las teselas se simulan para no depender de internet
   let teselas = 0; const servs = new Set(), u_esri = u => u.includes('arcgisonline.com'); await page.route(u => ['tiles.maps.eox.at', 'basemaps.cartocdn.com', 'static-map-tiles-api.arcgis.com', 'services.arcgisonline.com'].includes(u.hostname), r => { teselas++; if (u_esri(r.request().url())) servs.add(r.request().url().split('/tile/')[0].split('/services/')[1]); r.fulfill({ status: 200, body: TESELA, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' } }); });
-  await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await page.waitForTimeout(6000);
+  const hastaTeselas = async () => { for (let i = 0; i < 120 && !teselas; i++) await page.waitForTimeout(500); await page.waitForTimeout(500); };   // espera por condición, no por tiempo fijo (auditoría H-077)
+  await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await hastaTeselas();
   ok('mapa de fondo de calles con su atribución', teselas > 0 && (await texto(page, '#attrib')).includes('OpenStreetMap'), `${teselas} teselas`); teselas = 0;
-  await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await page.waitForTimeout(6000);
+  await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await hastaTeselas();
   ok('mapa de fondo satelital con su atribución', teselas > 0 && /Sentinel-2|Esri/.test(await texto(page, '#attrib')), `${teselas} teselas`);
   ok('el satélite trae la imagen y los nombres de vías de Esri', [...servs].some(x => x.includes('World_Imagery')) && [...servs].some(x => x.includes('World_Transportation')) && (await texto(page, '#attrib')).includes('Vías: Esri, HERE, Garmin'), [...servs].join(' | '));
   await page.$eval('#op-prio', e => { e.value = 40; e.dispatchEvent(new Event('input', { bubbles: true })); }); await page.waitForTimeout(800);

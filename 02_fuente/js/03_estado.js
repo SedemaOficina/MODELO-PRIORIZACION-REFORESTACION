@@ -88,13 +88,13 @@ const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> 
   META.muns.forEach((m,i)=>{ META.summ[m].km=A[i]; META.summ_gc[m].km=G[i]; if (VPC.summ[m]) VPC.summ[m].km=W[i]; });
   META.city.km=tot(A); META.city_gc.km=tot(G); VPC.city.km=tot(W); })();
 // prioridad predominante y ranking por alcaldía — frentes (Alcaldía) y vialidades primarias (Gobierno Central)
-const kmPrio = s => s.km[3]+s.km[4];
+const kmPrio = s => sumPrio(s.km);
 const rank = META.muns.map(m=>kmPrio(META.summ[m])).map((v,i,arr)=>1+arr.filter(x=>x>v).length);
 const rankVP = META.muns.map(m=>kmPrio(VPC.summ[m])).map((v,i,arr)=>1+arr.filter(x=>x>v).length);
 const dom = s => { const k=s.km; let b=0; for(let i=1;i<5;i++) if(k[i]>k[b]) b=i; return b; };
 const ALC_DOM = META.muns.map(m=>dom(META.summ[m]));
 const VP_DOM = META.muns.map(m=>dom(VPC.summ[m]));
-const VP_RECS = META.muns.map(()=>({r:new Set(), rp:new Set()})); for(let i=0;i<NV;i++){ VP_RECS[VP.mun[i]].r.add(VP.rec[i]); if(VP.prio[i]>=3) VP_RECS[VP.mun[i]].rp.add(VP.rec[i]); }
+const VP_RECS = META.muns.map(()=>({r:new Set(), rp:new Set()})); for(let i=0;i<NV;i++){ VP_RECS[VP.mun[i]].r.add(VP.rec[i]); if(esPrio(VP.prio[i])) VP_RECS[VP.mun[i]].rp.add(VP.rec[i]); }
 const domOf = i => isGC()? VP_DOM[i] : ALC_DOM[i];
 const rankOf = i => isGC()? rankVP[i] : rank[i];
 const summOf = i => isGC()? VPC.summ[META.muns[i]] : META.summ[META.muns[i]];

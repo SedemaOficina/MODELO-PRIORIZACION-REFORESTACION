@@ -1,15 +1,29 @@
 # Pruebas
 
-Seis pruebas automáticas. Todas terminan con error si algo falla; después de cualquier cambio se corren las seis.
+Una sola orden corre todo y termina con código 0 solo si todo pasó:
 
-| Prueba | Qué cuida | Duración aproximada sin tarjeta gráfica |
+```
+node 04_pruebas/correr_todas.js            todo: unos 12 minutos sin tarjeta gráfica
+node 04_pruebas/correr_todas.js rapidas    datos, construcción y revisión estática: menos de un minuto
+```
+
+Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la raíz (instala las versiones fijadas en `package.json`: Playwright 1.56.0 y ESLint 9.37.0), y `npx playwright install chromium`. La prueba de coherencia requiere además `openpyxl` y `pdftotext`; la de accesibilidad, `unzip`.
+
+| Verificación | Qué cuida | Duración aproximada |
 |---|---|---|
-| `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 5 min |
-| `prueba_coherencia_cifras.js` | Que pantalla, Excel y fichas digan lo mismo que los datos | 15 min |
-| `prueba_sin_terceros.js` | Que el sitio y el archivo único arranquen y trabajen sin pedir nada a otros dominios | 2 min |
-| `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 5 min |
-| `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 12 min |
-| `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste de controles, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 6 min |
+| `03_procesamiento_datos/verificar_datos.py` | Que los datos sean los registrados y cuadren entre sí | 10 s |
+| `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza | 30 s |
+| ESLint (`npm run lint`) | Variables sin definir o sin usar en `docs/app.js` | 5 s |
+| `prueba_sin_terceros.js` | Que el sitio, el archivo único y la instalación en una subruta trabajen sin pedir nada a otros dominios | 2 min |
+| `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 6 min |
+| `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 1 min |
+| `prueba_coherencia_cifras.js` | Que pantalla, Excel y fichas digan lo mismo que un recálculo independiente desde los datos | 2 min |
+| `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
+| `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
+
+**Qué compara cifras.** La prueba integral (`prueba_sitio.js`) es un recorrido de controles: confirma que cada flujo responde, no que las cifras sean correctas. Las cifras las vigila `prueba_coherencia_cifras.js`, que abre los Excel y las fichas PDF y los compara con la pantalla y con un recálculo propio desde `docs/datos/*.bin`. Las dos son necesarias.
+
+Además, GitHub repite las tres primeras verificaciones en cada cambio que recibe (`.github/workflows/verificar.yml`).
 
 ## Prueba integral
 
@@ -46,7 +60,7 @@ Requiere además Python 3 con `openpyxl` y la utilidad `pdftotext`. Termina con 
 
 ## Prueba de arranque sin terceros
 
-`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos. Después abre `_local/calles_prioritarias.html` como archivo, con todo dominio externo bloqueado, y verifica que arranca y que entrega un Excel y una ficha PDF con las librerías incrustadas.
+`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos. Después abre `_local/calles_prioritarias.html` como archivo, con todo dominio externo bloqueado, y verifica que arranca y que entrega un Excel y una ficha PDF con las librerías incrustadas. Por último sirve el sitio desde la subruta `/calles-prioritarias/`, como se instalará en el SIA, y verifica que no pide nada fuera de ella.
 
 ```
 node 04_pruebas/prueba_sin_terceros.js
@@ -60,7 +74,7 @@ node 04_pruebas/prueba_sin_terceros.js
 node 04_pruebas/prueba_robustez.js
 ```
 
-Las pruebas abren la página con `?modo=ligero#nomap`. `#nomap` evita redibujar el mapa para que corran rápido sin tarjeta gráfica y **solo tiene efecto cuando la prueba define `window.SIA_PRUEBA`** (lo hace `lib_pruebas.js`); en el sitio publicado no hace nada.
+Las pruebas abren la página con `?modo=ligero#nomap`. `#nomap` deja el mapa sin capas para que corran rápido sin tarjeta gráfica y **solo tiene efecto cuando la prueba define `window.SIA_PRUEBA`** (lo hace `lib_pruebas.js`); en el sitio publicado no hace nada.
 
 ## Prueba de teléfono y uso sin conexión
 
@@ -81,3 +95,11 @@ node 04_pruebas/prueba_accesibilidad.js
 ```
 
 Requiere la utilidad `unzip`. Cada corrección de la auditoría de accesibilidad queda así como comprobación automática (H-076). **No sustituye** la lectura con un lector de pantalla real ni una revisión con una herramienta como axe.
+
+## Prueba de la construcción
+
+`prueba_construccion.py` trabaja sobre copias en una carpeta temporal y comprueba que `construir.py`: da un sitio idéntico a `docs/` desde cero; no reescribe nada en una segunda corrida; da el mismo sitio con el código fuente en formato de Windows (CRLF); aparta en `_to_delete/` un archivo obsoleto de `docs/`; no publica un archivo imprevisto de `libs/`, y se detiene **sin escribir nada** cuando falta un módulo, sobra una hoja de estilos, un módulo está vacío, falta una librería, los datos están cortados o no son los registrados, la plantilla no trae su marcador o se le pasa un argumento desconocido.
+
+```
+python3 04_pruebas/prueba_construccion.py
+```

@@ -1,0 +1,10 @@
+{
+  "nota": "SHA-256 del contenido descomprimido de cada archivo de datos. Lo escribe 03_procesamiento_datos/verificar_datos.py --actualizar; construir.py se detiene si los datos no coinciden.",
+  "sha256_descomprimido": {
+    "meta.bin": "a5f5c97b362461d9e33e8d79d609070a854a3aa743bbbd686638e4224d51198c",
+    "data.bin": "4e5b71220203d6c3b1b1b499b1f02a56a8c043f8e1c47302c88891f30183efb3",
+    "vp.bin": "6aa2e6be254b27e10935cb148549ed26ca0ff40e40a785f77b4aac9897f57587"
+  },
+  "frentes": 372534,
+  "partes_de_vialidad": 16072
+}

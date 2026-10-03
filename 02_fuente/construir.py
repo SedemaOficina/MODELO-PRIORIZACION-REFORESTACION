@@ -23,10 +23,12 @@ Salidas:
 Uso:  python3 02_fuente/construir.py [--artefacto RUTA]
 """
 import base64
+import gzip
 import hashlib
 import json
 import os
 import sys
+import time
 
 FUENTE = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(FUENTE)
@@ -57,7 +59,7 @@ ESRI_KEY = ''
 CARTO_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.24'
+VERSION = '17.25'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -70,15 +72,60 @@ def huella(b):
     return hashlib.sha1(b).hexdigest()[:10]
 
 
+SALIDA = {}   # archivos del sitio (ruta relativa a docs/ -> bytes). Se escriben al final, cuando todo se armó sin errores.
+
+
 def poner(rel, contenido):
-    """Escribe un archivo del sitio solo si cambió (así Git no ve cambios falsos)."""
-    if isinstance(contenido, str):
-        contenido = contenido.encode('utf-8')
-    ruta = os.path.join(DOCS, *rel.split('/'))
-    os.makedirs(os.path.dirname(ruta), exist_ok=True)
-    if os.path.exists(ruta) and open(ruta, 'rb').read() == contenido:
-        return
-    open(ruta, 'wb').write(contenido)
+    """Anota un archivo del sitio. Nada se escribe hasta el final (auditoría H-026): un error a media construcción no deja docs/ a medias."""
+    SALIDA[rel] = contenido.encode('utf-8') if isinstance(contenido, str) else contenido
+
+
+def falla(mensaje):
+    print('ERROR: ' + mensaje + '\nNo se escribió nada.')
+    sys.exit(1)
+
+
+# ---------- piezas esperadas (auditoría H-026): si falta o sobra una, la construcción se detiene antes de escribir ----------
+JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
+                '07_leyenda_y_capas.js', '08_resumenes.js', '09_listados.js', '09_tramos.js', '10_seleccion.js', '11_descargas.js',
+                '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js']
+CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_auditoria_bloque1.css', '05_auditoria_bloque2.css',
+                 '06_mi_ubicacion.css', '07_accesibilidad.css']
+# Lo único de libs/ y fuentes/ que se publica. Un archivo que no esté aquí no llega a docs/.
+LIBS_PUBLICADAS = ['deck.js', 'pako.js', 'jspdf.js', 'xlsx.js', 'excel_worker.js', 'LICENCIAS.md',
+                   'LICENCIA_deck.gl.txt', 'LICENCIA_pako.txt', 'LICENCIA_jspdf.txt', 'LICENCIA_xlsx.txt']
+FUENTES_PUBLICADAS = ['cabin.woff2', 'roboto.woff2', 'OFL_Cabin.txt', 'OFL_Roboto.txt']
+args = sys.argv[1:]
+if args and not (len(args) == 2 and args[0] == '--artefacto'):
+    falla('uso: python3 02_fuente/construir.py [--artefacto RUTA]')
+for carpeta, ext, esperados in (('js', '.js', JS_ESPERADOS), ('css', '.css', CSS_ESPERADOS)):
+    hay = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n.endswith(ext))
+    faltan, sobran = [n for n in esperados if n not in hay], [n for n in hay if n not in esperados]
+    vacios = [n for n in esperados if n in hay and os.path.getsize(os.path.join(FUENTE, carpeta, n)) < 40]
+    if vacios:
+        falla('%s/ trae piezas vacías: %s.' % (carpeta, ', '.join(vacios)))
+    if faltan or sobran:
+        falla('%s/ no trae las piezas esperadas.%s%s\nSi el cambio es intencional, actualizar la lista en construir.py.'
+              % (carpeta, ' Faltan: ' + ', '.join(faltan) + '.' if faltan else '', ' Sobran: ' + ', '.join(sobran) + '.' if sobran else ''))
+for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLICADAS), ('datos', ['%s.bin' % n for n in DATOS])):
+    faltan = [n for n in esperados if not os.path.isfile(os.path.join(FUENTE, carpeta, n))]
+    if faltan:
+        falla('%s/ no trae: %s.' % (carpeta, ', '.join(faltan)))
+    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n != 'SUMAS.json')
+    if extra:
+        print('AVISO: %s/ trae archivos que no se publican: %s.' % (carpeta, ', '.join(extra)))
+# Los datos deben ser los verificados (auditoría H-024): se compara el contenido descomprimido con datos/SUMAS.json,
+# porque la compresión cambia de un equipo a otro aunque el contenido sea el mismo.
+ruta_sumas = os.path.join(FUENTE, 'datos', 'SUMAS.json')
+if os.path.isfile(ruta_sumas):
+    sumas = json.load(open(ruta_sumas, encoding='utf-8'))['sha256_descomprimido']
+    for n in DATOS:
+        try:
+            h = hashlib.sha256(gzip.decompress(open(os.path.join(FUENTE, 'datos', n + '.bin'), 'rb').read())).hexdigest()
+        except Exception as e:
+            falla('datos/%s.bin no se puede descomprimir (%s).' % (n, e))
+        if h != sumas.get(n + '.bin'):
+            falla('datos/%s.bin no coincide con datos/SUMAS.json. Si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.' % n)
 
 
 AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar aquí.'
@@ -113,6 +160,8 @@ def css_fuentes(direccion):
 
 plantilla = leer('plantilla.html')
 # Lo que la plantilla trae antes del marcador de estilos (<title>, <meta>) va en <head>, no en <body> (auditoría H-092).
+if plantilla.count('<!-- ESTILOS -->') != 1:
+    falla('plantilla.html debe tener exactamente un marcador <!-- ESTILOS -->.')
 CABEZA_PL, plantilla = plantilla.split('<!-- ESTILOS -->')
 CABEZA_PL = CABEZA_PL.strip().replace('\n', '')
 assert CABEZA_PL.startswith('<title>') and '<div' not in CABEZA_PL, 'antes de <!-- ESTILOS --> solo van <title> y <meta>'
@@ -142,9 +191,7 @@ cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA
 cuerpo += '<script>\n' + app + '</script>\n'
 fragmento = CABEZA_PL + ESTILOS_UNICO + cuerpo   # el artefacto no tiene <head> propio: todo va junto
 
-os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
 unico = ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + ESTILOS_UNICO) + cuerpo + '</body></html>\n'
-open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(unico)
 
 # ---------- 2) sitio: cada pieza en su archivo, con huella ?v= para la caché del navegador ----------
 ver = {}
@@ -154,14 +201,14 @@ for n in DATOS:
     ver[n + '.bin'] = huella(b)
 total = sum(len(leer('datos/%s.bin' % n, True)) for n in DATOS)
 lver = {}
-for lib in sorted(os.listdir(os.path.join(FUENTE, 'libs'))):
+for lib in LIBS_PUBLICADAS:
     b = leer('libs/' + lib, True)
     poner('libs/' + lib, b)
     lver[lib] = huella(b)
 for img in IMAGENES:
     poner(img, leer(img, True))
 fver = {}
-for arch in sorted(os.listdir(os.path.join(FUENTE, 'fuentes'))):
+for arch in FUENTES_PUBLICADAS:
     b = leer('fuentes/' + arch, True)
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
@@ -210,6 +257,26 @@ self.addEventListener('fetch', e => { const q = e.request; if (q.method !== 'GET
   e.respondWith(caches.open(CACHE).then(c => c.match(q)).then(m => m || fetch(q))); });
 ''' % (AVISO % 'construir.py', v(pagina + json.dumps(PRE)), json.dumps(PRE))
 poner('sw.js', SW)
+poner('.nojekyll', b'')   # GitHub Pages: publicar docs/ tal cual, sin pasarlo por Jekyll
+
+# ---------- escritura: hasta aquí nada se había escrito ----------
+for rel, contenido in SALIDA.items():
+    ruta = os.path.join(DOCS, *rel.split('/'))
+    os.makedirs(os.path.dirname(ruta), exist_ok=True)
+    if not (os.path.exists(ruta) and open(ruta, 'rb').read() == contenido):   # solo lo que cambió: así Git no ve cambios falsos
+        open(ruta, 'wb').write(contenido)
+# Archivos de docs/ que ya no forman parte del sitio: no se borran, se apartan en _to_delete/ para revisarlos y eliminarlos a mano.
+obsoletos = sorted(os.path.relpath(os.path.join(d, f), DOCS).replace(os.sep, '/') for d, _, fs in os.walk(DOCS) for f in fs)
+obsoletos = [r for r in obsoletos if r not in SALIDA]
+if obsoletos:
+    aparte = os.path.join(RAIZ, '_to_delete', 'docs_obsoletos_' + time.strftime('%Y%m%d_%H%M%S'))
+    for r in obsoletos:
+        destino = os.path.join(aparte, *r.split('/'))
+        os.makedirs(os.path.dirname(destino), exist_ok=True)
+        os.replace(os.path.join(DOCS, *r.split('/')), destino)
+    print('AVISO: %d archivo(s) de docs/ ya no pertenecen al sitio y se movieron a %s: %s' % (len(obsoletos), os.path.relpath(aparte, RAIZ), ', '.join(obsoletos)))
+os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
+open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(unico)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
 
 # ---------- cifras de la documentación (auditoría H-069): se miden aquí para que README y ARQUITECTURA no las repitan a mano ----------
@@ -218,16 +285,16 @@ def tam(n):
 
 
 def pesa(rel):
-    return os.path.getsize(os.path.join(DOCS, *rel.split('/')))
+    return len(SALIDA[rel])
 
 
 cuenta = lambda carpeta, ext: len([n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n.endswith(ext)])
-peso_sitio = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(DOCS) for f in fs)
+peso_sitio = sum(len(b) for b in SALIDA.values())
 arranque = ['index.html', 'estilos.css', 'config.js', 'app.js', 'libs/deck.js', 'libs/pako.js'] + ['datos/%s.bin' % n for n in DATOS] + ['fuentes/' + a for a in FUENTES.values()]
 filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_DATOS),
          ('Módulos de lógica (`02_fuente/js/`)', cuenta('js', '.js')), ('Hojas de estilo (`02_fuente/css/`)', cuenta('css', '.css')),
          ('`docs/index.html`', tam(pesa('index.html'))), ('`docs/app.js`', tam(pesa('app.js'))), ('`docs/estilos.css`', tam(pesa('estilos.css'))),
-         ('Datos (`docs/datos/*.bin`)', tam(total)), ('Librerías (`docs/libs/*.js`)', tam(sum(pesa('libs/' + l) for l in os.listdir(os.path.join(DOCS, 'libs')) if l.endswith('.js')))),
+         ('Datos (`docs/datos/*.bin`)', tam(total)), ('Librerías (`docs/libs/*.js`)', tam(sum(pesa('libs/' + l) for l in LIBS_PUBLICADAS if l.endswith('.js')))),
          ('Tipografías (`docs/fuentes/*.woff2`)', tam(sum(pesa('fuentes/' + a) for a in FUENTES.values()))),
          ('Sitio completo (`docs/`)', tam(peso_sitio)), ('Archivos que se piden al abrir, sin comprimir', tam(sum(pesa(a) for a in arranque))),
          ('Archivo único (`_local/calles_prioritarias.html`)', tam(len(unico.encode('utf-8')))),
@@ -244,7 +311,7 @@ lee_readme = os.path.join(RAIZ, 'README.md')
 if os.path.exists(lee_readme) and ('**v%s**' % VERSION) not in open(lee_readme, encoding='utf-8').read():
     print('AVISO: README.md no menciona la versión v%s como vigente; actualizarlo antes del commit.' % VERSION)
 
-if '--artefacto' in sys.argv:
-    ruta = sys.argv[sys.argv.index('--artefacto') + 1]
+if args:
+    ruta = args[1]
     open(ruta, 'w', encoding='utf-8').write(fragmento)
     print('fragmento para el artefacto en', ruta)

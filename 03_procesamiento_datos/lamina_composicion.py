@@ -65,8 +65,16 @@ wash = patch.resize((NW, NH), Image.LANCZOS).filter(ImageFilter.GaussianBlur(22)
 canvas = Image.blend(Image.new('RGB', (NW, NH), base), wash, 0.45)
 d = ImageDraw.Draw(canvas)
 
-FB = '/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf'
-FR = '/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf'
+# Tipografías: Liberation Sans en Linux, Arial en Windows y macOS; se usa la primera que exista (auditoría H-024).
+def _fuente(*rutas):
+    for r in rutas:
+        if os.path.isfile(r):
+            return r
+    raise SystemExit('ERROR: no se encontró ninguna de estas tipografías: ' + ', '.join(rutas))
+
+
+FB = _fuente('/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf', 'C:/Windows/Fonts/arialbd.ttf', '/System/Library/Fonts/Supplemental/Arial Bold.ttf')
+FR = _fuente('/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf', 'C:/Windows/Fonts/arial.ttf', '/System/Library/Fonts/Supplemental/Arial.ttf')
 f_title = ImageFont.truetype(FB, 31)
 f_text = ImageFont.truetype(FR, 20)
 

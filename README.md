@@ -22,7 +22,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 | `02_fuente/` | **Aquí se edita.** `plantilla.html` (estructura), `css/` (estilos), `js/` (lógica, un archivo por tema), `datos/*.bin`, `img/`, `libs/` (librerías con sus licencias), `fuentes/` (tipografías) y `construir.py`, que lo ensambla todo. | Sí |
 | `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA). Lo genera `construir.py`; no se edita a mano. Necesita un servidor web: no se abre con doble clic. | Sí |
 | `03_procesamiento_datos/` | Scripts de Python numerados en el orden en que se corren, con `insumos/` e `intermedios/`, y `reporte_catalogos.py` (listas para homologación). Ver su `LEEME.md`. | Sí, salvo la capa de vialidades primarias (`insumos/VP_REFORESTACION/`) y la lámina original |
-| `04_pruebas/` | Seis pruebas automáticas: integral, coherencia de cifras, arranque sin terceros, errores y robustez, teléfono y uso sin conexión, y accesibilidad. Ver su `LEEME.md`. | Sí, salvo `capturas/` |
+| `04_pruebas/` | `correr_todas.js` corre todo y da una sola señal. Seis pruebas de navegador (integral, coherencia de cifras, arranque sin terceros, errores y robustez, teléfono y uso sin conexión, accesibilidad) y la prueba de la construcción. Ver su `LEEME.md`. | Sí, salvo `capturas/` |
 | `05_documentacion/` | `cifras_de_la_construccion.md` (tamaños y conteos, generado), `despliegue_sia.md` (decisiones para instalar en el SIA), `auditoria_ux_calles.html` (auditoría UI/UX del 24 sep 2026) y `bitacora/` (registro de versiones y decisiones). | Sí, salvo `bitacora/` |
 | `06_entregables/` | Guía de prueba con personal de alcaldías (Word y PDF), listas de catálogos para homologación en el SIA (Excel) y lámina de composición de frentes de manzana. | Sí |
 | `07_versiones/` | Versiones anteriores de la herramienta, con un `LEEME.md` que relaciona sus nombres con la numeración vigente. | No |
@@ -40,7 +40,9 @@ python3 02_fuente/construir.py
 
 Escribe `docs/`, `_local/calles_prioritarias.html` y `05_documentacion/cifras_de_la_construccion.md`. Solo reescribe los archivos que cambiaron. Requiere únicamente Python 3. Si este README no nombra como vigente la versión que se construye, la construcción lo avisa.
 
-Para verificar, correr las seis pruebas de `04_pruebas/` (ver su `LEEME.md`).
+La construcción **se detiene sin escribir nada** si falta o sobra un módulo, si un módulo está vacío o si los datos no son los registrados en `02_fuente/datos/SUMAS.json`. Los archivos de `docs/` que dejan de pertenecer al sitio no se borran: se mueven a `_to_delete/`.
+
+Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `node 04_pruebas/correr_todas.js rapidas` (datos, construcción y revisión estática, menos de un minuto). Ver `04_pruebas/LEEME.md`.
 
 ## Publicación
 
@@ -67,14 +69,17 @@ Para verificar, correr las seis pruebas de `04_pruebas/` (ver su `LEEME.md`).
 3. Liber revisa el commit en GitHub Desktop (pestaña History) y da **Push origin**. GitHub Pages se actualiza en uno o dos minutos.
 4. Cada cambio se documenta en `05_documentacion/bitacora/`.
 5. Claude nunca borra archivos de la carpeta: lo que sobre se mueve a `_to_delete/` para que Liber lo elimine.
+6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
+7. Cada cambio que llega a GitHub se verifica solo (`.github/workflows/verificar.yml`): datos, construcción y revisión estática. Si falla, GitHub avisa por correo a la cuenta; la página publicada no cambia por ello.
 
-## Estado al 2 de octubre de 2026 (versión 17.24)
+## Estado al 3 de octubre de 2026 (versión 17.25)
 
-- Versión vigente: **v17.24**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.25**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 17.25 | Reproducibilidad y pruebas (F1-B7): la construcción se detiene antes de escribir si falta o sobra una pieza, datos verificados por su contenido, reglas «prioritario» y «universo» en un solo lugar, revisión estática, verificación automática en GitHub y una sola orden para correr todas las pruebas |
 | 17.24 | Accesibilidad (F1-B5): anuncios para lector de pantalla, foco que no se pierde, listados y ficha de un frente operables con teclado, Esc cierra ficha y capas, ayuda con fondo inerte, bordes y foco con contraste, objetivos táctiles de 44 px en teléfono, letra en unidades relativas, impresión, propiedades e idioma en PDF y Excel |
 | 17.23 | Documentación, repositorio y licencias (bloque F1-B8 de la auditoría): archivo único sin librerías de terceros, textos de licencia, clave de CARTO, listas de catálogos para el SIA, guía de prueba actualizada |
 | 17.22 | Teléfono y rendimiento (F1-B6): «Mi ubicación» prudente, Excel grandes en proceso auxiliar, avance de carga, modo ligero, teléfono en horizontal, uso sin conexión |
@@ -96,8 +101,9 @@ Para verificar, correr las seis pruebas de `04_pruebas/` (ver su `LEEME.md`).
 7. **Claves de los mapas de fondo:** solicitar la clave gratuita de CARTO y ponerla en `CARTO_KEY` de `02_fuente/construir.py`; crear una cuenta de ArcGIS Location Platform, generar una clave restringida al dominio y ponerla en `ESRI_KEY`. En el SIA, sus cabeceras de seguridad deben permitir imágenes de `basemaps.cartocdn.com`, `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`.
 8. Regenerar el lote de fichas PDF de las 16 alcaldías con la versión definitiva.
 9. **Homologar los catálogos en el SIA** con las listas de `06_entregables/Catalogos_para_homologacion_SIA.xlsx` (colonias homónimas, códigos postales de cuatro dígitos, variantes de nombres de calle, vialidades con dos escrituras y la calle «Prueba»). La herramienta no corrige los catálogos.
-10. **Auditoría integral del 2 de octubre:** cerrados los bloques F1-B1, F1-B4, F1-B6 y F1-B8 (este último con los pendientes 7 y 9 y la licencia del repositorio); F1-B5 (accesibilidad) atendido salvo el pendiente 11; quedan F1-B2 (revisión jurídica de textos y tratamiento de tú o usted), F1-B3 (documento del modelo, depende del SIA), F1-B7 (calidad de ingeniería) y los bloques de la Fase 2.
-11. **Accesibilidad, lo que falta:** (a) el mapa comunica la prioridad solo con color (H-051): requiere decidir una opción de alto contraste o un cambio de la rampa, que está en visto bueno institucional, y rehacer la lámina de metodología, que usa verde y rojo; (b) las fichas PDF no están etiquetadas (H-052): la librería no lo permite; la salida es ofrecer la ficha también como página imprimible; (c) el encabezado de los Excel no queda inmovilizado; (d) falta la lectura con un lector de pantalla real (NVDA o VoiceOver).
+10. **Auditoría integral del 2 de octubre:** cerrados los bloques F1-B1, F1-B4, F1-B6 y F1-B8 (este último con los pendientes 7 y 9 y la licencia del repositorio); F1-B5 (accesibilidad) atendido salvo el pendiente 11; F1-B7 (reproducibilidad y pruebas) atendido salvo el pendiente 12; quedan F1-B2 (revisión jurídica de textos y tratamiento de tú o usted), F1-B3 (documento del modelo, depende del SIA) y los bloques de la Fase 2.
+11. **Accesibilidad, lo que falta:** (a) el mapa comunica la prioridad solo con color (H-051): se decidió dejarlo como limitación declarada (3 oct 2026), porque la prioridad está también en texto en el listado, las fichas y los Excel; la lámina de metodología, que usa verde y rojo, queda por rehacer; (b) las fichas PDF no están etiquetadas (H-052): la librería no lo permite; la salida es ofrecer la ficha también como página imprimible; (c) el encabezado de los Excel no queda inmovilizado; (d) falta la lectura con un lector de pantalla real (NVDA o VoiceOver).
+12. **Reproducibilidad, lo que falta:** (a) **la capa de vialidades primarias (`insumos/VP_REFORESTACION/`) no está en la carpeta de trabajo**: sin ella no pueden correrse los pasos 3 y 4 de `03_procesamiento_datos/`; hay que localizarla, resguardarla y entregarla al SIA con su suma de verificación, junto con el insumo del modelo (H-007); (b) fijar las versiones exactas de las dependencias de Python cuando la cadena vuelva a correrse; (c) el código sigue en un solo alcance y `fichaPDF` sin partir: extraer módulos con pruebas unitarias es trabajo de fondo (H-038).
 
 ## Navegadores y enlaces
 

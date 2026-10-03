@@ -1,5 +1,5 @@
 """Construye los bloques de datos v7: frentes (con responsable y enlace a vialidad primaria), vialidades primarias y META."""
-import json, gzip, collections, numpy as np, shapefile, shapely
+import json, gzip, collections, sys, numpy as np, shapefile, shapely
 from shapely import STRtree
 from pyproj import Transformer
 
@@ -35,6 +35,10 @@ def varint_bytes(vals):
 
 # ---------- vialidades primarias ----------
 to_wgs = Transformer.from_crs('EPSG:32614', 'EPSG:4326', always_xy=True)
+# La capa debe venir en UTM zona 14 norte (EPSG:32614): se comprueba en su .prj en lugar de suponerlo (auditoría H-024).
+_prj = SC + 'insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.prj'
+if os.path.isfile(_prj) and '14n' not in open(_prj, encoding='utf-8', errors='replace').read().lower().replace(' ', '').replace('_', ''):
+    sys.exit('ERROR: la capa de vialidades primarias no está en UTM zona 14 norte (revisar su .prj); no se generó nada.')
 r = shapefile.Reader(SC + 'insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp', encoding='utf-8')
 fields = [f[0] for f in r.fields[1:]]
 VP = []
@@ -46,7 +50,12 @@ for rec_i, sr in enumerate(r.iterShapeRecords()):
         L = float(np.sum(np.hypot(np.diff(p[:, 0]), np.diff(p[:, 1]))))
         lon, lat = to_wgs.transform(p[:, 0], p[:, 1])
         VP.append({'rec': rec_i, 'a': rec, 'lon': lon, 'lat': lat, 'len': L})
-assert len(VP) == len(set(gcvp.tolist()) - {-1}) or True
+# El cruce (paso 3) se hizo contra una capa concreta: cada frente de Gobierno Central guarda el número de la parte de vialidad
+# a la que quedó enlazado. Si la capa cambió y no se repitió el paso 3, esos números apuntan a otra vialidad (auditoría H-023).
+if int(gcvp.max()) >= len(VP):
+    sys.exit('ERROR: el cruce enlaza a la parte %d y la capa solo tiene %d partes. Repetir el paso 3 con esta capa; no se generó nada.' % (int(gcvp.max()), len(VP)))
+if 'nvp' in cr and int(cr['nvp']) != len(VP):
+    sys.exit('ERROR: el cruce se calculó con una capa de %d partes y la actual tiene %d. Repetir el paso 3; no se generó nada.' % (int(cr['nvp']), len(VP)))
 print('vp parts', len(VP))
 # alcaldía por punto medio dentro del polígono de META.alc
 ALC_POLYS = []
@@ -125,6 +134,9 @@ def summ(mask):
 alc_mask = gc == 0
 # verificar que el resumen original coincide con todos los frentes
 chk = summ(np.ones(N, bool)); print('check city all', chk['km'], 'vs', META['city']['km'])
+# El resumen original del modelo y la suma de los frentes solo pueden diferir por redondeo (longitudes en metros enteros).
+if max(abs(a - b) for a, b in zip(chk['km'], META['city']['km'])) > 0.2:
+    sys.exit('ERROR: los km por prioridad de los frentes no cuadran con el resumen del modelo; no se generó nada.')
 META['summ_all'] = META['summ']; META['city_all'] = META['city']
 META['summ'] = {m: summ(alc_mask & (mun == i)) for i, m in enumerate(META['muns'])}
 META['city'] = summ(alc_mask)
@@ -137,4 +149,5 @@ print('catálogos (meta):', len(meta_gz), 'bytes comprimidos')
 # bloques de datos de la herramienta (gzip de varints; construir.py los usa tal cual)
 for _n, _b in (('meta', meta_gz), ('data', fr_gz), ('vp', vp_gz)):
     open(RAIZ + '02_fuente/datos/%s.bin' % _n, 'wb').write(_b)
+print('Datos escritos en 02_fuente/datos/. Siguiente: python3 03_procesamiento_datos/verificar_datos.py --actualizar y python3 02_fuente/construir.py')
 print(json.dumps({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc']}, ensure_ascii=False))

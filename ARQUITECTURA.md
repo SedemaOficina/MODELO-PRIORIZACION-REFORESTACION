@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.24 (2 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.25 (3 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -25,7 +25,11 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
-├── 04_pruebas/                seis pruebas automáticas (ver su LEEME.md)
+├── 04_pruebas/                correr_todas.js, seis pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
+├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
+├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
+├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
+├── .github/workflows/         verificación automática en GitHub: datos, construcción y revisión estática
 ├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, auditoría UX
 │                              y bitácora de decisiones (la bitácora solo en la copia local)
 ├── 06_entregables/            guía de prueba con alcaldías, listas de catálogos para el SIA y lámina de frentes de manzana
@@ -48,6 +52,10 @@ MODELO-PRIORIZACION-REFORESTACION/
 - `js/*.js` se concatenan en orden alfabético dentro de una función asíncrona (`(async function(){ … })()`) → `app.js`. Por eso **todos los archivos comparten el mismo alcance**: una variable o función de `03_estado.js` se usa directamente en `10_seleccion.js`. Si al cargar ocurre un error, el cargador lo muestra en lugar del mapa.
 - `config.js` indica dónde están las librerías (`SIA_LIBS`) y la huella y el tamaño de los datos (`SIA_DATOS`). Si no existe (archivo único o artefacto), la app lee los datos incrustados.
 - Solo se reescriben los archivos que cambiaron, así Git no ve cambios falsos.
+- **Valida antes de escribir:** las listas `JS_ESPERADOS` y `CSS_ESPERADOS` nombran cada módulo; si falta, sobra o está vacío uno, se detiene con código 1 y no escribe nada. Para agregar un módulo hay que añadirlo a la lista. De `libs/` y `fuentes/` solo se publica lo listado en `LIBS_PUBLICADAS` y `FUENTES_PUBLICADAS`.
+- **Datos verificados:** compara el contenido descomprimido de `datos/*.bin` con `datos/SUMAS.json` y se detiene si no coincide. Se compara el contenido porque la compresión gzip cambia de un equipo a otro. Tras regenerar los datos a propósito: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`.
+- **No borra:** un archivo de `docs/` que ya no pertenece al sitio se mueve a `_to_delete/docs_obsoletos_<fecha>/` y se avisa. Genera `docs/.nojekyll`.
+- Lo cubre `04_pruebas/prueba_construccion.py`.
 - `ROBOTS` en `construir.py` controla la instrucción de no aparecer en buscadores.
 - Si `README.md` no nombra como vigente la versión de `VERSION`, la construcción lo avisa.
 
@@ -64,7 +72,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Archivo | Responsabilidad | Funciones principales |
 |---|---|---|
-| `01_utilidades.js` | `$`, formatos de número, km y porcentaje; errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `errAmable`, `esc`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
+| `01_utilidades.js` | `$`, formatos de número, km y porcentaje; **reglas de negocio** («prioritario» y «universo de intervención»); errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `PRIO_MIN`, `UNIV_MIN`, `esPrio`, `sumPrio`, `sumUniv`, `errAmable`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
 | `02_datos.js` | Descarga, descompresión y decodificación de los datos; `puntoMedio` es la única regla de punto medio (a media longitud sobre la línea) | `fetchBytes`, `gunzip`, `reader`, `puntoMedio` |
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP` |
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
@@ -97,6 +105,8 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
 | `fondo` | Mapa de fondo: `'no'`, `'calles'` o `'sat'` |
 | `opPrio` | Opacidad de las capas de prioridad (0.2 a 1) |
+
+**Reglas de negocio en un solo lugar:** «prioritario» es clase ≥ `PRIO_MIN` (Alta y Muy Alta) y «universo de intervención», clase ≥ `UNIV_MIN` (Media en adelante). Todo el código pregunta con `esPrio(clase)` y suma con `sumPrio(arreglo)` o `sumUniv(arreglo)`; no debe escribirse `>=3` ni `[3]+[4]`. Las comparaciones `===3` y `===4` que quedan separan Alta de Muy Alta (columnas distintas en los Excel).
 
 **Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía. Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición.
 
@@ -183,7 +193,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Generar las listas de catálogos para el SIA | `python3 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
-Después de cualquier cambio: `python3 02_fuente/construir.py` y las seis pruebas de `04_pruebas/` (ver su `LEEME.md`).
+Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js` (ver `04_pruebas/LEEME.md`).
 
 ### 9 bis. Rendimiento y modo ligero
 

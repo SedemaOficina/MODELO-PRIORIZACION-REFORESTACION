@@ -5,7 +5,7 @@ const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15];
 const zoomBand = z => ZOOM_CORTES.filter(c => z >= c).length;
 const dk = new DeckGL({
   container: mapEl, views: new MapView({repeat:false}), controller:{dragRotate:false, touchRotate:false, minZoom:9.4, maxZoom:18.5},
-  initialViewState: viewState, layers: layers(), style:{background:'transparent'},
+  initialViewState: viewState, layers: NOMAP? [] : layers(), style:{background:'transparent'},   // en las pruebas con #nomap no se dibuja nada: abren en segundos aun sin tarjeta gráfica
   useDevicePixels: Math.min(window.devicePixelRatio || 1, 1.5),   // pantallas de alta densidad: menos píxeles por dibujar
   onLoad: ()=> revisarRendimiento(),
   // un error al dibujar no deja el mapa en blanco sin explicación (auditoría H-034)

@@ -1,2 +1,16 @@
-# Auto detect text files and perform LF normalization
+# Texto: Git normaliza los fines de línea (LF en el repositorio).
 * text=auto
+
+# Lo que se publica debe ser idéntico byte a byte en cualquier equipo: las huellas ?v= se calculan sobre los bytes
+# (auditoría H-025). Git no toca los fines de línea de estos archivos.
+docs/** -text
+02_fuente/libs/** -text
+02_fuente/fuentes/** -text
+*.bin binary
+*.woff2 binary
+*.npz binary
+*.png binary
+*.jpg binary
+*.pdf binary
+*.docx binary
+*.xlsx binary

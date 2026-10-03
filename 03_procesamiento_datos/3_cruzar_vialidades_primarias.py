@@ -124,4 +124,4 @@ import random; random.seed(1)
 sample = random.sample(list(best.items()), 25)
 for f, (k, d) in sample:
     print(f'  {tipos[fr["tipo"][f]]} {names[fr["name"][f]]!r:45} ↔ {VP[k]["attr"]["NOMENCLAT"]!r:40} [{VP[k]["attr"]["NOMBRE"]}] {d:.0f} m')
-np.savez_compressed(SC + 'intermedios/cruce.npz', gc=gc, gcvp=gcvp)
+np.savez_compressed(SC + 'intermedios/cruce.npz', gc=gc, gcvp=gcvp, nvp=np.int64(len(VP)))   # nvp: partes de la capa con la que se hizo el cruce; el paso 4 lo comprueba

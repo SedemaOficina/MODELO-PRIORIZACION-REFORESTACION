@@ -36,10 +36,10 @@ function nearby(lon, lat){
   const scan = (R) => { out.length = 0; const dLat = R/110574 + 0.002, dLon = R/(111320*Math.cos(toRad(lat))) + 0.002;
     if (respOn.alc) for(let i=0;i<N;i++){ const x=MID[2*i], y=MID[2*i+1]; if (Math.abs(x-lon)>dLon || Math.abs(y-lat)>dLat || F.gc[i]) continue;
       const [d,dx,dy] = pathDist(POS, start[i], start[i+1], lon, lat); if (d<any.d){ any.d=d; any.k='fr'; any.i=i; any.dx=dx; any.dy=dy; }
-      if (F.prio[i]>=3 && d<=R) out.push({k:'fr', i, d, dx, dy}); }
+      if (esPrio(F.prio[i]) && d<=R) out.push({k:'fr', i, d, dx, dy}); }
     if (respOn.gc) for(let i=0;i<NV;i++){ const x=VMID[2*i], y=VMID[2*i+1]; if (Math.abs(x-lon)>dLon+0.01 || Math.abs(y-lat)>dLat+0.01) continue;
       const [d,dx,dy] = pathDist(VPOS, vstart[i], vstart[i+1], lon, lat); if (d<any.d){ any.d=d; any.k='vp'; any.i=i; any.dx=dx; any.dy=dy; }
-      if (VP.prio[i]>=3 && d<=R) out.push({k:'vp', i, d, dx, dy}); } };
+      if (esPrio(VP.prio[i]) && d<=R) out.push({k:'vp', i, d, dx, dy}); } };
   let R = 300; scan(R);
   if (!out.length){ R = 1500; scan(R); }
   // una calle aparece una sola vez: su tramo prioritario más cercano
