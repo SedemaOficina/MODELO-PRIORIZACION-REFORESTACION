@@ -31,5 +31,25 @@ const ok = L.Registro('arranque sin terceros');
   ok('la consulta de una alcaldía funciona sin terceros', (await page.$eval('#scope-title', e => e.innerText)).length > 0 && externas.length === 0);
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
   ok('sin errores de JavaScript', errores.length === 0, errores.slice(0, 2).join(' | '));
+  await ctx.close();
+  // ---- versión de un solo archivo (auditoría H-058 y H-095): se abre con doble clic y no pide nada a terceros, ni para Excel ni para fichas ----
+  const path = require('path'), fs = require('fs'); const unico = path.join(L.DOCS, '..', '_local', 'calles_prioritarias.html');
+  if (!fs.existsSync(unico)) ok('existe _local/calles_prioritarias.html (se genera al construir)', false);
+  else {
+    const c2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'es-MX', acceptDownloads: true }); const p2 = await c2.newPage(); p2.setDefaultTimeout(300000);
+    const err2 = [], ext2 = []; p2.on('pageerror', e => err2.push(e.message));
+    await p2.route('**/*', r => { const u = new URL(r.request().url()); if (u.protocol === 'file:' || u.protocol === 'data:' || u.protocol === 'blob:') return r.continue(); ext2.push(u.href); return r.abort(); });
+    await p2.goto('file://' + unico + '?modo=ligero'); await p2.waitForSelector('#loader[hidden]', { state: 'attached' }); await p2.waitForTimeout(800);
+    const enl = await p2.$$eval('script[src], link[href]', els => els.map(e => e.src || e.href).filter(u => /^https?:/.test(u)));
+    ok('archivo único: no enlaza código ni hojas de otros dominios', enl.length === 0, enl.slice(0, 3).join(' | '));
+    ok('archivo único: arranca con todo dominio externo bloqueado', await p2.evaluate(() => !!window.deck && !!window.pako));
+    await p2.selectOption('#alc', '5'); await p2.waitForTimeout(600);
+    const baja = async sel => { const [d] = await Promise.all([p2.waitForEvent('download', { timeout: 120000 }).catch(() => null), p2.$eval(sel, b => b.click())]); return d ? d.suggestedFilename() : ''; };
+    const x = await baja('#dl-calles'); ok('archivo único: entrega Excel sin conexión', /\.xlsx$/.test(x), x);
+    const f = await baja('#dl-ficha-alc'); ok('archivo único: entrega la ficha PDF sin conexión', /\.pdf$/.test(f), f);
+    ok('archivo único: ninguna solicitud a terceros', ext2.length === 0, ext2.slice(0, 3).join(' | '));
+    ok('archivo único: sin errores de JavaScript', err2.length === 0, err2.slice(0, 2).join(' | '));
+    await c2.close();
+  }
   await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

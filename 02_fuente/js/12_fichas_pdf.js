@@ -1,7 +1,7 @@
 // Fichas PDF (jsPDF bajo demanda) de colonia, alcaldía, vialidades primarias de la alcaldía, avenida y calle.
 // abre la ficha después de cargar jsPDF (de libs/ en el sitio; del CDN en el artefacto)
 function conPDF(kind){
-  loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
+  loadLib('jspdf.js', 'jspdf')
     .then(()=> generaFicha(()=> fichaPDF(kind)), ()=>{ $('dl-status').textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 }
 // «no cargó la librería» y «falló la generación» son errores distintos y se dicen distinto (auditoría H-035)
@@ -249,7 +249,7 @@ function fichaCallePDF(){
   doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
 }
-$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
+$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf')
   .then(()=> generaFicha(fichaCallePDF), ()=>{ $('dl-status').textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 $('dl-ficha').onclick = ()=>conPDF('col');
 $('dl-ficha-alc').onclick = ()=>conPDF('alc');

@@ -22,10 +22,11 @@ Requieren Python 3 con `numpy`, `pyshp`, `shapely` y `pyproj` (y `Pillow` para l
 | 3 | `3_cruzar_vialidades_primarias.py` | `intermedios/frentes.npz`, `intermedios/meta.json` e `insumos/VP_REFORESTACION/` | `intermedios/cruce.npz`: qué frentes quedan sobre una vialidad primaria (Gobierno Central) |
 | 4 | `4_generar_datos.py` | Los tres intermedios e `insumos/VP_REFORESTACION/` | `02_fuente/datos/meta.bin`, `data.bin` y `vp.bin` |
 | — | `lamina_composicion.py` | `insumos/slide_orig.jpg` | `06_entregables/composicion_frentes_manzana*.png` |
+| — | `reporte_catalogos.py` | `02_fuente/datos/*.bin` (los datos publicados) | `06_entregables/Catalogos_para_homologacion_SIA.xlsx`: listas de colonias y calles para homologar en la fuente. No modifica ningún catálogo. Requiere `openpyxl` |
 
 Después del paso 4: `python3 02_fuente/construir.py` y `node 04_pruebas/prueba_sitio.js`.
 
-Verificado el 25 sep 2026: los pasos 3 y 4 reproducen exactamente los datos publicados. Los archivos se comprimen sin fecha, así que volver a correrlos sin cambios no genera diferencias en Git.
+Verificado el 25 sep 2026 en la copia local: los pasos 3 y 4 reproducen exactamente los datos publicados. Un tercero no puede repetir esa verificación solo con el repositorio, porque el paso 1 lee un archivo de `07_versiones/` y los pasos 3 y 4 la capa `insumos/VP_REFORESTACION/`, que no se publican. Los archivos se comprimen sin fecha, así que volver a correrlos sin cambios no genera diferencias en Git.
 
 ## Regla del cruce con vialidades primarias
 

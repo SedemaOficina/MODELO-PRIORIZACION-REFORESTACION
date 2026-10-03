@@ -1,5 +1,17 @@
 # Pruebas
 
+Cinco pruebas automáticas. Todas terminan con error si algo falla; después de cualquier cambio se corren las cinco.
+
+| Prueba | Qué cuida | Duración aproximada sin tarjeta gráfica |
+|---|---|---|
+| `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 5 min |
+| `prueba_coherencia_cifras.js` | Que pantalla, Excel y fichas digan lo mismo que los datos | 15 min |
+| `prueba_sin_terceros.js` | Que el sitio y el archivo único arranquen y trabajen sin pedir nada a otros dominios | 2 min |
+| `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 5 min |
+| `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 12 min |
+
+## Prueba integral
+
 `prueba_sitio.js` levanta un servidor local sobre `docs/` y recorre en escritorio (1440 × 900) y teléfono (390 × 844) los flujos principales:
 
 - carga sin errores;
@@ -33,7 +45,7 @@ Requiere además Python 3 con `openpyxl` y la utilidad `pdftotext`. Termina con 
 
 ## Prueba de arranque sin terceros
 
-`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos.
+`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos. Después abre `_local/calles_prioritarias.html` como archivo, con todo dominio externo bloqueado, y verifica que arranca y que entrega un Excel y una ficha PDF con las librerías incrustadas.
 
 ```
 node 04_pruebas/prueba_sin_terceros.js

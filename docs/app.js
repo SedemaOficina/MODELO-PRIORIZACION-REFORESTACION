@@ -302,16 +302,18 @@ function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 4007
 let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
 // Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
-//  · calles: CARTO Positron sobre OpenStreetMap; no requiere clave.
+//  · calles: CARTO Positron sobre OpenStreetMap. Desde el 29 de septiembre de 2026 CARTO exige una clave propia
+//    (window.SIA_CARTO_KEY, se define en construir.py); sin ella las teselas llegan con la marca «API key required».
 //  · sat: imagen de satélite de Esri (World Imagery) con la capa de referencia de nombres de vías encima
 //    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY, se define en
 //    construir.py) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
 const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
+const CARTO_KEY = String(window.SIA_CARTO_KEY || '').trim();
 const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';
 const ESRI_AGOL = 'https://services.arcgisonline.com/ArcGIS/rest/services/';
 const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener">${t}</a>`;
 const FONDOS = {
-  calles: { url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png', size:256, max:19, op:1, nota:'',
+  calles: { url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png' + (CARTO_KEY? '?key='+encodeURIComponent(CARTO_KEY) : ''), size:256, max:19, op:1, nota:'',
     atrib:`Mapa: © ${enlace('https://www.openstreetmap.org/copyright','OpenStreetMap')} · © ${enlace('https://carto.com/attributions','CARTO')}` },
   sat: ESRI_KEY
     ? { url: ESRI_TILES+'arcgis/imagery/static/tile/{z}/{y}/{x}?token='+encodeURIComponent(ESRI_KEY), size:512, max:19, op:.9, nota:'',
@@ -1278,14 +1280,20 @@ function dictAoa(key, nreg, archivo, extra){
   return a;
 }
 // ---------- exportación a Excel (datos + diccionario) ----------
-// librerías bajo demanda: de docs/libs en la versión del sitio (window.SIA_LIBS) o del CDN en el artefacto
+// librerías bajo demanda: de docs/libs en el sitio (window.SIA_LIBS) o, en la versión de un solo archivo, de la copia
+// incrustada en la propia página (<script id="lib-ARCHIVO-b64">). Ninguna versión pide librerías a terceros (auditoría H-058, H-095).
+function libIncrustada(file){ const el = document.getElementById('lib-' + file + '-b64'); if (!el) return null;
+  const bin = atob(el.textContent.trim()), u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([u8], {type:'text/javascript'})); }
 const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces (auditoría H-036)
-function loadLib(file, glob, cdn){
+function loadLib(file, glob){
   if (window[glob]) return Promise.resolve(window[glob]);
   if (LIB_EN_CURSO[file]) return LIB_EN_CURSO[file];
   return LIB_EN_CURSO[file] = new Promise((res, rej)=>{
     const s = document.createElement('script');
-    s.src = window.SIA_LIBS ? window.SIA_LIBS + file : cdn;
+    const src = window.SIA_LIBS ? window.SIA_LIBS + file : libIncrustada(file);
+    if (!src) return rej(new Error('la librería ' + file + ' no viene en esta copia'));
+    s.src = src;
     s.onload = ()=> window[glob] ? res(window[glob]) : rej(new Error('sin ' + glob));
     s.onerror = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); rej(new Error('no se pudo cargar la librería')); };
     document.head.appendChild(s);
@@ -1294,7 +1302,7 @@ function loadLib(file, glob, cdn){
 let XL = null;
 function loadXL(){
   if (XL) return Promise.resolve(XL);
-  return loadLib('xlsx.js', 'XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(x => (XL = x));
+  return loadLib('xlsx.js', 'XLSX').then(x => (XL = x));
 }
 const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
@@ -1311,7 +1319,7 @@ async function deliverTable(base, key, aoa, extra){
     catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
   }
   let X; try { X = await loadXL(); }
-  catch(e){ // sin conexión al CDN: se entrega CSV, con el diccionario en un segundo archivo
+  catch(e){ // no se pudo cargar la librería de Excel: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
@@ -1392,7 +1400,7 @@ document.fonts && document.fonts.ready.then(()=> rerender());
 // Fichas PDF (jsPDF bajo demanda) de colonia, alcaldía, vialidades primarias de la alcaldía, avenida y calle.
 // abre la ficha después de cargar jsPDF (de libs/ en el sitio; del CDN en el artefacto)
 function conPDF(kind){
-  loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
+  loadLib('jspdf.js', 'jspdf')
     .then(()=> generaFicha(()=> fichaPDF(kind)), ()=>{ $('dl-status').textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 }
 // «no cargó la librería» y «falló la generación» son errores distintos y se dicen distinto (auditoría H-035)
@@ -1640,7 +1648,7 @@ function fichaCallePDF(){
   doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
 }
-$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
+$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf')
   .then(()=> generaFicha(fichaCallePDF), ()=>{ $('dl-status').textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 $('dl-ficha').onclick = ()=>conPDF('col');
 $('dl-ficha-alc').onclick = ()=>conPDF('alc');

@@ -8,14 +8,16 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
                    se unen en un solo app.js dentro de una función asíncrona
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
   img/             logotipo y lámina de la metodología
-  libs/            deck.gl, pako, jsPDF y SheetJS (copias locales, con LICENCIAS.md)
+  libs/            deck.gl, pako, jsPDF y SheetJS (copias locales sin modificar, con LICENCIAS.md y el texto de cada licencia)
   fuentes/         tipografías Cabin y Roboto (woff2 variables, subconjunto latino) con su licencia OFL;
                    se sirven desde el propio sitio: la página no pide nada a terceros para arrancar
 
 Salidas:
   ../docs/                               sitio para GitHub Pages y el SIA: página, estilos, código,
                                          datos, librerías e imágenes en archivos aparte
-  ../_local/calles_prioritarias.html     un solo archivo para abrir con doble clic (no se publica)
+  ../_local/calles_prioritarias.html     un solo archivo para abrir con doble clic, con librerías, tipografías y datos
+                                         incrustados: no pide nada a terceros (no se publica)
+  ../05_documentacion/cifras_de_la_construccion.md   tamaños y conteos medidos en esta construcción
   --artefacto RUTA                       fragmento para el artefacto de Claude (sin esqueleto)
 
 Uso:  python3 02_fuente/construir.py [--artefacto RUTA]
@@ -38,8 +40,9 @@ ESQUELETO = ('<!doctype html><html lang="es"><head><meta charset=utf8>'
              '<style>:root{color-scheme:light}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;'
              'background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>'
              '{CABEZA}</head><body>\n')
-CDN = {'deck.js': 'https://cdn.jsdelivr.net/npm/deck.gl@9.4.0/dist.min.js',
-       'pako.js': 'https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako_inflate.min.js'}
+# Librerías: en el arranque (deck, pako) y bajo demanda (Excel y fichas PDF). Todas salen de libs/, en el sitio y en el archivo único.
+LIBS_ARRANQUE = ('deck.js', 'pako.js')
+LIBS_DEMANDA = ('xlsx.js', 'jspdf.js')
 IMAGENES = {'img/logo_sedema_reforestacion.png': 'image/png', 'img/composicion_frentes_manzana.jpg': 'image/jpeg'}
 DATOS = ('meta', 'data', 'vp')
 # Tipografías servidas desde el sitio (familia -> archivo en fuentes/). Peso variable de 400 a 700.
@@ -48,9 +51,13 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 # vías (World_Transportation) desde services.arcgisonline.com, sin clave (pendiente de regularizar con cuenta de Esri).
 # La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
 ESRI_KEY = ''
+# Clave de CARTO para el fondo «Calles». Desde el 29 de septiembre de 2026 CARTO exige una clave propia; sin ella las
+# teselas llegan con la marca de agua «API key required». Se solicita sin costo en carto.com (sin cuenta) y va en la
+# dirección de cada tesela (?key=), así que también queda visible en la página.
+CARTO_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.22'
+VERSION = '17.23'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -113,21 +120,26 @@ assert plantilla.count('<!-- ESTILOS -->') == 1, 'la plantilla debe tener un sol
 for img in IMAGENES:
     assert ('src="%s"' % img) in plantilla, 'la plantilla no usa ' + img
 
-# ---------- 1) versión en un solo archivo: estilos, imágenes y datos incrustados; librerías del CDN ----------
+# ---------- 1) versión en un solo archivo: estilos, tipografías, imágenes, datos y librerías incrustados ----------
+# No pide nada a terceros (auditoría H-058 y H-095): sirve en redes que bloquean dominios externos.
 incrustadas = css_fuentes(lambda a: 'data:font/woff2;base64,' + base64.b64encode(leer('fuentes/' + a, True)).decode())
 cuerpo = plantilla.replace('<!-- ESTILOS -->', '<style>\n' + incrustadas + estilos + '</style>')
 for img, tipo in IMAGENES.items():
     cuerpo = cuerpo.replace('src="%s"' % img, 'src="data:%s;base64,%s"' % (tipo, base64.b64encode(leer(img, True)).decode()))
 cuerpo += '<script>' + VIGIA + '</script>\n'
-cuerpo += ''.join('<script src="%s"></script>\n' % CDN[k] for k in ('deck.js', 'pako.js'))
+for k in LIBS_ARRANQUE:
+    codigo = leer('libs/' + k)
+    assert '</script' not in codigo.lower(), k + ' no puede incrustarse tal cual'
+    cuerpo += '<script>' + codigo + '</script>\n'
+cuerpo += ''.join('<script id="lib-%s-b64" type="text/plain">%s</script>\n' % (k, base64.b64encode(leer('libs/' + k, True)).decode()) for k in LIBS_DEMANDA)
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
-cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
+cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
 fragmento = cuerpo
 
 os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
-open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(
-    ESQUELETO.replace('{CABEZA}', ROBOTS) + fragmento + '</body></html>\n')
+unico = ESQUELETO.replace('{CABEZA}', ROBOTS) + fragmento + '</body></html>\n'
+open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(unico)
 
 # ---------- 2) sitio: cada pieza en su archivo, con huella ?v= para la caché del navegador ----------
 ver = {}
@@ -149,7 +161,7 @@ for arch in sorted(os.listdir(os.path.join(FUENTE, 'fuentes'))):
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_CARTO_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)
@@ -193,6 +205,38 @@ self.addEventListener('fetch', e => { const q = e.request; if (q.method !== 'GET
 ''' % (AVISO % 'construir.py', v(pagina + json.dumps(PRE)), json.dumps(PRE))
 poner('sw.js', SW)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
+
+# ---------- cifras de la documentación (auditoría H-069): se miden aquí para que README y ARQUITECTURA no las repitan a mano ----------
+def tam(n):
+    return '%.1f MB' % (n / 1048576) if n >= 1048576 else '%d KB' % round(n / 1024)
+
+
+def pesa(rel):
+    return os.path.getsize(os.path.join(DOCS, *rel.split('/')))
+
+
+cuenta = lambda carpeta, ext: len([n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n.endswith(ext)])
+peso_sitio = sum(os.path.getsize(os.path.join(d, f)) for d, _, fs in os.walk(DOCS) for f in fs)
+arranque = ['index.html', 'estilos.css', 'config.js', 'app.js', 'libs/deck.js', 'libs/pako.js'] + ['datos/%s.bin' % n for n in DATOS] + ['fuentes/' + a for a in FUENTES.values()]
+filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_DATOS),
+         ('Módulos de lógica (`02_fuente/js/`)', cuenta('js', '.js')), ('Hojas de estilo (`02_fuente/css/`)', cuenta('css', '.css')),
+         ('`docs/index.html`', tam(pesa('index.html'))), ('`docs/app.js`', tam(pesa('app.js'))), ('`docs/estilos.css`', tam(pesa('estilos.css'))),
+         ('Datos (`docs/datos/*.bin`)', tam(total)), ('Librerías (`docs/libs/*.js`)', tam(sum(pesa('libs/' + l) for l in os.listdir(os.path.join(DOCS, 'libs')) if l.endswith('.js')))),
+         ('Tipografías (`docs/fuentes/*.woff2`)', tam(sum(pesa('fuentes/' + a) for a in FUENTES.values()))),
+         ('Sitio completo (`docs/`)', tam(peso_sitio)), ('Archivos que se piden al abrir, sin comprimir', tam(sum(pesa(a) for a in arranque))),
+         ('Archivo único (`_local/calles_prioritarias.html`)', tam(len(unico.encode('utf-8')))),
+         ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
+         ('Mapas de fondo', 'Calles (CARTO): %s · Satélite (Esri): %s' % ('con clave' if CARTO_KEY else 'sin clave', 'con clave' if ESRI_KEY else 'sin clave'))]
+cifras = ('# Cifras de la construcción\n\nGenerado por 02_fuente/construir.py en cada construcción. No editar aquí.' + '\n\nMedidas al construir la versión %s. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.\n\n' % VERSION
+          + '| Concepto | Valor |\n|---|---|\n' + ''.join('| %s | %s |\n' % f for f in filas))
+ruta_cifras = os.path.join(RAIZ, '05_documentacion', 'cifras_de_la_construccion.md')
+os.makedirs(os.path.dirname(ruta_cifras), exist_ok=True)
+if not (os.path.exists(ruta_cifras) and open(ruta_cifras, encoding='utf-8').read() == cifras):
+    open(ruta_cifras, 'w', encoding='utf-8', newline='').write(cifras)
+# El README debe nombrar la versión que se construye: si no, la construcción lo dice.
+lee_readme = os.path.join(RAIZ, 'README.md')
+if os.path.exists(lee_readme) and ('**v%s**' % VERSION) not in open(lee_readme, encoding='utf-8').read():
+    print('AVISO: README.md no menciona la versión v%s como vigente; actualizarlo antes del commit.' % VERSION)
 
 if '--artefacto' in sys.argv:
     ruta = sys.argv[sys.argv.index('--artefacto') + 1]

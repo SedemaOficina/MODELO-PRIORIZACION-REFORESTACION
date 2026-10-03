@@ -2,9 +2,11 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
+**Corresponde a la versión 17.23 (2 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+
 ## 1. En una frase
 
-Sitio **estático**: HTML, CSS y JavaScript sin frameworks ni compilador. El navegador descarga los datos ya procesados (`docs/datos/*.bin`), los descomprime y dibuja el mapa con deck.gl. No hay servidor de aplicaciones, base de datos ni GeoServer, y la herramienta no guarda datos de nadie.
+Sitio **estático**: HTML, CSS y JavaScript sin frameworks ni compilador. El navegador descarga los datos ya procesados (`docs/datos/*.bin`), los descomprime y dibuja el mapa con deck.gl. No hay servidor de aplicaciones, base de datos ni GeoServer, y la herramienta no guarda datos de nadie: el navegador solo conserva los archivos de la propia herramienta (para abrir sin conexión) y una preferencia de aviso.
 
 ## 2. Mapa del repositorio
 
@@ -19,13 +21,15 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   ├── js/                    lógica, un archivo por tema, en orden de ejecución
 │   ├── datos/                 meta.bin, data.bin, vp.bin (los genera 03_procesamiento_datos)
 │   ├── img/                   logotipo y lámina de la metodología
-│   ├── libs/                  deck.gl, pako, jsPDF, SheetJS + excel_worker.js (arma los Excel grandes aparte) + LICENCIAS.md
+│   ├── libs/                  deck.gl, pako, jsPDF, SheetJS + excel_worker.js (arma los Excel grandes aparte) + LICENCIAS.md y el texto de cada licencia
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
-├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ (ver su LEEME.md)
-├── 04_pruebas/                prueba integral en escritorio y teléfono (ver su LEEME.md)
-├── 05_documentacion/          auditoría UX y bitácora de decisiones (la bitácora solo en la copia local)
-├── 06_entregables/            guía de prueba con alcaldías y lámina de frentes de manzana
+├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
+├── 04_pruebas/                cinco pruebas automáticas (ver su LEEME.md)
+├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, auditoría UX
+│                              y bitácora de decisiones (la bitácora solo en la copia local)
+├── 06_entregables/            guía de prueba con alcaldías, listas de catálogos para el SIA y lámina de frentes de manzana
+├── _local/                    la herramienta en un solo archivo (generado; solo en la copia local)
 └── 07_versiones/              versiones anteriores (solo en la copia local)
 ```
 
@@ -35,8 +39,9 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Salida | Para qué | Cómo quedan las piezas |
 |---|---|---|
-| `docs/` | GitHub Pages y el servidor del SIA | `index.html` (31 KB) + `estilos.css` + `config.js` + `app.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. Sin código en línea. |
-| `_local/calles_prioritarias.html` | Abrir con doble clic, sin servidor | Todo incrustado en un archivo (6.7 MB); librerías desde CDN. No se publica. |
+| `docs/` | GitHub Pages y el servidor del SIA | `index.html` + `estilos.css` + `config.js` + `app.js` + `sw.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. **Sin programas en línea:** todo el JavaScript va en archivos. **Sí hay estilos en línea:** el bloque `<style>` del esqueleto y algunos atributos `style`; retirarlos es requisito para la política de seguridad de contenido del SIA (Fase 2). |
+| `_local/calles_prioritarias.html` | Abrir con doble clic, sin servidor, también en redes que bloquean dominios externos | Todo incrustado en un archivo: estilos, tipografías, imágenes, datos y las cuatro librerías (deck.gl y pako como programa; SheetJS y jsPDF en base64, se activan al pedir un Excel o una ficha). No pide nada a terceros. No se publica. |
+| `05_documentacion/cifras_de_la_construccion.md` | Documentación | Tamaños y conteos medidos en la construcción. |
 | `--artefacto RUTA` | Respaldo como artefacto de Claude | Igual que el anterior, sin la envoltura `<html>`. |
 
 - `css/*.css` se concatenan en orden alfabético → `estilos.css`.
@@ -44,6 +49,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 - `config.js` indica dónde están las librerías (`SIA_LIBS`) y la huella y el tamaño de los datos (`SIA_DATOS`). Si no existe (archivo único o artefacto), la app lee los datos incrustados.
 - Solo se reescriben los archivos que cambiaron, así Git no ve cambios falsos.
 - `ROBOTS` en `construir.py` controla la instrucción de no aparecer en buscadores.
+- Si `README.md` no nombra como vigente la versión de `VERSION`, la construcción lo avisa.
 
 ## 4. Orden de carga en el navegador
 
@@ -58,7 +64,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Archivo | Responsabilidad | Funciones principales |
 |---|---|---|
-| `01_utilidades.js` | `$`, formatos de número, km y porcentaje | `kmTxt`, `kmFull`, `pct` |
+| `01_utilidades.js` | `$`, formatos de número, km y porcentaje; errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `errAmable`, `esc`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
 | `02_datos.js` | Descarga, descompresión y decodificación de los datos; `puntoMedio` es la única regla de punto medio (a media longitud sobre la línea) | `fetchBytes`, `gunzip`, `reader`, `puntoMedio` |
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP` |
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
@@ -69,12 +75,12 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías; calle consultada (la resaltada) | `nomFrente` (nombre único de un frente; «Frente sin nombre de calle (INEGI)»), `buildStreets`, `buildAvenues`, `desgHtml` (desglose de la calle por prioridad), `calleCoincide` y `renderUbicar` (paso de ubicación de un nombre repetido: alcaldías con conteo y renglones sin cifras), `renderResults`, `highlightStreet`, `calleSel` |
 | `09_tramos.js` | Tramos de la calle consultada: agrupa sus frentes de esquina a esquina con una regla geométrica (casi paralelos, en lados opuestos y traslapados) y nombra las vialidades que los delimitan; se calcula al consultar, sin cambiar los datos | `tramosDeCalle`, `entreTxt`, `tramosSel`, `renderTramos` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
-| `11_descargas.js` | CSV y Excel con diccionario de datos; carga de librerías bajo demanda | `deliverTable`, `dictAoa`, `loadLib` |
+| `11_descargas.js` | CSV y Excel con diccionario de datos; carga de librerías bajo demanda (de `libs/` en el sitio, de la copia incrustada en el archivo único) | `deliverTable`, `dictAoa`, `loadLib`, `libIncrustada`, `excelAparte` |
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |
 | `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
 | `14_buscador.js` | Buscador único con abreviaturas y tolerancia a errores | `omniIndex`, `omniSearch`, `omniPick` |
 | `15_mi_ubicacion.js` | GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
-| `16_arranque.js` | Estado inicial | — |
+| `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
 
 ### Estado global (en `03_estado.js`)
 
@@ -133,7 +139,7 @@ Los tres archivos son **gzip de una secuencia de enteros varint con signo en zig
 | `Q`, `N`, `bounds`, `ambito` | Escala de coordenadas, número de frentes, encuadres |
 
 **`data.bin`** (372,534 frentes de manzana): `N`, y por cada frente: alcaldía, prioridad (0 Muy Baja … 4 Muy Alta), nombre, tipo, colonia, longitud (m), `flags`, vialidad primaria + 1, número de vértices y los vértices.
-`flags`: bits 0–2 arbolado (1 = sin arbolado), bits 3–5 banqueta (índice en `disp`), bit 6 = a cargo de Gobierno Central.
+`flags`: bits 0–2 arbolado (1 = sin arbolado; el significado de las demás clases no está documentado y queda por confirmar con el SIA), bits 3–5 banqueta (índice en `disp`), bit 6 = a cargo de Gobierno Central.
 
 **`vp.bin`** (tramos de vialidades primarias): `NV`, y por cada tramo: nomenclatura, nombre, tipo, carriles, circulación, texto de alcaldía, alcaldía, prioridad, longitud (m), clave, registro, número de vértices y los vértices.
 
@@ -143,11 +149,11 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 
 | Qué | Dónde | Nota |
 |---|---|---|
-| deck.gl 9.4, pako 2.1, jsPDF 2.5.2, SheetJS 0.18.5 | `docs/libs/` (sitio) · CDN (archivo único y artefacto) | Licencias en `libs/LICENCIAS.md` |
+| deck.gl 9.4, pako 2.1, jsPDF 2.5.2, SheetJS 0.18.5 | `docs/libs/` (sitio) · incrustadas (archivo único y artefacto) | Copias idénticas a las del paquete publicado en npm (huellas SHA-256 en `libs/LICENCIAS.md`), con el texto de cada licencia en `libs/LICENCIA_*.txt`. Ninguna versión las pide a una red de distribución externa |
 | Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único y artefacto) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
-| Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Sin clave; atribución obligatoria. Solo se pide si el usuario lo enciende |
+| Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Desde el 29 de septiembre de 2026 CARTO exige una clave propia (gratuita hasta cierto volumen); sin ella las teselas llegan con la marca «API key required». La clave va en `CARTO_KEY` de `construir.py`. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 | Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave va en `ESRI_KEY` de `construir.py`. El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 
 ## 9. Cambios comunes
@@ -164,10 +170,11 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Retirar el aviso de asignación preliminar (cuando la regla del cruce esté validada) | `#prelim-note` en `plantilla.html`, `PRELIM_TXT` en `js/01_utilidades.js` y la frase de la ayuda |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
-| Activar el satélite de Esri | Poner la clave en `ESRI_KEY` de `construir.py` y reconstruir |
+| Poner la clave de un mapa de fondo | `CARTO_KEY` (calles) o `ESRI_KEY` (satélite) en `construir.py` y reconstruir. Las claves quedan visibles en la página: restringirlas al dominio del sitio |
+| Generar las listas de catálogos para el SIA | `python3 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
-Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_pruebas/prueba_sitio.js`.
+Después de cualquier cambio: `python3 02_fuente/construir.py` y las cinco pruebas de `04_pruebas/` (ver su `LEEME.md`).
 
 ### 9 bis. Rendimiento y modo ligero
 
@@ -181,4 +188,4 @@ Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_prueba
 
 ## 10. Publicación en el SIA (resumen)
 
-`docs/` se copia tal cual a una ruta del servidor web (p. ej. `/calles-prioritarias/`). Necesita: redirección de la ruta sin barra final a la ruta con barra, tipos MIME estándar (`.bin` como `application/octet-stream`, sin volver a comprimirlo) y caché larga para los archivos con `?v=`. La guía de instalación, la configuración de nginx y la lista de verificación forman parte del paquete de entrega pendiente.
+`docs/` se copia tal cual a una ruta del servidor web (p. ej. `/calles-prioritarias/`). Necesita: redirección de la ruta sin barra final a la ruta con barra, tipos MIME estándar (`.bin` como `application/octet-stream`, sin volver a comprimirlo) y caché larga para los archivos con `?v=`. La guía de instalación, la configuración de nginx y la lista de verificación forman parte del paquete de entrega pendiente. Las decisiones previas (para qué es el login, quién da de alta, dirección, actualizaciones) están en `05_documentacion/despliegue_sia.md`. Dos puntos técnicos ya identificados: los estilos en línea frente a la política de seguridad de contenido, y `sw.js`, que debe revisarse con el inicio de sesión.

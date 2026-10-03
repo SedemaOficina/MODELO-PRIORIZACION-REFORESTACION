@@ -142,14 +142,20 @@ function dictAoa(key, nreg, archivo, extra){
   return a;
 }
 // ---------- exportación a Excel (datos + diccionario) ----------
-// librerías bajo demanda: de docs/libs en la versión del sitio (window.SIA_LIBS) o del CDN en el artefacto
+// librerías bajo demanda: de docs/libs en el sitio (window.SIA_LIBS) o, en la versión de un solo archivo, de la copia
+// incrustada en la propia página (<script id="lib-ARCHIVO-b64">). Ninguna versión pide librerías a terceros (auditoría H-058, H-095).
+function libIncrustada(file){ const el = document.getElementById('lib-' + file + '-b64'); if (!el) return null;
+  const bin = atob(el.textContent.trim()), u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
+  return URL.createObjectURL(new Blob([u8], {type:'text/javascript'})); }
 const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces (auditoría H-036)
-function loadLib(file, glob, cdn){
+function loadLib(file, glob){
   if (window[glob]) return Promise.resolve(window[glob]);
   if (LIB_EN_CURSO[file]) return LIB_EN_CURSO[file];
   return LIB_EN_CURSO[file] = new Promise((res, rej)=>{
     const s = document.createElement('script');
-    s.src = window.SIA_LIBS ? window.SIA_LIBS + file : cdn;
+    const src = window.SIA_LIBS ? window.SIA_LIBS + file : libIncrustada(file);
+    if (!src) return rej(new Error('la librería ' + file + ' no viene en esta copia'));
+    s.src = src;
     s.onload = ()=> window[glob] ? res(window[glob]) : rej(new Error('sin ' + glob));
     s.onerror = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); rej(new Error('no se pudo cargar la librería')); };
     document.head.appendChild(s);
@@ -158,7 +164,7 @@ function loadLib(file, glob, cdn){
 let XL = null;
 function loadXL(){
   if (XL) return Promise.resolve(XL);
-  return loadLib('xlsx.js', 'XLSX', 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js').then(x => (XL = x));
+  return loadLib('xlsx.js', 'XLSX').then(x => (XL = x));
 }
 const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
@@ -175,7 +181,7 @@ async function deliverTable(base, key, aoa, extra){
     catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
   }
   let X; try { X = await loadXL(); }
-  catch(e){ // sin conexión al CDN: se entrega CSV, con el diccionario en un segundo archivo
+  catch(e){ // no se pudo cargar la librería de Excel: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
