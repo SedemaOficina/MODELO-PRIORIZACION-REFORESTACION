@@ -35,7 +35,25 @@ function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); re
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta o Alta: el listado de tramos prioritarios estaría vacío.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); }
+// ---------- la consulta queda en la dirección (auditoría H-042) ----------
+// r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida. Atrás y Adelante recorren las consultas,
+// la consulta sobrevive a una recarga y la dirección se puede compartir.
+function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v'].forEach(k=>p.delete(k));
+  if (resp!=='alc') p.set('r', resp);
+  if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
+  const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
+function guardaURL(){ if (restaurando) return; const u = urlEstado(); if (u === location.pathname + location.search + location.hash) return;
+  try { history.pushState({consulta:true}, '', u); } catch(e){} }
+function aplicarURL(){ const p = new URLSearchParams(location.search); const r = p.get('r')==='gc'? 'gc' : p.get('r')==='both'? 'both' : 'alc';
+  const a = munIndex[p.get('a')], c = +p.get('c'), v = +p.get('v'); const m = a===undefined? null : a; const antes = restaurando; restaurando = true;
+  try {
+    if (resp!==r) setResp(r);
+    if (p.has('c') && r!=='gc' && Number.isInteger(c) && c>0 && META.colonias[c] && META.colonias[c].n){ if (selCol!==c) pickColonia(c); }
+    else if (p.has('v') && r==='gc' && Number.isInteger(v) && v>0 && VPC.nomenclat[v]){ if (sel!==m){ sel=m; selEl.value = m===null? '' : String(m); } if (selAv!==v) pickAvenida(v); else refresh(); }
+    else if (sel!==m || selCol!==null || selAv!==null){ selEl.value = m===null? '' : String(m); setSel(selEl.value); }
+  } finally { restaurando = antes; } }
+addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
 function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;
   const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista para descargar su Excel o su ficha.`; }
 function setSel(v){

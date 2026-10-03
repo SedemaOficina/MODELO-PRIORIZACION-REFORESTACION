@@ -1,7 +1,7 @@
 // Buscador único: alcaldías, colonias, avenidas y calles, con abreviaturas y tolerancia a errores.
 // ---------- buscador único (auditoría C6) ----------
 const omni=$('omni'), omniList=$('omni-list'), omniClear=$('omni-clear');
-const OMNI_AB = Object.assign({}, ABREV, {calz:'calzada', clz:'calzada', av:'avenida', avda:'avenida', ave:'avenida', blvd:'boulevard', cda:'cerrada', priv:'privada', and:'andador', circ:'circuito', cto:'circuito', dr:'doctor', ing:'ingeniero', lic:'licenciado', mtro:'maestro', pdte:'presidente', fco:'francisco', gpe:'guadalupe', ma:'maria', col:'colonia'});
+const OMNI_AB = Object.assign({}, ABREV, {calz:'calzada', clz:'calzada', av:'avenida', avda:'avenida', ave:'avenida', blvd:'boulevard', cda:'cerrada', priv:'privada', and:'andador', circ:'circuito', cto:'circuito', dr:'doctor', ing:'ingeniero', lic:'licenciado', mtro:'maestro', pdte:'presidente', fco:'francisco', gpe:'guadalupe', ma:'maria', col:'colonia', sn:'san', sta:'santa', sto:'santo'});
 const STOP = new Set(['de','del','la','las','los','el','y','en']);
 const toks = s => norm(s||'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>OMNI_AB[t]||t).join(' ').split(' ');
 function lev1(a,b){ if(a===b) return true; const la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false; let i=0,j=0,e=0;
@@ -26,12 +26,19 @@ function omniIndex(){ if (OM) return OM;
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const k=c.n+'|'+(c.cp||'')+'|'+c.m; const a=seen.get(k)||[]; a.push(i); seen.set(k,a); }
   for(const a of seen.values()) if (a.length>1) a.forEach((id,k)=>OM.part.set(id, [k+1, a.length]));
   return OM; }
-let omniItems=[], omniActive=-1, omniQ='';
+let omniItems=[], omniActive=-1, omniQ='', omniTodas=false;
 function omniSearch(q){
-  const qt = toks(q).filter(t=>!STOP.has(t)); if (!qt.length || q.trim().length<2) return null;
+  let qt = toks(q).filter(t=>!STOP.has(t)); if (!qt.length || q.trim().length<2) return null;
+  // «col.» o «colonia» delante del nombre es una forma de hablar, no parte del nombre (auditoría H-039)
+  const qtCol = (qt.length>1 && qt[0]==='colonia')? qt.slice(1) : qt;
   const I = omniIndex(); omniTypo=false; const R = {alc:[], col:[], av:[], st:[]};
   I.alc.forEach((ct,i)=>{ const s=omniMatch(qt,ct); if(s) R.alc.push({t:'alc', i, s: s+1.5}); });
-  for(let i=1;i<I.col.length;i++){ if(!I.col[i]) continue; let s=omniMatch(qt,I.col[i]), via=''; if(!s && I.colUT[i]){ s=omniMatch(qt,I.colUT[i]); if(s){ s-=1; via=META.colonias[i].ut; } } if(s) R.col.push({t:'col', i, s: s+0.5, via}); }
+  for(let i=1;i<I.col.length;i++){ if(!I.col[i]) continue; let s=omniMatch(qtCol,I.col[i]), via='';
+    // colonia + alcaldía: «los reyes coyoacan». Parte de las palabras nombra la colonia y el resto, su alcaldía
+    if(!s && qtCol.length>=2){ const al = I.alc[munIndex[META.colonias[i].m]] || []; const enCol = qtCol.filter(t=>I.col[i].some(c=>tokScore(t,c)>=1.5)), resto = qtCol.filter(t=>!enCol.includes(t));
+      if (enCol.length && resto.length && omniMatch(resto, al)){ s = omniMatch(enCol, I.col[i]); if (s) s += 0.4; } }
+    if (s && sel!==null && munIndex[META.colonias[i].m]===sel) s += 0.3;   // primero las de la alcaldía consultada
+    if(!s && I.colUT[i]){ s=omniMatch(qt,I.colUT[i]); if(s){ s-=1; via=META.colonias[i].ut; } } if(s) R.col.push({t:'col', i, s: s+0.5, via}); }
   I.av.forEach((ct,a)=>{ let s=omniMatch(qt,ct), via='';
     if(!s){ if(!I.avRV[a]) I.avRV[a] = [...avStat(a).nombres].map(n=>[n,toks(n)]); for(const [n,rt] of I.avRV[a]){ const s2=omniMatch(qt,rt); if(s2){ s=s2-0.5; via=n; break; } } }
     if(s) R.av.push({t:'av', a, s: s+1.5, via}); });
@@ -43,7 +50,7 @@ function omniSearch(q){
     for (const c of s.cols.keys()){ if (!c || !I.col[c]) continue; const m=munIndex[META.colonias[c].m]; if (omniMatch(resto, I.col[c].concat(I.alc[m]||[]))){ R.st.push({t:'st', nid, col:c, s: sc+0.4}); if (++n>=3) break; } } });
   const kmpOf = it => it.t==='st'? I.stStat.get(it.nid).kmp : it.t==='av'? avStat(it.a).kmp : it.t==='col'? colStat(it.i).kmp : 0;
   for (const k in R) R[k].sort((x,y)=> y.s-x.s || kmpOf(y)-kmpOf(x));
-  R.alc=R.alc.slice(0,3); R.col=R.col.slice(0,6); R.av=R.av.slice(0,4); R.st=R.st.slice(0,5);
+  R.alc=R.alc.slice(0,3); R.nCol = R.col.length; R.col=R.col.slice(0, omniTodas? 40 : 6); R.av=R.av.slice(0,4); R.st=R.st.slice(0,5);
   const expanded = norm(q).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(t=>OMNI_AB[t] && OMNI_AB[t]!==t).map(t=>`«${t}» como «${OMNI_AB[t]}»`);
   R.qt = qt; R.why = [expanded.length? 'Se reconoció '+expanded.join(', ')+'.' : '', omniTypo? 'Incluye coincidencias aproximadas (una letra de diferencia).' : ''].filter(Boolean).join(' ');
   return R; }
@@ -63,6 +70,7 @@ function omniRender(){
         html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(it.col? s.cols.get(it.col) : s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[it.col? munIndex[META.colonias[it.col].m] : [...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en ${s.muns.size===1? 'distintas colonias' : fmt.format(s.muns.size)+' alcaldías'} · elige dónde en el listado`}</span>`; }
       li.innerHTML = html; const n=omniItems.length; omniItems.push(it);
       li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[n]); }; omniList.appendChild(li); } }
+  if (R.nCol>R.col.length){ const v=document.createElement('li'); v.className='mas'; v.setAttribute('role','option'); v.textContent=`Ver las ${fmt.format(Math.min(R.nCol,40))} colonias que coinciden`; v.onmousedown=e=>{ e.preventDefault(); omniTodas=true; omniRender(); }; omniList.appendChild(v); }
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
   omniList.hidden=false; omni.setAttribute('aria-expanded','true'); }
 function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; if(!lis.length) return; omniActive=(i+lis.length)%lis.length;
@@ -82,7 +90,7 @@ function omniPick(it){
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet(); }
-omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniRender(); });
+omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(omniClose, 150));
 omni.addEventListener('keydown', e=>{

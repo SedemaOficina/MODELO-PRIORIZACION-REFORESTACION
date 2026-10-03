@@ -18,6 +18,7 @@ let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobi
 let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
 let pinned = null;        // {kind:'fr'|'vp', i}
 let viewState = null;
+let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
 const LOC_BLUE = hex(css('--loc')).slice(0,3);   // azul de Mi ubicación (variable --loc en 01_variables.css)
 let myPos = null;          // Mi ubicación: {lon, lat, acc, t}; nunca sale del teléfono
 const munIndex = Object.fromEntries(META.muns.map((m,i)=>[m,i]));
@@ -76,7 +77,7 @@ let opPrio = 1;          // opacidad de las capas de prioridad (0.2 a 1), la aju
 let fondo = 'no';        // mapa de fondo: 'no' | 'calles' | 'sat'
 const ZOOM_LIGERO = 13;
 const frVisibles = ()=> showFrB && !(modoLigero && viewState.zoom < ZOOM_LIGERO);
-const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
+const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), colLista = ()=> showColB && !showFrB && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
 // Sumas exactas por alcaldía, calculadas una sola vez de los frentes y los tramos (auditoría H-087): los resúmenes de meta.bin
 // vienen redondeados a dos decimales y volver a redondearlos movía la cifra hasta 0.1 km respecto del recálculo.
 (()=>{ const z = ()=>[0,0,0,0,0]; const A=META.muns.map(z), G=META.muns.map(z), W=META.muns.map(z);

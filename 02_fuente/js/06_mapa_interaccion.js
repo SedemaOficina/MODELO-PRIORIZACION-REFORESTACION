@@ -8,6 +8,8 @@ const dk = new DeckGL({
   initialViewState: viewState, layers: layers(), style:{background:'transparent'},
   useDevicePixels: Math.min(window.devicePixelRatio || 1, 1.5),   // pantallas de alta densidad: menos píxeles por dibujar
   onLoad: ()=> revisarRendimiento(),
+  // un error al dibujar no deja el mapa en blanco sin explicación (auditoría H-034)
+  onError: e=>{ console.error(e); avisoMapa('<b>El mapa tuvo un problema al dibujarse.</b> Las cifras, los listados y las descargas siguen disponibles.', true); },
   onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; let moved=false; if (vs.zoom>=15 && lblCenter){ const w=mapEl.clientWidth||800; const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540; moved = Math.hypot(dx,dy)/mpp > w*0.35; } if (zc!==prev || moved) rerender(); updateScale(); return vs; },
   getTooltip: info => {
     if (info.index<0 || !info.layer) return null; const st = {background:'transparent',padding:0,border:0,boxShadow:'none'};
@@ -17,6 +19,8 @@ const dk = new DeckGL({
     return (info.layer.id==='fronts' && !pinned && inScope(info.index)) ? {html:`<div class="tip">${featHtml(info.index,true)}</div>`, style:st} : null;
   },
 });
+// si el equipo o el navegador retiran el contexto gráfico (memoria, suspensión, cambio de tarjeta), el mapa queda en blanco: se avisa
+mapEl.addEventListener('webglcontextlost', ()=> avisoMapa('<b>El equipo liberó la memoria gráfica y el mapa dejó de dibujarse.</b> Las cifras siguen disponibles; para recuperar el mapa hay que recargar.', true), true);
 let pdown = null;
 mapEl.addEventListener('pointerdown', e=>{ pdown=[e.clientX,e.clientY]; });
 mapEl.addEventListener('click', e=>{
@@ -30,7 +34,7 @@ mapEl.addEventListener('click', e=>{
     showCard('fr', i); } else hideCard();
 });
 function rerender(){ if (NOMAP) return; dk.setProps({layers: layers()}); }
-$('loader').hidden = true; updateScale();
+$('loader').hidden = true; window.SIA_LISTO = true; updateScale();
 
 function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
 function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i}; const c=$('card');
@@ -39,7 +43,7 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
   const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); renderResults(); rerender(); showCard('col', i); };
-  const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>conPDF('col');
+  const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>$('dl-ficha').click();
   const bcp=c.querySelector('[data-copy]'); if(bcp) bcp.onclick=()=>{ const t=bcp.dataset.copy, lab=bcp.querySelector('span');
     const ok=()=>{ lab.textContent='Coordenadas copiadas'; setTimeout(()=>{ lab.textContent='Copiar coordenadas'; }, 1800); };
     const fb=()=>{ const r=document.createRange(); r.selectNodeContents(lab); lab.textContent=t; const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); };

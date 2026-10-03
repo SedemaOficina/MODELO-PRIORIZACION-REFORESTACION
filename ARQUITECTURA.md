@@ -93,6 +93,10 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 **Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía. Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición.
 
+**Errores y arranque:** `errAmable(mensaje, detalle)` (en `01_utilidades.js`) crea errores cuyo `amable` es lo que ve la persona; el cierre de `app.js` lo muestra con «Reintentar». `config.js` lleva además un vigía (definido en `construir.py`) que avisa si un programa no llega o la carga tarda más de 45 s. `02_datos.js` verifica que cada archivo traiga exactamente los registros declarados. Los textos de los catálogos se neutralizan al cargar (`limpioCat`).
+
+**La consulta en la dirección:** `guardaURL()` anota cada cambio con `pushState` y `aplicarURL()` la restaura al abrir y en `popstate` (`10_seleccion.js`).
+
 **Flujo de un cambio de ámbito:** una acción (buscador, clic, ruta) cambia `sel`/`selCol`/`selAv` → `refresh()` recalcula colores y filtros por vértice, cifras, listados y botones → `rerender()` redibuja las capas → `flyTo(scopeView())` encuadra el mapa.
 
 ## 6. Estilos de `02_fuente/css/`

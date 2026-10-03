@@ -1,7 +1,9 @@
 // Descargas: CSV y Excel (SheetJS bajo demanda) con diccionario de datos.
 // ---------- descargas ----------
-let downloads; try { downloads = await claude.use('downloads'); } catch(e){ downloads = null; }
-function csvEsc(v){ v=String(v??''); return /[",\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
+// Integración opcional con el visor de artefactos (solo existe ahí); en el sitio publicado no hay tal objeto.
+let downloads = null; if (typeof claude !== 'undefined' && claude && claude.use){ try { downloads = await claude.use('downloads'); } catch(e){ downloads = null; } }
+// CSV de respaldo: se neutralizan las celdas que una hoja de cálculo interpretaría como fórmula (auditoría H-090)
+function csvEsc(v){ v=String(v??''); if (/^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = "'" + v; return /[",\r\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
 // fecha AAAAMMDD en el nombre de cada archivo entregado (auditoría H-088)
 const conFecha = name => { const d=new Date(), f=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return name.replace(/(\.[a-z0-9]+)$/i, `_${f}$1`); };
 async function deliver(filename, text){ filename = conFecha(filename);
@@ -141,13 +143,15 @@ function dictAoa(key, nreg, archivo, extra){
 }
 // ---------- exportación a Excel (datos + diccionario) ----------
 // librerías bajo demanda: de docs/libs en la versión del sitio (window.SIA_LIBS) o del CDN en el artefacto
+const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces (auditoría H-036)
 function loadLib(file, glob, cdn){
   if (window[glob]) return Promise.resolve(window[glob]);
-  return new Promise((res, rej)=>{
+  if (LIB_EN_CURSO[file]) return LIB_EN_CURSO[file];
+  return LIB_EN_CURSO[file] = new Promise((res, rej)=>{
     const s = document.createElement('script');
     s.src = window.SIA_LIBS ? window.SIA_LIBS + file : cdn;
     s.onload = ()=> window[glob] ? res(window[glob]) : rej(new Error('sin ' + glob));
-    s.onerror = ()=> rej(new Error('no se pudo cargar la librería'));
+    s.onerror = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); rej(new Error('no se pudo cargar la librería')); };
     document.head.appendChild(s);
   });
 }
@@ -163,9 +167,9 @@ async function deliverTable(base, key, aoa, extra){
   let X; try { X = await loadXL(); }
   catch(e){ // sin conexión al CDN: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
-    const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\n');
+    const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
-    const dic = dictAoa(key, nreg, base + '.csv', extra).map(r=>r.map(csvEsc).join(',')).join('\n');
+    const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '_diccionario.csv', dic);
     return;
   }

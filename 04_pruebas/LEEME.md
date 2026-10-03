@@ -38,3 +38,13 @@ Requiere además Python 3 con `openpyxl` y la utilidad `pdftotext`. Termina con 
 ```
 node 04_pruebas/prueba_sin_terceros.js
 ```
+
+## Prueba de errores y robustez
+
+`prueba_robustez.js` provoca fallas y comprueba lo que ve la persona: datos cortados o dañados, archivo de datos inexistente, `app.js` o el componente del mapa que no llegan, un catálogo con marcado HTML, tres clics seguidos en una descarga, Atrás y Adelante del navegador, enlaces con la consulta en la dirección, atribución del mapa de fondo con una tarjeta abierta, el buscador con abreviaturas y el CSV de respaldo.
+
+```
+node 04_pruebas/prueba_robustez.js
+```
+
+Las pruebas abren la página con `?modo=ligero#nomap`. `#nomap` evita redibujar el mapa para que corran rápido sin tarjeta gráfica y **solo tiene efecto cuando la prueba define `window.SIA_PRUEBA`** (lo hace `lib_pruebas.js`); en el sitio publicado no hace nada.

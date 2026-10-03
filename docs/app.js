@@ -16,6 +16,21 @@ const sum = a => a.reduce((x,y)=>x+y,0);
 const VERSION = Object.assign({v:'', corte:''}, window.SIA_VERSION || {});
 const VERSION_TXT = `Versión ${VERSION.v} · Datos: ${VERSION.corte}`;
 const PRELIM_TXT = 'La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: resulta de una regla geométrica en validación.';
+// Errores con mensaje para la persona usuaria (auditoría H-035): `amable` es lo que se muestra; el detalle técnico va a la consola.
+function errAmable(msg, detalle){ const e = new Error(detalle || msg); e.amable = msg; return e; }
+const esc = s => String(s==null? '' : s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// Los textos de los catálogos se interpolan en HTML en muchos puntos: se neutralizan al entrar (auditoría H-037).
+// Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
+const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›') : s;
+// aviso no bloqueante sobre el mapa (errores de dibujo, contexto gráfico perdido, errores inesperados)
+function avisoMapa(html, conRecarga){ const p = document.querySelector('.mapwrap'); if (!p || p.querySelector('.aviso-error')) return;
+  const n = document.createElement('div'); n.className = 'aviso-ligero aviso-error'; n.setAttribute('role','alert');
+  n.innerHTML = html + (conRecarga? ' <button type="button" class="recarga">Recargar la página</button>' : '') + '<button type="button" class="cierra" aria-label="Cerrar aviso">×</button>';
+  n.querySelector('.cierra').onclick = ()=> n.remove(); const r = n.querySelector('.recarga'); if (r) r.onclick = ()=> location.reload(); p.appendChild(n); }
+const NAVEGADORES = 'Chrome o Edge 80, Firefox 79, Safari 15 o posteriores';
+if (typeof deck === 'undefined') throw errAmable(`No se pudo cargar el componente del mapa. Puede ser una descarga interrumpida o un navegador antiguo (se requiere ${NAVEGADORES}).`, 'deck.gl no está definido');
+if (!(()=>{ try { return !!document.createElement('canvas').getContext('webgl2'); } catch(e){ return false; } })())
+  throw errAmable(`Este navegador o equipo no puede dibujar el mapa: no tiene disponible WebGL 2. Usa ${NAVEGADORES}, y revisa que la aceleración gráfica esté activada.`, 'sin WebGL2');
 
 // Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin y vp.bin, descompresión y decodificación a arreglos (frentes F, geometría POS, vialidades primarias VP).
 // ---------- lectura y decodificación ----------
@@ -25,7 +40,8 @@ async function gunzip(bytes){
     try{ const ds = new DecompressionStream('gzip'); const ab = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer(); return new Uint8Array(ab); }
     catch(e){ console.warn('DecompressionStream falló, usando pako', e); }
   }
-  return pako.inflate(bytes);
+  try { const out = pako.inflate(bytes); if (!out || !out.length) throw new Error('descompresión vacía'); return out; }
+  catch(e){ throw errAmable('Un archivo de datos llegó dañado o incompleto. Suele deberse a una descarga interrumpida.', 'descompresión: ' + (e && e.message || e)); }
 }
 const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; $('load-bar').style.width = (p*100)+'%'; };
 // datos: incrustados en la página (artefacto, versión de un solo archivo) o en archivos aparte (docs/datos)
@@ -35,20 +51,30 @@ function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/
 async function fetchBytes(name){
   let r;
   try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
-  catch(e){ throw new Error(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/calles_prioritarias.html' : 'No se pudieron descargar los datos; revisa tu conexión'); }
-  if (!r.ok) throw new Error('No se pudo descargar ' + name + ' (' + r.status + ')');
+  catch(e){ throw errAmable(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/calles_prioritarias.html.' : 'No se pudieron descargar los datos. Revisa tu conexión a internet.', 'fetch ' + name + ': ' + (e && e.message || e)); }
+  if (!r.ok) throw errAmable(r.status===401 || r.status===403 ? 'El servidor no permitió descargar los datos (acceso denegado). Si la herramienta pide sesión, vuelve a entrar.' : `No se encontró un archivo de datos en el servidor (${name}, respuesta ${r.status}).`, name + ' ' + r.status);
   if (!r.body || !r.body.getReader){ const b = new Uint8Array(await r.arrayBuffer()); dlDone += b.length; showDl(); return b; }
   const rd = r.body.getReader(), parts = []; let n = 0;
   for(;;){ const {done, value} = await rd.read(); if (done) break; parts.push(value); n += value.length; dlDone += value.length; showDl(); }
   const out = new Uint8Array(n); let o = 0; for (const q of parts){ out.set(q, o); o += q.length; } return out;
 }
-const blk = (id, name) => { const el = $(id); return el ? Promise.resolve(b64ToBytes(el.textContent.trim())) : fetchBytes(name); };
+const blk = (id, name) => { const el = $(id); if (el) return Promise.resolve(b64ToBytes(el.textContent.trim()));
+  if (!DATOS) return Promise.reject(errAmable('Falta el archivo de configuración del sitio (config.js): la herramienta no sabe dónde están sus datos. Avisa al Sistema de Información Ambiental.', 'sin window.SIA_DATOS'));
+  return fetchBytes(name); };
 const pMeta = blk('meta-b64','meta.bin'), pData = blk('data-b64','data.bin'), pVp = blk('vp-b64','vp.bin');
 pMeta.catch(()=>{}); pData.catch(()=>{}); pVp.catch(()=>{});
-function reader(raw){ let rp=0; return ()=>{ let res=0, shift=0, b; do{ b=raw[rp++]; res += (b & 0x7f) * Math.pow(2,shift); shift+=7; }while(b & 0x80); return (res % 2) ? -((res+1)/2) : res/2; }; }
+// El lector falla si se acaban los bytes (antes devolvía ceros y un archivo cortado pasaba por completo; auditoría H-033)
+const DATOS_CORTOS = () => errAmable('Un archivo de datos llegó incompleto: su contenido termina antes de lo declarado. Suele deberse a una descarga interrumpida.', 'datos cortos');
+function reader(raw){ let rp=0; const f = ()=>{ let res=0, shift=0, b; do{ if (rp>=raw.length) throw DATOS_CORTOS(); b=raw[rp++]; res += (b & 0x7f) * Math.pow(2,shift); shift+=7; }while(b & 0x80); return (res % 2) ? -((res+1)/2) : res/2; }; f.pos = ()=>rp; return f; }
 
 setLoad(DATOS ? 'Descargando datos…' : 'Descomprimiendo catálogos…', .02);
-const META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta)));
+let META; try { META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta))); }
+catch(e){ throw e.amable? e : errAmable('El catálogo de la herramienta (meta.bin) llegó dañado o incompleto.', 'meta: ' + (e && e.message || e)); }
+// catálogos: se neutraliza cualquier marcado antes de usarlos en la interfaz (auditoría H-037)
+META.names = META.names.map(limpioCat); META.munNames = META.munNames.map(limpioCat);
+META.colonias.forEach(c=>{ c.n = limpioCat(c.n); c.ut = limpioCat(c.ut); c.ids = limpioCat(c.ids); c.cp = limpioCat(c.cp); });
+['nomenclat','nombres','alctxt','claves','tipos','circula'].forEach(k=>{ if (Array.isArray(META.vp[k])) META.vp[k] = META.vp[k].map(limpioCat); });
+['prio','disp','tipos'].forEach(k=>{ META[k] = META[k].map(limpioCat); });
 const Q = META.Q;
 const rawGz = await pData; dlShow = false;
 setLoad('Descomprimiendo 372 mil frentes…', .25);
@@ -69,6 +95,8 @@ for(let i=0;i<N;i++){
   for(let k=0;k<nv;k++){ px+=rv(); py+=rv(); tmpPos[2*vcount]=px/Q; tmpPos[2*vcount+1]=py/Q; vcount++; }
 }
 start[N]=vcount;
+// el archivo debe traer exactamente los frentes declarados y no sobrar ni faltar bytes (auditoría H-033)
+if (N!==META.N || rv.pos()!==raw.length) throw errAmable('El archivo de frentes de manzana no corresponde con su catálogo o llegó incompleto. Recarga la página.', `data.bin: N=${N} META.N=${META.N} pos=${rv.pos()} de ${raw.length}`);
 const POS = tmpPos.slice(0, vcount*2);
 const V = vcount;
 // Punto a media longitud SOBRE la línea (no el promedio de sus extremos, que en una curva cae fuera de la calle).
@@ -93,6 +121,7 @@ for(let i=0;i<NV;i++){
   const nv=rv(); vstart[i]=vc;
   for(let k=0;k<nv;k++){ px+=rv(); py+=rv(); vtmp[2*vc]=px/Q; vtmp[2*vc+1]=py/Q; vc++; }
 }
+if (NV!==+META.vp.n || rv.pos()!==vraw.length) throw errAmable('El archivo de vialidades primarias no corresponde con su catálogo o llegó incompleto. Recarga la página.', `vp.bin: NV=${NV} META.vp.n=${META.vp.n} pos=${rv.pos()} de ${vraw.length}`);
 vstart[NV]=vc; const VPOS = vtmp.slice(0, vc*2); const VV = vc;
 const VPC = META.vp; // catálogos de la capa
 setLoad('Preparando capas…', .85);
@@ -118,6 +147,7 @@ let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobi
 let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
 let pinned = null;        // {kind:'fr'|'vp', i}
 let viewState = null;
+let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
 const LOC_BLUE = hex(css('--loc')).slice(0,3);   // azul de Mi ubicación (variable --loc en 01_variables.css)
 let myPos = null;          // Mi ubicación: {lon, lat, acc, t}; nunca sale del teléfono
 const munIndex = Object.fromEntries(META.muns.map((m,i)=>[m,i]));
@@ -176,7 +206,7 @@ let opPrio = 1;          // opacidad de las capas de prioridad (0.2 a 1), la aju
 let fondo = 'no';        // mapa de fondo: 'no' | 'calles' | 'sat'
 const ZOOM_LIGERO = 13;
 const frVisibles = ()=> showFrB && !(modoLigero && viewState.zoom < ZOOM_LIGERO);
-const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
+const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), colLista = ()=> showColB && !showFrB && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
 // Sumas exactas por alcaldía, calculadas una sola vez de los frentes y los tramos (auditoría H-087): los resúmenes de meta.bin
 // vienen redondeados a dos decimales y volver a redondearlos movía la cifra hasta 0.1 km respecto del recálculo.
 (()=>{ const z = ()=>[0,0,0,0,0]; const A=META.muns.map(z), G=META.muns.map(z), W=META.muns.map(z);
@@ -210,7 +240,9 @@ function fitTo(bounds, pad=40){
 }
 const CITY_BOUNDS = [-99.365,19.048,-98.940,19.593];
 viewState = fitTo(CITY_BOUNDS, 24);
-const NOMAP = location.hash==='#nomap';
+// Solo para las pruebas automáticas (04_pruebas): con window.SIA_PRUEBA y #nomap en la dirección no se redibuja el mapa.
+// En el sitio publicado la variable no existe y #nomap no hace nada (auditoría H-086).
+const NOMAP = window.SIA_PRUEBA===true && location.hash==='#nomap';
 // Sin animación en modo ligero o si la persona pidió reducir movimiento: cada cuadro de animación redibuja el mapa.
 let nVista = 0;
 function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; } const sinAnim = modoLigero || ms===0 || matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -428,6 +460,8 @@ const dk = new DeckGL({
   initialViewState: viewState, layers: layers(), style:{background:'transparent'},
   useDevicePixels: Math.min(window.devicePixelRatio || 1, 1.5),   // pantallas de alta densidad: menos píxeles por dibujar
   onLoad: ()=> revisarRendimiento(),
+  // un error al dibujar no deja el mapa en blanco sin explicación (auditoría H-034)
+  onError: e=>{ console.error(e); avisoMapa('<b>El mapa tuvo un problema al dibujarse.</b> Las cifras, los listados y las descargas siguen disponibles.', true); },
   onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; let moved=false; if (vs.zoom>=15 && lblCenter){ const w=mapEl.clientWidth||800; const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540; moved = Math.hypot(dx,dy)/mpp > w*0.35; } if (zc!==prev || moved) rerender(); updateScale(); return vs; },
   getTooltip: info => {
     if (info.index<0 || !info.layer) return null; const st = {background:'transparent',padding:0,border:0,boxShadow:'none'};
@@ -437,6 +471,8 @@ const dk = new DeckGL({
     return (info.layer.id==='fronts' && !pinned && inScope(info.index)) ? {html:`<div class="tip">${featHtml(info.index,true)}</div>`, style:st} : null;
   },
 });
+// si el equipo o el navegador retiran el contexto gráfico (memoria, suspensión, cambio de tarjeta), el mapa queda en blanco: se avisa
+mapEl.addEventListener('webglcontextlost', ()=> avisoMapa('<b>El equipo liberó la memoria gráfica y el mapa dejó de dibujarse.</b> Las cifras siguen disponibles; para recuperar el mapa hay que recargar.', true), true);
 let pdown = null;
 mapEl.addEventListener('pointerdown', e=>{ pdown=[e.clientX,e.clientY]; });
 mapEl.addEventListener('click', e=>{
@@ -450,7 +486,7 @@ mapEl.addEventListener('click', e=>{
     showCard('fr', i); } else hideCard();
 });
 function rerender(){ if (NOMAP) return; dk.setProps({layers: layers()}); }
-$('loader').hidden = true; updateScale();
+$('loader').hidden = true; window.SIA_LISTO = true; updateScale();
 
 function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
 function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i}; const c=$('card');
@@ -459,7 +495,7 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
   const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); renderResults(); rerender(); showCard('col', i); };
-  const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>conPDF('col');
+  const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>$('dl-ficha').click();
   const bcp=c.querySelector('[data-copy]'); if(bcp) bcp.onclick=()=>{ const t=bcp.dataset.copy, lab=bcp.querySelector('span');
     const ok=()=>{ lab.textContent='Coordenadas copiadas'; setTimeout(()=>{ lab.textContent='Copiar coordenadas'; }, 1800); };
     const fb=()=>{ const r=document.createRange(); r.selectNodeContents(lab); lab.textContent=t; const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); };
@@ -848,7 +884,7 @@ function renderUbicar(items, qRaw){
 function renderResults(){
   const q = norm($('q').value.trim()); locChips('');
   if (alcOnly() && sel===null && q.length<2){ renderAlcRanking(); return; }
-  if (colOnly() && selCol===null && q.length<2){ renderColoniaRanking(); return; }
+  if (colLista() && selCol===null && q.length<2){ renderColoniaRanking(); return; }   // depende de las casillas, no del zoom (auditoría H-075)
   if (isGC() && selAv!==null && q.length<2){ renderAvenueByAlc(); return; }
   const ul = $('results'); ul.innerHTML='';
   if (isGC()){
@@ -1021,7 +1057,25 @@ function refresh(){ buildColors(); buildVP(); buildStreets(); buildAvenues(); re
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta o Alta: el listado de tramos prioritarios estaría vacío.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); }
+// ---------- la consulta queda en la dirección (auditoría H-042) ----------
+// r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida. Atrás y Adelante recorren las consultas,
+// la consulta sobrevive a una recarga y la dirección se puede compartir.
+function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v'].forEach(k=>p.delete(k));
+  if (resp!=='alc') p.set('r', resp);
+  if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
+  const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
+function guardaURL(){ if (restaurando) return; const u = urlEstado(); if (u === location.pathname + location.search + location.hash) return;
+  try { history.pushState({consulta:true}, '', u); } catch(e){} }
+function aplicarURL(){ const p = new URLSearchParams(location.search); const r = p.get('r')==='gc'? 'gc' : p.get('r')==='both'? 'both' : 'alc';
+  const a = munIndex[p.get('a')], c = +p.get('c'), v = +p.get('v'); const m = a===undefined? null : a; const antes = restaurando; restaurando = true;
+  try {
+    if (resp!==r) setResp(r);
+    if (p.has('c') && r!=='gc' && Number.isInteger(c) && c>0 && META.colonias[c] && META.colonias[c].n){ if (selCol!==c) pickColonia(c); }
+    else if (p.has('v') && r==='gc' && Number.isInteger(v) && v>0 && VPC.nomenclat[v]){ if (sel!==m){ sel=m; selEl.value = m===null? '' : String(m); } if (selAv!==v) pickAvenida(v); else refresh(); }
+    else if (sel!==m || selCol!==null || selAv!==null){ selEl.value = m===null? '' : String(m); setSel(selEl.value); }
+  } finally { restaurando = antes; } }
+addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
 function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;
   const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista para descargar su Excel o su ficha.`; }
 function setSel(v){
@@ -1050,8 +1104,10 @@ $('ver-line').textContent = VERSION_TXT + '.';
 
 // Descargas: CSV y Excel (SheetJS bajo demanda) con diccionario de datos.
 // ---------- descargas ----------
-let downloads; try { downloads = await claude.use('downloads'); } catch(e){ downloads = null; }
-function csvEsc(v){ v=String(v??''); return /[",\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
+// Integración opcional con el visor de artefactos (solo existe ahí); en el sitio publicado no hay tal objeto.
+let downloads = null; if (typeof claude !== 'undefined' && claude && claude.use){ try { downloads = await claude.use('downloads'); } catch(e){ downloads = null; } }
+// CSV de respaldo: se neutralizan las celdas que una hoja de cálculo interpretaría como fórmula (auditoría H-090)
+function csvEsc(v){ v=String(v??''); if (/^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = "'" + v; return /[",\r\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
 // fecha AAAAMMDD en el nombre de cada archivo entregado (auditoría H-088)
 const conFecha = name => { const d=new Date(), f=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return name.replace(/(\.[a-z0-9]+)$/i, `_${f}$1`); };
 async function deliver(filename, text){ filename = conFecha(filename);
@@ -1191,13 +1247,15 @@ function dictAoa(key, nreg, archivo, extra){
 }
 // ---------- exportación a Excel (datos + diccionario) ----------
 // librerías bajo demanda: de docs/libs en la versión del sitio (window.SIA_LIBS) o del CDN en el artefacto
+const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces (auditoría H-036)
 function loadLib(file, glob, cdn){
   if (window[glob]) return Promise.resolve(window[glob]);
-  return new Promise((res, rej)=>{
+  if (LIB_EN_CURSO[file]) return LIB_EN_CURSO[file];
+  return LIB_EN_CURSO[file] = new Promise((res, rej)=>{
     const s = document.createElement('script');
     s.src = window.SIA_LIBS ? window.SIA_LIBS + file : cdn;
     s.onload = ()=> window[glob] ? res(window[glob]) : rej(new Error('sin ' + glob));
-    s.onerror = ()=> rej(new Error('no se pudo cargar la librería'));
+    s.onerror = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); rej(new Error('no se pudo cargar la librería')); };
     document.head.appendChild(s);
   });
 }
@@ -1213,9 +1271,9 @@ async function deliverTable(base, key, aoa, extra){
   let X; try { X = await loadXL(); }
   catch(e){ // sin conexión al CDN: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
-    const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\n');
+    const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
-    const dic = dictAoa(key, nreg, base + '.csv', extra).map(r=>r.map(csvEsc).join(',')).join('\n');
+    const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '_diccionario.csv', dic);
     return;
   }
@@ -1292,9 +1350,10 @@ document.fonts && document.fonts.ready.then(()=> rerender());
 // abre la ficha después de cargar jsPDF (de libs/ en el sitio; del CDN en el artefacto)
 function conPDF(kind){
   loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
-    .then(()=> fichaPDF(kind))
-    .catch(()=>{ const st = $('dl-status'); if (st) st.textContent = 'No se pudo cargar el generador de PDF; revisa tu conexión.'; });
+    .then(()=> generaFicha(()=> fichaPDF(kind)), ()=>{ $('dl-status').textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 }
+// «no cargó la librería» y «falló la generación» son errores distintos y se dicen distinto (auditoría H-035)
+function generaFicha(f){ try { f(); } catch(e){ console.error(e); $('dl-status').textContent = 'No fue posible generar la ficha por un error interno. Recarga la página e inténtalo de nuevo; si persiste, avisa al Sistema de Información Ambiental.'; } }
 // ---------- fichas (PDF) ----------
 // texto en una sola línea: si no cabe, se recorta con puntos suspensivos en lugar de cortarse en seco (auditoría H-046)
 function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.length<2) return t; let x = ls[0]; while (x.length>1 && doc.getTextWidth(x+'…')>w) x = x.slice(0,-1); return x.replace(/[\s·,;(]+$/,'')+'…'; }
@@ -1533,12 +1592,28 @@ function fichaCallePDF(){
   doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. ' + PRELIM_TXT + ' Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(META.colonias[selCol].n) : ''}.pdf`, doc.output('blob'));
 }
-$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js').then(fichaCallePDF)
-  .catch(()=>{ const st = $('dl-status'); if (st) st.textContent = 'No se pudo cargar el generador de PDF; revisa tu conexión.'; });
+$('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf', 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js')
+  .then(()=> generaFicha(fichaCallePDF), ()=>{ $('dl-status').textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 $('dl-ficha').onclick = ()=>conPDF('col');
 $('dl-ficha-alc').onclick = ()=>conPDF('alc');
 $('dl-ficha-vpalc').onclick = ()=>conPDF('vpalc');
 $('dl-ficha-av').onclick = ()=>conPDF('vpav');
+
+// ---------- estado de las descargas visible desde donde se piden, y un archivo por clic (auditoría H-036) ----------
+// El aviso de estado vive en la pestaña Descargas; el pie fijo lo repite, porque sus botones funcionan desde cualquier pestaña.
+// Mientras un archivo se prepara, los botones de descarga no aceptan otro clic.
+let GENERANDO = false, genT = null;
+const EN_CURSO = /^Preparando/;
+function finGenera(){ GENERANDO = false; clearTimeout(genT); document.body.classList.remove('generando'); }
+new MutationObserver(()=>{ const t = $('dl-status').textContent.trim(); const a = $('act-status');
+  const esDescarga = /^(Preparando|Descargado|Guardado|Descarga cancelada|No fue posible|No se pudo)/.test(t);
+  if (a){ a.textContent = esDescarga? t : ''; a.hidden = !esDescarga; }
+  if (GENERANDO && !EN_CURSO.test(t)) finGenera();
+}).observe($('dl-status'), {childList:true, characterData:true, subtree:true});
+['dl-frentes','dl-calles','dl-tramos','dl-avenidas','dl-calle','dl-ficha-calle','dl-ficha-vpalc','dl-ficha-av','dl-ficha-alc','dl-ficha'].forEach(id=>{ const b = $(id), h = b.onclick; if (!h) return;
+  b.onclick = e=>{ if (GENERANDO || b.disabled) return; GENERANDO = true; document.body.classList.add('generando'); $('dl-status').textContent = 'Preparando archivo…';
+    genT = setTimeout(()=>{ if (GENERANDO){ finGenera(); if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'No fue posible preparar el archivo. Inténtalo de nuevo.'; } }, 90000);
+    h.call(b, e); }; });
 
 // Interfaz: ventana de metodología, hoja inferior en teléfono, pestañas, acciones fijas y ruta de navegación.
 // ---------- metodología ----------
@@ -1588,7 +1663,7 @@ function setTab(t){ curTab=t; document.body.classList.toggle('tab-dl', t==='dl')
   document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
 function updTabLabel(){
-  const lbl = isGC()? 'Avenidas' : (alcOnly() && sel===null)? 'Alcaldías' : (colOnly() && selCol===null)? 'Colonias' : 'Calles';
+  const lbl = isGC()? 'Avenidas' : (alcOnly() && sel===null)? 'Alcaldías' : (colLista() && selCol===null)? 'Colonias' : 'Calles';
   $('tab-list').textContent = lbl; }
 function renderScopeTitle(){
   $('scope-title').textContent = selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : '')
@@ -1633,7 +1708,7 @@ $('cr-city').onclick = ()=>{ if (sel===null && selCol===null && selAv===null) re
 // Buscador único: alcaldías, colonias, avenidas y calles, con abreviaturas y tolerancia a errores.
 // ---------- buscador único (auditoría C6) ----------
 const omni=$('omni'), omniList=$('omni-list'), omniClear=$('omni-clear');
-const OMNI_AB = Object.assign({}, ABREV, {calz:'calzada', clz:'calzada', av:'avenida', avda:'avenida', ave:'avenida', blvd:'boulevard', cda:'cerrada', priv:'privada', and:'andador', circ:'circuito', cto:'circuito', dr:'doctor', ing:'ingeniero', lic:'licenciado', mtro:'maestro', pdte:'presidente', fco:'francisco', gpe:'guadalupe', ma:'maria', col:'colonia'});
+const OMNI_AB = Object.assign({}, ABREV, {calz:'calzada', clz:'calzada', av:'avenida', avda:'avenida', ave:'avenida', blvd:'boulevard', cda:'cerrada', priv:'privada', and:'andador', circ:'circuito', cto:'circuito', dr:'doctor', ing:'ingeniero', lic:'licenciado', mtro:'maestro', pdte:'presidente', fco:'francisco', gpe:'guadalupe', ma:'maria', col:'colonia', sn:'san', sta:'santa', sto:'santo'});
 const STOP = new Set(['de','del','la','las','los','el','y','en']);
 const toks = s => norm(s||'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>OMNI_AB[t]||t).join(' ').split(' ');
 function lev1(a,b){ if(a===b) return true; const la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false; let i=0,j=0,e=0;
@@ -1658,12 +1733,19 @@ function omniIndex(){ if (OM) return OM;
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const k=c.n+'|'+(c.cp||'')+'|'+c.m; const a=seen.get(k)||[]; a.push(i); seen.set(k,a); }
   for(const a of seen.values()) if (a.length>1) a.forEach((id,k)=>OM.part.set(id, [k+1, a.length]));
   return OM; }
-let omniItems=[], omniActive=-1, omniQ='';
+let omniItems=[], omniActive=-1, omniQ='', omniTodas=false;
 function omniSearch(q){
-  const qt = toks(q).filter(t=>!STOP.has(t)); if (!qt.length || q.trim().length<2) return null;
+  let qt = toks(q).filter(t=>!STOP.has(t)); if (!qt.length || q.trim().length<2) return null;
+  // «col.» o «colonia» delante del nombre es una forma de hablar, no parte del nombre (auditoría H-039)
+  const qtCol = (qt.length>1 && qt[0]==='colonia')? qt.slice(1) : qt;
   const I = omniIndex(); omniTypo=false; const R = {alc:[], col:[], av:[], st:[]};
   I.alc.forEach((ct,i)=>{ const s=omniMatch(qt,ct); if(s) R.alc.push({t:'alc', i, s: s+1.5}); });
-  for(let i=1;i<I.col.length;i++){ if(!I.col[i]) continue; let s=omniMatch(qt,I.col[i]), via=''; if(!s && I.colUT[i]){ s=omniMatch(qt,I.colUT[i]); if(s){ s-=1; via=META.colonias[i].ut; } } if(s) R.col.push({t:'col', i, s: s+0.5, via}); }
+  for(let i=1;i<I.col.length;i++){ if(!I.col[i]) continue; let s=omniMatch(qtCol,I.col[i]), via='';
+    // colonia + alcaldía: «los reyes coyoacan». Parte de las palabras nombra la colonia y el resto, su alcaldía
+    if(!s && qtCol.length>=2){ const al = I.alc[munIndex[META.colonias[i].m]] || []; const enCol = qtCol.filter(t=>I.col[i].some(c=>tokScore(t,c)>=1.5)), resto = qtCol.filter(t=>!enCol.includes(t));
+      if (enCol.length && resto.length && omniMatch(resto, al)){ s = omniMatch(enCol, I.col[i]); if (s) s += 0.4; } }
+    if (s && sel!==null && munIndex[META.colonias[i].m]===sel) s += 0.3;   // primero las de la alcaldía consultada
+    if(!s && I.colUT[i]){ s=omniMatch(qt,I.colUT[i]); if(s){ s-=1; via=META.colonias[i].ut; } } if(s) R.col.push({t:'col', i, s: s+0.5, via}); }
   I.av.forEach((ct,a)=>{ let s=omniMatch(qt,ct), via='';
     if(!s){ if(!I.avRV[a]) I.avRV[a] = [...avStat(a).nombres].map(n=>[n,toks(n)]); for(const [n,rt] of I.avRV[a]){ const s2=omniMatch(qt,rt); if(s2){ s=s2-0.5; via=n; break; } } }
     if(s) R.av.push({t:'av', a, s: s+1.5, via}); });
@@ -1675,7 +1757,7 @@ function omniSearch(q){
     for (const c of s.cols.keys()){ if (!c || !I.col[c]) continue; const m=munIndex[META.colonias[c].m]; if (omniMatch(resto, I.col[c].concat(I.alc[m]||[]))){ R.st.push({t:'st', nid, col:c, s: sc+0.4}); if (++n>=3) break; } } });
   const kmpOf = it => it.t==='st'? I.stStat.get(it.nid).kmp : it.t==='av'? avStat(it.a).kmp : it.t==='col'? colStat(it.i).kmp : 0;
   for (const k in R) R[k].sort((x,y)=> y.s-x.s || kmpOf(y)-kmpOf(x));
-  R.alc=R.alc.slice(0,3); R.col=R.col.slice(0,6); R.av=R.av.slice(0,4); R.st=R.st.slice(0,5);
+  R.alc=R.alc.slice(0,3); R.nCol = R.col.length; R.col=R.col.slice(0, omniTodas? 40 : 6); R.av=R.av.slice(0,4); R.st=R.st.slice(0,5);
   const expanded = norm(q).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(t=>OMNI_AB[t] && OMNI_AB[t]!==t).map(t=>`«${t}» como «${OMNI_AB[t]}»`);
   R.qt = qt; R.why = [expanded.length? 'Se reconoció '+expanded.join(', ')+'.' : '', omniTypo? 'Incluye coincidencias aproximadas (una letra de diferencia).' : ''].filter(Boolean).join(' ');
   return R; }
@@ -1695,6 +1777,7 @@ function omniRender(){
         html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(it.col? s.cols.get(it.col) : s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[it.col? munIndex[META.colonias[it.col].m] : [...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en ${s.muns.size===1? 'distintas colonias' : fmt.format(s.muns.size)+' alcaldías'} · elige dónde en el listado`}</span>`; }
       li.innerHTML = html; const n=omniItems.length; omniItems.push(it);
       li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[n]); }; omniList.appendChild(li); } }
+  if (R.nCol>R.col.length){ const v=document.createElement('li'); v.className='mas'; v.setAttribute('role','option'); v.textContent=`Ver las ${fmt.format(Math.min(R.nCol,40))} colonias que coinciden`; v.onmousedown=e=>{ e.preventDefault(); omniTodas=true; omniRender(); }; omniList.appendChild(v); }
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
   omniList.hidden=false; omni.setAttribute('aria-expanded','true'); }
 function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; if(!lis.length) return; omniActive=(i+lis.length)%lis.length;
@@ -1714,7 +1797,7 @@ function omniPick(it){
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet(); }
-omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniRender(); });
+omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(omniClose, 150));
 omni.addEventListener('keydown', e=>{
@@ -1820,7 +1903,7 @@ function onPos(pos, first){
 function locError(e){
   locBtn.classList.remove('busy'); stopFollow();
   const enMarco = window.self!==window.top;
-  if (e && e.code===1) locMsg('No se permitió usar tu ubicación', enMarco? '<b>Dentro de Claude no se puede pedir la ubicación.</b> Abre la página pública de la herramienta en el navegador de tu teléfono.' :
+  if (e && e.code===1) locMsg('No se permitió usar tu ubicación', enMarco? '<b>Esta vista incrustada no puede pedir la ubicación.</b> Abre la herramienta directamente en el navegador de tu teléfono.' :
     '<b>Actívala y vuelve a tocar el botón.</b> Android (Chrome): toca el candado junto a la dirección › Permisos › Ubicación › Permitir. iPhone: Ajustes › Privacidad y seguridad › Localización › Safari › Mientras se usa la app; después recarga la página.');
   else if (e && e.code===3) locMsg('El GPS tardó demasiado', '<b>Intenta de nuevo al aire libre.</b> Dentro de edificios la señal es débil.');
   else locMsg('No se pudo obtener tu ubicación', '<b>Revisa que la ubicación del teléfono esté encendida</b> y vuelve a intentarlo.');
@@ -1849,4 +1932,9 @@ document.body.dataset.resp = resp;
 setSel('');
 setTab('res');
 if (isPhone()) setSheetState('peek');
-})().catch(err=>{ console.error(err); const l=document.getElementById('loader'); l.hidden=false; l.querySelector('div').innerHTML = `<div class="cabin" style="font-weight:600;font-size:16px">No fue posible cargar el mapa</div><div style="font-size:12px;margin-top:6px;max-width:320px">${(err && err.message)||err}. Recarga la página; si persiste, avisa al Sistema de Información Ambiental.</div>`; });
+// consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
+aplicarURL(); restaurando = false;
+try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
+// errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
+addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });
+})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent=''; const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:16px'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t); const m=document.createElement('div'); m.style.cssText='font-size:12px;margin-top:6px;max-width:320px'; m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m); const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });

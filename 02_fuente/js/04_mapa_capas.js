@@ -9,7 +9,9 @@ function fitTo(bounds, pad=40){
 }
 const CITY_BOUNDS = [-99.365,19.048,-98.940,19.593];
 viewState = fitTo(CITY_BOUNDS, 24);
-const NOMAP = location.hash==='#nomap';
+// Solo para las pruebas automáticas (04_pruebas): con window.SIA_PRUEBA y #nomap en la dirección no se redibuja el mapa.
+// En el sitio publicado la variable no existe y #nomap no hace nada (auditoría H-086).
+const NOMAP = window.SIA_PRUEBA===true && location.hash==='#nomap';
 // Sin animación en modo ligero o si la persona pidió reducir movimiento: cada cuadro de animación redibuja el mapa.
 let nVista = 0;
 function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; } const sinAnim = modoLigero || ms===0 || matchMedia('(prefers-reduced-motion: reduce)').matches;

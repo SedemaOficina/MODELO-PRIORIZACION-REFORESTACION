@@ -1,4 +1,5 @@
 window.SIA_LIBS = "libs/";
 window.SIA_DATOS = {"v": {"meta.bin": "256168c7a0", "data.bin": "0d38f09868", "vp.bin": "953fb39b79"}, "total": 4519477};
 window.SIA_ESRI_KEY = "";
-window.SIA_VERSION = {"v": "17.20", "corte": "modelo de priorización de nov. 2025; vialidades primarias de ago. 2026"};
+window.SIA_VERSION = {"v": "17.21", "corte": "modelo de priorización de nov. 2025; vialidades primarias de ago. 2026"};
+(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=document.getElementById('loader'); if(!l || l.querySelector('.lento')) return; var d=l.querySelector('div'); var p=document.createElement('div'); p.className='lento'; p.textContent=t; d.appendChild(p); var b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=function(){ location.reload(); }; d.appendChild(b); } addEventListener('error', function(e){ var x=e.target; if (x && x.tagName==='SCRIPT' && !window.SIA_LISTO) aviso('No se pudo descargar una parte del programa ('+String(x.src||'').split('/').pop().split('?')[0]+'). Revisa tu conexión.'); }, true); setTimeout(function(){ aviso('La carga está tardando más de lo normal. Puede ser una conexión lenta; si no avanza, vuelve a intentarlo.'); }, 45000); })();

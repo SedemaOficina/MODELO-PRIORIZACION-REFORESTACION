@@ -61,6 +61,7 @@ async function lanzar() {
 }
 async function abrir(browser, url, opciones = {}, errores = []) {
   const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', ...opciones });
+  await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });   // habilita #nomap (no redibujar el mapa), que solo existe para las pruebas
   const page = await ctx.newPage(); page.setDefaultTimeout(+process.env.T_ESPERA || 300000);
   page.on('pageerror', e => errores.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errores.push('console: ' + m.text()); });

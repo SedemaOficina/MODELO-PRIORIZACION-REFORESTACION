@@ -94,7 +94,7 @@ function onPos(pos, first){
 function locError(e){
   locBtn.classList.remove('busy'); stopFollow();
   const enMarco = window.self!==window.top;
-  if (e && e.code===1) locMsg('No se permitió usar tu ubicación', enMarco? '<b>Dentro de Claude no se puede pedir la ubicación.</b> Abre la página pública de la herramienta en el navegador de tu teléfono.' :
+  if (e && e.code===1) locMsg('No se permitió usar tu ubicación', enMarco? '<b>Esta vista incrustada no puede pedir la ubicación.</b> Abre la herramienta directamente en el navegador de tu teléfono.' :
     '<b>Actívala y vuelve a tocar el botón.</b> Android (Chrome): toca el candado junto a la dirección › Permisos › Ubicación › Permitir. iPhone: Ajustes › Privacidad y seguridad › Localización › Safari › Mientras se usa la app; después recarga la página.');
   else if (e && e.code===3) locMsg('El GPS tardó demasiado', '<b>Intenta de nuevo al aire libre.</b> Dentro de edificios la señal es débil.');
   else locMsg('No se pudo obtener tu ubicación', '<b>Revisa que la ubicación del teléfono esté encendida</b> y vuelve a intentarlo.');

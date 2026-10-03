@@ -2,7 +2,7 @@
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 <title>Calles Prioritarias para Reforestar</title>
 <meta name="color-scheme" content="light only">
-<link rel="stylesheet" href="estilos.css?v=d6b2c535c6">
+<link rel="stylesheet" href="estilos.css?v=1ae7fc9521">
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. -->
 <div class="app">
   <!-- ===== Panel lateral (en teléfono, hoja inferior): consulta, respuesta y acciones ===== -->
@@ -85,7 +85,7 @@
           <button class="btn secondary" id="dl-ficha-alc" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la alcaldía (PDF)</button>
           <button class="btn secondary" id="dl-ficha" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la colonia (PDF)</button>
         </div>
-        <div class="status" id="dl-status"></div>
+        <div class="status" id="dl-status" role="status"></div>
       </div></div>
         <div class="source">
         Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
@@ -97,12 +97,14 @@
       <button type="button" class="btn" id="act-main"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span id="act-main-lbl">Descargar listado (Excel)</span></button>
       <button type="button" class="btn secondary" id="act-ficha">Ficha PDF</button>
       <p class="act-hint" id="act-hint" hidden></p>
+      <p class="act-status" id="act-status" role="status" hidden></p>
     </div>
   </aside>
 
   <!-- ===== Mapa: barra de resumen, herramientas, leyenda-filtro y tarjeta (js/04 a 07) ===== -->
   <div class="mapwrap">
     <div id="map"></div>
+    <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
     <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descargando la herramienta…</div><div class="bar"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
@@ -279,8 +281,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=fa86c66134"></script>
+<script src="config.js?v=8b594ad52c"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=3ada3f3ecb"></script>
+<script src="app.js?v=35a67554c5"></script>
 </body></html>

@@ -134,3 +134,15 @@
 /* v17.19 · aviso del filtro de la leyenda */
 #lg-filter-note{margin-top:6px}
 #lg-filter-note.warn{color:var(--guinda);font-weight:600}
+
+/* v17.21 · bloque B4: errores, estado de descargas, atribución del mapa de fondo */
+.card:not([hidden]) ~ .attrib.sat{right:332px;left:auto;max-width:min(520px,calc(100% - 640px))}   /* la atribución del fondo es obligatoria: se recorre, no se oculta */
+@media (max-width:860px){ .card:not([hidden]) ~ .attrib.sat{right:60px;max-width:none} }
+.panel-actions .act-status{grid-column:1/-1;margin:0;font-size:12px;color:var(--ink);font-weight:500}
+body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor:progress}
+.aviso-error{border-left-color:var(--guinda)}
+.aviso-error .recarga{position:static;width:auto;height:auto;margin-left:6px;padding:3px 9px;border:1.5px solid var(--guinda);border-radius:6px;background:var(--panel);color:var(--guinda);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.sinjs{position:absolute;inset:0;z-index:9;display:grid;place-items:center;padding:24px;text-align:center;background:var(--panel);font-size:14px}
+.loader .reintenta{margin-top:10px;padding:6px 12px;border:1.5px solid var(--guinda);border-radius:6px;background:var(--panel);color:var(--guinda);font:inherit;font-size:12px;font-weight:600;cursor:pointer}
+.loader .lento{margin-top:8px;font-size:12px;max-width:320px}
+.omni-list li.mas{cursor:pointer;color:var(--guinda);font-weight:600}

@@ -101,7 +101,7 @@ function renderUbicar(items, qRaw){
 function renderResults(){
   const q = norm($('q').value.trim()); locChips('');
   if (alcOnly() && sel===null && q.length<2){ renderAlcRanking(); return; }
-  if (colOnly() && selCol===null && q.length<2){ renderColoniaRanking(); return; }
+  if (colLista() && selCol===null && q.length<2){ renderColoniaRanking(); return; }   // depende de las casillas, no del zoom (auditoría H-075)
   if (isGC() && selAv!==null && q.length<2){ renderAvenueByAlc(); return; }
   const ul = $('results'); ul.innerHTML='';
   if (isGC()){

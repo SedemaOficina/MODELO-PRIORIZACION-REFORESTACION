@@ -83,7 +83,7 @@
           <button class="btn secondary" id="dl-ficha-alc" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la alcaldía (PDF)</button>
           <button class="btn secondary" id="dl-ficha" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la colonia (PDF)</button>
         </div>
-        <div class="status" id="dl-status"></div>
+        <div class="status" id="dl-status" role="status"></div>
       </div></div>
         <div class="source">
         Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
@@ -95,12 +95,14 @@
       <button type="button" class="btn" id="act-main"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11m0 0-4-4m4 4 4-4M5 20h14"/></svg><span id="act-main-lbl">Descargar listado (Excel)</span></button>
       <button type="button" class="btn secondary" id="act-ficha">Ficha PDF</button>
       <p class="act-hint" id="act-hint" hidden></p>
+      <p class="act-status" id="act-status" role="status" hidden></p>
     </div>
   </aside>
 
   <!-- ===== Mapa: barra de resumen, herramientas, leyenda-filtro y tarjeta (js/04 a 07) ===== -->
   <div class="mapwrap">
     <div id="map"></div>
+    <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
     <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:16px">Cargando frentes de manzana</div><div id="load-msg" style="font-size:12px;margin-top:4px">Descomprimiendo datos…</div><div class="bar"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>

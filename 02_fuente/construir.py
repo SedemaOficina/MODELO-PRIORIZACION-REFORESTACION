@@ -50,7 +50,7 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 ESRI_KEY = ''
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.20'
+VERSION = '17.21'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -78,10 +78,18 @@ AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar
 # La lógica corre dentro de una función asíncrona (los datos se esperan con await); si algo falla al
 # cargar, el cargador muestra el error en lugar del mapa.
 APERTURA = "(async function(){\n'use strict';\n"
-CIERRE = ("})().catch(err=>{ console.error(err); const l=document.getElementById('loader'); l.hidden=false; "
-          "l.querySelector('div').innerHTML = `<div class=\"cabin\" style=\"font-weight:600;font-size:16px\">No fue posible cargar el mapa</div>"
-          "<div style=\"font-size:12px;margin-top:6px;max-width:320px\">${(err && err.message)||err}. Recarga la página; si persiste, "
-          "avisa al Sistema de Información Ambiental.</div>`; });\n")
+CIERRE = ("})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent='';"
+          " const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:16px'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t);"
+          " const m=document.createElement('div'); m.style.cssText='font-size:12px;margin-top:6px;max-width:320px';"
+          " m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m);"
+          " const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });\n")
+# Vigilancia del arranque (auditoría H-035). Va en un archivo aparte de app.js para que funcione aunque app.js no llegue:
+# avisa si un programa no se pudo descargar y ofrece reintentar cuando la carga tarda demasiado.
+VIGIA = ("(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=document.getElementById('loader'); if(!l || l.querySelector('.lento')) return; var d=l.querySelector('div');"
+         " var p=document.createElement('div'); p.className='lento'; p.textContent=t; d.appendChild(p);"
+         " var b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=function(){ location.reload(); }; d.appendChild(b); }"
+         " addEventListener('error', function(e){ var x=e.target; if (x && x.tagName==='SCRIPT' && !window.SIA_LISTO) aviso('No se pudo descargar una parte del programa ('+String(x.src||'').split('/').pop().split('?')[0]+'). Revisa tu conexión.'); }, true);"
+         " setTimeout(function(){ aviso('La carga está tardando más de lo normal. Puede ser una conexión lenta; si no avanza, vuelve a intentarlo.'); }, 45000); })();\n")
 
 
 def unir(carpeta, extension):
@@ -109,6 +117,7 @@ incrustadas = css_fuentes(lambda a: 'data:font/woff2;base64,' + base64.b64encode
 cuerpo = plantilla.replace('<!-- ESTILOS -->', '<style>\n' + incrustadas + estilos + '</style>')
 for img, tipo in IMAGENES.items():
     cuerpo = cuerpo.replace('src="%s"' % img, 'src="data:%s;base64,%s"' % (tipo, base64.b64encode(leer(img, True)).decode()))
+cuerpo += '<script>' + VIGIA + '</script>\n'
 cuerpo += ''.join('<script src="%s"></script>\n' % CDN[k] for k in ('deck.js', 'pako.js'))
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
 cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
@@ -139,7 +148,7 @@ for arch in sorted(os.listdir(os.path.join(FUENTE, 'fuentes'))):
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)
