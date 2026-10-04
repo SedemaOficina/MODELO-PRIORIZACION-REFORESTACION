@@ -59,14 +59,21 @@ async function lanzar() {
   if (process.env.PW_CHROME) op.executablePath = process.env.PW_CHROME;
   return chromium.launch(op);
 }
+// La primera visita pregunta el territorio (v17.28). Las pruebas parten de «toda la ciudad», como una visita que ya eligió;
+// `entrada: true` en abrir() deja la primera visita tal cual.
+const sinEntrada = ctx => ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });
 async function abrir(browser, url, opciones = {}, errores = []) {
-  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...opciones });
-  await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });   // habilita #nomap (no redibujar el mapa), que solo existe para las pruebas
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => k !== 'entrada')) });
+  await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });
+  // Las pruebas parten de «toda la ciudad», como una visita que ya eligió territorio; `entrada: true` deja la primera visita tal cual.
+  if (!opciones.entrada) await sinEntrada(ctx);
   const page = await ctx.newPage(); page.setDefaultTimeout(+process.env.T_ESPERA || 300000);
   page.on('pageerror', e => errores.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errores.push('console: ' + m.text()); });
   await page.route(u => u.hostname.startsWith('fonts.'), r => r.fulfill({ status: 200, body: '', contentType: 'text/css' }));
   await page.goto(url); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+  // las pruebas heredadas leen las cifras de la pestaña Resumen; la pestaña inicial («Dónde empezar») tiene su propia prueba
+  if (!opciones.entrada) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); });
   return { ctx, page };
 }
 // fotografía del estado visible de la interfaz
@@ -118,4 +125,4 @@ function Registro(nombre) {
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { sinEntrada, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

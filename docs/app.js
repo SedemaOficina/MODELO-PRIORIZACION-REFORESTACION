@@ -669,7 +669,9 @@ $('reset-all').onclick = ()=>{ opPrio=1; $('op-prio').value=100; $('op-val').tex
 // Estadísticas por colonia, avenida y ámbito; cifras principales, barras por prioridad y textos de contexto del panel.
 // estadísticas por colonia (frentes a cargo de la alcaldía)
 let COLSTAT = null;
-function colStat(id){ if(!COLSTAT){ COLSTAT = new Map(); for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i]) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000; s.n[p]++; s.km[p]+=k; if(p>=3){ s.kmp+=k; s.np++; } } } return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0}; }
+function colStat(id){ if(!COLSTAT){ COLSTAT = new Map(); for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i]) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if(esPrio(p)){ s.kmp+=k; s.np++; }
+      if (p>=UNIV_MIN && (fl&7)===1 && ((fl>>3)&7)===0) s.pl+=k; } }   // pl: universo de intervención sin arbolado y con banqueta (INEGI), igual que repStat()
+  return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; }
 // estadísticas por avenida (NOMENCLAT), toda la ciudad, calculadas una vez
 let AVSTAT = null;
 function avStat(id){ if(!AVSTAT){ AVSTAT=new Map(); for(let i=0;i<NV;i++){ const a=VP.nom[i]; let s=AVSTAT.get(a); if(!s){ s={idx:[],n:[0,0,0,0,0],km:[0,0,0,0,0],kmt:0,kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; AVSTAT.set(a,s); } const p=VP.prio[i], k=VP.len[i]/1000; s.idx.push(i); s.n[p]++; s.km[p]+=k; s.kmt+=k; s.recs.add(VP.rec[i]); if(p>=3){ s.kmp+=k; s.recsp.add(VP.rec[i]); } s.muns.add(VP.mun[i]); s.nombres.add(VPC.nombres[VP.nombre[i]]); } } const s=AVSTAT.get(id); return s? {...s, km:s.kmt, kmByP:s.km} : {idx:[],n:[0,0,0,0,0],km:0,kmByP:[0,0,0,0,0],kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; }
@@ -1021,6 +1023,55 @@ for (const id of ['results','tramos']) $(id).addEventListener('keydown', e=>{ co
   setTimeout(()=>{ const a = document.activeElement; if (a && a!==document.body && a.isConnected) return;
     ($('results').querySelector('li.active') || $('scope-title')).focus(); }, 60); });
 
+// ---------- pestaña «Dónde empezar» (v17.28) ----------
+// Propone un orden de atención sin depender de las casillas de capas: colonias del ámbito (con criterio de orden elegible),
+// calles de la colonia consultada o avenidas cuando solo se consulta al Gobierno Central.
+let iniOrden = 'kmp', iniN = 10;
+const INI_ORD = {
+  kmp: { tit:'por kilómetros de frente prioritario', val:s=>s.kmp, nota:'Prioritario = categorías Muy Alta y Alta. Selecciona una colonia para ver sus calles.' },
+  pct: { tit:'por porcentaje de frente prioritario', val:s=>s.kmp/(sum(s.km)||1), nota:'Porcentaje del frente de la colonia que es prioritario. Una colonia pequeña puede aparecer arriba con pocos kilómetros: revisa la cifra en kilómetros de cada renglón.' },
+  pob: { tit:'por habitantes', val:(s,c)=>c.pob||0, nota:'Población residente de la colonia (Censo 2020) entre las colonias con frente prioritario; no equivale a población atendida.' },
+  pl:  { tit:'por kilómetros sin arbolado y con banqueta', val:s=>s.pl, nota:'Frentes de prioridad Muy Alta, Alta o Media sin arbolado y con banqueta según INEGI 2020: orienta sobre dónde es más probable poder plantar. La banqueta debe verificarse en campo.' } };
+function iniFila(pos, nombre, sub, k, small, go, dotc){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
+  li.innerHTML = `<div><div class="n"><span class="pos">${pos}</span>${dotc? dot(dotc):''}${nombre}</div><div class="t">${sub}</div></div><div class="k">${k}<small>${small}</small></div>`;
+  li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; return li; }
+function renderInicio(){
+  const ul=$('ini-list'), box=$('ini-orden-box'), mas=$('ini-mas'), nota=$('ini-note'), tit=$('ini-title'), cnt=$('ini-count'); if(!ul) return;
+  ul.innerHTML=''; box.hidden=true; mas.hidden=true; let total=0;
+  const vacio = t => { ul.innerHTML = `<li class="empty">${t}</li>`; };
+  if (isGC()){
+    const dondeV = sel===null? 'de la ciudad' : 'de la alcaldía '+META.munNames[sel];
+    tit.textContent = `Avenidas ${dondeV} por atender primero`; nota.textContent = 'Vialidades primarias a cargo del Gobierno Central, ordenadas por kilómetros prioritarios (Muy Alta y Alta) medidos sobre el eje. Selecciona una avenida para consultarla.';
+    const items=[...avIdx].filter(x=>x[1].kmp>0).sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km); total=items.length;
+    cnt.textContent = `${fmt.format(total)} avenida${total===1?'':'s'} con km prioritarios`;
+    if(!total) return vacio('Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta o Alta).');
+    items.slice(0,iniN).forEach(([a,s],i)=> ul.appendChild(iniFila(i+1, VPC.nomenclat[a], [...s.nombres].slice(0,2).join(', '), kmFull(s.kmp), `${s.recsp.size} de ${s.recs.size} tramos son prioritarios`, ()=>pickAvenida(a))));
+  } else if (selCol!==null){
+    tit.textContent = `Calles de ${META.colonias[selCol].n} por atender primero`; nota.textContent = 'Calles de la colonia ordenadas por kilómetros de frente prioritario (Muy Alta y Alta). Selecciona una calle para ubicarla en el mapa.';
+    const items=[...streetIdx].filter(x=>x[1].kmp>0 && META.names[x[1].nid]).sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km); total=items.length;
+    cnt.textContent = `${fmt.format(total)} calle${total===1?'':'s'} con frente prioritario`;
+    if(!total) return vacio('Esta colonia no tiene calles con frente prioritario (Muy Alta o Alta).');
+    items.slice(0,iniN).forEach(([key,s],i)=>{ const d=dom({km:s.kp}); ul.appendChild(iniFila(i+1, META.names[s.nid], `Prioridad predominante ${META.prio[d]} · ${kmFull(s.km)} de frente en total`, kmFull(s.kmp), `${s.np} de ${s.idx.length} frentes prioritarios`, ()=>{ highlightStreet(key, s); renderResults(); }, T.prio[d])); });
+  } else {
+    const o = INI_ORD[iniOrden]; box.hidden=false; const m = sel===null? null : META.muns[sel];
+    tit.textContent = `Colonias ${sel===null? 'de la ciudad' : 'de '+META.munNames[sel]} por atender primero`; nota.textContent = o.nota;
+    const items=[]; for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const s=colStat(i); if (iniOrden==='pl'? s.pl>0 : s.kmp>0) items.push([i,s,c,o.val(s,c)]); }
+    items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp); total=items.length;
+    cnt.textContent = `${fmt.format(total)} colonia${total===1?'':'s'}, ${o.tit}`;
+    if(!total) return vacio('Este ámbito no tiene colonias con frente prioritario.');
+    items.slice(0,iniN).forEach(([i,s,c],k)=>{ const tot=sum(s.km);
+      const [v,sm] = iniOrden==='pct'? [pct(s.kmp,tot), `${kmFull(s.kmp)} de ${kmFull(tot)} de frente`]
+        : iniOrden==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]
+        : iniOrden==='pl'? [kmFull(s.pl), `sin arbolado y con banqueta · ${kmFull(s.kmp)} prioritarios`]
+        : [kmFull(s.kmp), `${fmt.format(s.np)} de ${fmt.format(sum(s.n))} frentes son prioritarios`];
+      ul.appendChild(iniFila(k+1, c.n, `${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.pob && iniOrden!=='pob'? ' · '+fmt.format(c.pob)+' hab.':''}`, v, sm, ()=>pickColonia(i), c.p>=0? T.prio[c.p]:null)); });
+  }
+  mas.hidden = total<=iniN; if(!mas.hidden) mas.textContent = `Ver ${Math.min(10,total-iniN)} más`;
+}
+$('ini-orden').onchange = e=>{ iniOrden = INI_ORD[e.target.value]? e.target.value : 'kmp'; iniN = 10; renderInicio(); };
+$('ini-mas').onclick = ()=>{ const n = iniN; iniN += 10; renderInicio(); const li = $('ini-list').children[n]; if (li) li.focus(); };
+$('ini-list').addEventListener('keydown', e=>{ const li=e.target; if (li.matches && li.matches('li[tabindex]') && e.key===' '){ e.preventDefault(); li.click(); } });
+
 // Tramos de una calle de la red de las alcaldías: agrupa los frentes de manzana de la calle consultada en tramos
 // (de esquina a esquina, con sus dos lados) y nombra las vialidades que los delimitan. Se calcula al consultar la calle,
 // a partir de la geometría de los frentes; no cambia los datos ni el catálogo.
@@ -1125,7 +1176,7 @@ let anuncioT = null;
 function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
-  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
+  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
@@ -1147,7 +1198,11 @@ function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','
   if (resp!=='alc') p.set('r', resp);
   if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
   const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
-function guardaURL(){ if (restaurando) return; const u = urlEstado(); if (u === location.pathname + location.search + location.hash) return;
+// La última alcaldía consultada se recuerda en este navegador (v17.28): la siguiente visita abre ahí. No es un dato personal.
+const CLAVE_INICIO = 'cp_inicio';
+const leeInicio = ()=>{ try { return localStorage.getItem(CLAVE_INICIO); } catch(e){ return null; } };
+const recuerdaInicio = ()=>{ try { localStorage.setItem(CLAVE_INICIO, sel===null? 'ciudad' : META.muns[sel]); } catch(e){} };
+function guardaURL(){ if (restaurando) return; recuerdaInicio(); const u = urlEstado(); if (u === location.pathname + location.search + location.hash) return;
   try { history.pushState({consulta:true}, '', u); } catch(e){} }
 function aplicarURL(){ const p = new URLSearchParams(location.search); const r = p.get('r')==='gc'? 'gc' : p.get('r')==='both'? 'both' : 'alc';
   const a = munIndex[p.get('a')], c = +p.get('c'), v = +p.get('v'); const m = a===undefined? null : a; const antes = restaurando; restaurando = true;
@@ -1744,6 +1799,7 @@ $('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-clo
 infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); });
 // Esc cierra, en este orden: la ayuda, la ficha abierta y el panel de capas; el foco vuelve al control que los abrió (auditoría H-048)
 addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) return;
+  if (!entradaEl.hidden) return cierraEntrada(null);
   if (!infoModal.hidden) return closeInfo();
   if (!$('card').hidden){ e.preventDefault(); return hideCard(true); }
   if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
@@ -1773,12 +1829,13 @@ const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
 legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
-setLegend(!isPhone() && innerHeight>480);   // en pantallas bajas el panel de capas empieza cerrado
+setLegend(false);   // el panel de capas empieza cerrado (v17.28): la leyenda compacta dice los colores y lo abre
+$('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
 function setTab(t){ document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
-  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
+  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['ini','res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
 function updTabLabel(){
   const lbl = isGC()? 'Avenidas' : (alcOnly() && sel===null)? 'Alcaldías' : (colLista() && selCol===null)? 'Colonias' : 'Calles';
@@ -1811,7 +1868,23 @@ $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).c
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // cierre de sesión: solo aparece si la instalación define su dirección (Fase 2)
 if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; }
-$('resp-help').onclick = ()=>{ const n=$('resp-note'); n.hidden=!n.hidden; $('resp-help').setAttribute('aria-expanded', String(!n.hidden)); };
+// ---------- compartir la consulta (v17.28): la dirección ya la conserva; el botón la copia o abre el menú de compartir del teléfono ----------
+let shareT = null;
+function avisoShare(t){ $('share-lbl').textContent = t; $('sr-estado').textContent = t; clearTimeout(shareT); shareT = setTimeout(()=>{ $('share-lbl').textContent = 'Compartir'; }, 2600); }
+function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  return new Promise((ok, no)=>{ const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly',''); a.className = 'sr'; document.body.appendChild(a); a.select();
+    let bien = false; try { bien = document.execCommand('copy'); } catch(e){} a.remove(); bien? ok() : no(); }); }
+$('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
+  if (isPhone() && navigator.share){ navigator.share({title: titulo, url: u}).catch(()=>{}); return; }
+  copiaTexto(u).then(()=>avisoShare('Enlace copiado'), ()=>avisoShare('No se pudo copiar')); };
+// ---------- entrada por territorio (v17.28) ----------
+// Primera visita sin consulta en la dirección: una sola pregunta. Elegir una alcaldía (o toda la ciudad) abre ahí la herramienta.
+const entradaEl = $('entrada');
+function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false; if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio(); $('scope-title').focus(); }
+function abreEntrada(){ const g = $('entrada-grid');
+  if (!g.children.length) META.muns.map((m,i)=>i).sort((a,b)=>META.munNames[a].localeCompare(META.munNames[b],'es')).forEach(i=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'entrada-op'; b.textContent = META.munNames[i]; b.onclick = ()=>cierraEntrada(i); g.appendChild(b); });
+  entradaEl.hidden = false; appEl.inert = true; g.firstElementChild.focus(); }
+$('entrada-cdmx').onclick = ()=>cierraEntrada(null);
 // ---------- ruta de navegación (auditoría I4) ----------
 function renderCrumb(){
   const atRoot = sel===null && selCol===null && selAv===null;
@@ -2069,10 +2142,15 @@ mapEl.addEventListener('pointermove', e=>{ if (locFollow && e.buttons && pdown &
 if (isPhone()) setLayer('fr', false);   // en pantallas chicas se dibujan primero las colonias
 document.body.dataset.resp = resp;
 setSel('');
-setTab('res');
+setTab('ini');
 if (isPhone()) setSheetState('peek');
 // consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
-aplicarURL(); restaurando = false;
+aplicarURL();
+// sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio (v17.28)
+let preguntaEntrada = false;
+{ const p = new URLSearchParams(location.search); if (!['a','c','v','r'].some(k=>p.has(k))){ const g = leeInicio(), m = g===null? undefined : munIndex[g];
+    if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } else if (g!=='ciudad') preguntaEntrada = true; } }
+restaurando = false;
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
 // errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
 addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });
@@ -2084,4 +2162,5 @@ if ('serviceWorker' in navigator && window.SIA_LIBS && /^https?:$/.test(location
   if (SESION.inicio){ navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
     if (window.caches) caches.keys().then(ks => ks.filter(k => k.startsWith('calles-')).forEach(k => caches.delete(k))).catch(()=>{}); }
   else navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+if (preguntaEntrada) abreEntrada();
 })().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent=''; const t=document.createElement('div'); t.className='cabin ld-tit'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t); const m=document.createElement('div'); m.className='ld-err'; m.setAttribute('role','alert'); m.textContent=(err && err.sesion)? err.amable + ' ' : ((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m); if (err && err.sesion && window.SIA_SESION && window.SIA_SESION.inicio){ const a=document.createElement('a'); a.href=window.SIA_SESION.inicio; a.textContent='Iniciar sesión'; m.appendChild(a); } const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });

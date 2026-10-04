@@ -27,8 +27,8 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
   // ---------- escritorio ----------
   { const { page, ctx } = await L.abrir(browser, U, {}, errores);
     const nom = await page.evaluate(() => { const n = e => e ? (e.getAttribute('aria-label') || e.innerText || '').trim() : null; const cv = document.querySelector('#map canvas');
-      return { ayuda: n(document.getElementById('resp-help')), canvasRol: cv && cv.getAttribute('role'), canvasNom: cv && cv.getAttribute('aria-label'), sinNombre: [...document.querySelectorAll('button, [role=button], select, input')].filter(e => e.offsetParent && !(e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || e.innerText.trim() || e.title || (e.labels && e.labels.length))).map(e => e.id || e.className).slice(0, 5) }; });
-    ok('H-092 el botón de ayuda de «Atiende» tiene nombre accesible propio', nom.ayuda && nom.ayuda !== '?', nom.ayuda);
+      return { ayuda: (g => g && document.getElementById(g.getAttribute('aria-labelledby')) ? document.getElementById(g.getAttribute('aria-labelledby')).textContent.trim() : null)(document.querySelector('.lg-resp .chips[role=group]')), canvasRol: cv && cv.getAttribute('role'), canvasNom: cv && cv.getAttribute('aria-label'), sinNombre: [...document.querySelectorAll('button, [role=button], select, input')].filter(e => e.offsetParent && !(e.getAttribute('aria-label') || e.getAttribute('aria-labelledby') || e.innerText.trim() || e.title || (e.labels && e.labels.length))).map(e => e.id || e.className).slice(0, 5) }; });
+    ok('H-092 el grupo «Quién atiende» (en el panel de capas desde la v17.28) tiene nombre accesible', nom.ayuda === 'Quién atiende', nom.ayuda);
     ok('H-049 el lienzo del mapa tiene rol y nombre', !!nom.canvasRol && /Mapa/.test(nom.canvasNom || ''), `${nom.canvasRol} · ${(nom.canvasNom || '').slice(0, 40)}`);
     ok('H-092 ningún control visible sin nombre accesible', nom.sinNombre.length === 0, nom.sinNombre.join(', '));
     // enlace de salto: primera parada de tabulación

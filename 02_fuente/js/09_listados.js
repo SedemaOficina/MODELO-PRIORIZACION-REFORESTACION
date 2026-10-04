@@ -169,3 +169,52 @@ for (const id of ['results','tramos']) $(id).addEventListener('keydown', e=>{ co
   if (e.key===' '){ e.preventDefault(); li.click(); } if (e.key!==' ' && e.key!=='Enter') return;
   setTimeout(()=>{ const a = document.activeElement; if (a && a!==document.body && a.isConnected) return;
     ($('results').querySelector('li.active') || $('scope-title')).focus(); }, 60); });
+
+// ---------- pestaña «Dónde empezar» (v17.28) ----------
+// Propone un orden de atención sin depender de las casillas de capas: colonias del ámbito (con criterio de orden elegible),
+// calles de la colonia consultada o avenidas cuando solo se consulta al Gobierno Central.
+let iniOrden = 'kmp', iniN = 10;
+const INI_ORD = {
+  kmp: { tit:'por kilómetros de frente prioritario', val:s=>s.kmp, nota:'Prioritario = categorías Muy Alta y Alta. Selecciona una colonia para ver sus calles.' },
+  pct: { tit:'por porcentaje de frente prioritario', val:s=>s.kmp/(sum(s.km)||1), nota:'Porcentaje del frente de la colonia que es prioritario. Una colonia pequeña puede aparecer arriba con pocos kilómetros: revisa la cifra en kilómetros de cada renglón.' },
+  pob: { tit:'por habitantes', val:(s,c)=>c.pob||0, nota:'Población residente de la colonia (Censo 2020) entre las colonias con frente prioritario; no equivale a población atendida.' },
+  pl:  { tit:'por kilómetros sin arbolado y con banqueta', val:s=>s.pl, nota:'Frentes de prioridad Muy Alta, Alta o Media sin arbolado y con banqueta según INEGI 2020: orienta sobre dónde es más probable poder plantar. La banqueta debe verificarse en campo.' } };
+function iniFila(pos, nombre, sub, k, small, go, dotc){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
+  li.innerHTML = `<div><div class="n"><span class="pos">${pos}</span>${dotc? dot(dotc):''}${nombre}</div><div class="t">${sub}</div></div><div class="k">${k}<small>${small}</small></div>`;
+  li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; return li; }
+function renderInicio(){
+  const ul=$('ini-list'), box=$('ini-orden-box'), mas=$('ini-mas'), nota=$('ini-note'), tit=$('ini-title'), cnt=$('ini-count'); if(!ul) return;
+  ul.innerHTML=''; box.hidden=true; mas.hidden=true; let total=0;
+  const vacio = t => { ul.innerHTML = `<li class="empty">${t}</li>`; };
+  if (isGC()){
+    const dondeV = sel===null? 'de la ciudad' : 'de la alcaldía '+META.munNames[sel];
+    tit.textContent = `Avenidas ${dondeV} por atender primero`; nota.textContent = 'Vialidades primarias a cargo del Gobierno Central, ordenadas por kilómetros prioritarios (Muy Alta y Alta) medidos sobre el eje. Selecciona una avenida para consultarla.';
+    const items=[...avIdx].filter(x=>x[1].kmp>0).sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km); total=items.length;
+    cnt.textContent = `${fmt.format(total)} avenida${total===1?'':'s'} con km prioritarios`;
+    if(!total) return vacio('Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta o Alta).');
+    items.slice(0,iniN).forEach(([a,s],i)=> ul.appendChild(iniFila(i+1, VPC.nomenclat[a], [...s.nombres].slice(0,2).join(', '), kmFull(s.kmp), `${s.recsp.size} de ${s.recs.size} tramos son prioritarios`, ()=>pickAvenida(a))));
+  } else if (selCol!==null){
+    tit.textContent = `Calles de ${META.colonias[selCol].n} por atender primero`; nota.textContent = 'Calles de la colonia ordenadas por kilómetros de frente prioritario (Muy Alta y Alta). Selecciona una calle para ubicarla en el mapa.';
+    const items=[...streetIdx].filter(x=>x[1].kmp>0 && META.names[x[1].nid]).sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km); total=items.length;
+    cnt.textContent = `${fmt.format(total)} calle${total===1?'':'s'} con frente prioritario`;
+    if(!total) return vacio('Esta colonia no tiene calles con frente prioritario (Muy Alta o Alta).');
+    items.slice(0,iniN).forEach(([key,s],i)=>{ const d=dom({km:s.kp}); ul.appendChild(iniFila(i+1, META.names[s.nid], `Prioridad predominante ${META.prio[d]} · ${kmFull(s.km)} de frente en total`, kmFull(s.kmp), `${s.np} de ${s.idx.length} frentes prioritarios`, ()=>{ highlightStreet(key, s); renderResults(); }, T.prio[d])); });
+  } else {
+    const o = INI_ORD[iniOrden]; box.hidden=false; const m = sel===null? null : META.muns[sel];
+    tit.textContent = `Colonias ${sel===null? 'de la ciudad' : 'de '+META.munNames[sel]} por atender primero`; nota.textContent = o.nota;
+    const items=[]; for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const s=colStat(i); if (iniOrden==='pl'? s.pl>0 : s.kmp>0) items.push([i,s,c,o.val(s,c)]); }
+    items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp); total=items.length;
+    cnt.textContent = `${fmt.format(total)} colonia${total===1?'':'s'}, ${o.tit}`;
+    if(!total) return vacio('Este ámbito no tiene colonias con frente prioritario.');
+    items.slice(0,iniN).forEach(([i,s,c],k)=>{ const tot=sum(s.km);
+      const [v,sm] = iniOrden==='pct'? [pct(s.kmp,tot), `${kmFull(s.kmp)} de ${kmFull(tot)} de frente`]
+        : iniOrden==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]
+        : iniOrden==='pl'? [kmFull(s.pl), `sin arbolado y con banqueta · ${kmFull(s.kmp)} prioritarios`]
+        : [kmFull(s.kmp), `${fmt.format(s.np)} de ${fmt.format(sum(s.n))} frentes son prioritarios`];
+      ul.appendChild(iniFila(k+1, c.n, `${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.pob && iniOrden!=='pob'? ' · '+fmt.format(c.pob)+' hab.':''}`, v, sm, ()=>pickColonia(i), c.p>=0? T.prio[c.p]:null)); });
+  }
+  mas.hidden = total<=iniN; if(!mas.hidden) mas.textContent = `Ver ${Math.min(10,total-iniN)} más`;
+}
+$('ini-orden').onchange = e=>{ iniOrden = INI_ORD[e.target.value]? e.target.value : 'kmp'; iniN = 10; renderInicio(); };
+$('ini-mas').onclick = ()=>{ const n = iniN; iniN += 10; renderInicio(); const li = $('ini-list').children[n]; if (li) li.focus(); };
+$('ini-list').addEventListener('keydown', e=>{ const li=e.target; if (li.matches && li.matches('li[tabindex]') && e.key===' '){ e.preventDefault(); li.click(); } });

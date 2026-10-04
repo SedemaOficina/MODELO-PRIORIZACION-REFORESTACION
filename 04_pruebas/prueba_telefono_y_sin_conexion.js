@@ -58,7 +58,7 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
     const r = await page.evaluate(() => ({ etq: !!document.querySelector('.etq-ligero'), nota: document.getElementById('lvl-note').textContent, dib: !!document.getElementById('dibujando') }));
     ok('H-055 modo ligero: etiqueta fija, nota en el panel de capas y aviso «Dibujando calles…» disponible', r.etq && /Modo ligero/.test(r.nota) && r.dib, JSON.stringify(r));
     await ctx.close(); }
-  { const ctx = await browser.newContext({ serviceWorkers: 'block', locale: 'es-MX', viewport: { width: 1440, height: 900 } }); const page = await ctx.newPage();   // sin la bandera de prueba: detección real (dibujo por software)
+  { const ctx = await browser.newContext({ serviceWorkers: 'block', locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await L.sinEntrada(ctx); const page = await ctx.newPage();   // sin la bandera de prueba: detección real (dibujo por software)
     await page.goto(srv.url + '#nomap'); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 }); await page.waitForTimeout(1500);
     const a1 = await page.$('.aviso-ligero:not(.aviso-error)'); if (a1) await page.$eval('.aviso-ligero:not(.aviso-error) button', b => b.click());
     await page.reload(); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 }); await page.waitForTimeout(1500);
@@ -81,7 +81,7 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
     await ctx.close(); }
 
   // ---------- H-057 · sin conexión después de la primera visita ----------
-  { const ctx = await browser.newContext({ acceptDownloads: true, locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); const page = await ctx.newPage();
+  { const ctx = await browser.newContext({ acceptDownloads: true, locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await L.sinEntrada(ctx); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); const page = await ctx.newPage();
     await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 });
     const pre = await page.evaluate(async () => { await navigator.serviceWorker.ready; for (let k = 0; k < 120; k++) { const ks = await caches.keys(); if (ks.length) { const c = await caches.open(ks[0]); const n = (await c.keys()).length; if (n >= 16) return { cache: ks[0], n }; } await new Promise(r => setTimeout(r, 500)); } const ks = await caches.keys(); return { cache: ks[0] || null, n: ks[0] ? (await (await caches.open(ks[0])).keys()).length : 0 }; });
     ok('H-057 el proceso de servicio guarda los archivos de la herramienta', !!pre.cache && pre.n >= 16, JSON.stringify(pre));

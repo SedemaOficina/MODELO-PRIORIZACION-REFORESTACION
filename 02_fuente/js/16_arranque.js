@@ -3,10 +3,15 @@
 if (isPhone()) setLayer('fr', false);   // en pantallas chicas se dibujan primero las colonias
 document.body.dataset.resp = resp;
 setSel('');
-setTab('res');
+setTab('ini');
 if (isPhone()) setSheetState('peek');
 // consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
-aplicarURL(); restaurando = false;
+aplicarURL();
+// sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio (v17.28)
+let preguntaEntrada = false;
+{ const p = new URLSearchParams(location.search); if (!['a','c','v','r'].some(k=>p.has(k))){ const g = leeInicio(), m = g===null? undefined : munIndex[g];
+    if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } else if (g!=='ciudad') preguntaEntrada = true; } }
+restaurando = false;
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
 // errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
 addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });
@@ -18,3 +23,4 @@ if ('serviceWorker' in navigator && window.SIA_LIBS && /^https?:$/.test(location
   if (SESION.inicio){ navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
     if (window.caches) caches.keys().then(ks => ks.filter(k => k.startsWith('calles-')).forEach(k => caches.delete(k))).catch(()=>{}); }
   else navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+if (preguntaEntrada) abreEntrada();

@@ -16,7 +16,7 @@
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
-      <!-- consulta: buscador único (js/14_buscador.js), fila "Atiende" y ruta de navegación -->
+      <!-- consulta: buscador único (js/14_buscador.js) y ruta de navegación; «Quién atiende» está en el panel de capas -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -24,12 +24,6 @@
           <button class="clear" id="omni-clear" type="button" aria-label="Borrar búsqueda" hidden>×</button>
           <ul class="combo-list omni-list" id="omni-list" role="listbox" hidden></ul>
         </div>
-        <div class="resp-row"><span class="lab" id="resp-label">Atiende</span><div class="chips" role="group" aria-labelledby="resp-label">
-          <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
-          <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
-        </div><button type="button" class="help-i" id="resp-help" aria-expanded="false" aria-controls="resp-note" title="¿Qué atiende cada quien?" aria-label="Qué atiende cada quien">?</button></div>
-        <p class="note resp-note" id="resp-note" hidden>Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.</p>
-        <p class="note prelim" id="prelim-note"><b>Asignación preliminar.</b> Qué frentes quedan a cargo de la alcaldía o del Gobierno Central se determinó con una regla geométrica que está en validación.</p>
         <nav class="crumb" id="crumb" aria-label="Ruta de la consulta">
           <button type="button" class="cr-city" id="cr-city">Ciudad de México</button><span class="cr-sep" aria-hidden="true">›</span>
           <span class="cr-alc"><select id="alc" aria-label="Alcaldía"><option value="">Elige una alcaldía</option></select></span>
@@ -37,21 +31,35 @@
         </nav>
       </div>
 
-      <!-- respuesta: ámbito, cifras, pestañas Resumen / Listado / Descargas (js/08, 09, 11) -->
+      <!-- respuesta: ámbito y pestañas Dónde empezar / Resumen (cifras) / Listado / Descargas (js/08, 09, 11) -->
       <div class="answer" id="answer">
-        <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title" tabindex="-1">Ciudad de México</h2></div><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div>
+        <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title" tabindex="-1">Ciudad de México</h2></div><div class="scope-acts"><button type="button" class="reset" id="share" title="Copiar la dirección de esta consulta para compartirla"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg><span id="share-lbl">Compartir</span></button><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div></div>
         <div class="colinfo" id="alcinfo" hidden></div>
         <div class="colinfo" id="colinfo" hidden></div>
         <div class="colinfo" id="avinfo" hidden></div>
-        <div class="kpis" id="kpis"></div>
-        <div class="pobbox" id="pobbox" hidden></div>
-        <div class="univbox" id="univbox" hidden></div>
         <div class="tabs" role="tablist" aria-label="Detalle de la consulta">
-          <button type="button" role="tab" id="tab-res" data-tab="res" aria-selected="true" aria-controls="tp-res">Resumen</button>
+          <button type="button" role="tab" id="tab-ini" data-tab="ini" aria-selected="true" aria-controls="tp-ini">Dónde empezar</button>
+          <button type="button" role="tab" id="tab-res" data-tab="res" aria-selected="false" aria-controls="tp-res">Resumen</button>
           <button type="button" role="tab" id="tab-list" data-tab="list" aria-selected="false" aria-controls="tp-list">Listado</button>
           <button type="button" role="tab" id="tab-dl" data-tab="dl" aria-selected="false" aria-controls="tp-dl">Descargas</button>
         </div>
-        <div class="tabpanel" id="tp-res" role="tabpanel" aria-labelledby="tab-res"><div>
+        <div class="tabpanel" id="tp-ini" role="tabpanel" aria-labelledby="tab-ini"><div>
+        <div class="section-title"><h2 id="ini-title">Colonias por atender primero</h2><span id="ini-count" role="status"></span></div>
+        <div class="ini-orden" id="ini-orden-box"><label for="ini-orden">Ordenar por</label>
+          <select id="ini-orden">
+            <option value="kmp">Más kilómetros prioritarios</option>
+            <option value="pct">Mayor porcentaje prioritario</option>
+            <option value="pob">Más habitantes</option>
+            <option value="pl">Más kilómetros sin arbolado y con banqueta</option>
+          </select></div>
+        <ol class="results ini" id="ini-list"></ol>
+        <button type="button" class="linkbtn ini-mas" id="ini-mas" hidden>Ver 10 más</button>
+        <p class="note" id="ini-note"></p>
+      </div></div>
+        <div class="tabpanel" id="tp-res" role="tabpanel" aria-labelledby="tab-res" hidden><div>
+        <div class="kpis" id="kpis"></div>
+        <div class="pobbox" id="pobbox" hidden></div>
+        <div class="univbox" id="univbox" hidden></div>
         <div class="section-title"><h2 id="bars-title">Kilómetros de frente por prioridad</h2><span id="scope-label">Ciudad</span></div>
         <div class="bars" id="bars"></div>
         <div id="bars2" class="bars2" hidden>
@@ -127,6 +135,13 @@
             <button type="button" data-lvl="col" aria-pressed="true"><i></i>Colonias</button>
             <button type="button" data-lvl="fr" aria-pressed="true"><i></i>Calles</button>
           </div><p class="lg-note" id="lvl-note">Colonias y Calles se combinan; Alcaldías va sola.</p></div>
+      <div class="lg-sec lg-resp"><span class="lg-cap" id="resp-label">Quién atiende</span>
+          <div class="resp-row"><div class="chips" role="group" aria-labelledby="resp-label">
+          <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
+          <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
+        </div></div>
+          <p class="lg-note" id="resp-note">Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.</p>
+          <p class="lg-note prelim" id="prelim-note"><b>Asignación preliminar.</b> Qué frentes quedan a cargo de la alcaldía o del Gobierno Central se determinó con una regla geométrica que está en validación.</p></div>
       <div class="lg-sec"><span class="lg-cap" id="fondo-label">Mapa de fondo</span><div class="seg fondo pills" role="group" aria-labelledby="fondo-label">
             <button type="button" data-fondo="no" aria-pressed="true"><i></i>Sin fondo</button>
             <button type="button" data-fondo="calles" aria-pressed="false"><i></i>Calles</button>
@@ -141,12 +156,26 @@
       
       </div>
     </div>
+    <button type="button" class="leymini" id="leymini" title="Abrir capas y prioridad" aria-label="Prioridad de reforestación, de Muy Alta a Muy Baja. Abrir capas y prioridad"><span>Muy Alta</span><i></i><i></i><i></i><i></i><i></i><span>Muy Baja</span></button>
     <div class="dibujando" id="dibujando" role="status" hidden>Dibujando calles…</div>
     <div class="card" id="card" hidden tabindex="-1" role="region" aria-label="Ficha del elemento seleccionado"></div>
     <div class="scalebar" id="scalebar" aria-label="Escala del mapa"><i></i><span></span></div><div class="attrib" id="attrib">Sin mapa base · colonias, frentes de manzana y vialidades primarias</div>
   </div>
 </main>
 
+
+<!-- ===== Entrada por territorio: se muestra en la primera visita, sin consulta en la dirección (js/13_interfaz.js) ===== -->
+<div class="modal entrada" id="entrada" hidden role="dialog" aria-modal="true" aria-labelledby="entrada-title">
+  <div class="modal-card entrada-card">
+    <img class="logo modal-logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+    <h2 id="entrada-title">Calles prioritarias para reforestar</h2>
+    <p class="lead">Consulta en qué colonias y calles conviene plantar primero, según el modelo de priorización de la Secretaría del Medio Ambiente.</p>
+    <h3 id="entrada-q">¿Qué alcaldía quieres revisar?</h3>
+    <div class="entrada-grid" id="entrada-grid" role="group" aria-labelledby="entrada-q"></div>
+    <button type="button" class="btn entrada-cdmx" id="entrada-cdmx">Ver toda la ciudad</button>
+    <p class="note">La herramienta recuerda en este navegador la última alcaldía consultada. Puedes cambiarla en cualquier momento.</p>
+  </div>
+</div>
 
 <!-- ===== Ventana "Cómo funciona": ayuda de uso, glosario y metodología ===== -->
 <div class="modal" id="info-modal" hidden role="dialog" aria-modal="true" aria-labelledby="howto-title">
@@ -159,16 +188,17 @@
       <div class="eyebrow">Calles prioritarias para reforestar · Ayuda</div>
       <h2 id="howto-title">Cómo usar la herramienta</h2>
       <ol class="howto-steps">
-        <li><b>Elige quién atiende.</b> <em>Alcaldías</em> muestra las calles y frentes de manzana que plantan las alcaldías; <em>Gobierno Central</em>, las vialidades primarias. Puedes marcar las dos.</li>
-        <li><b>Busca tu territorio o tu calle.</b> En el mismo buscador escribe una alcaldía, una colonia, una avenida o una calle. No hace falta el nombre exacto: basta con algunas palabras, y reconoce abreviaturas como «Calz.» o «Av.». La ruta que aparece debajo te deja volver a la alcaldía o a toda la ciudad.</li>
-        <li><b>Revisa y descarga.</b> Arriba de la respuesta ves los kilómetros prioritarios; en las pestañas, el detalle, el listado de calles y las descargas. El botón del pie descarga el listado en Excel y la ficha en PDF.</li>
+        <li><b>Elige tu alcaldía.</b> Al entrar, la herramienta pregunta qué alcaldía quieres revisar y recuerda la última consultada. También puedes escribir en el buscador una alcaldía, una colonia, una avenida o una calle: basta con algunas palabras, y reconoce abreviaturas como «Calz.» o «Av.».</li>
+        <li><b>Revisa «Dónde empezar».</b> La primera pestaña propone un orden de atención: las colonias de la alcaldía y, al elegir una colonia, sus calles. Puedes ordenarlas por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta.</li>
+        <li><b>Consulta el detalle y descarga.</b> «Resumen» tiene las cifras del ámbito; las otras pestañas, el listado de calles y las descargas. El botón del pie descarga el listado en Excel y la ficha en PDF, y «Compartir» copia la dirección de la consulta.</li>
+        <li><b>Cambia lo que ves en el mapa.</b> El botón de capas abre las opciones del mapa. Ahí está «Quién atiende»: <em>Alcaldías</em> muestra las calles y frentes de manzana que plantan las alcaldías; <em>Gobierno Central</em>, las vialidades primarias. Puedes marcar las dos.</li>
       </ol>
       <h3 class="howto-gl">Términos que usa la herramienta</h3>
       <dl class="howto-terms">
         <dt>Frente de manzana</dt><dd>Cada lado de una manzana que da a la calle. Es la unidad que se prioriza: una calle tiene dos frentes, uno por acera.</dd>
         <dt>Tramo</dt><dd>Pedazo de una calle o avenida con su propia prioridad. Por eso una misma calle puede verse en varios colores.</dd>
         <dt>Prioritario</dt><dd>Categorías Muy Alta y Alta: donde conviene plantar primero.</dd>
-        <dt>Atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía en la red local o el Gobierno de la Ciudad en las vialidades primarias.</dd>
+        <dt>Quién atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía en la red local o el Gobierno de la Ciudad en las vialidades primarias.</dd>
       </dl>
     </section>
     <div class="eyebrow">Programa de Reforestación Urbana · Metodología</div>

@@ -770,3 +770,67 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
   .legend.open ~ .etq-ligero{display:none}
   .legend .lg-cap{overflow-wrap:anywhere}
 }
+
+/* v17.28 · Entrada y orientación: entrada por territorio, pestaña «Dónde empezar», leyenda compacta,
+   «Quién atiende» dentro del panel de capas y botón para compartir la consulta. */
+
+/* ----- entrada por territorio ----- */
+.entrada-card{max-width:620px;padding:26px 30px 24px;text-align:left}
+.entrada-card .modal-logo{display:block;max-width:300px;width:70%;height:auto;margin:0 0 14px}
+.entrada-card h2{margin:0 0 6px;font:700 1.5rem/1.2 Cabin,sans-serif;color:var(--guinda)}
+.entrada-card .lead{margin:0 0 18px}
+.entrada-card h3{margin:0 0 10px;font:700 1.0625rem/1.25 Cabin,sans-serif;color:var(--ink)}
+.entrada-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px}
+.entrada-op{min-height:44px;padding:9px 12px;border:1.5px solid var(--ctl);border-radius:8px;background:var(--panel);color:var(--ink);font:600 .9375rem/1.2 Cabin,sans-serif;text-align:left;cursor:pointer;transition:background .12s ease,border-color .12s ease}
+.entrada-op:hover{background:var(--panel-2);border-color:var(--guinda)}
+.entrada-cdmx{width:100%;margin-top:14px}
+.entrada-card .note{margin:12px 0 0}
+@media (max-width:600px){
+  .entrada-card{padding:calc(18px + env(safe-area-inset-top, 0px)) 18px calc(22px + env(safe-area-inset-bottom, 0px))}
+  .entrada-card h2{font-size:1.375rem}
+  .entrada-grid{grid-template-columns:1fr 1fr}
+}
+
+/* ----- pestaña «Dónde empezar» ----- */
+.ini-orden{display:flex;align-items:center;gap:8px;margin:8px 0 0;flex-wrap:wrap}
+.ini-orden label{font:600 .8125rem Cabin,sans-serif;color:var(--ink-2)}
+.ini-orden select{flex:1 1 180px;min-width:0;min-height:36px;padding:6px 8px;border:1.5px solid var(--ctl);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:.875rem}
+.results.ini{padding:0}
+.results.ini li:first-child{border-top:0}
+.results .pos{display:inline-block;min-width:1.5em;margin-right:6px;padding:0 4px;border-radius:4px;background:var(--panel-2);color:var(--ink-2);font:700 .75rem/1.5 Cabin,sans-serif;text-align:center;font-variant-numeric:tabular-nums}
+.ini-mas{display:block;margin:10px 0 0}
+.tabs{overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+@media (max-width:600px){
+  .ini-orden select{min-height:44px}
+  .tabs button{padding-left:8px;padding-right:8px}
+}
+
+/* ----- compartir la consulta ----- */
+.scope-acts{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}
+
+/* ----- leyenda compacta: visible mientras el panel de capas está cerrado ----- */
+.leymini{position:absolute;left:16px;bottom:16px;z-index:5;display:flex;align-items:center;gap:3px;padding:6px 10px;border:1px solid var(--line);border-radius:8px;background:var(--panel);box-shadow:var(--shadow);color:var(--ink-2);font:600 .75rem/1 Cabin,sans-serif;cursor:pointer}
+.leymini:hover{border-color:var(--guinda);color:var(--ink)}
+.leymini i{display:block;width:18px;height:10px;box-shadow:inset 0 0 0 1px rgba(36,38,42,.45)}
+.leymini i:nth-of-type(1){background:var(--p4);border-radius:2px 0 0 2px;margin-left:4px}
+.leymini i:nth-of-type(2){background:var(--p3)}
+.leymini i:nth-of-type(3){background:var(--p2)}
+.leymini i:nth-of-type(4){background:var(--p1)}
+.leymini i:nth-of-type(5){background:var(--p0);border-radius:0 2px 2px 0;margin-right:4px}
+.legend.open ~ .leymini,.legend.open ~ .etq-ligero{display:none}
+.card:not([hidden]) ~ .leymini{display:none}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
+  .leymini{left:10px;bottom:40px;min-height:32px}
+  .leymini i{width:14px}
+}
+
+/* ----- «Quién atiende» dentro del panel de capas ----- */
+.legend .lg-resp .resp-row{display:block;margin:0}
+.legend .lg-resp .chips{flex-wrap:wrap;gap:6px}
+.legend .lg-note.prelim{margin-top:6px;padding:6px 8px;border-left:3px solid var(--dorado, #B28E5C);background:var(--panel-2);border-radius:0 4px 4px 0}
+
+@media print{ .leymini,.modal.entrada,#share,.ini-orden,.ini-mas{display:none!important} }
+
+/* las cifras del ámbito viven en la pestaña Resumen */
+#tp-res .kpis{margin-top:10px}

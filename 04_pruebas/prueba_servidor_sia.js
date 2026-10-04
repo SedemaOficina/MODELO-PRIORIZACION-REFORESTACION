@@ -30,7 +30,7 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
 (async () => {
   ok('el ejemplo de nginx declara una política de seguridad de contenido sin estilos ni programas en línea', !!CSP && !/unsafe-inline|unsafe-eval'/.test(CSP.replace(/'wasm-unsafe-eval'/g, '')), (CSP || '').slice(0, 90));
   const browser = await L.lanzar(); const errores = [];
-  const abre = async (srv, url, espera = true) => { const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block' });
+  const abre = async (srv, url, espera = true) => { const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block' }); await L.sinEntrada(ctx);
     await ctx.addInitScript(() => { window.SIA_PRUEBA = true; window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ← ' + (e.blockedURI || 'en línea') + (e.sourceFile ? ' @' + String(e.sourceFile).split('/').pop() + ':' + e.lineNumber : ''))); });
     const page = await ctx.newPage(); page.setDefaultTimeout(240000); page.on('pageerror', e => errores.push(e.message));
     await page.route(u => !['localhost'].includes(u.hostname), r => r.fulfill({ status: 200, contentType: 'image/png', body: TESELA }));   // teselas de fondo simuladas

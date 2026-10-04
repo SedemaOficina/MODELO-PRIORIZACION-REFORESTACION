@@ -14,6 +14,7 @@ $('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-clo
 infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); });
 // Esc cierra, en este orden: la ayuda, la ficha abierta y el panel de capas; el foco vuelve al control que los abrió (auditoría H-048)
 addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) return;
+  if (!entradaEl.hidden) return cierraEntrada(null);
   if (!infoModal.hidden) return closeInfo();
   if (!$('card').hidden){ e.preventDefault(); return hideCard(true); }
   if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
@@ -43,12 +44,13 @@ const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
 legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
-setLegend(!isPhone() && innerHeight>480);   // en pantallas bajas el panel de capas empieza cerrado
+setLegend(false);   // el panel de capas empieza cerrado (v17.28): la leyenda compacta dice los colores y lo abre
+$('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
 function setTab(t){ document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
-  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
+  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['ini','res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
 function updTabLabel(){
   const lbl = isGC()? 'Avenidas' : (alcOnly() && sel===null)? 'Alcaldías' : (colLista() && selCol===null)? 'Colonias' : 'Calles';
@@ -81,7 +83,23 @@ $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).c
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // cierre de sesión: solo aparece si la instalación define su dirección (Fase 2)
 if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; }
-$('resp-help').onclick = ()=>{ const n=$('resp-note'); n.hidden=!n.hidden; $('resp-help').setAttribute('aria-expanded', String(!n.hidden)); };
+// ---------- compartir la consulta (v17.28): la dirección ya la conserva; el botón la copia o abre el menú de compartir del teléfono ----------
+let shareT = null;
+function avisoShare(t){ $('share-lbl').textContent = t; $('sr-estado').textContent = t; clearTimeout(shareT); shareT = setTimeout(()=>{ $('share-lbl').textContent = 'Compartir'; }, 2600); }
+function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
+  return new Promise((ok, no)=>{ const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly',''); a.className = 'sr'; document.body.appendChild(a); a.select();
+    let bien = false; try { bien = document.execCommand('copy'); } catch(e){} a.remove(); bien? ok() : no(); }); }
+$('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
+  if (isPhone() && navigator.share){ navigator.share({title: titulo, url: u}).catch(()=>{}); return; }
+  copiaTexto(u).then(()=>avisoShare('Enlace copiado'), ()=>avisoShare('No se pudo copiar')); };
+// ---------- entrada por territorio (v17.28) ----------
+// Primera visita sin consulta en la dirección: una sola pregunta. Elegir una alcaldía (o toda la ciudad) abre ahí la herramienta.
+const entradaEl = $('entrada');
+function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false; if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio(); $('scope-title').focus(); }
+function abreEntrada(){ const g = $('entrada-grid');
+  if (!g.children.length) META.muns.map((m,i)=>i).sort((a,b)=>META.munNames[a].localeCompare(META.munNames[b],'es')).forEach(i=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'entrada-op'; b.textContent = META.munNames[i]; b.onclick = ()=>cierraEntrada(i); g.appendChild(b); });
+  entradaEl.hidden = false; appEl.inert = true; g.firstElementChild.focus(); }
+$('entrada-cdmx').onclick = ()=>cierraEntrada(null);
 // ---------- ruta de navegación (auditoría I4) ----------
 function renderCrumb(){
   const atRoot = sel===null && selCol===null && selAv===null;
