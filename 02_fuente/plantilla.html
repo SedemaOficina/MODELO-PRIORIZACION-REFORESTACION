@@ -12,6 +12,7 @@
       <img class="logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
       <h1>Calles prioritarias para reforestar</h1>
       
+      <a class="linkbtn sesion-salir" id="sesion-salir" hidden>Cerrar sesión</a>
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
@@ -53,7 +54,7 @@
         <div class="tabpanel" id="tp-res" role="tabpanel" aria-labelledby="tab-res"><div>
         <div class="section-title"><h2 id="bars-title">Kilómetros de frente por prioridad</h2><span id="scope-label">Ciudad</span></div>
         <div class="bars" id="bars"></div>
-        <div id="bars2" hidden style="margin-top:14px">
+        <div id="bars2" class="bars2" hidden>
           <div class="section-title"><h2 id="bars2-title">Kilómetros de vialidad primaria por prioridad · a cargo del Gobierno Central</h2></div>
           <div class="bars" id="bars2-rows"></div>
         </div>
@@ -105,7 +106,7 @@
   <div class="mapwrap">
     <div id="map" data-nombre="Mapa de prioridades de reforestación. Las flechas lo mueven; las teclas más y menos acercan y alejan. La misma información está en el listado del panel."></div>
     <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
-    <div class="loader" id="loader"><div><div class="cabin" style="font-weight:600;font-size:1rem">Cargando frentes de manzana</div><div id="load-msg" role="status" style="font-size:.75rem;margin-top:4px">Descomprimiendo datos…</div><div class="bar indet" id="load-prog" role="progressbar" aria-label="Avance de la carga" aria-valuemin="0" aria-valuemax="100"><i id="load-bar"></i></div></div></div>
+    <div class="loader" id="loader"><div><div class="cabin ld-tit">Cargando frentes de manzana</div><div id="load-msg" class="ld-msg" role="status">Descomprimiendo datos…</div><div class="bar indet" id="load-prog" role="progressbar" aria-label="Avance de la carga" aria-valuemin="0" aria-valuemax="100"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
       <div class="mapsum" id="mapsum"></div>
@@ -186,7 +187,7 @@
     <p>El contexto social que reporta el programa —el que se muestra en la caja de la colonia, en las fichas y en los archivos descargables— es el <b>Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX</b>, instrumento oficial de focalización de la Ciudad, con su estrato y su población en pobreza por necesidades básicas insatisfechas. El modelo vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020, como indica la tabla; la actualización del modelo para clasificarlo con el Índice de Desarrollo Social está en proceso.</p>
     <div class="scale" aria-label="Escala de prioridad de Muy Alta a Muy Baja">
       <div class="scale-ends"><span>Atender primero</span><span>Atender después</span></div>
-      <div class="scale-bar"><i style="background:var(--p4)"></i><i style="background:var(--p3)"></i><i style="background:var(--p2)"></i><i style="background:var(--p1)"></i><i style="background:var(--p0)"></i></div>
+      <div class="scale-bar"><i data-st="background:var(--p4)"></i><i data-st="background:var(--p3)"></i><i data-st="background:var(--p2)"></i><i data-st="background:var(--p1)"></i><i data-st="background:var(--p0)"></i></div>
       <div class="scale-labels"><span>Muy Alta<small>más calor, más rezago, menos sombra</small></span><span>Alta</span><span>Media</span><span>Baja</span><span>Muy Baja<small>zonas frescas y arboladas</small></span></div>
     </div>
 

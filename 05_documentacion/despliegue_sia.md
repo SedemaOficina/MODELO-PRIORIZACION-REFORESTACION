@@ -30,9 +30,13 @@ A) restringir el acceso, o B) saber quién usa la herramienta y qué descarga. R
 
 **Estado:** en espera.
 
+## Paquete de entrega
+
+La guía de instalación, el ejemplo de nginx, la lista de verificación y la integración del inicio de sesión están en `08_entrega_sia/`.
+
 ## Puntos técnicos ya identificados para la instalación
 
-- **Política de seguridad de contenido:** el JavaScript va en archivos, pero quedan estilos en línea que una política estricta rechaza; hay que retirarlos antes de instalar.
-- **Uso sin conexión (`sw.js`):** el navegador guarda una copia de la herramienta. Con login, esa copia no debe servirse a quien no ha iniciado sesión: se revisa o se desactiva al instalar.
+- **Política de seguridad de contenido:** resuelto en la v17.26. El sitio no trae programas ni estilos en línea y funciona bajo una política estricta (la del ejemplo de nginx).
+- **Uso sin conexión (`sw.js`):** resuelto en la v17.26. Con las direcciones de sesión configuradas, la herramienta no guarda copia local y retira la que hubiera.
 - **Mapas de fondo:** las cabeceras del servidor deben permitir imágenes de `basemaps.cartocdn.com`, `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`, o bien usar un fondo propio del SIA.
 - **Servidor web:** redirección de la ruta sin barra final, `.bin` como `application/octet-stream` sin volver a comprimir, y caché larga para los archivos con `?v=`.

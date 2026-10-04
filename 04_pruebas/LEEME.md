@@ -19,11 +19,12 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 1 min |
 | `prueba_coherencia_cifras.js` | Que pantalla, Excel y fichas digan lo mismo que un recálculo independiente desde los datos | 2 min |
 | `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
+| `prueba_servidor_sia.js` | Instalada en `/calles-prioritarias/` con la política de seguridad de contenido del ejemplo de nginx: cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 
 **Qué compara cifras.** La prueba integral (`prueba_sitio.js`) es un recorrido de controles: confirma que cada flujo responde, no que las cifras sean correctas. Las cifras las vigila `prueba_coherencia_cifras.js`, que abre los Excel y las fichas PDF y los compara con la pantalla y con un recálculo propio desde `docs/datos/*.bin`. Las dos son necesarias.
 
-Además, GitHub repite las tres primeras verificaciones en cada cambio que recibe (`.github/workflows/verificar.yml`).
+GitHub puede repetir las tres primeras verificaciones en cada cambio que recibe; la propuesta, sin activar, está en `05_documentacion/verificacion_automatica_github.md`.
 
 ## Prueba integral
 
@@ -103,3 +104,13 @@ Requiere la utilidad `unzip`. Cada corrección de la auditoría de accesibilidad
 ```
 python3 04_pruebas/prueba_construccion.py
 ```
+
+## Prueba del servidor del SIA
+
+`prueba_servidor_sia.js` sirve el sitio desde `/calles-prioritarias/` con la política de seguridad de contenido que declara `08_entrega_sia/nginx_calles_prioritarias.conf.ejemplo` (la lee de ese archivo, para que no diverjan) y comprueba: que la dirección sin barra final redirige y carga; que doce funciones (cifras, barras, leyenda, tramos, ficha, mapas de fondo, Excel, Excel grande, PDF, ayuda, Mi ubicación) trabajan con **cero violaciones** de la política; que ni la página ni el programa traen estilos en línea; que las librerías se piden con huella; que una sesión vencida (respuesta 401, o la página de acceso con código 200) se dice como tal al cargar y al pedir un Excel o una ficha, y que los datos cargan aunque un intermediario los entregue descomprimidos.
+
+```
+node 04_pruebas/prueba_servidor_sia.js
+```
+
+No sustituye la validación en el nginx real del SIA: el servidor de la prueba es de Node y solo reproduce las cabeceras.

@@ -1,3 +1,8 @@
+/* Base de la página. Antes iba en un bloque <style> dentro de index.html; una política de seguridad de contenido estricta no lo admite (auditoría H-001). */
+:root{color-scheme:light}
+body{margin:0;padding:0;font:.875rem -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}
+img{max-width:100%}
+[hidden]:not([hidden=until-found i]){display:none!important}
 /* Variables: paleta institucional, rampa de prioridad (--p0 Muy Baja … --p4 Muy Alta), colores del mapa y sombras. Cambiar un color aquí lo cambia en toda la herramienta; los colores del mapa se leen desde app (03_estado.js). */
 :root{
   color-scheme: light only;

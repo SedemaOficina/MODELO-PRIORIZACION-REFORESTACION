@@ -1,0 +1,99 @@
+# =====================================================================================================================
+# Calles prioritarias para reforestar · configuración de ejemplo para nginx (probada con la sintaxis de nginx 1.26)
+# Sitio estático en la subruta /calles-prioritarias/ del dominio del SIA, detrás del terminador de HTTPS.
+#
+# NO es un archivo para copiar tal cual: son dos fragmentos que el equipo del SIA integra en su configuración.
+#   FRAGMENTO A  → dentro de http { }      (una sola vez)
+#   FRAGMENTO B  → dentro del server { }   del dominio
+# Sustituir /RUTA/DEL/VOLUMEN por la carpeta del volumen de datos donde viven los sitios estáticos.
+# Esta configuración NO se validó con `nginx -t` en el equipo donde se escribió (no tenía nginx): validarla al integrarla.
+# Lo que sí se probó, con un servidor de ensayo que envía estas mismas cabeceras: 04_pruebas/prueba_servidor_sia.js.
+# =====================================================================================================================
+
+# ---------------------------------------------------------------------------------------------------------------------
+# FRAGMENTO A · dentro de http { }
+# ---------------------------------------------------------------------------------------------------------------------
+# Caché: todo archivo pedido con huella (?v=…) no cambia nunca; lo demás (index.html, sw.js) se revalida siempre.
+map $arg_v $calles_cache {
+    ""       "no-cache";
+    default  "public, max-age=31536000, immutable";
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# FRAGMENTO B · dentro del server { } del dominio
+# ---------------------------------------------------------------------------------------------------------------------
+
+# 1) La dirección sin barra final. El servidor recibe HTTP del terminador de HTTPS: con la redirección automática de nginx
+#    la dirección saldría como http://… ; por eso se devuelve una ruta relativa.
+location = /calles-prioritarias {
+    absolute_redirect off;
+    return 301 /calles-prioritarias/$is_args$args;
+}
+
+# 2) El sitio. /RUTA/DEL/VOLUMEN/calles-prioritarias es un enlace simbólico a la versión vigente (ver INSTALACION.md).
+location /calles-prioritarias/ {
+    root /RUTA/DEL/VOLUMEN;
+    index index.html;
+    try_files $uri $uri/ =404;
+    absolute_redirect off;
+
+    # Si el servidor aplica límite de velocidad (limit_req) en esta ruta: la página pide 14 archivos al abrir.
+    # Un límite con ráfaga menor a 30 produce errores 503 intermitentes. Ajustar la ráfaga o exceptuar esta ruta.
+
+    # --- cabeceras (se repiten en el bloque de los .bin: en nginx, un bloque con add_header no hereda los del bloque padre) ---
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https://basemaps.cartocdn.com https://services.arcgisonline.com https://static-map-tiles-api.arcgis.com; connect-src 'self' https://basemaps.cartocdn.com https://services.arcgisonline.com https://static-map-tiles-api.arcgis.com; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    # «Mi ubicación» usa el GPS del teléfono: si la política general del sitio niega la geolocalización, aquí debe permitirse.
+    add_header Permissions-Policy "geolocation=(self)" always;
+    add_header Cache-Control $calles_cache always;
+
+    # Compresión de texto (si no está ya activa de forma general). Los .bin NO deben estar en gzip_types.
+    gzip on;
+    gzip_types text/css application/javascript application/json text/plain;
+    gzip_min_length 1024;
+
+    # 3) Archivos de datos: ya vienen comprimidos por dentro. No recomprimir ni etiquetar como gzip.
+    location ~ ^/calles-prioritarias/datos/.+\.bin$ {
+        root /RUTA/DEL/VOLUMEN;
+        gzip off;
+        types { }
+        default_type application/octet-stream;
+        add_header X-Content-Type-Options "nosniff" always;
+        add_header Cache-Control $calles_cache always;
+    }
+
+    # 4) Lo que no es parte del sitio no se sirve aunque alguien lo copie a la carpeta.
+    location ~ /\. { return 404; }
+}
+
+# ---------------------------------------------------------------------------------------------------------------------
+# FASE 2 CON INICIO DE SESIÓN (opcional; ver SESION_Y_LOGIN.md). Sustituye al bloque 2 cuando exista el módulo de sesión.
+# ---------------------------------------------------------------------------------------------------------------------
+# location /calles-prioritarias/ {
+#     root /RUTA/DEL/VOLUMEN;
+#     index index.html;
+#     try_files $uri $uri/ =404;
+#     absolute_redirect off;
+#     auth_request /_calles_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
+#     # (mismas cabeceras y bloque de .bin que arriba)
+#
+#     # Solo la PÁGINA lleva a la pantalla de acceso. Datos y programas responden 401: así la herramienta
+#     # puede decir «Tu sesión terminó» en lugar de «revisa tu conexión».
+#     location = /calles-prioritarias/ {
+#         root /RUTA/DEL/VOLUMEN;
+#         auth_request /_calles_sesion;
+#         error_page 401 = @calles_acceso;
+#         try_files /calles-prioritarias/index.html =404;
+#     }
+# }
+# location = /_calles_sesion {
+#     internal;
+#     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/calles/sesion;
+#     proxy_pass_request_body off;
+#     proxy_set_header Content-Length "";
+#     proxy_set_header X-Original-URI $request_uri;
+# }
+# location @calles_acceso {
+#     return 302 /RUTA/DE/LA/PANTALLA/DE/ACCESO?volver=$request_uri;
+# }

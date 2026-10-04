@@ -21,6 +21,23 @@ const VERSION_TXT = `Versión ${VERSION.v} · Datos: ${VERSION.corte}`;
 const PRELIM_TXT = 'La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: resulta de una regla geométrica en validación.';
 // Errores con mensaje para la persona usuaria (auditoría H-035): `amable` es lo que se muestra; el detalle técnico va a la consola.
 function errAmable(msg, detalle){ const e = new Error(detalle || msg); e.amable = msg; return e; }
+// ---------- política de seguridad de contenido (auditoría H-001) ----------
+// Una política estricta rechaza los atributos style escritos en el HTML. Los estilos calculados (color de cada prioridad, ancho
+// de cada barra) se escriben en las plantillas como data-st="propiedad:valor" y aquí se aplican por programa, que sí está permitido.
+function aplicaSt(n){ const f = el => { for (const par of el.getAttribute('data-st').split(';')){ const k = par.indexOf(':'); if (k>0) el.style.setProperty(par.slice(0,k).trim(), par.slice(k+1).trim()); } el.removeAttribute('data-st'); };
+  if (n.hasAttribute && n.hasAttribute('data-st')) f(n); if (n.querySelectorAll) n.querySelectorAll('[data-st]').forEach(f); }
+new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType===1) aplicaSt(n); }).observe(document.documentElement, {childList:true, subtree:true});
+aplicaSt(document.documentElement);
+// ---------- sesión (Fase 2; auditoría H-014 y H-078) ----------
+// En el SIA la herramienta puede quedar detrás de un inicio de sesión. Las direcciones las fija construir.py (SESION_*); vacías = sin sesión.
+const SESION = Object.assign({inicio:'', cierre:'', usuario:''}, window.SIA_SESION || {});
+const SESION_TXT = 'Tu sesión terminó. Vuelve a iniciar sesión para continuar.';
+// Una sesión vencida se reconoce por la respuesta 401 o 403, o porque llega una página (HTML) donde se esperaba un archivo de datos o un programa.
+const esSesion = r => !!r && (r.status===401 || r.status===403 || (r.ok && (r.headers.get('content-type')||'').toLowerCase().includes('text/html')));
+const errSesion = detalle => { const e = errAmable(SESION_TXT, detalle); e.sesion = true; return e; };
+// por qué no llegó un archivo: 'sesion', 'red' (sin conexión) o 'servidor' (el archivo no está o el servidor falló)
+async function causaFalla(url){ if (/^blob:|^data:/.test(url)) return 'servidor'; try { const r = await fetch(url, {cache:'no-store'}); return esSesion(r)? 'sesion' : r.ok? 'otra' : 'servidor'; } catch(e){ return 'red'; } }
+function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){ const a = document.createElement('a'); a.href = SESION.inicio; a.textContent = 'Iniciar sesión'; el.appendChild(a); } }
 // Los textos de los catálogos se interpolan en HTML en muchos puntos: se neutralizan al entrar (auditoría H-037).
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
 const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›') : s;

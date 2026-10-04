@@ -39,8 +39,6 @@ DOCS = os.path.join(RAIZ, 'docs')
 ROBOTS = '<meta name="robots" content="noindex, nofollow">'
 ESQUELETO = ('<!doctype html><html lang="es-MX"><head><meta charset="utf-8">'
              '<meta name="viewport" content="width=device-width,initial-scale=1">'
-             '<style>:root{color-scheme:light}body{margin:0;padding:0;font:.875rem -apple-system,BlinkMacSystemFont,sans-serif;'
-             'background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style>'
              '{CABEZA}</head><body>\n')
 # Librerías: en el arranque (deck, pako) y bajo demanda (Excel y fichas PDF). Todas salen de libs/, en el sitio y en el archivo único.
 LIBS_ARRANQUE = ('deck.js', 'pako.js')
@@ -57,9 +55,23 @@ ESRI_KEY = ''
 # teselas llegan con la marca de agua «API key required». Se solicita sin costo en carto.com (sin cuenta) y va en la
 # dirección de cada tesela (?key=), así que también queda visible en la página.
 CARTO_KEY = ''
+# Las claves NO se escriben en este archivo, que es público (auditoría H-063). Se toman, en este orden, de las variables de
+# entorno SIA_ESRI_KEY y SIA_CARTO_KEY o del archivo 02_fuente/claves.local.json (no se publica; ver .gitignore):
+#   {"ESRI_KEY": "…", "CARTO_KEY": "…"}
+# Al construir con claves, estas quedan en docs/config.js: son visibles para quien abra la página (es lo normal en mapas web),
+# así que deben restringirse al dominio del sitio en el panel de cada proveedor.
+_claves = {}
+if os.path.isfile(os.path.join(FUENTE, 'claves.local.json')):
+    _claves = json.load(open(os.path.join(FUENTE, 'claves.local.json'), encoding='utf-8'))
+ESRI_KEY = os.environ.get('SIA_ESRI_KEY') or _claves.get('ESRI_KEY') or ESRI_KEY
+CARTO_KEY = os.environ.get('SIA_CARTO_KEY') or _claves.get('CARTO_KEY') or CARTO_KEY
+# Sesión (Fase 2, auditoría H-078): direcciones del inicio y del cierre de sesión cuando la herramienta se instala detrás de un
+# login. Vacías = sin sesión (GitHub Pages). También se pueden dar con SIA_SESION_INICIO y SIA_SESION_CIERRE o en claves.local.json.
+SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_INICIO') or '',
+          'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or ''}
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.25'
+VERSION = '17.26'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -133,9 +145,11 @@ AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar
 # cargar, el cargador muestra el error en lugar del mapa.
 APERTURA = "(async function(){\n'use strict';\n"
 CIERRE = ("})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const l=document.getElementById('loader'); l.hidden=false; const d=l.querySelector('div'); d.textContent='';"
-          " const t=document.createElement('div'); t.className='cabin'; t.style.cssText='font-weight:600;font-size:1rem'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t);"
-          " const m=document.createElement('div'); m.style.cssText='font-size:.75rem;margin-top:6px;max-width:320px'; m.setAttribute('role','alert');"
-          " m.textContent=((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m);"
+          " const t=document.createElement('div'); t.className='cabin ld-tit'; t.textContent='No fue posible cargar la herramienta'; d.appendChild(t);"
+          " const m=document.createElement('div'); m.className='ld-err'; m.setAttribute('role','alert');"
+          " m.textContent=(err && err.sesion)? err.amable + ' ' : ((err && err.amable) || 'Ocurrió un error al preparar la herramienta.') + ' Si el problema continúa, avisa al Sistema de Información Ambiental.'; d.appendChild(m);"
+          " if (err && err.sesion && window.SIA_SESION && window.SIA_SESION.inicio){ const a=document.createElement('a'); a.href=window.SIA_SESION.inicio; a.textContent='Iniciar sesión'; m.appendChild(a); }"
+          ""
           " const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });\n")
 # Vigilancia del arranque (auditoría H-035). Va en un archivo aparte de app.js para que funcione aunque app.js no llegue:
 # avisa si un programa no se pudo descargar y ofrece reintentar cuando la carga tarda demasiado.
@@ -213,7 +227,7 @@ for arch in FUENTES_PUBLICADAS:
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_CARTO_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_CARTO_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)
@@ -242,7 +256,7 @@ poner('index.html', pagina)
 # para convivir con el login de la Fase 2 (un 401 o un 302 nunca quedan en la caché).
 PRE = (['./', 'config.js?v=%s' % v(config), 'app.js?v=%s' % v(app), 'estilos.css?v=%s' % v(estilos)]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('deck.js', 'pako.js')]
-       + ['libs/%s' % l for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')]
+       + ['libs/%s?v=%s' % (l, lver[l]) for l in ('xlsx.js', 'jspdf.js')] + ['libs/excel_worker.js?v=%s&x=%s' % (lver['excel_worker.js'], lver['xlsx.js'])]
        + ['datos/%s?v=%s' % (n, ver[n]) for n in sorted(ver)]
        + ['fuentes/%s?v=%s' % (a, fver[a]) for a in FUENTES.values()]
        + ['%s?v=%s' % (img, v(leer(img, True))) for img in IMAGENES])

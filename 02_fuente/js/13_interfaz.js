@@ -79,6 +79,8 @@ function renderActions(){
   hint.hidden = !why; hint.textContent = why; }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
+// cierre de sesión: solo aparece si la instalación define su dirección (Fase 2)
+if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; }
 $('resp-help').onclick = ()=>{ const n=$('resp-note'); n.hidden=!n.hidden; $('resp-help').setAttribute('aria-expanded', String(!n.hidden)); };
 // ---------- ruta de navegación (auditoría I4) ----------
 function renderCrumb(){

@@ -1,6 +1,7 @@
 // Genera el archivo de Excel fuera del hilo principal de la página (auditoría H-045): un listado de 56 mil renglones
 // tardaba decenas de segundos y congelaba el navegador. Lo usa 02_fuente/js/11_descargas.js; recibe los datos ya armados.
-importScripts('xlsx.js');
+// la huella de versión de xlsx.js llega en la dirección de este archivo (&x=…): así ambos se actualizan juntos
+importScripts('xlsx.js' + ((/[?&]x=([0-9a-f]+)/.exec(self.location.search) || [])[1] ? '?v=' + /[?&]x=([0-9a-f]+)/.exec(self.location.search)[1] : ''));
 onmessage = function(e){
   try {
     var d = e.data, X = XLSX, wb = X.utils.book_new(); if (d.props) wb.Props = d.props;

@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.25 (3 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.26 (3 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -29,11 +29,11 @@ MODELO-PRIORIZACION-REFORESTACION/
 ├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
 ├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
-├── .github/workflows/         verificación automática en GitHub: datos, construcción y revisión estática
 ├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, auditoría UX
 │                              y bitácora de decisiones (la bitácora solo en la copia local)
 ├── 06_entregables/            guía de prueba con alcaldías, listas de catálogos para el SIA y lámina de frentes de manzana
-├── _local/                    la herramienta en un solo archivo (generado; solo en la copia local)
+├── 08_entrega_sia/            paquete de entrega al SIA: instalación, nginx, verificación, sesión, contrato de datos
+├── _local/                    la herramienta en un solo archivo y los paquetes de entrega (generado; solo en la copia local)
 └── 07_versiones/              versiones anteriores (solo en la copia local)
 ```
 
@@ -43,14 +43,14 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Salida | Para qué | Cómo quedan las piezas |
 |---|---|---|
-| `docs/` | GitHub Pages y el servidor del SIA | `index.html` + `estilos.css` + `config.js` + `app.js` + `sw.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. **Sin programas en línea:** todo el JavaScript va en archivos. `<title>`, `<meta>` y la hoja de estilos van en `<head>`: lo que la plantilla trae antes del marcador `<!-- ESTILOS -->` pasa al encabezado. **Sí hay estilos en línea:** el bloque `<style>` del esqueleto y algunos atributos `style`; retirarlos es requisito para la política de seguridad de contenido del SIA (Fase 2). |
+| `docs/` | GitHub Pages y el servidor del SIA | `index.html` + `estilos.css` + `config.js` + `app.js` + `sw.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. **Sin programas ni estilos en línea:** todo el JavaScript y todo el CSS van en archivos, de modo que el sitio funciona bajo una política de seguridad de contenido estricta (lo comprueba `04_pruebas/prueba_servidor_sia.js`). `<title>`, `<meta>` y la hoja de estilos van en `<head>`: lo que la plantilla trae antes del marcador `<!-- ESTILOS -->` pasa al encabezado. |
 | `_local/calles_prioritarias.html` | Abrir con doble clic, sin servidor, también en redes que bloquean dominios externos | Todo incrustado en un archivo: estilos, tipografías, imágenes, datos y las cuatro librerías (deck.gl y pako como programa; SheetJS y jsPDF en base64, se activan al pedir un Excel o una ficha). No pide nada a terceros. No se publica. |
 | `05_documentacion/cifras_de_la_construccion.md` | Documentación | Tamaños y conteos medidos en la construcción. |
 | `--artefacto RUTA` | Respaldo como artefacto de Claude | Igual que el anterior, sin la envoltura `<html>`. |
 
 - `css/*.css` se concatenan en orden alfabético → `estilos.css`.
 - `js/*.js` se concatenan en orden alfabético dentro de una función asíncrona (`(async function(){ … })()`) → `app.js`. Por eso **todos los archivos comparten el mismo alcance**: una variable o función de `03_estado.js` se usa directamente en `10_seleccion.js`. Si al cargar ocurre un error, el cargador lo muestra en lugar del mapa.
-- `config.js` indica dónde están las librerías (`SIA_LIBS`) y la huella y el tamaño de los datos (`SIA_DATOS`). Si no existe (archivo único o artefacto), la app lee los datos incrustados.
+- `config.js` indica dónde están las librerías (`SIA_LIBS`) y su huella (`SIA_LIBS_V`), la huella y el tamaño de los datos (`SIA_DATOS`), las claves de los mapas de fondo y las direcciones de la sesión (`SIA_SESION`). Claves y sesión no se escriben en `construir.py`: se toman de variables de entorno (`SIA_CARTO_KEY`, `SIA_ESRI_KEY`, `SIA_SESION_INICIO`, `SIA_SESION_CIERRE`) o de `02_fuente/claves.local.json`, que no se publica. Si no existe (archivo único o artefacto), la app lee los datos incrustados.
 - Solo se reescriben los archivos que cambiaron, así Git no ve cambios falsos.
 - **Valida antes de escribir:** las listas `JS_ESPERADOS` y `CSS_ESPERADOS` nombran cada módulo; si falta, sobra o está vacío uno, se detiene con código 1 y no escribe nada. Para agregar un módulo hay que añadirlo a la lista. De `libs/` y `fuentes/` solo se publica lo listado en `LIBS_PUBLICADAS` y `FUENTES_PUBLICADAS`.
 - **Datos verificados:** compara el contenido descomprimido de `datos/*.bin` con `datos/SUMAS.json` y se detiene si no coincide. Se compara el contenido porque la compresión gzip cambia de un equipo a otro. Tras regenerar los datos a propósito: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`.
@@ -111,6 +111,10 @@ MODELO-PRIORIZACION-REFORESTACION/
 **Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía. Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición.
 
 **Errores y arranque:** `errAmable(mensaje, detalle)` (en `01_utilidades.js`) crea errores cuyo `amable` es lo que ve la persona; el cierre de `app.js` lo muestra con «Reintentar». `config.js` lleva además un vigía (definido en `construir.py`) que avisa si un programa no llega o la carga tarda más de 45 s. `02_datos.js` verifica que cada archivo traiga exactamente los registros declarados. Los textos de los catálogos se neutralizan al cargar (`limpioCat`).
+
+**Estilos calculados sin atributo `style` (política de seguridad de contenido):** una política estricta rechaza `style="…"` escrito en el HTML. Las plantillas escriben `data-st="propiedad:valor"` y `aplicaSt` (`01_utilidades.js`), con un observador de cambios, lo aplica por programa, que sí está permitido. **No escribir `style="` en plantillas ni en la página**: la prueba del servidor lo detecta. Asignar `elemento.style.x = …` desde el código sí es válido.
+
+**Sesión (Fase 2):** `esSesion` reconoce una respuesta 401 o 403, o una página HTML donde se esperaba un archivo; `causaFalla(url)` distingue sesión, red y servidor cuando una librería no llega; `avisoSesion` escribe el mensaje con el enlace de `SESION.inicio`. Con `SESION.inicio` definido no se registra `sw.js`. Ver `08_entrega_sia/SESION_Y_LOGIN.md`.
 
 **Accesibilidad (bloque F1-B5):**
 - *Anuncios:* `anunciaAmbito()` (`10_seleccion.js`) escribe el ámbito y su cifra en `#sr-estado` (región viva); el conteo del listado, el estado de las descargas y el mensaje del cargador tienen `role="status"`; los errores de carga, `role="alert"`.
@@ -189,7 +193,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Retirar el aviso de asignación preliminar (cuando la regla del cruce esté validada) | `#prelim-note` en `plantilla.html`, `PRELIM_TXT` en `js/01_utilidades.js` y la frase de la ayuda |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
-| Poner la clave de un mapa de fondo | `CARTO_KEY` (calles) o `ESRI_KEY` (satélite) en `construir.py` y reconstruir. Las claves quedan visibles en la página: restringirlas al dominio del sitio |
+| Poner la clave de un mapa de fondo | Variables de entorno `SIA_CARTO_KEY` y `SIA_ESRI_KEY`, o `02_fuente/claves.local.json`, y reconstruir. Las claves quedan visibles en la página: restringirlas al dominio del sitio |
+| Armar el paquete para el SIA | `python3 08_entrega_sia/empaquetar.py` |
 | Generar las listas de catálogos para el SIA | `python3 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
@@ -205,6 +210,6 @@ Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_prueba
 - Forzar un modo desde la dirección: `?modo=ligero` (sin aviso) o `?modo=completo`.
 - Siempre: los botones + y − cambian de zoom sin animación, las capas solo se rehacen al cruzar un corte de zoom (`ZOOM_CORTES`) y la resolución se limita a 1.5× en pantallas de alta densidad.
 
-## 10. Publicación en el SIA (resumen)
+## 10. Publicación en el SIA
 
-`docs/` se copia tal cual a una ruta del servidor web (p. ej. `/calles-prioritarias/`). Necesita: redirección de la ruta sin barra final a la ruta con barra, tipos MIME estándar (`.bin` como `application/octet-stream`, sin volver a comprimirlo) y caché larga para los archivos con `?v=`. La guía de instalación, la configuración de nginx y la lista de verificación forman parte del paquete de entrega pendiente. Las decisiones previas (para qué es el login, quién da de alta, dirección, actualizaciones) están en `05_documentacion/despliegue_sia.md`. Dos puntos técnicos ya identificados: los estilos en línea frente a la política de seguridad de contenido, y `sw.js`, que debe revisarse con el inicio de sesión.
+Todo está en `08_entrega_sia/`: guía de instalación, actualización y reversión; ejemplo de nginx; lista de verificación; integración del inicio de sesión; contrato de datos y cierre de la Fase 1. El formato de los datos de la sección 7 es un resumen: el contrato completo está en `08_entrega_sia/CONTRATO_DE_DATOS.md`.

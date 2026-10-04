@@ -75,7 +75,7 @@ const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
 const CARTO_KEY = String(window.SIA_CARTO_KEY || '').trim();
 const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';
 const ESRI_AGOL = 'https://services.arcgisonline.com/ArcGIS/rest/services/';
-const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener">${t}</a>`;
+const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener noreferrer">${t}</a>`;
 const FONDOS = {
   calles: { url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png' + (CARTO_KEY? '?key='+encodeURIComponent(CARTO_KEY) : ''), size:256, max:19, op:1, nota:'',
     atrib:`Mapa: © ${enlace('https://www.openstreetmap.org/copyright','OpenStreetMap')} · © ${enlace('https://carto.com/attributions','CARTO')}` },

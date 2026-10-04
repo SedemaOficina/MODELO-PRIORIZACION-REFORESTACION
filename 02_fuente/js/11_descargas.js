@@ -148,16 +148,20 @@ function libIncrustada(file){ const el = document.getElementById('lib-' + file +
   const bin = atob(el.textContent.trim()), u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
   return URL.createObjectURL(new Blob([u8], {type:'text/javascript'})); }
 const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces (auditoría H-036)
+// huella de versión de cada librería (la escribe construir.py en config.js): tras una actualización nunca se usa una copia anterior (auditoría H-060)
+const libV = file => (window.SIA_LIBS_V && window.SIA_LIBS_V[file]) ? '?v=' + window.SIA_LIBS_V[file] : '';
 function loadLib(file, glob){
   if (window[glob]) return Promise.resolve(window[glob]);
   if (LIB_EN_CURSO[file]) return LIB_EN_CURSO[file];
   return LIB_EN_CURSO[file] = new Promise((res, rej)=>{
     const s = document.createElement('script');
-    const src = window.SIA_LIBS ? window.SIA_LIBS + file : libIncrustada(file);
+    const src = window.SIA_LIBS ? window.SIA_LIBS + file + libV(file) : libIncrustada(file);
     if (!src) return rej(new Error('la librería ' + file + ' no viene en esta copia'));
     s.src = src;
-    s.onload = ()=> window[glob] ? res(window[glob]) : rej(new Error('sin ' + glob));
-    s.onerror = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); rej(new Error('no se pudo cargar la librería')); };
+    // si no llega, se averigua por qué: una sesión vencida no es una falla de conexión (auditoría H-014)
+    const fallo = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); causaFalla(src).then(c => rej(Object.assign(new Error('no se pudo cargar la librería ' + file), {causa:c}))); };
+    s.onload = ()=> window[glob] ? res(window[glob]) : fallo();
+    s.onerror = fallo;
     document.head.appendChild(s);
   });
 }
@@ -170,7 +174,7 @@ const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
 // Propiedades del libro (auditoría H-052): título, autoría e idioma
 const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Calles prioritarias para reforestar, versión ' + VERSION.v, CreatedDate: new Date() });
-function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js'); } catch(e){ return rej(e); }
+function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js' + libV('excel_worker.js') + (libV('xlsx.js')? '&x=' + window.SIA_LIBS_V['xlsx.js'] : '')); } catch(e){ return rej(e); }
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
   w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic, props}); }); }
 const GRANDE = 20000;   // renglones a partir de los cuales se avisa del tamaño y de la espera
@@ -183,7 +187,8 @@ async function deliverTable(base, key, aoa, extra){
     catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
   }
   let X; try { X = await loadXL(); }
-  catch(e){ // no se pudo cargar la librería de Excel: se entrega CSV, con el diccionario en un segundo archivo
+  catch(e){ if (e && e.causa==='sesion'){ avisoSesion(st); return; }   // sesión vencida: no se entrega nada y se dice por qué
+    // no se pudo cargar la librería de Excel: se entrega CSV, con el diccionario en un segundo archivo
     st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);

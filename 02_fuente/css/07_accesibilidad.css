@@ -72,3 +72,10 @@
 /* ficha del mapa: las etiquetas largas se parten en lugar de estrechar el valor hasta volverlo ilegible */
 .card dl{grid-template-columns:minmax(0,46%) minmax(0,1fr)}
 .card dd{overflow-wrap:anywhere}
+/* ---------- sin estilos en línea (auditoría H-001): lo que antes iba como atributo style o en un bloque <style> de la página ---------- */
+.bars2{margin-top:14px}
+.ld-tit{font-weight:600;font-size:1rem}
+.ld-msg{font-size:.75rem;margin-top:4px}
+.ld-err{font-size:.75rem;margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto}
+.ld-err a,.status a,.act-status a{color:var(--guinda-ink);font-weight:600}
+.sesion-salir{margin-right:10px;text-decoration:underline;cursor:pointer}

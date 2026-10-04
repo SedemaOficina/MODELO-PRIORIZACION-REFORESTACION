@@ -2,6 +2,8 @@
 // ---------- lectura y decodificación ----------
 function b64ToBytes(s){ const bin = atob(s); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
 async function gunzip(bytes){
+  // Si un servidor intermedio ya descomprimió el archivo (no trae la firma gzip 1f 8b), se usa tal cual (auditoría H-061)
+  if (bytes.length>1 && !(bytes[0]===0x1f && bytes[1]===0x8b)) return bytes;
   if (typeof DecompressionStream !== 'undefined'){
     try{ const ds = new DecompressionStream('gzip'); const ab = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer(); return new Uint8Array(ab); }
     catch(e){ console.warn('DecompressionStream falló, usando pako', e); }
@@ -19,7 +21,8 @@ async function fetchBytes(name){
   let r;
   try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
   catch(e){ throw errAmable(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/calles_prioritarias.html.' : 'No se pudieron descargar los datos. Revisa tu conexión a internet.', 'fetch ' + name + ': ' + (e && e.message || e)); }
-  if (!r.ok) throw errAmable(r.status===401 || r.status===403 ? 'El servidor no permitió descargar los datos (acceso denegado). Si la herramienta pide sesión, vuelve a entrar.' : `No se encontró un archivo de datos en el servidor (${name}, respuesta ${r.status}).`, name + ' ' + r.status);
+  if (esSesion(r)) throw errSesion(name + ' ' + r.status + ' ' + (r.headers.get('content-type')||''));
+  if (!r.ok) throw errAmable(`No se encontró un archivo de datos en el servidor (${name}, respuesta ${r.status}).`, name + ' ' + r.status);
   if (!r.body || !r.body.getReader){ const b = new Uint8Array(await r.arrayBuffer()); dlDone += b.length; showDl(); return b; }
   const rd = r.body.getReader(), parts = []; let n = 0;
   for(;;){ const {done, value} = await rd.read(); if (done) break; parts.push(value); n += value.length; dlDone += value.length; showDl(); }

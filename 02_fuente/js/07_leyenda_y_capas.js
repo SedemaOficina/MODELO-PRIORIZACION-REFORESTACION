@@ -3,7 +3,7 @@
 const lg = $('legend-rows');
 META.prio.slice().reverse().forEach((p, ri)=>{
   const k = 4-ri; const row = document.createElement('div'); row.className='row'; row.tabIndex=0; row.setAttribute('role','checkbox'); row.setAttribute('aria-checked','true');
-  row.innerHTML = `<b class="lg-cb" aria-hidden="true"></b><i style="background:var(--p${k})"></i><span>${p}</span><em class="lg-km" data-k="${k}"></em>`;
+  row.innerHTML = `<b class="lg-cb" aria-hidden="true"></b><i data-st="background:var(--p${k})"></i><span>${p}</span><em class="lg-km" data-k="${k}"></em>`;
   const toggle = ()=>{ visible[k]=!visible[k]; row.classList.toggle('off',!visible[k]); row.setAttribute('aria-checked',String(visible[k])); buildFilter(); buildVP(); rerender(); notaFiltro(); };
   row.onclick = toggle; row.onkeydown = e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } };
   lg.appendChild(row);

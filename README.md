@@ -26,6 +26,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 | `05_documentacion/` | `cifras_de_la_construccion.md` (tamaños y conteos, generado), `despliegue_sia.md` (decisiones para instalar en el SIA), `auditoria_ux_calles.html` (auditoría UI/UX del 24 sep 2026) y `bitacora/` (registro de versiones y decisiones). | Sí, salvo `bitacora/` |
 | `06_entregables/` | Guía de prueba con personal de alcaldías (Word y PDF), listas de catálogos para homologación en el SIA (Excel) y lámina de composición de frentes de manzana. | Sí |
 | `07_versiones/` | Versiones anteriores de la herramienta, con un `LEEME.md` que relaciona sus nombres con la numeración vigente. | No |
+| `08_entrega_sia/` | **Paquete de entrega al SIA:** guía de instalación, actualización y reversión, ejemplo de nginx, lista de verificación, integración del inicio de sesión, contrato de datos, cierre de la Fase 1 y `empaquetar.py`. | Sí |
 | `_local/` | `calles_prioritarias.html`: la herramienta **en un solo archivo, para abrir con doble clic**. Lleva incrustados datos, tipografías y librerías: no pide nada a terceros, salvo los mapas de fondo si se encienden. Se genera al construir. | No |
 
 Los tamaños y conteos vigentes (módulos, peso del sitio, peso del archivo único) están en [`05_documentacion/cifras_de_la_construccion.md`](05_documentacion/cifras_de_la_construccion.md), que `construir.py` vuelve a medir en cada construcción.
@@ -53,7 +54,7 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 - **Qué sí está:** el índice de desarrollo social por unidad territorial (`insumos/IDS_ut/`) y los resultados intermedios del procesamiento (`intermedios/`), que permiten regenerar los datos.
 - **Historial:** Git conserva archivos de versiones anteriores que ya no están en la carpeta, entre ellos una copia de la versión 6 de la herramienta y los metadatos de una capa. El historial no se reescribió; si el repositorio se cierra al pasar al SIA, no hace falta.
 - **Autoría de los commits:** desde la v17.12 se firman con la dirección `noreply` de la cuenta; los anteriores conservan el correo con el que se hicieron.
-- **Destino final:** `sedema.sia.cdmx.gob.mx`, como sitio estático en el servidor web del SIA. El paquete de entrega (configuración de nginx y guía de instalación) está pendiente; las decisiones previas están en [`05_documentacion/despliegue_sia.md`](05_documentacion/despliegue_sia.md).
+- **Destino final:** `sedema.sia.cdmx.gob.mx/calles-prioritarias/`, como sitio estático en el servidor web del SIA. El paquete de entrega está en [`08_entrega_sia/`](08_entrega_sia/LEEME.md) y se arma con `python3 08_entrega_sia/empaquetar.py`; las decisiones previas están en [`05_documentacion/despliegue_sia.md`](05_documentacion/despliegue_sia.md).
 - **Si una red institucional bloquea `github.io`:** usar `_local/calles_prioritarias.html`, que se abre con doble clic y no depende de ese dominio. Conviene pedir a cada alcaldía piloto una prueba de acceso desde su red antes de la sesión (la guía de `06_entregables/` lo incluye).
 
 ## Licencias y condiciones de terceros
@@ -70,16 +71,17 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 4. Cada cambio se documenta en `05_documentacion/bitacora/`.
 5. Claude nunca borra archivos de la carpeta: lo que sobre se mueve a `_to_delete/` para que Liber lo elimine.
 6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
-7. Cada cambio que llega a GitHub se verifica solo (`.github/workflows/verificar.yml`): datos, construcción y revisión estática. Si falla, GitHub avisa por correo a la cuenta; la página publicada no cambia por ello.
+7. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla es decisión de quien administra la cuenta.
 
-## Estado al 3 de octubre de 2026 (versión 17.25)
+## Estado al 3 de octubre de 2026 (versión 17.26)
 
-- Versión vigente: **v17.25**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.26**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
-| 17.25 | Reproducibilidad y pruebas (F1-B7): la construcción se detiene antes de escribir si falta o sobra una pieza, datos verificados por su contenido, reglas «prioritario» y «universo» en un solo lugar, revisión estática, verificación automática en GitHub y una sola orden para correr todas las pruebas |
+| 17.26 | Preparación para el SIA (Fase 2): funciona bajo una política de seguridad de contenido estricta (sin estilos en línea), reconoce la sesión vencida, direcciones de sesión configurables, todas las librerías con huella de versión, datos resistentes a un intermediario que los descomprima, claves fuera del archivo público y paquete de entrega (`08_entrega_sia/`) |
+| 17.25 | Reproducibilidad y pruebas (F1-B7): la construcción se detiene antes de escribir si falta o sobra una pieza, datos verificados por su contenido, reglas «prioritario» y «universo» en un solo lugar, revisión estática y una sola orden para correr todas las pruebas |
 | 17.24 | Accesibilidad (F1-B5): anuncios para lector de pantalla, foco que no se pierde, listados y ficha de un frente operables con teclado, Esc cierra ficha y capas, ayuda con fondo inerte, bordes y foco con contraste, objetivos táctiles de 44 px en teléfono, letra en unidades relativas, impresión, propiedades e idioma en PDF y Excel |
 | 17.23 | Documentación, repositorio y licencias (bloque F1-B8 de la auditoría): archivo único sin librerías de terceros, textos de licencia, clave de CARTO, listas de catálogos para el SIA, guía de prueba actualizada |
 | 17.22 | Teléfono y rendimiento (F1-B6): «Mi ubicación» prudente, Excel grandes en proceso auxiliar, avance de carga, modo ligero, teléfono en horizontal, uso sin conexión |
@@ -92,18 +94,19 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 | 16 a 17.10 | Auditoría UX (bloques 1 y 2), carga en archivos aparte, Mi ubicación, modo ligero, mapas de fondo |
 
 ### Pendientes
-1. **Paquete de entrega al SIA:** configuración de nginx para `/calles-prioritarias/`, compatibilidad con sus cabeceras de seguridad (las tipografías ya se sirven desde el sitio; falta retirar los estilos en línea), guía de instalación y actualización y lista de verificación.
-2. **Login** (opcional para una herramienta de consulta): nueve decisiones con recomendación y responsable en `05_documentacion/despliegue_sia.md`. El uso sin conexión (`sw.js`) se revisa junto con el login.
+1. **Instalación en el SIA:** el paquete de entrega está escrito (`08_entrega_sia/`). Falta que el SIA valide la configuración de nginx (`nginx -t`), instale en un servidor de ensayo siguiendo solo la guía y corra la lista de verificación.
+2. **Login** (opcional para una herramienta de consulta): nueve decisiones con recomendación y responsable en `05_documentacion/despliegue_sia.md`. Con sesión configurada, la herramienta no guarda copia para uso sin conexión. La integración está descrita en `08_entrega_sia/SESION_Y_LOGIN.md`.
 3. **Prueba con personal de alcaldías** con la guía de `06_entregables/`, precedida de la prueba de acceso desde la red de cada alcaldía.
 4. **Visto bueno institucional de la rampa de calor** que sustituyó al semáforo.
 5. Validar con la Secretaría la regla del cruce de frentes con vialidades primarias (18 m, o 60 m con coincidencia de nombre).
 6. Recalcular el modelo con el IDS cuando haya acceso a las capas de temperatura superficial 2024, cobertura de copa y NDVI por frente.
-7. **Claves de los mapas de fondo:** solicitar la clave gratuita de CARTO y ponerla en `CARTO_KEY` de `02_fuente/construir.py`; crear una cuenta de ArcGIS Location Platform, generar una clave restringida al dominio y ponerla en `ESRI_KEY`. En el SIA, sus cabeceras de seguridad deben permitir imágenes de `basemaps.cartocdn.com`, `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`.
+7. **Claves de los mapas de fondo:** solicitar la clave gratuita de CARTO; crear una cuenta de ArcGIS Location Platform y generar una clave restringida al dominio. **No se escriben en `construir.py`**, que es público: se dan con las variables de entorno `SIA_CARTO_KEY` y `SIA_ESRI_KEY` o en `02_fuente/claves.local.json` (no se publica). En el SIA, sus cabeceras de seguridad deben permitir imágenes de `basemaps.cartocdn.com`, `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`.
 8. Regenerar el lote de fichas PDF de las 16 alcaldías con la versión definitiva.
 9. **Homologar los catálogos en el SIA** con las listas de `06_entregables/Catalogos_para_homologacion_SIA.xlsx` (colonias homónimas, códigos postales de cuatro dígitos, variantes de nombres de calle, vialidades con dos escrituras y la calle «Prueba»). La herramienta no corrige los catálogos.
 10. **Auditoría integral del 2 de octubre:** cerrados los bloques F1-B1, F1-B4, F1-B6 y F1-B8 (este último con los pendientes 7 y 9 y la licencia del repositorio); F1-B5 (accesibilidad) atendido salvo el pendiente 11; F1-B7 (reproducibilidad y pruebas) atendido salvo el pendiente 12; quedan F1-B2 (revisión jurídica de textos y tratamiento de tú o usted), F1-B3 (documento del modelo, depende del SIA) y los bloques de la Fase 2.
 11. **Accesibilidad, lo que falta:** (a) el mapa comunica la prioridad solo con color (H-051): se decidió dejarlo como limitación declarada (3 oct 2026), porque la prioridad está también en texto en el listado, las fichas y los Excel; la lámina de metodología, que usa verde y rojo, queda por rehacer; (b) las fichas PDF no están etiquetadas (H-052): la librería no lo permite; la salida es ofrecer la ficha también como página imprimible; (c) el encabezado de los Excel no queda inmovilizado; (d) falta la lectura con un lector de pantalla real (NVDA o VoiceOver).
 12. **Reproducibilidad, lo que falta:** (a) **la capa de vialidades primarias (`insumos/VP_REFORESTACION/`) no está en la carpeta de trabajo**: sin ella no pueden correrse los pasos 3 y 4 de `03_procesamiento_datos/`; hay que localizarla, resguardarla y entregarla al SIA con su suma de verificación, junto con el insumo del modelo (H-007); (b) fijar las versiones exactas de las dependencias de Python cuando la cadena vuelva a correrse; (c) el código sigue en un solo alcance y `fichaPDF` sin partir: extraer módulos con pruebas unitarias es trabajo de fondo (H-038).
+13. **Librerías con avisos de seguridad:** jsPDF 2.5.2 y SheetJS 0.18.5 tienen avisos publicados. La exposición real es baja (la herramienta solo escribe archivos), pero un análisis del SIA o de la agencia digital puede objetarlas. Actualizarlas exige regenerar y comparar las fichas.
 
 ## Navegadores y enlaces
 
