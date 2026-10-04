@@ -1185,6 +1185,7 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   const nTrD = respOn.gc? vpSumm().recsp.size : 1;
   $('dl-frentes').disabled = $('dl-calles').disabled = (sel===null || nPrD===0);
   $('dl-ficha').disabled = nFrD===0; $('dl-tramos').disabled = nTrD===0;
+  $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && nTrD>0));
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.'
     : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha que descargar.'
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
@@ -1506,6 +1507,47 @@ $('dl-avenidas').onclick = ()=>{
 };
 
 document.fonts && document.fonts.ready.then(()=> rerender());
+
+// ---------- exportación geográfica (v17.29): las calles prioritarias de la consulta como líneas ----------
+// Mismos registros que «frentes prioritarios» y «tramos prioritarios» en Excel: frentes de alcaldía Muy Alta y Alta del ámbito
+// (requiere alcaldía o colonia) y, con Gobierno Central activo, tramos prioritarios de vialidad primaria.
+// KML para Google Earth; GeoJSON (RFC 7946, WGS 84) para un sistema de información geográfica. Solo se descarga: nada se captura.
+function geoSel(){ const fr=[], vp=[];
+  if (respOn.alc && sel!==null) for(let i=0;i<N;i++) if(esPrio(F.prio[i]) && !F.gc[i] && enAmbito(i)) fr.push(i);
+  if (respOn.gc) for(let i=0;i<NV;i++) if(esPrio(VP.prio[i]) && (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv)) vp.push(i);
+  return {fr, vp}; }
+const geoCoord = (A, k) => [+A[2*k].toFixed(6), +A[2*k+1].toFixed(6)];
+const geoFr = i => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', responsable:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i] });
+const geoVp = i => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', responsable:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i] });
+const geoNota = () => `Calles prioritarias para reforestar · ${ambitoGeo()} · prioridades Muy Alta y Alta. ${FUENTES} La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: la regla está en validación. ${VERSION_TXT}.`;
+const ambitoGeo = () => selCol!==null? `Colonia ${META.colonias[selCol].n}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
+const xmlEsc = v => String(v??'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
+function geoJSON(g){ const f = [];
+  const linea = (A, a, b) => { const c = []; for(let k=a;k<b;k++) c.push(geoCoord(A,k)); return c; };
+  for (const i of g.fr) f.push(JSON.stringify({type:'Feature', properties:geoFr(i), geometry:{type:'LineString', coordinates:linea(POS, start[i], start[i+1])}}));
+  for (const i of g.vp) f.push(JSON.stringify({type:'Feature', properties:geoVp(i), geometry:{type:'LineString', coordinates:linea(VPOS, vstart[i], vstart[i+1])}}));
+  return `{"type":"FeatureCollection","name":${JSON.stringify('Calles prioritarias para reforestar · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota())},"features":[\n${f.join(',\n')}\n]}\n`; }
+function geoKML(g){ const kc = p => { const c = T.prio[p]; const h = v => v.toString(16).padStart(2,'0'); return 'ff' + h(c[2]) + h(c[1]) + h(c[0]); };   // KML: aabbggrr
+  const marca = (pr, p, A, a, b, ancho) => { let cs = ''; for(let k=a;k<b;k++){ const q = geoCoord(A,k); cs += q[0]+','+q[1]+',0 '; }
+    return `<Placemark><name>${xmlEsc(pr.vialidad)}</name><styleUrl>#p${p}${ancho}</styleUrl><ExtendedData>${Object.entries(pr).map(([k,v])=>`<Data name="${k}"><value>${xmlEsc(v)}</value></Data>`).join('')}</ExtendedData><LineString><tessellate>1</tessellate><coordinates>${cs.trim()}</coordinates></LineString></Placemark>`; };
+  const estilos = [3,4].map(p=> `<Style id="p${p}f"><LineStyle><color>${kc(p)}</color><width>3</width></LineStyle></Style><Style id="p${p}v"><LineStyle><color>${kc(p)}</color><width>5</width></LineStyle></Style>`).join('');
+  const carpeta = (nombre, marcas) => marcas.length? `<Folder><name>${xmlEsc(nombre)}</name>\n${marcas.join('\n')}\n</Folder>\n` : '';
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Calles prioritarias para reforestar · '+ambitoGeo())}</name><description>${xmlEsc(geoNota())}</description>${estilos}\n`
+    + carpeta('Frentes de manzana a cargo de la alcaldía (Muy Alta y Alta)', g.fr.map(i=>marca(geoFr(i), F.prio[i], POS, start[i], start[i+1], 'f')))
+    + carpeta('Vialidades primarias a cargo del Gobierno Central (Muy Alta y Alta)', g.vp.map(i=>marca(geoVp(i), VP.prio[i], VPOS, vstart[i], vstart[i+1], 'v')))
+    + '</Document></kml>\n'; }
+function geoDescarga(tipo){ const st = $('dl-status'); const g = geoSel(); const n = g.fr.length + g.vp.length;
+  if (!n){ st.textContent = (respOn.alc && sel===null && !respOn.gc)? 'Elige una alcaldía o una colonia para descargar sus calles como mapa.' : 'Este ámbito no tiene calles de prioridad Muy Alta o Alta que descargar.'; return; }
+  // en teléfono un archivo de decenas de miles de líneas pesa demasiado: se pide acotar a una colonia (mismo criterio que el Excel, auditoría H-045)
+  if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un teléfono. Elige una colonia o descárgalo desde una computadora.`; return; }
+  st.textContent = n>GRANDE? `Preparando un archivo grande: ${fmt.format(n)} líneas, alrededor de ${fmt0.format(Math.max(1, n*(tipo==='kml'? 0.0006 : 0.00033)))} MB…` : 'Preparando archivo…';
+  setTimeout(()=>{ try {
+      const base = `calles_prioritarias_mapa_${g.fr.length? scopeSlug() : 'vialidades_primarias_'+scopeSlugVP()}`;
+      const blob = tipo==='kml'? new Blob([geoKML(g)], {type:'application/vnd.google-earth.kml+xml'}) : new Blob([geoJSON(g)], {type:'application/geo+json'});
+      deliverBlob(`${base}.${tipo==='kml'? 'kml' : 'geojson'}`, blob).then(()=>{ if (n>2000 && tipo==='kml') st.textContent += ` · ${fmt.format(n)} líneas. Google Earth lo abre completo; «Mis mapas» de Google admite hasta 2,000 por capa: para ese uso, descarga por colonia.`; });
+    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30); }
+$('dl-kml').onclick = ()=>geoDescarga('kml');
+$('dl-geojson').onclick = ()=>geoDescarga('geojson');
 
 // Fichas PDF (jsPDF bajo demanda) de colonia, alcaldía, vialidades primarias de la alcaldía, avenida y calle.
 // abre la ficha después de cargar jsPDF (de libs/ en el sitio; del CDN en el artefacto)

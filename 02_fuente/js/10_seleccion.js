@@ -36,6 +36,7 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   const nTrD = respOn.gc? vpSumm().recsp.size : 1;
   $('dl-frentes').disabled = $('dl-calles').disabled = (sel===null || nPrD===0);
   $('dl-ficha').disabled = nFrD===0; $('dl-tramos').disabled = nTrD===0;
+  $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && nTrD>0));
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.'
     : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha que descargar.'
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'

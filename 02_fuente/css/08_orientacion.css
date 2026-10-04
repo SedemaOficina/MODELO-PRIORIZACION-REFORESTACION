@@ -61,3 +61,6 @@
 
 /* las cifras del ámbito viven en la pestaña Resumen */
 #tp-res .kpis{margin-top:10px}
+
+/* v17.29 · descargas para abrir en un mapa (KML y GeoJSON) */
+.geo-title{margin-top:16px}

@@ -22,6 +22,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_servidor_sia.js` | Instalada en `/calles-prioritarias/` con la política de seguridad de contenido del ejemplo de nginx: cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 | `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas y «Compartir» | 1 min |
+| `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Qué compara cifras.** La prueba integral (`prueba_sitio.js`) es un recorrido de controles: confirma que cada flujo responde, no que las cifras sean correctas. Las cifras las vigila `prueba_coherencia_cifras.js`, que abre los Excel y las fichas PDF y los compara con la pantalla y con un recálculo propio desde `docs/datos/*.bin`. Las dos son necesarias.
 
@@ -124,4 +125,12 @@ Las demás pruebas parten de «toda la ciudad» (`L.sinEntrada`) y leen las cifr
 
 ```
 node 04_pruebas/prueba_orientacion.js
+```
+
+## Descargas para abrir en un mapa (v17.29)
+
+`prueba_mapa_descargas.js` descarga el GeoJSON y el KML de una colonia, de una alcaldía grande y de las vialidades primarias, y comprueba: que son válidos (JSON y XML bien formados, líneas con coordenadas dentro de la ciudad), que traen tantas líneas como frentes prioritarios dice la pantalla y que sus longitudes suman los mismos kilómetros, que declaran fuentes, asignación preliminar y versión, y que en teléfono no se entrega el archivo de una alcaldía grande.
+
+```
+node 04_pruebas/prueba_mapa_descargas.js
 ```

@@ -94,6 +94,12 @@
           <button class="btn secondary" id="dl-ficha-alc" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la alcaldía (PDF)</button>
           <button class="btn secondary" id="dl-ficha" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la colonia (PDF)</button>
         </div>
+        <div class="section-title geo-title"><h2>Para abrir en un mapa</h2><span>Líneas de las calles</span></div>
+        <div class="btns">
+          <button class="btn secondary" id="dl-kml" title="Las calles prioritarias de la consulta como líneas, para Google Earth"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para Google Earth (KML)</button>
+          <button class="btn secondary" id="dl-geojson" title="Las calles prioritarias de la consulta como líneas, para un sistema de información geográfica"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para SIG (GeoJSON)</button>
+        </div>
+        <p class="note" id="geo-note">Traen las mismas calles de prioridad Muy Alta y Alta que los Excel, dibujadas como líneas con su prioridad. El KML se abre en Google Earth; el GeoJSON, en QGIS, ArcGIS u otro sistema de información geográfica.</p>
         <div class="status" id="dl-status" role="status"></div>
       </div></div>
         <div class="source">

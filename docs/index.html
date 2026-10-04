@@ -1,4 +1,4 @@
-<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Calles Prioritarias para Reforestar</title><meta name="color-scheme" content="light only"><link rel="preload" href="datos/data.bin?v=0d38f09868" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin><link rel="preload" href="fuentes/cabin.woff2?v=51380ccf10" as="font" type="font/woff2" crossorigin><link rel="preload" href="fuentes/roboto.woff2?v=0722b859b4" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="estilos.css?v=80324ce6b7"></head><body>
+<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Calles Prioritarias para Reforestar</title><meta name="color-scheme" content="light only"><link rel="preload" href="datos/data.bin?v=0d38f09868" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin><link rel="preload" href="fuentes/cabin.woff2?v=51380ccf10" as="font" type="font/woff2" crossorigin><link rel="preload" href="fuentes/roboto.woff2?v=0722b859b4" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="estilos.css?v=0dddf05043"></head><body>
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. Lo que va antes de ESTILOS pasa al <head>. -->
@@ -94,6 +94,12 @@
           <button class="btn secondary" id="dl-ficha-alc" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la alcaldía (PDF)</button>
           <button class="btn secondary" id="dl-ficha" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la colonia (PDF)</button>
         </div>
+        <div class="section-title geo-title"><h2>Para abrir en un mapa</h2><span>Líneas de las calles</span></div>
+        <div class="btns">
+          <button class="btn secondary" id="dl-kml" title="Las calles prioritarias de la consulta como líneas, para Google Earth"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para Google Earth (KML)</button>
+          <button class="btn secondary" id="dl-geojson" title="Las calles prioritarias de la consulta como líneas, para un sistema de información geográfica"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para SIG (GeoJSON)</button>
+        </div>
+        <p class="note" id="geo-note">Traen las mismas calles de prioridad Muy Alta y Alta que los Excel, dibujadas como líneas con su prioridad. El KML se abre en Google Earth; el GeoJSON, en QGIS, ArcGIS u otro sistema de información geográfica.</p>
         <div class="status" id="dl-status" role="status"></div>
       </div></div>
         <div class="source">
@@ -323,8 +329,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=4a32223629"></script>
+<script src="config.js?v=8b6939bece"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=4de22334f3"></script>
+<script src="app.js?v=81c0842dc9"></script>
 </body></html>

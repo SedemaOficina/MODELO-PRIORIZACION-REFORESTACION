@@ -9,7 +9,7 @@ const RAPIDAS = [
   ['construcción', py, ['04_pruebas/prueba_construccion.py']],
   ['revisión estática (ESLint)', fs.existsSync(eslint) ? eslint : null, ['docs/app.js']],
 ];
-const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js']
+const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js']
   .map(f => [f.replace('prueba_', '').replace('.js', '').replace(/_/g, ' '), process.execPath, ['04_pruebas/' + f]]);
 const lista = process.argv[2] === 'rapidas' ? RAPIDAS : RAPIDAS.concat(NAVEGADOR); const res = [];
 for (const [nombre, cmd, args] of lista) {
