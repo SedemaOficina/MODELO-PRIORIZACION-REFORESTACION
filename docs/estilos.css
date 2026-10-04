@@ -745,3 +745,28 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
 .ld-err{font-size:.75rem;margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto}
 .ld-err a,.status a,.act-status a{color:var(--guinda-ink);font-weight:600}
 .sesion-salir{margin-right:10px;text-decoration:underline;cursor:pointer}
+/* ---------- ventana de ayuda en teléfono ----------
+   En iPhone, 100vh mide más que la pantalla visible (no descuenta las barras del navegador). La ventana, centrada y con ese alto,
+   quedaba con su parte superior fuera de la pantalla: el logotipo salía cortado y la × caía encima del texto.
+   Ahora ocupa exactamente el área visible, y el encabezado deja libre el lugar de la ×. */
+.modal-card{max-height:calc(100dvh - 40px)}
+@media (max-width:600px){
+  .modal{place-items:stretch;padding:0}
+  .modal-card{max-height:none;height:100%;box-sizing:border-box;padding:0 18px calc(22px + env(safe-area-inset-bottom, 0px));-webkit-overflow-scrolling:touch}
+  /* encabezado fijo de la ventana: logotipo a la izquierda y × a la derecha; el texto pasa por debajo, no por detrás de la × */
+  .modal-top{position:sticky;top:0;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 -18px 14px;padding:calc(8px + env(safe-area-inset-top, 0px)) 12px 8px 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .modal-top .modal-logo{order:1;width:auto;max-width:calc(100% - 60px);max-height:34px;margin:0}
+  .modal-top .close{order:2;position:static;flex:none;width:44px;height:44px;box-shadow:none}
+  .modal-card h2{font-size:1.5rem}
+}
+/* v17.27 · panel de capas en teléfono: nada se sale a lo ancho, el desplazamiento es solo vertical
+   y el encabezado «Capas ×» permanece a la vista */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
+  .legend.open{overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;box-sizing:border-box;padding-top:0}
+  .legend.open .legend-head{position:sticky;top:0;z-index:2;background:var(--panel);padding:9px 0 6px}
+  .legend .lg-sec .pills{flex-wrap:wrap;gap:6px}
+  .legend{max-width:none;right:64px}
+  .legend .lg-sec .pills button{flex:1 1 auto;justify-content:center;padding:8px 8px}
+  .legend.open ~ .etq-ligero{display:none}
+  .legend .lg-cap{overflow-wrap:anywhere}
+}

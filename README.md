@@ -73,13 +73,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 7. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla es decisión de quien administra la cuenta.
 
-## Estado al 3 de octubre de 2026 (versión 17.26)
+## Estado al 4 de octubre de 2026 (versión 17.27)
 
-- Versión vigente: **v17.26**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.27**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 17.27 | Teléfono: la ventana de ayuda ocupa el área visible de la pantalla, con el logotipo y el botón de cierre en un encabezado fijo que ya no se encima con el texto; el panel de capas ya no se sale a lo ancho, se desplaza solo en vertical y conserva a la vista su encabezado |
 | 17.26 | Preparación para el SIA (Fase 2): funciona bajo una política de seguridad de contenido estricta (sin estilos en línea), reconoce la sesión vencida, direcciones de sesión configurables, todas las librerías con huella de versión, datos resistentes a un intermediario que los descomprima, claves fuera del archivo público y paquete de entrega (`08_entrega_sia/`) |
 | 17.25 | Reproducibilidad y pruebas (F1-B7): la construcción se detiene antes de escribir si falta o sobra una pieza, datos verificados por su contenido, reglas «prioritario» y «universo» en un solo lugar, revisión estática y una sola orden para correr todas las pruebas |
 | 17.24 | Accesibilidad (F1-B5): anuncios para lector de pantalla, foco que no se pierde, listados y ficha de un frente operables con teclado, Esc cierra ficha y capas, ayuda con fondo inerte, bordes y foco con contraste, objetivos táctiles de 44 px en teléfono, letra en unidades relativas, impresión, propiedades e idioma en PDF y Excel |
