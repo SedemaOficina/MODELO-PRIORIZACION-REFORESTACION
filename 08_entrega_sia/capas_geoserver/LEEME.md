@@ -110,3 +110,18 @@ Para comprobar que la capa publicada es la correcta:
 | Colonias | 2,243 |
 
 Son las mismas cifras que muestra la herramienta, versión 17.36.
+
+## Cargar las capas en PostGIS (opcional)
+
+Si el SIA prefiere publicar desde su base PostGIS en lugar de los GeoPackage, o para ensayarlo antes, las tres capas se cargan con `ogr2ogr` (viene con la instalación de PostGIS) en un esquema propio. Se probó el 5 oct 2026 en PostgreSQL 17 + PostGIS 3.5 con resultados idénticos a la herramienta: 372,534 frentes, 9,226.9 km prioritarios a cargo de las alcaldías, 19,411 frentes del Gobierno Central.
+
+```
+psql -c "CREATE SCHEMA IF NOT EXISTS reforestacion"
+ogr2ogr -f PGDUMP frentes.sql frentes_reforestacion.gpkg frentes_reforestacion -nln frentes_reforestacion \
+  -lco SCHEMA=reforestacion -lco GEOMETRY_NAME=geom -lco FID=fid -lco SPATIAL_INDEX=GIST -lco CREATE_SCHEMA=OFF -lco DROP_TABLE=IF_EXISTS
+psql -v ON_ERROR_STOP=1 -f frentes.sql
+```
+
+Lo mismo para `vialidades_primarias_reforestacion` y `colonias_reforestacion`. Se usa el formato `PGDUMP` (SQL que se carga con `psql`), porque no todas las compilaciones de `ogr2ogr` traen el conector directo a PostgreSQL. Si el SIA la tiene, sirve también `-f PostgreSQL "PG:…"`.
+
+Para que QGIS pinte las capas al abrirlas desde la base, se copia el estilo de cada GeoPackage (tabla `layer_styles`, columna `styleQML`) a la tabla `public.layer_styles` de la base. Es la que QGIS consulta. GeoServer no la usa: sigue tomando los `.sld`.
