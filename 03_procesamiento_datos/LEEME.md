@@ -9,7 +9,7 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 | Carpeta | Contenido | ¿En el repositorio? |
 |---|---|---|
 | `insumos/IDS_ut/` | Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX), con su diccionario | Sí |
-| `insumos/VP_REFORESTACION/` | Capa de vialidades primarias priorizadas para reforestación (SEDEMA, agosto de 2026): `PRIMARIAS_REFORESTACION.shp` y sus archivos | No: colocarla aquí antes de correr los pasos 3 y 4 |
+| `insumos/VP_REFORESTACION/` | Capa de vialidades primarias priorizadas para reforestación (SEDEMA, agosto de 2026): `PRIMARIAS_REFORESTACION.shp` y sus archivos | No (copia local desde el 5 oct 2026; huellas en `SUMAS_INSUMOS.md`) |
 | `insumos/slide_orig.jpg` | Lámina original de composición de frentes (solo para `lamina_composicion.py`) | No |
 | `intermedios/` | Resultados de cada paso: `frentes.npz`, `meta.json`, `cruce.npz` | Sí: permiten regenerar los datos sin repetir los pasos 1 y 2 |
 
@@ -42,13 +42,13 @@ node 04_pruebas/correr_todas.js
 
 - El paso 3 guarda en `cruce.npz` el número de partes de la capa con la que hizo el cruce (`nvp`).
 - El paso 4 se detiene sin generar nada si el cruce enlaza a una parte que la capa no tiene, si la capa tiene otro número de partes que la del cruce, si la capa no está en UTM zona 14 norte (lee su `.prj`) o si los kilómetros de los frentes no cuadran con el resumen del modelo.
-- Estas comprobaciones se escribieron el 3 de octubre de 2026 **sin poder ejecutar los pasos 3 y 4**, porque la capa de vialidades primarias no está en la carpeta de trabajo. Quedan por probar la primera vez que se corra la cadena.
+- Estas comprobaciones se escribieron el 3 de octubre de 2026 sin poder ejecutar los pasos 3 y 4. El 5 de octubre, ya con la capa, se corrieron en una copia aparte y pasaron. El resultado coincide con los datos publicados salvo 144 enlaces de frente a parte contigua de la capa (empates de distancia; ver `SUMAS_INSUMOS.md`).
 
 ## Insumos que no están en el repositorio
 
 | Insumo | Para qué | Estado al 3 de octubre de 2026 |
 |---|---|---|
-| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | **No está en la carpeta de trabajo.** Hay que localizarla y resguardarla |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | Localizada el 5 oct 2026 y copiada aquí (copia local). Falta entregarla al SIA |
 | `07_versiones/calles_prioritarias_v6_original.html` | Paso 1 (origen de los frentes priorizados) | Solo en la copia local; su suma está en `SUMAS_INSUMOS.md` |
 | Modelo de priorización de frentes (SIA, nov. 2025) | Origen de la prioridad de cada frente | No se tiene; depende del SIA |
 

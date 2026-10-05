@@ -7,7 +7,11 @@ SHA-256 de los archivos con los que se generaron los datos de la herramienta, ca
 | Archivo | ¿Dónde está? | SHA-256 |
 |---|---|---|
 | `07_versiones/calles_prioritarias_v6_original.html` (frentes priorizados; lo lee el paso 1) | Solo en la copia local | `a89d6a900aeeb877352c0500733bf7fdd78e738932cd1ad8523077bd497c56e6` |
-| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos (pasos 3 y 4) | **No localizado en la carpeta de trabajo** | Por calcular cuando se localice |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` (pasos 3 y 4) | Copia local (no se publica); original en Descargas de Liber, también como `VP_REFORESTACION.rar` (`7e5575f257652b39992da8e189382ac3ed15c4deb828e31e2602ca4c9bc88324`). Localizada el 5 oct 2026 | `17b6b293d072bceff881feba242185dc6d231b7e2066aa65e1238a307717cc6f` |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.dbf` | Igual | `978fe6a70e640d6e72b17bdad0361c94aee137a3f9b856937ee5edbd0331bd2c` |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shx` | Igual | `965b46203efdecaed1190a7ee667715a7cd8db429ce31a99b63b5e2fea407cf8` |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.prj` | Igual | `db708912d14ad1ab84ec61604c667fdc25968fc1a35e5c56cd146d3f45a3c441` |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.cpg` | Igual | `3ad3031f5503a4404af825262ee8232cc04d4ea6683d42c5dd0a2f2a27ac9824` |
 | `insumos/IDS_ut/IDS_ponderado.shp` | Repositorio | `70ad3aaf462eac2018c7f3e6be3a8b918e7e4dacd6c8b5789dc97932ac5d09b8` |
 | `insumos/IDS_ut/IDS_ponderado.dbf` | Repositorio | `fe7bf830a978dedb0c741ba34ee6e70d8be9ed34a807005eb746a9fd047ff1fd` |
 | `insumos/IDS_ut/IDS_ponderado.shx` | Repositorio | `47493ff04214b7b3571284e10337393c5349e88e066ea2caa9a3a28cca0d0648` |
@@ -30,3 +34,10 @@ Las sumas del contenido de `02_fuente/datos/*.bin` están en `02_fuente/datos/SU
 ## Pendiente
 
 Entregar al SIA, por canal institucional, la capa de vialidades primarias y el insumo del modelo de priorización con su suma, y anotar aquí dónde quedan resguardados.
+
+## Comprobación de la capa (5 oct 2026)
+
+Es la capa con la que se generaron los datos publicados: con ella, los pasos 3 y 4 (corridos en una copia aparte, con las versiones de `requirements.txt`) dan:
+- **`vp.bin` idéntico** al publicado: 13,335 registros y 16,072 partes.
+- **La misma asignación de los 372,534 frentes** a la alcaldía o al Gobierno Central: ningún frente cambia de responsable.
+- **Diferencia:** 144 de los 19,411 frentes del Gobierno Central quedan enlazados a la parte contigua de la capa. Todos siguen en la misma alcaldía y 141 en la misma vialidad. Ocurre cuando el frente está a la misma distancia de dos partes (típicamente en un cruce) y el empate se resuelve según el orden interno de Shapely, que cambió entre versiones. Por eso `data.bin` y `meta.bin` no salen idénticos byte a byte. Los datos publicados no se reemplazaron.

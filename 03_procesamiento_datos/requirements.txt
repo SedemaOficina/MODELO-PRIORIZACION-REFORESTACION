@@ -1,8 +1,9 @@
 # Dependencias de los scripts de esta carpeta. Instalar con:  pip install -r 03_procesamiento_datos/requirements.txt
 #
 # Pasos 1 a 4 (numpy, pyshp, shapely, pyproj). Versiones fijadas el 5 de octubre de 2026 (v17.33), con Python 3.12.10 en
-# Windows: con ellas los pasos 1 y 2 reproducen exactamente intermedios/frentes.npz y meta.json. Los pasos 3 y 4 no se han
-# podido correr (falta la capa de vialidades primarias): al correrlos, confirmar que dan los mismos datos con estas versiones.
+# Windows: con ellas los pasos 1 y 2 reproducen exactamente intermedios/frentes.npz y meta.json. Los pasos 3 y 4
+# (corridos el 5 oct 2026, ya con la capa) dan vp.bin idéntico y la misma asignación de todos los frentes; 144 frentes de
+# Gobierno Central enlazan a la parte contigua por empates de distancia (ver SUMAS_INSUMOS.md).
 # La regla del cruce (18 m, 30°) es sensible a la geometría: no actualizar shapely ni pyproj sin comparar el resultado.
 numpy==2.5.3
 pyshp==3.1.6
