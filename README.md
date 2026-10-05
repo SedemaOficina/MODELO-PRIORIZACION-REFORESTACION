@@ -12,7 +12,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 
 - **Solo de consulta:** no recibe reportes ni datos de los usuarios (decisión de Liber, 25 sep 2026).
 - **Sin datos personales:** la ubicación que usa "Mi ubicación" se queda en el teléfono; no se envía ni se guarda.
-- **Lo que guarda el navegador:** una copia de los archivos de la propia herramienta (programa, estilos, datos y tipografías), para abrir más rápido y sin conexión, y una preferencia (`sia.avisoLigero`, si ya se leyó el aviso del modo ligero). Ninguna consulta ni dato del usuario.
+- **Lo que guarda el navegador:** una copia de los archivos de la propia herramienta (programa, estilos, datos y tipografías), para abrir más rápido y sin conexión, y unas preferencias: si ya se leyó el aviso del modo ligero (`sia.avisoLigero`), la última alcaldía y red consultadas (`cp_inicio`, `cp_red`) y si ya se vio el recorrido guiado (`cp_recorrido`). Ninguna consulta ni dato del usuario.
 - **Sitio estático:** no necesita base de datos, backend ni GeoServer. Lo único externo son los mapas de fondo opcionales (calles de CARTO sobre OpenStreetMap y satélite de Esri), que se piden a su servidor solo si el usuario los enciende, y los enlaces a Google Maps de las tarjetas, que se abren en otra pestaña.
 
 ## Qué hay en cada carpeta
@@ -22,7 +22,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 | `02_fuente/` | **Aquí se edita.** `plantilla.html` (estructura), `css/` (estilos), `js/` (lógica, un archivo por tema), `datos/*.bin`, `img/`, `libs/` (librerías con sus licencias), `fuentes/` (tipografías) y `construir.py`, que lo ensambla todo. | Sí |
 | `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA). Lo genera `construir.py`; no se edita a mano. Necesita un servidor web: no se abre con doble clic. | Sí |
 | `03_procesamiento_datos/` | Scripts de Python numerados en el orden en que se corren, con `insumos/` e `intermedios/`, y `reporte_catalogos.py` (listas para homologación). Ver su `LEEME.md`. | Sí, salvo la capa de vialidades primarias (`insumos/VP_REFORESTACION/`) y la lámina original |
-| `04_pruebas/` | `correr_todas.js` corre todo y da una sola señal. Once pruebas de navegador (integral, coherencia de cifras, arranque sin terceros, errores y robustez, teléfono y uso sin conexión, accesibilidad, servidor del SIA, orientación, descargas para mapa, casos límite y banqueta) y la prueba de la construcción. Ver su `LEEME.md`. | Sí, salvo `capturas/` |
+| `04_pruebas/` | `correr_todas.js` corre todo y da una sola señal. Doce pruebas de navegador (integral, coherencia de cifras, arranque sin terceros, errores y robustez, teléfono y uso sin conexión, accesibilidad, servidor del SIA, orientación, descargas para mapa, casos límite, banqueta y recorrido guiado) y la prueba de la construcción. Ver su `LEEME.md`. | Sí, salvo `capturas/` |
 | `05_documentacion/` | `cifras_de_la_construccion.md` (tamaños y conteos, generado), `despliegue_sia.md` (decisiones para instalar en el SIA), `auditoria_ux_calles.html` (auditoría UI/UX del 24 sep 2026) y `bitacora/` (registro de versiones y decisiones). | Sí, salvo `bitacora/` |
 | `06_entregables/` | Guía de prueba con personal de alcaldías (Word y PDF), listas de catálogos para homologación en el SIA (Excel) y lámina de composición de frentes de manzana. | Sí |
 | `07_versiones/` | Versiones anteriores de la herramienta, con un `LEEME.md` que relaciona sus nombres con la numeración vigente. | No |
@@ -73,13 +73,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 7. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla es decisión de quien administra la cuenta.
 
-## Estado al 5 de octubre de 2026 (versión 17.35)
+## Estado al 5 de octubre de 2026 (versión 17.36)
 
-- Versión vigente: **v17.35**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.36**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 17.36 | Recorrido guiado general de doce pasos por la plataforma: arranca solo en la primera visita, después de la entrada, y se repite desde «Cómo funciona». Muestra la fila Banqueta y abre la ficha de una calle real para enseñar la pre-evaluación con Street View antes de salir a campo |
 | 17.35 | Filtro de banqueta: la fila «Banqueta» (Todas · Con banqueta · Sin o por verificar) separa los frentes de las alcaldías según INEGI 2020 para planear visitas de plantación directa y de reconocimiento en sitio; mapa, cifras, listados, Excel, mapas descargables y fichas siguen el filtro, y el Resumen y las fichas muestran siempre el desglose completo |
 | 17.34 | Librerías sin avisos de seguridad: jsPDF 4.2.1 y SheetJS 0.20.3, con fichas y Excel idénticos a los anteriores; lote de fichas de las 16 alcaldías regenerado (alcaldía, vialidades primarias y colonia con más frente prioritario) |
 | 17.33 | Revisión con Claude Code, bloque 3: la construcción avisa si `docs/` lleva claves o sesión, lee `claves.local.json` guardado con el Bloc de notas y se detiene si falta `SUMAS.json`; paquete del SIA con permisos fijos y sin restos temporales; la cadena de datos extrae el catálogo de la v6 y reproduce exactamente los intermedios, con versiones de Python fijadas; reglas de prioridad en un solo lugar en los últimos cálculos que faltaban; Excel grande en equipo lento sin «No fue posible» prematuro; documentación de claves corregida |

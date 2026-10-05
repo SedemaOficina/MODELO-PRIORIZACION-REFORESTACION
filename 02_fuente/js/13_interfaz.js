@@ -96,10 +96,12 @@ $('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritaria
 // Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
 // Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
 const entradaEl = $('entrada'); let entradaRed = 'alc';
+let trasEntrada = null;   // lo que sigue a la entrada en la primera visita: el recorrido guiado (17_recorrido.js)
 function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false;
   if (resp!==entradaRed) setResp(entradaRed);
   if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio();
-  $('scope-title').focus(); }
+  $('scope-title').focus();
+  if (trasEntrada){ const f = trasEntrada; trasEntrada = null; setTimeout(f, 700); } }
 function entradaPaso(n){ $('entrada-p1').hidden = n!==1; $('entrada-p2').hidden = n!==2;
   if (n===1) entradaEl.querySelector('.entrada-red[data-red="'+entradaRed+'"]').focus();
   else { $('entrada-q').textContent = entradaRed==='gc'? '¿En qué alcaldía quieres ver las vialidades primarias?' : '¿Qué alcaldía quieres revisar?'; $('entrada-q').focus(); } }

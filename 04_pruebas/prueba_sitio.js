@@ -26,7 +26,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
   const errores = [];
   const abrir = async (opciones) => {
-    const ctx = await browser.newContext({ acceptDownloads: true, ...opciones }); await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });   // sin la pregunta de territorio de la primera visita (v17.28)
+    const ctx = await browser.newContext({ acceptDownloads: true, ...opciones }); await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); localStorage.setItem('cp_recorrido', 'visto'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });   // sin la pregunta de territorio de la primera visita (v17.28) ni el recorrido guiado (v17.36)
     const page = await ctx.newPage(); page.setDefaultTimeout(180000);
     page.on('pageerror', e => errores.push(e.message)); await page.route(u => u.hostname.startsWith('fonts.'), sinFuentes);
     const t0 = Date.now(); await page.goto(URL); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(1500);

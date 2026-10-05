@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.35 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.36 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -25,7 +25,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
-├── 04_pruebas/                correr_todas.js, once pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
+├── 04_pruebas/                correr_todas.js, doce pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
 ├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
 ├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
@@ -89,6 +89,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `14_buscador.js` | Buscador único con abreviaturas y tolerancia a errores; nombre que distingue a las colonias homónimas de una alcaldía («parte k de n» o su CP), usado en archivos, fichas y «Ámbito consultado» | `omniIndex`, `omniSearch`, `omniPick`, `colNombre` |
 | `15_mi_ubicacion.js` | GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
 | `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
+| `17_recorrido.js` | Recorrido guiado (v17.36): velo, foco sobre cada control y globo con el texto; arranca solo la primera vez (después de la entrada, mediante `trasEntrada` de `13_interfaz.js`) y desde el botón de «Cómo funciona». El paso de Street View abre la ficha de un frente prioritario con nombre del ámbito. No arranca solo en las pruebas automáticas salvo que se pida (`window.SIA_RECORRIDO`) | `recorrido`, `recPaso`, `recColoca`, `recFin` |
 
 ### Estado global (en `03_estado.js`)
 
@@ -143,6 +144,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `06_mi_ubicacion.css` | Botón y tarjeta de Mi ubicación |
 | `07_accesibilidad.css` | Texto solo para lector de pantalla, enlace de salto, indicador de foco, bordes de controles, objetivos táctiles en teléfono, tabla y lámina de la ayuda, movimiento reducido e impresión |
 | `08_orientacion.css` | Entrada por territorio, pestaña «Dónde empezar», leyenda compacta, «Quién atiende» dentro del panel de capas y botón «Compartir» (v17.28) |
+| `09_recorrido.css` | Velo, foco y globo del recorrido guiado y su botón en «Cómo funciona» (v17.36) |
 
 Los archivos 04, 05 y 07 ajustan reglas de los anteriores: **el orden importa**. Los tamaños de letra van en `rem` (16 px = 1 rem) para respetar el tamaño configurado en el navegador; el mínimo es 0.75 rem. Para cambiar un componente, buscar su clase en todos los archivos de `css/`.
 

@@ -864,3 +864,24 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
 @media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
 /* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css, H-076) */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
+
+/* Recorrido guiado (v17.36, js/17_recorrido.js): un velo que oscurece la página, un foco que deja ver el control y un globo que lo explica */
+.rec-velo{position:fixed;inset:0;z-index:2000;background:transparent}
+.rec-velo.sin-foco{background:rgba(20,22,26,.6)}
+.rec-foco{position:fixed;z-index:2001;border-radius:10px;pointer-events:none;box-shadow:0 0 0 3px var(--dorado),0 0 0 200vmax rgba(20,22,26,.6);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease}
+.rec-foco[hidden]{display:none}
+.rec-globo{position:fixed;z-index:2002;background:var(--panel);color:var(--ink);border-radius:12px;border-top:4px solid var(--guinda);box-shadow:0 12px 32px rgba(0,0,0,.32);padding:14px 16px 12px;font:400 .9375rem/1.45 Roboto,sans-serif}
+.rec-globo .rec-paso{font:600 .75rem/1 Cabin,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--guinda)}
+.rec-globo h3{margin:6px 0 6px;font:700 1.125rem/1.25 Cabin,sans-serif;color:var(--ink);outline:0}
+.rec-globo p{margin:0 0 12px}
+.rec-acc{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rec-acc .rec-salir{margin-right:auto;min-height:44px;padding:0 4px;background:none;border:0;color:var(--ink-2);text-decoration:underline;font:500 .8125rem Roboto,sans-serif;cursor:pointer}
+.rec-acc .btn{min-height:44px;padding:8px 14px}
+.rec-acc .btn[hidden]{display:none}
+/* botón en «Cómo funciona» */
+.rec-cta{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:6px 0 14px;padding:10px 12px;border-radius:8px;background:var(--panel-2)}
+.rec-cta .btn{flex:none;min-height:44px}
+.rec-cta .btn svg{width:16px;height:16px;fill:currentColor;stroke:none}
+.rec-cta span{flex:1 1 220px;font-size:.875rem;color:var(--ink-2)}
+@media (prefers-reduced-motion:reduce){.rec-foco{transition:none}}
+@media print{.rec-velo,.rec-foco,.rec-globo{display:none}}

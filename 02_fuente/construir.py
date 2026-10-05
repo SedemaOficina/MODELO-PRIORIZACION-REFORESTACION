@@ -76,7 +76,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or ''}
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.35'
+VERSION = '17.36'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -105,9 +105,9 @@ def falla(mensaje):
 # ---------- piezas esperadas (auditoría H-026): si falta o sobra una, la construcción se detiene antes de escribir ----------
 JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
                 '07_leyenda_y_capas.js', '08_resumenes.js', '09_listados.js', '09_tramos.js', '10_seleccion.js', '11_descargas.js',
-                '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js']
+                '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js', '17_recorrido.js']
 CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_auditoria_bloque1.css', '05_auditoria_bloque2.css',
-                 '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css']
+                 '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css', '09_recorrido.css']
 # Lo único de libs/ y fuentes/ que se publica. Un archivo que no esté aquí no llega a docs/.
 LIBS_PUBLICADAS = ['deck.js', 'pako.js', 'jspdf.js', 'xlsx.js', 'excel_worker.js', 'LICENCIAS.md',
                    'LICENCIA_deck.gl.txt', 'LICENCIA_pako.txt', 'LICENCIA_jspdf.txt', 'LICENCIA_xlsx.txt']

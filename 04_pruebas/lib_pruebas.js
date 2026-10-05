@@ -62,10 +62,12 @@ async function lanzar() {
 }
 // La primera visita pregunta el territorio (v17.28). Las pruebas parten de «toda la ciudad», como una visita que ya eligió;
 // `entrada: true` en abrir() deja la primera visita tal cual.
-const sinEntrada = ctx => ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });
+// También marca como visto el recorrido guiado (v17.36), para que no tape lo que revisan las pruebas; prueba_recorrido.js lo pide.
+const sinEntrada = ctx => ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); localStorage.setItem('cp_recorrido', 'visto'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });
 async function abrir(browser, url, opciones = {}, errores = []) {
-  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => k !== 'entrada')) });
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => k !== 'entrada' && k !== 'recorrido')) });
   await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });
+  if (opciones.recorrido) await ctx.addInitScript(() => { window.SIA_RECORRIDO = true; });   // el recorrido guiado arranca solo, como en una primera visita
   // Las pruebas parten de «toda la ciudad», como una visita que ya eligió territorio; `entrada: true` deja la primera visita tal cual.
   if (!opciones.entrada) await sinEntrada(ctx);
   const page = await ctx.newPage(); page.setDefaultTimeout(+process.env.T_ESPERA || 300000);
