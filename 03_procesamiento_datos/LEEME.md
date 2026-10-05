@@ -22,6 +22,7 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 | 2 | `2_unir_ids.py` | `intermedios/meta_v6.json` (o, si no está, el `meta.json` guardado) e `insumos/IDS_ut/` | `intermedios/meta.json`: el catálogo con IDS, población y pobreza por colonia |
 | 3 | `3_cruzar_vialidades_primarias.py` | `intermedios/frentes.npz`, `intermedios/meta.json` e `insumos/VP_REFORESTACION/` | `intermedios/cruce.npz`: qué frentes quedan sobre una vialidad primaria (Gobierno Central) |
 | 4 | `4_generar_datos.py` | Los tres intermedios e `insumos/VP_REFORESTACION/` | `02_fuente/datos/meta.bin`, `data.bin` y `vp.bin` |
+| 5 | `5_exportar_geoserver.py` | `02_fuente/datos/*.bin`, `insumos/originales/shp_frentes_manzanasv.rar` (se extrae con `tar`) e `insumos/VP_REFORESTACION/` | `08_entrega_sia/capas_geoserver/*.gpkg`: frentes (geometría original del modelo + prioridad, banqueta, responsable, colonia, `clave_frente` = CVEGEO_CVEFT), vialidades primarias y colonias, para publicar en GeoServer como capas nuevas. Comprueba que los 372,534 frentes empaten con la misma prioridad. Requiere `pyogrio`. Ver `08_entrega_sia/capas_geoserver/LEEME.md` |
 | — | `lamina_composicion.py` | `insumos/slide_orig.jpg` | `06_entregables/composicion_frentes_manzana*.png` |
 | — | `reporte_catalogos.py` | `02_fuente/datos/*.bin` (los datos publicados) | `06_entregables/Catalogos_para_homologacion_SIA.xlsx`: listas de colonias y calles para homologar en la fuente. No modifica ningún catálogo. Requiere `openpyxl` |
 

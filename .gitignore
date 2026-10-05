@@ -5,6 +5,9 @@ _to_delete/
 _local/
 03_procesamiento_datos/insumos/VP_REFORESTACION/
 03_procesamiento_datos/insumos/originales/
+08_entrega_sia/capas_geoserver/*.gpkg
+08_entrega_sia/capas_geoserver/MANIFIESTO.sha256
+03_procesamiento_datos/intermedios/clave_frente.npy
 03_procesamiento_datos/insumos/slide_orig.jpg
 04_pruebas/capturas/
 02_fuente/claves.local.json

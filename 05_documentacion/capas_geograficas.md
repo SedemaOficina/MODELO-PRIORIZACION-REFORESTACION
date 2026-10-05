@@ -35,7 +35,7 @@ En la herramienta todo está en **WGS 84, grados decimales** (EPSG:4326), con pr
 
 La prioridad está comprobada frente por frente. Banqueta y arbolado, por conteos exactos de cada código: 181,924 / 108,889 / 62,747 / 12,429 / 6,545 frentes en banqueta, y 160,694 / 130,119 / 62,747 / 12,429 / 6,545 en arbolado, iguales en la capa y en la herramienta. Nombre y tipo de vialidad se infirieron comparando valores.
 
-**Importante para conectar:** la herramienta **no conserva `CVEFT` ni `CVEGEO`**. Identifica cada frente por su número de orden, que cambia si se regeneran los datos. Para enlazar con el GeoServer frente por frente, hay que agregar `CVEFT` o `CVEGEO` en el paso 4 de `03_procesamiento_datos`. Sin ese cambio solo se puede empatar por geometría.
+**Importante para conectar:** la clave única de un frente es **`CVEGEO` + `CVEFT`**. `CVEGEO` identifica la manzana y `CVEFT` es el número del frente dentro de ella; solo hay 346 valores distintos de `CVEFT`, así que sola no basta. La herramienta **no conserva esa clave**: identifica cada frente por su número de orden, que cambia si se regeneran los datos. La capa `frentes_reforestacion` (en `08_entrega_sia/capas_geoserver/`) sí la trae, en el campo `clave_frente` (`CVEGEO_CVEFT`), y `03_procesamiento_datos/intermedios/clave_frente.npy` guarda la clave de cada frente de la herramienta para agregarla después.
 
 ## 2. Vialidades primarias para reforestación
 
@@ -89,6 +89,16 @@ Un registro con varias partes (multilínea) se divide en partes; cada una conser
 
 16 polígonos con clave (`cve`, «002» a «017», como `CVE_MUN` de INEGI) y nombre (`nom`). Origen no documentado; vienen de la versión 6. La clave **`CVE_MUN`** es directa.
 
+## Capas para GeoServer (5 oct 2026)
+
+`08_entrega_sia/capas_geoserver/` trae las capas de la herramienta listas para publicar como capas **nuevas** en el GeoServer del SIA (`sia:frentes_reforestacion`, `sia:vialidades_primarias_reforestacion`, `sia:colonias_reforestacion`), con estilos SLD en los colores de la herramienta y su guía. Se generan con `03_procesamiento_datos/5_exportar_geoserver.py`.
+
+Lo que ya publica el GeoServer del SIA, comparado con la herramienta:
+- `sia:frentes_manzanas`: los mismos 372,534 frentes y campos que el modelo. No trae el responsable ni la colonia, y su estilo es genérico.
+- `sia:vial_primarias`: la red de INEGI, 33,612 segmentos, sin prioridad. No es la capa de la herramienta.
+- `sia:alcaldias`: las mismas 16.
+- No hay capa de colonias.
+
 ## Lo que no es capa del proyecto
 
 Los mapas de fondo (calles de CARTO sobre OpenStreetMap y satélite de Esri) son teselas de terceros que se piden solo si la persona los enciende. No forman parte de los datos ni deben estar en GeoServer.
@@ -97,7 +107,7 @@ Los mapas de fondo (calles de CARTO sobre OpenStreetMap y satélite de Esri) son
 
 | Capa | ¿Clave para enlazar con GeoServer? |
 |---|---|
-| Frentes | **No**, hay que agregar `CVEFT` o `CVEGEO` al generar los datos |
+| Frentes | Sí en la capa nueva (`clave_frente` = `CVEGEO` + `CVEFT`); la herramienta todavía no la guarda |
 | Vialidades primarias | Sí: `CLAVE` |
 | Unidades territoriales (IDS) | En la capa sí (`cve_ut`); la herramienta guarda solo el nombre |
 | Colonias | **No hay clave oficial**: nombre, alcaldía y CP, o geometría |

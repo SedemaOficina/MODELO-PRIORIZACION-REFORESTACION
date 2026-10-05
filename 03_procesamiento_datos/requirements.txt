@@ -11,6 +11,8 @@ shapely==2.1.2
 pyproj==3.8.0
 # lamina_composicion.py
 pillow==12.3.0
+# 5_exportar_geoserver.py: escribe GeoPackage (trae GDAL incluido)
+pyogrio==0.13.0
 # reporte_catalogos.py (verificado con esta versión el 2 de octubre de 2026)
 openpyxl==3.1.5
 # verificar_datos.py y 02_fuente/construir.py solo requieren Python 3 (verificados con 3.12 y 3.13).
