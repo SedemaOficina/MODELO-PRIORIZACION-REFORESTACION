@@ -77,6 +77,45 @@
   async function cargaPersonas() { const r = await llama('admin/usuarios'); if (r.ok) { PERSONAS = r.d; pintaPersonas(); } }
   $('buscar').addEventListener('input', pintaPersonas); $('filtro').addEventListener('change', pintaPersonas);
 
+  // ---------- alta masiva desde CSV ----------
+  // Excel en español puede guardar el CSV en Windows-1252 en lugar de UTF-8: se intenta UTF-8 y, si no es válido, Windows-1252
+  const leeArchivo = async f => { const b = await f.arrayBuffer(); try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { return new TextDecoder('windows-1252').decode(b); } };
+  const descarga = (nombre, texto) => { const a = el('a'); a.href = URL.createObjectURL(new Blob(['﻿' + texto], { type: 'text/csv;charset=utf-8' })); a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  $('m-plantilla').addEventListener('click', e => { e.preventDefault();
+    descarga('plantilla_alta_masiva.csv', 'correo,nombre,institucion,alcaldia,rol\r\nana.garcia@correo.com,Ana García López,Alcaldía,Tlalpan,usuario\r\nluis.perez@cdmx.gob.mx,Luis Pérez Ruiz,Gobierno Central,,usuario\r\n'); });
+  let CSV = '';
+  async function masiva(aplicar) {
+    const err = $('m-err'), out = $('m-resultado'); err.hidden = true;
+    if (!aplicar) { const f = $('m-archivo').files[0]; if (!f) { err.textContent = 'Elige un archivo CSV.'; err.hidden = false; $('m-archivo').focus(); return; }
+      if (f.size > 300 * 1024) { err.textContent = 'El archivo es demasiado grande: divídelo en partes de hasta 500 personas.'; err.hidden = false; return; }
+      CSV = await leeArchivo(f); out.textContent = 'Revisando…'; }
+    const r = await llama('admin/usuarios/masiva', 'POST', { csv: CSV, aplicar });
+    out.textContent = '';
+    if (!r.ok) { err.textContent = r.d.error || 'No fue posible leer el archivo.'; err.hidden = false; return; }
+    if (!r.d.aplicado) {
+      const nuevas = r.d.validas.filter(v => !v.existe), ya = r.d.validas.filter(v => v.existe);
+      out.appendChild(el('p', `${fmt.format(r.d.validas.length)} renglones válidos (${fmt.format(nuevas.length)} cuentas nuevas, ${fmt.format(ya.length)} ya existen y no se tocarán) · ${fmt.format(r.d.errores.length)} con errores.`, 'aviso ' + (r.d.errores.length ? 'alerta' : 'ok')));
+      if (r.d.errores.length) { const ul = el('ul'); r.d.errores.forEach(x => ul.appendChild(el('li', x))); out.appendChild(ul);
+        out.appendChild(el('p', 'Corrige esos renglones en el archivo y vuelve a revisarlo. No se dio de alta a nadie.', 'nota')); return; }
+      const tw = el('div', null, 'tabla-envoltura'), t = el('table'), th = el('thead'), tb = el('tbody'); t.append(th, tb); tw.appendChild(t);
+      const h = el('tr'); ['Correo', 'Nombre', 'Institución', 'Permiso', ''].forEach(x => { const c = el('th', x); c.scope = 'col'; h.appendChild(c); }); th.appendChild(h);
+      r.d.validas.forEach(v => { const tr = el('tr', null, v.existe ? 'inactiva' : ''); [v.correo, v.nombre, v.institucion + (v.alcaldia ? ' · ' + v.alcaldia : ''), v.rol === 'admin' ? 'Administración' : 'Consulta', v.existe ? 'Ya existe' : 'Nueva'].forEach(x => celda(tr, x)); tb.appendChild(tr); });
+      out.appendChild(tw);
+      if (nuevas.length) { const b = el('button', `Dar de alta ${fmt.format(nuevas.length)} cuenta${nuevas.length === 1 ? '' : 's'}`, 'btn'); b.type = 'button';
+        b.addEventListener('click', () => { if (confirm(`¿Dar de alta ${nuevas.length} cuenta(s)? Se generará una contraseña temporal para cada una.`)) masiva(true); }); out.appendChild(b); }
+      return; }
+    // aplicado: contraseñas temporales una sola vez, en un CSV que se arma aquí
+    const filas = ['correo,nombre,institucion,alcaldia,contrasena_temporal'].concat(r.d.hechas.map(c => [c.correo, c.nombre, c.institucion, c.alcaldia || '', c.contrasena_temporal].map(q).join(',')));
+    const nombre = `cuentas_con_contrasenas_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
+    out.appendChild(el('p', `Listo: ${fmt.format(r.d.hechas.length)} cuentas creadas${r.d.existentes.length ? `; ${fmt.format(r.d.existentes.length)} ya existían y no se tocaron` : ''}.`, 'aviso ok'));
+    const caja = el('div', null, 'clave'); caja.appendChild(el('b', 'Contraseñas temporales (se muestran una sola vez). '));
+    caja.appendChild(el('span', 'Descarga el archivo, repártelas por un medio seguro y por separado del correo de cada cuenta, y bórralo después. Al entrar, cada persona creará su propia contraseña.'));
+    const b = el('button', 'Descargar contraseñas (CSV)', 'btn'); b.type = 'button'; b.addEventListener('click', () => descarga(nombre, filas.join('\r\n'))); caja.appendChild(b);
+    out.appendChild(caja); $('m-archivo').value = ''; CSV = ''; cargaPersonas(); }
+  $('m-revisar').addEventListener('click', () => masiva(false));
+
   // ---------- usos ----------
   const hoy = new Date(), iso = d => d.toISOString().slice(0, 10);
   $('u-hasta').value = iso(hoy); $('u-desde').value = iso(new Date(hoy - 90 * 864e5));

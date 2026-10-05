@@ -42,6 +42,17 @@
         <div class="clave" id="clave" role="status" hidden></div>
       </form>
 
+      <h2>Alta masiva desde CSV</h2>
+      <div class="caja" id="masiva">
+        <p class="nota">Para dar de alta a varias personas a la vez (por ejemplo, los enlaces que designa cada alcaldía): una persona por renglón, con las columnas <b>correo, nombre, institucion, alcaldia, rol</b>. En Excel, guárdalo como «CSV UTF-8». Primero se revisa sin dar de alta a nadie. <a href="#" id="m-plantilla">Descargar plantilla</a></p>
+        <div class="rejilla">
+          <div class="campo"><label for="m-archivo">Archivo CSV</label><input id="m-archivo" type="file" accept=".csv,text/csv"></div>
+          <div class="campo"><button type="button" class="btn secundario" id="m-revisar">Revisar el archivo</button></div>
+        </div>
+        <p class="error general" id="m-err" role="alert" hidden></p>
+        <div id="m-resultado" role="status"></div>
+      </div>
+
       <h2>Cuentas</h2>
       <div class="caja rejilla">
         <div class="campo"><label for="buscar">Buscar por nombre, correo o alcaldía</label><input id="buscar" type="search" autocomplete="off"></div>

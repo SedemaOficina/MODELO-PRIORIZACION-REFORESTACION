@@ -18,7 +18,7 @@ Persona ─▶ nginx ─▶ /calles-prioritarias/   (auth_request ─▶ /api/ca
 | `backend/sql/001_esquema.sql` | Esquema `calles`: usuarios, sesiones, bitácora; función de depuración; cuenta de servicio `calles_app` |
 | `backend/scripts/crear_admin.js` | Crea la primera cuenta de administración (las demás, desde el panel) |
 | `backend/scripts/servidor_demo.js` | Demostración en una sola máquina (nginx + backend + base), con base en memoria o PostgreSQL de pruebas: para ensayar antes de instalar |
-| `backend/scripts/alta_masiva.js` | Alta de muchas cuentas desde un CSV (los enlaces que designa cada alcaldía), con revisión previa y contraseñas temporales |
+| `backend/src/masiva.js`, `backend/scripts/alta_masiva.js` | Alta de muchas cuentas desde un CSV (los enlaces que designa cada alcaldía), con revisión previa y contraseñas temporales: desde el panel o desde la terminal |
 | `backend/scripts/datos_demo.js` | Cuentas ficticias y 90 días de uso simulado para ver el panel lleno (solo en bases de prueba) |
 | `backend/pruebas/` | Pruebas: con base en memoria (`npm run pruebas`) o contra PostgreSQL de pruebas (`PRUEBAS_PG=1`) |
 | `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad y sus recursos |
@@ -118,7 +118,15 @@ Para ver el registro de usos desde la herramienta, esta debe estar construida co
 
 ## Alta masiva desde CSV
 
-Cuando las alcaldías designen a sus enlaces por oficio, las cuentas se dan de alta todas juntas desde un CSV. Puede guardarse desde Excel, con coma o punto y coma:
+Cuando las alcaldías designen a sus enlaces por oficio, las cuentas se dan de alta todas juntas desde un CSV. Puede guardarse desde Excel, con coma o punto y coma, en UTF-8 o en la codificación de Excel en español.
+
+**Desde el panel** (pestaña «Personas» → «Alta masiva desde CSV»), sin terminal:
+1. «Descargar plantilla» da las columnas correctas.
+2. «Revisar el archivo» señala los errores por renglón y no da de alta a nadie.
+3. «Dar de alta N cuentas» crea las cuentas nuevas; las que ya existen no se tocan. Máximo 500 por archivo.
+4. «Descargar contraseñas (CSV)»: el archivo se arma en el navegador, el servidor no lo guarda. Repártelas y bórralo.
+
+**Desde la terminal del servidor**, con las mismas reglas:
 
 ```
 correo,nombre,institucion,alcaldia,rol
@@ -131,7 +139,7 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 
 ## Operación
 
-- **Altas:**
+- **Altas** (una por una, o muchas con «Alta masiva desde CSV»):
   - Desde el panel (`/acceso/calles/admin/`, solo cuentas con permiso de administración).
   - Se elige institución y alcaldía; el panel muestra una contraseña temporal **una sola vez**.
   - Compártela por un medio institucional y por separado del correo.

@@ -11,9 +11,8 @@ const crypto = require('crypto');
 const express = require('express');
 const { huella, verifica, revisaNueva, temporal } = require('./contrasenas');
 
-const ALCALDIAS = { '002': 'Azcapotzalco', '003': 'Coyoacán', '004': 'Cuajimalpa de Morelos', '005': 'Gustavo A. Madero', '006': 'Iztacalco',
-  '007': 'Iztapalapa', '008': 'La Magdalena Contreras', '009': 'Milpa Alta', '010': 'Álvaro Obregón', '011': 'Tláhuac', '012': 'Tlalpan',
-  '013': 'Xochimilco', '014': 'Benito Juárez', '015': 'Cuauhtémoc', '016': 'Miguel Hidalgo', '017': 'Venustiano Carranza' };
+const { ALCALDIAS } = require('./alcaldias');
+const masiva = require('./masiva');
 const INSTITUCIONES = ['Alcaldía', 'Gobierno Central', 'SEDEMA', 'Otra'];
 const EVENTOS_USO = ['consulta', 'descarga'];
 
@@ -174,6 +173,23 @@ module.exports = function moduloCalles({ pool, opciones = {} }) {
     await q('DELETE FROM calles.sesiones WHERE usuario_id = $1', [id]);
     await anota(req.usuario.id, 'admin', { accion: 'restablecer', usuario: id }, req);
     res.json({ usuario: vistaUsuario(rows[0]), contrasena_temporal: clave });
+  } catch (e) { next(e); } });
+
+  // ----- alta masiva desde el panel: primero se revisa (no escribe nada); con aplicar: true da de alta las válidas nuevas.
+  // Las contraseñas temporales vuelven una sola vez y el panel arma con ellas el CSV en el navegador: el servidor no lo guarda.
+  r.post('/admin/usuarios/masiva', mismaProcedencia, express.json({ limit: '300kb' }), admin, async (req, res, next) => { try {
+    const csv = String((req.body || {}).csv || ''); if (!csv.trim()) return res.status(400).json({ error: 'El archivo está vacío.' });
+    let renglones; try { renglones = masiva.leeCsv(csv); } catch (e) { return res.status(400).json({ error: 'No se pudo leer el archivo como CSV.' }); }
+    if (!renglones.length) return res.status(400).json({ error: 'El archivo no tiene renglones después del encabezado.' });
+    if (!('correo' in renglones[0]) || !('nombre' in renglones[0])) return res.status(400).json({ error: 'Faltan columnas: el encabezado debe decir correo, nombre, institucion, alcaldia, rol.' });
+    if (renglones.length > 500) return res.status(400).json({ error: 'Máximo 500 cuentas por archivo: divídelo en partes.' });
+    const { ok, errores } = masiva.revisa(renglones);
+    const existe = new Set(); for (const c of ok) if ((await q('SELECT 1 FROM calles.usuarios WHERE correo = $1', [c.correo])).rows.length) existe.add(c.correo);
+    const vista = c => ({ correo: c.correo, nombre: c.nombre, institucion: c.institucion, alcaldia: ALCALDIAS[c.alcaldia_cve] || null, rol: c.rol, existe: existe.has(c.correo) });
+    if (!req.body.aplicar || errores.length) return res.json({ aplicado: false, validas: ok.map(vista), errores });
+    const hecho = await masiva.aplica(pool, ok, req.usuario.id);
+    await anota(req.usuario.id, 'admin', { accion: 'alta_masiva', altas: hecho.hechas.length }, req);
+    res.json({ aplicado: true, hechas: hecho.hechas.map(c => ({ ...vista(c), contrasena_temporal: c.contrasena_temporal })), existentes: hecho.existentes });
   } catch (e) { next(e); } });
 
   // ----- reporte de usos: por institución y alcaldía de quien consulta, por persona, por mes y por tipo de descarga -----

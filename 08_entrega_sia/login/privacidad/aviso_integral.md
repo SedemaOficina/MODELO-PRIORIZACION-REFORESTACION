@@ -8,7 +8,7 @@
 
 ### ¿Qué datos personales se recaban?
 
-**Para la cuenta de acceso** (los registra quien administra la herramienta en la SEDEMA, a solicitud de la institución de la persona). El correo sirve para identificar la cuenta y, en su caso, para comunicaciones sobre la herramienta (avisos de cambios, de la contraseña o de la cuenta); no se usa para otros fines:
+**Para la cuenta de acceso** (los registra quien administra la herramienta en la SEDEMA, a solicitud de la institución de la persona). El correo **solo** sirve para identificar la cuenta y dar acceso a la herramienta: no se usa para enviar comunicaciones ni para ningún otro fin:
 - Nombre completo.
 - Correo electrónico, personal o institucional, a elección de la persona.
 - Institución (alcaldía, dependencia del Gobierno de la Ciudad o SEDEMA) y, en su caso, alcaldía.

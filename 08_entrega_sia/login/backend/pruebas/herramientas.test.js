@@ -44,3 +44,22 @@ test('datos simulados: cuentas ficticias y 90 días de uso; se niegan en una bas
   await pool.query(`INSERT INTO calles.usuarios (correo, nombre, huella) VALUES ('persona@real.gob.mx', 'Real', 'x')`);
   await assert.rejects(datos.sembrar(pool), /cuentas reales/);
 });
+
+test('alta masiva desde el panel: revisa sin escribir, no aplica con errores, aplica y no duplica; solo administración', async () => {
+  const express = require('express'), request = require('supertest'), { huella } = require('../src/contrasenas');
+  const pool = base(); const app = express(); app.use('/api/calles', require('../src')({ pool, opciones: { depurarCadaHoras: 0 } }));
+  const O = 'https://sedema.sia.cdmx.gob.mx';
+  await pool.query(`INSERT INTO calles.usuarios (correo, nombre, rol, huella, debe_cambiar) VALUES ('adm@x.mx', 'Adm', 'admin', $1, false), ('usu@x.mx', 'Usu', 'usuario', $1, false)`, [await huella('una contraseña de prueba')]);
+  const entra = async c => (await request(app).post('/api/calles/entrar').set('Origin', O).send({ correo: c, contrasena: 'una contraseña de prueba' })).headers['set-cookie'][0].split(';')[0];
+  const ca = await entra('adm@x.mx'), cu = await entra('usu@x.mx');
+  const envia = (ck, csv, aplicar) => request(app).post('/api/calles/admin/usuarios/masiva').set('Origin', O).set('Cookie', ck).send({ csv, aplicar });
+  const bueno = 'correo,nombre,institucion,alcaldia,rol\nana@gmail.com,Ana,Alcaldía,Tlalpan,usuario\nusu@x.mx,Usu,SEDEMA,,usuario\n';
+  assert.equal((await envia(cu, bueno, false)).status, 403, 'una cuenta de consulta no hace altas');
+  let r = await envia(ca, bueno, false); assert.equal(r.status, 200); assert.equal(r.body.aplicado, false);
+  assert.deepEqual(r.body.validas.map(v => [v.correo, v.existe]), [['ana@gmail.com', false], ['usu@x.mx', true]]);
+  assert.equal(+(await pool.query("SELECT count(*) AS n FROM calles.usuarios WHERE correo = 'ana@gmail.com'")).rows[0].n, 0, 'revisar no escribe');
+  r = await envia(ca, bueno + 'mal@,X,Alcaldía,Gotham,usuario\n', true); assert.equal(r.body.aplicado, false, 'con errores no se aplica aunque se pida'); assert.equal(r.body.errores.length, 1);
+  r = await envia(ca, bueno, true); assert.equal(r.body.aplicado, true); assert.equal(r.body.hechas.length, 1); assert.deepEqual(r.body.existentes, ['usu@x.mx']);
+  assert.ok(r.body.hechas[0].contrasena_temporal);
+  assert.equal((await envia(ca, 'nombre,otra\nx,y\n', false)).status, 400, 'sin columna correo');
+});
