@@ -17,8 +17,8 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 
 | # | Script | Lee | Escribe |
 |---|---|---|---|
-| 1 | `1_decodificar_frentes.py` | Frentes priorizados de la versión 6 de la herramienta (`07_versiones/calles_prioritarias_v6_original.html`, solo en la copia local) | `intermedios/frentes.npz` |
-| 2 | `2_unir_ids.py` | `intermedios/meta.json` e `insumos/IDS_ut/` | `intermedios/meta.json` con IDS, población y pobreza por colonia |
+| 1 | `1_decodificar_frentes.py` | Frentes priorizados y catálogos de la versión 6 de la herramienta (`07_versiones/calles_prioritarias_v6_original.html`, solo en la copia local) | `intermedios/frentes.npz` e `intermedios/meta_v6.json` (catálogos, polígonos y resúmenes; no se guarda en el repositorio) |
+| 2 | `2_unir_ids.py` | `intermedios/meta_v6.json` (o, si no está, el `meta.json` guardado) e `insumos/IDS_ut/` | `intermedios/meta.json`: el catálogo con IDS, población y pobreza por colonia |
 | 3 | `3_cruzar_vialidades_primarias.py` | `intermedios/frentes.npz`, `intermedios/meta.json` e `insumos/VP_REFORESTACION/` | `intermedios/cruce.npz`: qué frentes quedan sobre una vialidad primaria (Gobierno Central) |
 | 4 | `4_generar_datos.py` | Los tres intermedios e `insumos/VP_REFORESTACION/` | `02_fuente/datos/meta.bin`, `data.bin` y `vp.bin` |
 | — | `lamina_composicion.py` | `insumos/slide_orig.jpg` | `06_entregables/composicion_frentes_manzana*.png` |
@@ -31,6 +31,8 @@ python3 03_procesamiento_datos/verificar_datos.py --actualizar    registra las s
 python3 02_fuente/construir.py
 node 04_pruebas/correr_todas.js
 ```
+
+**Reproducibilidad (5 oct 2026, v17.33):** los pasos 1 y 2 se volvieron a correr desde la v6 en una copia aparte, con las versiones de `requirements.txt`, y dieron `frentes.npz` y `meta.json` idénticos a los guardados. Hasta la v17.32 ningún paso extraía el catálogo de la v6: `meta.json` solo existía como intermedio guardado y el paso 2 lo sobrescribía con su propia salida.
 
 ## Verificación de los datos
 

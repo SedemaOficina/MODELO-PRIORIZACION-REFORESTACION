@@ -98,6 +98,14 @@ debe_fallar('datos cortados: se detiene y no escribe nada', lambda t: open(F(t, 
 debe_fallar('datos distintos de los registrados: se detiene y no escribe nada', lambda t: shutil.copy(F(t, 'datos', 'vp.bin'), F(t, 'datos', 'data.bin')))
 debe_fallar('argumento desconocido: se detiene y no escribe nada', lambda t: None, '--publicar')
 debe_fallar('un módulo vacío: se detiene y no escribe nada', lambda t: open(F(t, 'js', '08_resumenes.js'), 'w').close())
+debe_fallar('falta datos/SUMAS.json: se detiene y no escribe nada (antes se omitía la verificación de los datos)', lambda t: os.remove(F(t, 'datos', 'SUMAS.json')))
+debe_fallar('claves.local.json mal escrito: se detiene con un mensaje claro', lambda t: open(F(t, 'claves.local.json'), 'w', encoding='utf-8').write('{"CARTO_KEY": "x"'))
+# claves guardadas con el Bloc de notas o PowerShell 5.1 (con BOM): se leen, y se avisa que quedarán públicas en docs/
+t = copia()
+open(F(t, 'claves.local.json'), 'w', encoding='utf-8-sig').write('{"CARTO_KEY": "clave-de-prueba"}')
+cod, sal = construir(t)
+ok('claves.local.json con BOM se lee y la construcción avisa que la clave queda en docs/', cod == 0 and 'clave-de-prueba' in open(os.path.join(t, 'docs', 'config.js'), encoding='utf-8').read() and 'AVISO: docs/config.js lleva la clave de CARTO' in sal, sal.strip().splitlines()[-1][:90] if sal.strip() else '')
+shutil.rmtree(t, ignore_errors=True)
 debe_fallar('plantilla sin el marcador de estilos: se detiene y no escribe nada', lambda t: open(F(t, 'plantilla.html'), 'w', encoding='utf-8').write(open(os.path.join(RAIZ, '02_fuente', 'plantilla.html'), encoding='utf-8').read().replace('<!-- ESTILOS -->', '')))
 
 print('\n[construcción] %d falla(s)' % len(fallas))

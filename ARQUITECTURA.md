@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.32 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.33 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -177,8 +177,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único y artefacto) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
-| Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Desde el 29 de septiembre de 2026 CARTO exige una clave propia (gratuita hasta cierto volumen); sin ella las teselas llegan con la marca «API key required». La clave va en `CARTO_KEY` de `construir.py`. Atribución obligatoria. Solo se pide si el usuario lo enciende |
-| Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave va en `ESRI_KEY` de `construir.py`. El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
+| Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Desde el 29 de septiembre de 2026 CARTO exige una clave propia (gratuita hasta cierto volumen); sin ella las teselas llegan con la marca «API key required». La clave se da con `SIA_CARTO_KEY` o en `02_fuente/claves.local.json` (ver sección 9). Atribución obligatoria. Solo se pide si el usuario lo enciende |
+| Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave se da con `SIA_ESRI_KEY` o en `02_fuente/claves.local.json` (ver sección 9). El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 
 ## 9. Cambios comunes
 

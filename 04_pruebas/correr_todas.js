@@ -16,7 +16,9 @@ const lista = process.argv[2] === 'rapidas' ? RAPIDAS : RAPIDAS.concat(NAVEGADOR
 for (const [nombre, cmd, args] of lista) {
   if (!cmd) { res.push([nombre, 'FALLA', 0, 'no se corrió: falta npm install']); continue; }   // lo que no se revisó no cuenta como aprobado
   const t = Date.now(); process.stdout.write(`\n===== ${nombre} =====\n`);
-  const r = cp.spawnSync(cmd, args, { cwd: RAIZ, stdio: 'inherit' });   // sin shell: en Windows partía «C:\Program Files\…» en dos
+  // sin shell: en Windows partía «C:\Program Files\…» en dos. PYTHONIOENCODING: con la salida redirigida, Python en Windows
+  // escribe en cp1252 y se detiene al imprimir «≤» o «·»
+  const r = cp.spawnSync(cmd, args, { cwd: RAIZ, stdio: 'inherit', env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
   res.push([nombre, r.status === 0 ? 'OK' : 'FALLA', Math.round((Date.now() - t) / 1000), r.error ? r.error.message : '']);
 }
 console.log('\n===== Resumen =====');

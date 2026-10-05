@@ -56,3 +56,11 @@ lon = xy[:, 0] / Q; lat = xy[:, 1] / Q
 print('lon range', lon.min(), lon.max(), 'lat range', lat.min(), lat.max())
 np.savez_compressed(SC + 'intermedios/frentes.npz', mun=mun, prio=prio, name=name, tipo=tipo, col=col, ln=ln, flags=flags, start=start, lon=lon, lat=lat)
 print('saved')
+
+# Catálogos y polígonos de la v6 (bloque meta-b64): alcaldías, colonias, nombres de calle, resúmenes. Son la entrada del paso 2,
+# que les agrega el índice de desarrollo social y escribe meta.json (v17.33: antes ningún paso lo extraía y meta.json
+# solo existía como intermedio guardado).
+m = re.search(r'<script id="meta-b64" type="text/plain">([^<]+)</script>', html)
+meta = json.loads(gzip.decompress(base64.b64decode(m.group(1))).decode('utf-8'))
+json.dump(meta, open(SC + 'intermedios/meta_v6.json', 'w', encoding='utf-8'), ensure_ascii=False)
+print('meta_v6.json:', len(meta['colonias']), 'colonias')

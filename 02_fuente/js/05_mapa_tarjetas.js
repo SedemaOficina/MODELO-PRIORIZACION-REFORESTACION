@@ -5,7 +5,7 @@ function featHtml(i, compact){
   const nm = nomFrente(i); const tp = META.tipos[F.tipo[i]] || '—'; const pre = (sinNombreFr(i) || tp==='—')? '' : tp+' '; const col = META.colonias[F.col[i]];
   const ban = META.disp[(F.flags[i]>>3)&7];
   const cpTxt = col.cp ? col.cp.padStart(5,'0') : ''; const colTxt = col.n ? `${col.n}${cpTxt? ' · CP '+cpTxt : ''}` : 'Colonia no identificada';
-  if (compact) return `<span class="pr" data-st="background:${rgb}"></span><b>${pre}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${F.len[i]} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
+  if (compact) return `<span class="pr" data-st="background:${rgb}"></span><b>${pre}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${fmt.format(F.len[i])} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
   const cp = col.p>=0 ? META.prio[col.p] : '—';
   const cc = col.p>=0 ? T.prio[col.p] : null;
   const respTxt = (F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía') + ' <small>(asignación preliminar)</small>';

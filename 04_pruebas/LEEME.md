@@ -90,7 +90,7 @@ Las pruebas abren la página con `?modo=ligero#nomap`. `#nomap` deja el mapa sin
 node 04_pruebas/prueba_telefono_y_sin_conexion.js
 ```
 
-Tarda unos 12 minutos sin tarjeta gráfica. Las demás pruebas bloquean el proceso de servicio (`serviceWorkers: 'block'`) para poder intervenir la red; esta lo deja activo en su última sección.
+Tarda unos 2 minutos. Las demás pruebas bloquean el proceso de servicio (`serviceWorkers: 'block'`) para poder intervenir la red; esta lo deja activo en su última sección.
 
 ## Prueba de accesibilidad
 

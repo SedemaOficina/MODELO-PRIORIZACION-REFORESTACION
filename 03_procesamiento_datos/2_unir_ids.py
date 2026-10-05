@@ -6,7 +6,10 @@ from pyproj import Transformer
 import os
 SC = os.path.dirname(os.path.abspath(__file__)) + os.sep          # esta carpeta
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
-M=json.load(open(SC+'intermedios/meta.json', encoding='utf-8')); Q=M['Q']
+# Entrada: el catálogo de la v6 que extrae el paso 1 (meta_v6.json). Se escribe en otro archivo (meta.json) para que el paso
+# pueda repetirse sin leer su propia salida. Sin meta_v6.json (copia sin la v6), se enriquece el meta.json guardado.
+_ent = SC + 'intermedios/meta_v6.json' if os.path.isfile(SC + 'intermedios/meta_v6.json') else SC + 'intermedios/meta.json'
+M=json.load(open(_ent, encoding='utf-8')); Q=M['Q']
 to_wgs=Transformer.from_crs('EPSG:32614','EPSG:4326',always_xy=True)
 r=shapefile.Reader(SC+'insumos/IDS_ut/IDS_ponderado.shp', encoding='utf-8')
 f=[x[0] for x in r.fields[1:]]

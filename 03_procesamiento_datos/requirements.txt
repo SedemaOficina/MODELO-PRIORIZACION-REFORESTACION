@@ -1,14 +1,15 @@
 # Dependencias de los scripts de esta carpeta. Instalar con:  pip install -r 03_procesamiento_datos/requirements.txt
 #
-# Pasos 1 a 4 (numpy, pyshp, shapely, pyproj): se indican las versiones mínimas que exige el código (usa la API de
-# Shapely 2). Las versiones exactas con las que se generaron los datos publicados no quedaron registradas; al volver a
-# correr la cadena con la capa de vialidades, fijarlas aquí con ==.
-numpy>=1.26
-pyshp>=2.3
-shapely>=2.0
-pyproj>=3.6
+# Pasos 1 a 4 (numpy, pyshp, shapely, pyproj). Versiones fijadas el 5 de octubre de 2026 (v17.33), con Python 3.12.10 en
+# Windows: con ellas los pasos 1 y 2 reproducen exactamente intermedios/frentes.npz y meta.json. Los pasos 3 y 4 no se han
+# podido correr (falta la capa de vialidades primarias): al correrlos, confirmar que dan los mismos datos con estas versiones.
+# La regla del cruce (18 m, 30°) es sensible a la geometría: no actualizar shapely ni pyproj sin comparar el resultado.
+numpy==2.5.3
+pyshp==3.1.6
+shapely==2.1.2
+pyproj==3.8.0
 # lamina_composicion.py
-pillow>=10.0
+pillow==12.3.0
 # reporte_catalogos.py (verificado con esta versión el 2 de octubre de 2026)
 openpyxl==3.1.5
-# verificar_datos.py y 02_fuente/construir.py solo requieren Python 3 (verificados con 3.13).
+# verificar_datos.py y 02_fuente/construir.py solo requieren Python 3 (verificados con 3.12 y 3.13).

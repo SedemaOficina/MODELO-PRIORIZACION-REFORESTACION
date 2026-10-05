@@ -273,5 +273,9 @@ new MutationObserver(()=>{ const t = $('dl-status').textContent.trim(); const a 
 }).observe($('dl-status'), {childList:true, characterData:true, subtree:true});
 ['dl-frentes','dl-calles','dl-tramos','dl-avenidas','dl-calle','dl-ficha-calle','dl-ficha-vpalc','dl-ficha-av','dl-ficha-alc','dl-ficha','dl-kml','dl-geojson'].forEach(id=>{ const b = $(id), h = b.onclick; if (!h) return;
   b.onclick = e=>{ if (GENERANDO || b.disabled) return; GENERANDO = true; document.body.classList.add('generando'); $('dl-status').textContent = 'Preparando archivo…';
-    genT = setTimeout(()=>{ if (GENERANDO){ finGenera(); if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'No fue posible preparar el archivo. Inténtalo de nuevo.'; } }, 90000);
+    // un Excel grande en un equipo lento puede pasar de 90 s: primero se avisa que sigue en proceso y solo a los 5 min se da por fallido
+    // (antes se decía «No fue posible» a los 90 s, se liberaban los botones y el archivo llegaba después: la persona lo pedía dos veces)
+    genT = setTimeout(()=>{ if (!GENERANDO) return;
+      if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'Preparando archivo… es grande y en este equipo tarda; sigue en proceso.';
+      genT = setTimeout(()=>{ if (GENERANDO){ finGenera(); if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'No fue posible preparar el archivo. Inténtalo de nuevo.'; } }, 210000); }, 90000);
     h.call(b, e); }; });

@@ -189,7 +189,7 @@ async function deliverTable(base, key, aoa, extra){
   let X; try { X = await loadXL(); }
   catch(e){ if (e && e.causa==='sesion'){ avisoSesion(st); return; }   // sesión vencida: no se entrega nada y se dice por qué
     // no se pudo cargar la librería de Excel: se entrega CSV, con el diccionario en un segundo archivo
-    st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
+    st.textContent = (e && e.causa==='red')? 'Sin conexión para generar el Excel; se descarga en CSV.' : 'No se pudo cargar el programa que arma el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
     const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
@@ -244,7 +244,7 @@ $('dl-calles').onclick = ()=>{
   const rows=[['vialidad','colonia','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','km_muy_alta','km_alta','km_prioritario','km_media','km_universo_intervencion','km_total']];
   const items=[]; for(const s of streetIdx.values()){ if(!s.kmp) continue; let ma=0,a=0,kma=0,ka=0; for(const i of s.idx){ if(F.prio[i]===4){ma++;kma+=F.len[i]/1000;} else if(F.prio[i]===3){a++;ka+=F.len[i]/1000;} }
     const c = s.col? META.colonias[s.col] : null;
-    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.kp[2].toFixed(2)), num((s.kmp+s.kp[2]).toFixed(2)), num(s.km.toFixed(2))]); }
+    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.kp[2].toFixed(2)), num(sumUniv(s.kp).toFixed(2)), num(s.km.toFixed(2))]); }
   items.sort((x,y)=> y[10]-x[10]); for(const r of items) rows.push(r);
   deliverTable(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, [['Km de frente prioritario sin nombre de calle (INEGI), no incluidos en este resumen', num(sinNombre.kmp.toFixed(2))], ['Frentes prioritarios sin nombre de calle, no incluidos', sinNombre.np], ...univExtra()]);
 };

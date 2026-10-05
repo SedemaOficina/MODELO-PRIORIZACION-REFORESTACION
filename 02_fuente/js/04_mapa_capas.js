@@ -67,10 +67,10 @@ let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
 // Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
 //  · calles: CARTO Positron sobre OpenStreetMap. Desde el 29 de septiembre de 2026 CARTO exige una clave propia
-//    (window.SIA_CARTO_KEY, se define en construir.py); sin ella las teselas llegan con la marca «API key required».
+//    (window.SIA_CARTO_KEY: construir.py la toma de SIA_CARTO_KEY o de claves.local.json); sin ella las teselas llegan con la marca «API key required».
 //  · sat: imagen de satélite de Esri (World Imagery) con la capa de referencia de nombres de vías encima
-//    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY, se define en
-//    construir.py) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
+//    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY: construir.py la toma
+//    de SIA_ESRI_KEY o de claves.local.json) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
 const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
 const CARTO_KEY = String(window.SIA_CARTO_KEY || '').trim();
 const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';

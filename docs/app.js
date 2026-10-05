@@ -328,10 +328,10 @@ let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
 // Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
 //  · calles: CARTO Positron sobre OpenStreetMap. Desde el 29 de septiembre de 2026 CARTO exige una clave propia
-//    (window.SIA_CARTO_KEY, se define en construir.py); sin ella las teselas llegan con la marca «API key required».
+//    (window.SIA_CARTO_KEY: construir.py la toma de SIA_CARTO_KEY o de claves.local.json); sin ella las teselas llegan con la marca «API key required».
 //  · sat: imagen de satélite de Esri (World Imagery) con la capa de referencia de nombres de vías encima
-//    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY, se define en
-//    construir.py) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
+//    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY: construir.py la toma
+//    de SIA_ESRI_KEY o de claves.local.json) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
 const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
 const CARTO_KEY = String(window.SIA_CARTO_KEY || '').trim();
 const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';
@@ -426,7 +426,7 @@ function featHtml(i, compact){
   const nm = nomFrente(i); const tp = META.tipos[F.tipo[i]] || '—'; const pre = (sinNombreFr(i) || tp==='—')? '' : tp+' '; const col = META.colonias[F.col[i]];
   const ban = META.disp[(F.flags[i]>>3)&7];
   const cpTxt = col.cp ? col.cp.padStart(5,'0') : ''; const colTxt = col.n ? `${col.n}${cpTxt? ' · CP '+cpTxt : ''}` : 'Colonia no identificada';
-  if (compact) return `<span class="pr" data-st="background:${rgb}"></span><b>${pre}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${F.len[i]} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
+  if (compact) return `<span class="pr" data-st="background:${rgb}"></span><b>${pre}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${fmt.format(F.len[i])} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
   const cp = col.p>=0 ? META.prio[col.p] : '—';
   const cc = col.p>=0 ? T.prio[col.p] : null;
   const respTxt = (F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía') + ' <small>(asignación preliminar)</small>';
@@ -674,7 +674,7 @@ function colStat(id){ if(!COLSTAT){ COLSTAT = new Map(); for(let i=0;i<N;i++){ c
   return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; }
 // estadísticas por avenida (NOMENCLAT), toda la ciudad, calculadas una vez
 let AVSTAT = null;
-function avStat(id){ if(!AVSTAT){ AVSTAT=new Map(); for(let i=0;i<NV;i++){ const a=VP.nom[i]; let s=AVSTAT.get(a); if(!s){ s={idx:[],n:[0,0,0,0,0],km:[0,0,0,0,0],kmt:0,kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; AVSTAT.set(a,s); } const p=VP.prio[i], k=VP.len[i]/1000; s.idx.push(i); s.n[p]++; s.km[p]+=k; s.kmt+=k; s.recs.add(VP.rec[i]); if(p>=3){ s.kmp+=k; s.recsp.add(VP.rec[i]); } s.muns.add(VP.mun[i]); s.nombres.add(VPC.nombres[VP.nombre[i]]); } } const s=AVSTAT.get(id); return s? {...s, km:s.kmt, kmByP:s.km} : {idx:[],n:[0,0,0,0,0],km:0,kmByP:[0,0,0,0,0],kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; }
+function avStat(id){ if(!AVSTAT){ AVSTAT=new Map(); for(let i=0;i<NV;i++){ const a=VP.nom[i]; let s=AVSTAT.get(a); if(!s){ s={idx:[],n:[0,0,0,0,0],km:[0,0,0,0,0],kmt:0,kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; AVSTAT.set(a,s); } const p=VP.prio[i], k=VP.len[i]/1000; s.idx.push(i); s.n[p]++; s.km[p]+=k; s.kmt+=k; s.recs.add(VP.rec[i]); if(esPrio(p)){ s.kmp+=k; s.recsp.add(VP.rec[i]); } s.muns.add(VP.mun[i]); s.nombres.add(VPC.nombres[VP.nombre[i]]); } } const s=AVSTAT.get(id); return s? {...s, km:s.kmt, kmByP:s.km} : {idx:[],n:[0,0,0,0,0],km:0,kmByP:[0,0,0,0,0],kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; }
 // Vialidades distintas que comparten nombre (auditoría H-044): las partes de una avenida se agrupan por continuidad espacial;
 // dos grupos separados por más de AV_SEP metros son vialidades distintas y la consulta lo advierte.
 const AV_SEP = 1500, AVG = new Map();
@@ -687,11 +687,11 @@ function avGrupos(a){ let g=AVG.get(a); if (g) return g; const idx=avStat(a).idx
   g = [...M.values()].sort((x,y)=>y.km-x.km); AVG.set(a,g); return g; }
 const avGruposTxt = a => { const g=avGrupos(a); return g.length<2? '' : `Atención: con este nombre hay ${g.length} vialidades separadas entre sí por más de ${fmt1.format(AV_SEP/1000)} km (${g.map(x=>[...x.muns].map(m=>META.munNames[m]).join(' y ')+', '+kmFull(x.km)).join('; ')}). Las cifras las suman`; };
 // resumen de vialidades en un ámbito (alcaldía y/o avenida)
-function vpSumm(){ const s={n:[0,0,0,0,0],km:[0,0,0,0,0],recs:new Set(),recsp:new Set()}; for(let i=0;i<NV;i++){ if(sel!==null && VP.mun[i]!==sel) continue; if(selAv!==null && VP.nom[i]!==selAv) continue; const p=VP.prio[i], k=VP.len[i]/1000; s.n[p]++; s.km[p]+=k; s.recs.add(VP.rec[i]); if(p>=3) s.recsp.add(VP.rec[i]); } return s; }
+function vpSumm(){ const s={n:[0,0,0,0,0],km:[0,0,0,0,0],recs:new Set(),recsp:new Set()}; for(let i=0;i<NV;i++){ if(sel!==null && VP.mun[i]!==sel) continue; if(selAv!==null && VP.nom[i]!==selAv) continue; const p=VP.prio[i], k=VP.len[i]/1000; s.n[p]++; s.km[p]+=k; s.recs.add(VP.rec[i]); if(esPrio(p)) s.recsp.add(VP.rec[i]); } return s; }
 
 // ---------- reparto por responsable y universo de intervención ----------
 // Universo de intervención = prioridades Muy Alta, Alta y Media. «Prioritario» sigue siendo Muy Alta + Alta.
-const kmUniv = s => s.km[2]+sumPrio(s.km);
+const kmUniv = s => sumUniv(s.km);
 // Kilómetros de FRENTE DE MANZANA por responsable (0 = alcaldía, 1 = Gobierno Central) y prioridad en un ámbito:
 // total (km), sin arbolado (sa) y sin arbolado con banqueta registrada por INEGI (sb). Con colonia manda la colonia, igual que enAmbito().
 const REP_CACHE = new Map();
@@ -1435,7 +1435,7 @@ async function deliverTable(base, key, aoa, extra){
   let X; try { X = await loadXL(); }
   catch(e){ if (e && e.causa==='sesion'){ avisoSesion(st); return; }   // sesión vencida: no se entrega nada y se dice por qué
     // no se pudo cargar la librería de Excel: se entrega CSV, con el diccionario en un segundo archivo
-    st.textContent = 'Sin conexión para generar el Excel; se descarga en CSV.';
+    st.textContent = (e && e.causa==='red')? 'Sin conexión para generar el Excel; se descarga en CSV.' : 'No se pudo cargar el programa que arma el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
     const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
@@ -1490,7 +1490,7 @@ $('dl-calles').onclick = ()=>{
   const rows=[['vialidad','colonia','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','km_muy_alta','km_alta','km_prioritario','km_media','km_universo_intervencion','km_total']];
   const items=[]; for(const s of streetIdx.values()){ if(!s.kmp) continue; let ma=0,a=0,kma=0,ka=0; for(const i of s.idx){ if(F.prio[i]===4){ma++;kma+=F.len[i]/1000;} else if(F.prio[i]===3){a++;ka+=F.len[i]/1000;} }
     const c = s.col? META.colonias[s.col] : null;
-    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.kp[2].toFixed(2)), num((s.kmp+s.kp[2]).toFixed(2)), num(s.km.toFixed(2))]); }
+    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, ma, a, num(kma.toFixed(2)), num(ka.toFixed(2)), num(s.kmp.toFixed(2)), num(s.kp[2].toFixed(2)), num(sumUniv(s.kp).toFixed(2)), num(s.km.toFixed(2))]); }
   items.sort((x,y)=> y[10]-x[10]); for(const r of items) rows.push(r);
   deliverTable(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, [['Km de frente prioritario sin nombre de calle (INEGI), no incluidos en este resumen', num(sinNombre.kmp.toFixed(2))], ['Frentes prioritarios sin nombre de calle, no incluidos', sinNombre.np], ...univExtra()]);
 };
@@ -1829,7 +1829,11 @@ new MutationObserver(()=>{ const t = $('dl-status').textContent.trim(); const a 
 }).observe($('dl-status'), {childList:true, characterData:true, subtree:true});
 ['dl-frentes','dl-calles','dl-tramos','dl-avenidas','dl-calle','dl-ficha-calle','dl-ficha-vpalc','dl-ficha-av','dl-ficha-alc','dl-ficha','dl-kml','dl-geojson'].forEach(id=>{ const b = $(id), h = b.onclick; if (!h) return;
   b.onclick = e=>{ if (GENERANDO || b.disabled) return; GENERANDO = true; document.body.classList.add('generando'); $('dl-status').textContent = 'Preparando archivo…';
-    genT = setTimeout(()=>{ if (GENERANDO){ finGenera(); if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'No fue posible preparar el archivo. Inténtalo de nuevo.'; } }, 90000);
+    // un Excel grande en un equipo lento puede pasar de 90 s: primero se avisa que sigue en proceso y solo a los 5 min se da por fallido
+    // (antes se decía «No fue posible» a los 90 s, se liberaban los botones y el archivo llegaba después: la persona lo pedía dos veces)
+    genT = setTimeout(()=>{ if (!GENERANDO) return;
+      if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'Preparando archivo… es grande y en este equipo tarda; sigue en proceso.';
+      genT = setTimeout(()=>{ if (GENERANDO){ finGenera(); if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'No fue posible preparar el archivo. Inténtalo de nuevo.'; } }, 210000); }, 90000);
     h.call(b, e); }; });
 
 // Interfaz: ventana de metodología, hoja inferior en teléfono, pestañas, acciones fijas y ruta de navegación.

@@ -62,7 +62,12 @@ CARTO_KEY = ''
 # así que deben restringirse al dominio del sitio en el panel de cada proveedor.
 _claves = {}
 if os.path.isfile(os.path.join(FUENTE, 'claves.local.json')):
-    _claves = json.load(open(os.path.join(FUENTE, 'claves.local.json'), encoding='utf-8'))
+    # utf-8-sig: el Bloc de notas y PowerShell 5.1 guardan con marca BOM al inicio
+    try:
+        _claves = json.load(open(os.path.join(FUENTE, 'claves.local.json'), encoding='utf-8-sig'))
+    except ValueError as e:
+        print('ERROR: 02_fuente/claves.local.json no es un JSON válido (%s).\nDebe verse así: {"CARTO_KEY": "…", "ESRI_KEY": "…"}\nNo se escribió nada.' % e)
+        sys.exit(1)
 ESRI_KEY = os.environ.get('SIA_ESRI_KEY') or _claves.get('ESRI_KEY') or ESRI_KEY
 CARTO_KEY = os.environ.get('SIA_CARTO_KEY') or _claves.get('CARTO_KEY') or CARTO_KEY
 # Sesión (Fase 2, auditoría H-078): direcciones del inicio y del cierre de sesión cuando la herramienta se instala detrás de un
@@ -71,7 +76,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or ''}
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.32'
+VERSION = '17.33'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -129,15 +134,16 @@ for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLIC
 # Los datos deben ser los verificados (auditoría H-024): se compara el contenido descomprimido con datos/SUMAS.json,
 # porque la compresión cambia de un equipo a otro aunque el contenido sea el mismo.
 ruta_sumas = os.path.join(FUENTE, 'datos', 'SUMAS.json')
-if os.path.isfile(ruta_sumas):
-    sumas = json.load(open(ruta_sumas, encoding='utf-8'))['sha256_descomprimido']
-    for n in DATOS:
-        try:
-            h = hashlib.sha256(gzip.decompress(open(os.path.join(FUENTE, 'datos', n + '.bin'), 'rb').read())).hexdigest()
-        except Exception as e:
-            falla('datos/%s.bin no se puede descomprimir (%s).' % (n, e))
-        if h != sumas.get(n + '.bin'):
-            falla('datos/%s.bin no coincide con datos/SUMAS.json. Si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.' % n)
+if not os.path.isfile(ruta_sumas):
+    falla('falta datos/SUMAS.json: sin él no se puede comprobar que los datos sean los verificados. Recuperarlo de Git o, si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.')
+sumas = json.load(open(ruta_sumas, encoding='utf-8'))['sha256_descomprimido']
+for n in DATOS:
+    try:
+        h = hashlib.sha256(gzip.decompress(open(os.path.join(FUENTE, 'datos', n + '.bin'), 'rb').read())).hexdigest()
+    except Exception as e:
+        falla('datos/%s.bin no se puede descomprimir (%s).' % (n, e))
+    if h != sumas.get(n + '.bin'):
+        falla('datos/%s.bin no coincide con datos/SUMAS.json. Si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.' % n)
 
 
 AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar aquí.'
@@ -292,6 +298,13 @@ if obsoletos:
 os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
 open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(unico)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
+# docs/ se publica tal cual en GitHub Pages: si lleva claves o sesión, se dice (auditoría de la v17.33)
+if CARTO_KEY or ESRI_KEY:
+    print('AVISO: docs/config.js lleva la clave de %s. Al hacer commit queda pública en GitHub y en su historial: '
+          'confirmar que está restringida al dominio del sitio en el panel del proveedor.' % ' y de '.join(n for n, k in (('CARTO', CARTO_KEY), ('Esri', ESRI_KEY)) if k))
+if SESION['inicio'] or SESION['cierre']:
+    print('AVISO: docs/ se construyó con direcciones de sesión (%s). Sirven para el SIA, no para GitHub Pages: '
+          'para el SIA usar 08_entrega_sia/empaquetar.py y no hacer commit de este docs/.' % (SESION['inicio'] or SESION['cierre']))
 
 # ---------- cifras de la documentación (auditoría H-069): se miden aquí para que README y ARQUITECTURA no las repitan a mano ----------
 def tam(n):
