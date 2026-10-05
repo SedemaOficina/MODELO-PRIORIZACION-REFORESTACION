@@ -40,5 +40,5 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Módulo de sesión (backend, tabla de usuarios, pantalla de acceso) | No existe; lo construye el SIA si se decide el login |
 | Instrumentos de datos personales para el login | No existen; corresponde a la Unidad de Transparencia |
 | Claves de los mapas de fondo (CARTO y Esri) | Pendientes de solicitar |
-| Librerías jsPDF 2.5.2 y SheetJS 0.18.5 con avisos de seguridad publicados | Pendiente de actualizar (exposición real baja: solo se escriben archivos) |
+| Librerías jsPDF y SheetJS con avisos de seguridad publicados | Atendido en la v17.34: jsPDF 4.2.1 y SheetJS 0.20.3, sin avisos publicados al 5 oct 2026 |
 | Capa de vialidades primarias para regenerar los datos | No localizada |

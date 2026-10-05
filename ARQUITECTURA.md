@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.33 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.34 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -173,7 +173,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 
 | Qué | Dónde | Nota |
 |---|---|---|
-| deck.gl 9.4, pako 2.1, jsPDF 2.5.2, SheetJS 0.18.5 | `docs/libs/` (sitio) · incrustadas (archivo único y artefacto) | Copias idénticas a las del paquete publicado en npm (huellas SHA-256 en `libs/LICENCIAS.md`), con el texto de cada licencia en `libs/LICENCIA_*.txt`. Ninguna versión las pide a una red de distribución externa |
+| deck.gl 9.4, pako 2.1, jsPDF 4.2.1, SheetJS 0.20.3 | `docs/libs/` (sitio) · incrustadas (archivo único y artefacto) | Copias idénticas a las del paquete oficial: npm, salvo SheetJS, que se distribuye desde `cdn.sheetjs.com` (huellas SHA-256 en `libs/LICENCIAS.md`), con el texto de cada licencia en `libs/LICENCIA_*.txt`. Ninguna versión las pide a una red de distribución externa |
 | Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único y artefacto) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
