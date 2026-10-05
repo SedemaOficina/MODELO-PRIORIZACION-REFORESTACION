@@ -50,10 +50,12 @@ function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','
   if (resp!=='alc') p.set('r', resp);
   if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
   const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
-// La última alcaldía consultada se recuerda en este navegador (v17.28): la siguiente visita abre ahí. No es un dato personal.
+// La última alcaldía y la red consultadas se recuerdan en este navegador (v17.28 y v17.30): la siguiente visita abre ahí. No son datos personales.
 const CLAVE_INICIO = 'cp_inicio';
 const leeInicio = ()=>{ try { return localStorage.getItem(CLAVE_INICIO); } catch(e){ return null; } };
-const recuerdaInicio = ()=>{ try { localStorage.setItem(CLAVE_INICIO, sel===null? 'ciudad' : META.muns[sel]); } catch(e){} };
+const CLAVE_RED = 'cp_red';   // red consultada: alc | gc | both (v17.30: la herramienta es también para el Gobierno Central)
+const leeRed = ()=>{ try { const r = localStorage.getItem(CLAVE_RED); return r==='gc' || r==='both'? r : 'alc'; } catch(e){ return 'alc'; } };
+const recuerdaInicio = ()=>{ try { localStorage.setItem(CLAVE_INICIO, sel===null? 'ciudad' : META.muns[sel]); localStorage.setItem(CLAVE_RED, resp); } catch(e){} };
 function guardaURL(){ if (restaurando) return; recuerdaInicio(); const u = urlEstado(); if (u === location.pathname + location.search + location.hash) return;
   try { history.pushState({consulta:true}, '', u); } catch(e){} }
 function aplicarURL(){ const p = new URLSearchParams(location.search); const r = p.get('r')==='gc'? 'gc' : p.get('r')==='both'? 'both' : 'alc';

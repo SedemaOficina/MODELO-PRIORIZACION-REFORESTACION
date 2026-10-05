@@ -92,13 +92,22 @@ function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) retur
 $('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
   if (isPhone() && navigator.share){ navigator.share({title: titulo, url: u}).catch(()=>{}); return; }
   copiaTexto(u).then(()=>avisoShare('Enlace copiado'), ()=>avisoShare('No se pudo copiar')); };
-// ---------- entrada por territorio (v17.28) ----------
-// Primera visita sin consulta en la dirección: una sola pregunta. Elegir una alcaldía (o toda la ciudad) abre ahí la herramienta.
-const entradaEl = $('entrada');
-function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false; if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio(); $('scope-title').focus(); }
+// ---------- entrada (v17.28; dos pasos desde la v17.30) ----------
+// Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
+// Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
+const entradaEl = $('entrada'); let entradaRed = 'alc';
+function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false;
+  if (resp!==entradaRed) setResp(entradaRed);
+  if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio();
+  $('scope-title').focus(); }
+function entradaPaso(n){ $('entrada-p1').hidden = n!==1; $('entrada-p2').hidden = n!==2;
+  if (n===1) entradaEl.querySelector('.entrada-red[data-red="'+entradaRed+'"]').focus();
+  else { $('entrada-q').textContent = entradaRed==='gc'? '¿En qué alcaldía quieres ver las vialidades primarias?' : '¿Qué alcaldía quieres revisar?'; $('entrada-q').focus(); } }
 function abreEntrada(){ const g = $('entrada-grid');
   if (!g.children.length) META.muns.map((m,i)=>i).sort((a,b)=>META.munNames[a].localeCompare(META.munNames[b],'es')).forEach(i=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'entrada-op'; b.textContent = META.munNames[i]; b.onclick = ()=>cierraEntrada(i); g.appendChild(b); });
-  entradaEl.hidden = false; appEl.inert = true; g.firstElementChild.focus(); }
+  entradaEl.hidden = false; appEl.inert = true; entradaPaso(1); }
+entradaEl.querySelectorAll('.entrada-red').forEach(b=>{ b.onclick = ()=>{ entradaRed = b.dataset.red; entradaPaso(2); }; });
+$('entrada-volver').onclick = ()=>entradaPaso(1);
 $('entrada-cdmx').onclick = ()=>cierraEntrada(null);
 // ---------- ruta de navegación (auditoría I4) ----------
 function renderCrumb(){

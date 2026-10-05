@@ -16,7 +16,7 @@
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
-      <!-- consulta: buscador único (js/14_buscador.js) y ruta de navegación; «Quién atiende» está en el panel de capas -->
+      <!-- consulta: buscador único (js/14_buscador.js), fila «Atiende» y ruta de navegación; la explicación y el aviso de asignación preliminar están en el panel de capas -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -24,6 +24,10 @@
           <button class="clear" id="omni-clear" type="button" aria-label="Borrar búsqueda" hidden>×</button>
           <ul class="combo-list omni-list" id="omni-list" role="listbox" hidden></ul>
         </div>
+        <div class="resp-row"><span class="lab" id="resp-label">Atiende</span><div class="chips" role="group" aria-labelledby="resp-label">
+          <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
+          <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
+        </div></div>
         <nav class="crumb" id="crumb" aria-label="Ruta de la consulta">
           <button type="button" class="cr-city" id="cr-city">Ciudad de México</button><span class="cr-sep" aria-hidden="true">›</span>
           <span class="cr-alc"><select id="alc" aria-label="Alcaldía"><option value="">Elige una alcaldía</option></select></span>
@@ -141,11 +145,7 @@
             <button type="button" data-lvl="col" aria-pressed="true"><i></i>Colonias</button>
             <button type="button" data-lvl="fr" aria-pressed="true"><i></i>Calles</button>
           </div><p class="lg-note" id="lvl-note">Colonias y Calles se combinan; Alcaldías va sola.</p></div>
-      <div class="lg-sec lg-resp"><span class="lg-cap" id="resp-label">Quién atiende</span>
-          <div class="resp-row"><div class="chips" role="group" aria-labelledby="resp-label">
-          <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
-          <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
-        </div></div>
+      <div class="lg-sec lg-resp"><span class="lg-cap">Quién atiende</span>
           <p class="lg-note" id="resp-note">Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.</p>
           <p class="lg-note prelim" id="prelim-note"><b>Asignación preliminar.</b> Qué frentes quedan a cargo de la alcaldía o del Gobierno Central se determinó con una regla geométrica que está en validación.</p></div>
       <div class="lg-sec"><span class="lg-cap" id="fondo-label">Mapa de fondo</span><div class="seg fondo pills" role="group" aria-labelledby="fondo-label">
@@ -175,11 +175,21 @@
   <div class="modal-card entrada-card">
     <img class="logo modal-logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
     <h2 id="entrada-title">Calles prioritarias para reforestar</h2>
-    <p class="lead">Consulta en qué colonias y calles conviene plantar primero, según el modelo de priorización de la Secretaría del Medio Ambiente.</p>
-    <h3 id="entrada-q">¿Qué alcaldía quieres revisar?</h3>
-    <div class="entrada-grid" id="entrada-grid" role="group" aria-labelledby="entrada-q"></div>
-    <button type="button" class="btn entrada-cdmx" id="entrada-cdmx">Ver toda la ciudad</button>
-    <p class="note">La herramienta recuerda en este navegador la última alcaldía consultada. Puedes cambiarla en cualquier momento.</p>
+    <p class="lead">La Secretaría del Medio Ambiente pone esta herramienta a disposición de las alcaldías y de las dependencias del Gobierno de la Ciudad, para consultar dónde conviene plantar primero.</p>
+    <div id="entrada-p1">
+      <h3 id="entrada-q1">¿Qué quieres consultar?</h3>
+      <div class="entrada-resp" role="group" aria-labelledby="entrada-q1">
+        <button type="button" class="entrada-red" data-red="alc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Calles y colonias</b><span>Frentes de manzana que atienden las alcaldías</span></button>
+        <button type="button" class="entrada-red" data-red="gc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Vialidades primarias</b><span>Avenidas y ejes que atiende el Gobierno Central</span></button>
+      </div>
+    </div>
+    <div id="entrada-p2" hidden>
+      <button type="button" class="linkbtn entrada-volver" id="entrada-volver">‹ Cambiar lo que quiero consultar</button>
+      <h3 id="entrada-q" tabindex="-1">¿Qué alcaldía quieres revisar?</h3>
+      <div class="entrada-grid" id="entrada-grid" role="group" aria-labelledby="entrada-q"></div>
+      <button type="button" class="btn entrada-cdmx" id="entrada-cdmx">Ver toda la ciudad</button>
+    </div>
+    <p class="note">La herramienta recuerda en este navegador tu última consulta. Puedes cambiar de red o de alcaldía en cualquier momento.</p>
   </div>
 </div>
 
@@ -194,17 +204,18 @@
       <div class="eyebrow">Calles prioritarias para reforestar · Ayuda</div>
       <h2 id="howto-title">Cómo usar la herramienta</h2>
       <ol class="howto-steps">
-        <li><b>Elige tu alcaldía.</b> Al entrar, la herramienta pregunta qué alcaldía quieres revisar y recuerda la última consultada. También puedes escribir en el buscador una alcaldía, una colonia, una avenida o una calle: basta con algunas palabras, y reconoce abreviaturas como «Calz.» o «Av.».</li>
-        <li><b>Revisa «Dónde empezar».</b> La primera pestaña propone un orden de atención: las colonias de la alcaldía y, al elegir una colonia, sus calles. Puedes ordenarlas por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta.</li>
-        <li><b>Consulta el detalle y descarga.</b> «Resumen» tiene las cifras del ámbito; las otras pestañas, el listado de calles y las descargas. El botón del pie descarga el listado en Excel y la ficha en PDF, y «Compartir» copia la dirección de la consulta.</li>
-        <li><b>Cambia lo que ves en el mapa.</b> El botón de capas abre las opciones del mapa. Ahí está «Quién atiende»: <em>Alcaldías</em> muestra las calles y frentes de manzana que plantan las alcaldías; <em>Gobierno Central</em>, las vialidades primarias. Puedes marcar las dos.</li>
+        <li><b>Elige qué consultar y dónde.</b> Al entrar, la herramienta pregunta si quieres ver las calles y colonias que atienden las alcaldías o las vialidades primarias que atiende el Gobierno Central, y en qué alcaldía; recuerda tu última consulta. La fila «Atiende», bajo el buscador, cambia de red en cualquier momento, y puedes marcar las dos.</li>
+        <li><b>Revisa «Dónde empezar».</b> La primera pestaña propone un orden de atención: las colonias de la alcaldía y, al elegir una colonia, sus calles; con Gobierno Central, las avenidas. Las colonias pueden ordenarse por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta.</li>
+        <li><b>Busca un lugar concreto.</b> En el buscador escribe una alcaldía, una colonia, una avenida o una calle: basta con algunas palabras, y reconoce abreviaturas como «Calz.» o «Av.».</li>
+        <li><b>Consulta el detalle y descarga.</b> «Resumen» tiene las cifras del ámbito; las otras pestañas, el listado y las descargas en Excel, PDF y archivos para mapa. «Compartir» copia la dirección de la consulta.</li>
+        <li><b>Cambia lo que ves en el mapa.</b> El botón de capas abre las opciones del mapa: capas, mapa de fondo, opacidad y prioridades visibles.</li>
       </ol>
       <h3 class="howto-gl">Términos que usa la herramienta</h3>
       <dl class="howto-terms">
         <dt>Frente de manzana</dt><dd>Cada lado de una manzana que da a la calle. Es la unidad que se prioriza: una calle tiene dos frentes, uno por acera.</dd>
         <dt>Tramo</dt><dd>Pedazo de una calle o avenida con su propia prioridad. Por eso una misma calle puede verse en varios colores.</dd>
         <dt>Prioritario</dt><dd>Categorías Muy Alta y Alta: donde conviene plantar primero.</dd>
-        <dt>Quién atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía en la red local o el Gobierno de la Ciudad en las vialidades primarias.</dd>
+        <dt>Atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía en la red local o el Gobierno de la Ciudad en las vialidades primarias.</dd>
       </dl>
     </section>
     <div class="eyebrow">Programa de Reforestación Urbana · Metodología</div>

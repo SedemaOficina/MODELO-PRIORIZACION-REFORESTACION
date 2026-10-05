@@ -52,9 +52,7 @@
   .leymini i{width:14px}
 }
 
-/* ----- «Quién atiende» dentro del panel de capas ----- */
-.legend .lg-resp .resp-row{display:block;margin:0}
-.legend .lg-resp .chips{flex-wrap:wrap;gap:6px}
+/* ----- explicación de «Atiende» y aviso de asignación preliminar, en el panel de capas ----- */
 .legend .lg-note.prelim{margin-top:6px;padding:6px 8px;border-left:3px solid var(--dorado, #B28E5C);background:var(--panel-2);border-radius:0 4px 4px 0}
 
 @media print{ .leymini,.modal.entrada,#share,.ini-orden,.ini-mas{display:none!important} }
@@ -64,3 +62,21 @@
 
 /* v17.29 · descargas para abrir en un mapa (KML y GeoJSON) */
 .geo-title{margin-top:16px}
+
+/* v17.30 · entrada en dos pasos: qué red se consulta (alcaldías o Gobierno Central) y dónde */
+.entrada-resp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.entrada-red{display:grid;grid-template-columns:34px minmax(0,1fr);gap:2px 12px;align-items:start;min-height:84px;padding:14px;border:1.5px solid var(--ctl);border-radius:10px;background:var(--panel);color:var(--ink);text-align:left;cursor:pointer;font:inherit;transition:background .12s ease,border-color .12s ease}
+.entrada-red:hover{background:var(--panel-2);border-color:var(--guinda)}
+.entrada-red svg{grid-row:1/3;width:34px;height:34px;padding:6px;border-radius:8px;background:rgba(157,33,72,.08);stroke:var(--guinda);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.entrada-red b{font:700 1.0625rem/1.2 Cabin,sans-serif}
+.entrada-red span{grid-column:2;font-size:.875rem;line-height:1.35;color:var(--ink-2)}
+.entrada-volver{display:inline-block;margin:0 0 12px}
+#entrada-q:focus{outline:none}
+.query .resp-row{margin-top:8px}
+@media (max-width:600px){ .entrada-resp{grid-template-columns:1fr} }
+/* v17.30 · recuadro del mapa en teléfono: con Gobierno Central el texto de la cifra es largo y dejaba sin espacio al nombre */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
+  .mapsum .scope{flex:0 0 auto;max-width:46%}
+  .mapsum .st{white-space:normal;min-width:0}
+  .mapsum .st small{line-height:1.2}
+}

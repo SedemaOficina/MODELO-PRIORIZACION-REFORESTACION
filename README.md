@@ -73,13 +73,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 7. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla es decisión de quien administra la cuenta.
 
-## Estado al 4 de octubre de 2026 (versión 17.29)
+## Estado al 4 de octubre de 2026 (versión 17.30)
 
-- Versión vigente: **v17.29**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.30**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 17.30 | La herramienta es para las alcaldías y para el Gobierno Central: la entrada pregunta primero qué red se consulta (calles y colonias, o vialidades primarias) y después el territorio; se recuerdan ambas; la fila «Atiende» vuelve junto al buscador |
 | 17.29 | Descargas para abrir en un mapa: las calles prioritarias de la consulta como líneas, en KML (Google Earth) y GeoJSON (sistemas de información geográfica) |
 | 17.28 | Entrada y orientación (paquete 1 del informe de propuestas): al entrar se pregunta la alcaldía y se recuerda la última consultada; pestaña inicial «Dónde empezar» con las colonias por atender y orden elegible; las cifras pasan a «Resumen»; panel de capas cerrado al inicio con leyenda compacta; «Quién atiende» y el aviso de asignación preliminar pasan al panel de capas; botón «Compartir» |
 | 17.27 | Teléfono: la ventana de ayuda ocupa el área visible de la pantalla, con el logotipo y el botón de cierre en un encabezado fijo que ya no se encima con el texto; el panel de capas ya no se sale a lo ancho, se desplaza solo en vertical y conserva a la vista su encabezado |

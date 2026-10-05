@@ -1199,10 +1199,12 @@ function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','
   if (resp!=='alc') p.set('r', resp);
   if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
   const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
-// La última alcaldía consultada se recuerda en este navegador (v17.28): la siguiente visita abre ahí. No es un dato personal.
+// La última alcaldía y la red consultadas se recuerdan en este navegador (v17.28 y v17.30): la siguiente visita abre ahí. No son datos personales.
 const CLAVE_INICIO = 'cp_inicio';
 const leeInicio = ()=>{ try { return localStorage.getItem(CLAVE_INICIO); } catch(e){ return null; } };
-const recuerdaInicio = ()=>{ try { localStorage.setItem(CLAVE_INICIO, sel===null? 'ciudad' : META.muns[sel]); } catch(e){} };
+const CLAVE_RED = 'cp_red';   // red consultada: alc | gc | both (v17.30: la herramienta es también para el Gobierno Central)
+const leeRed = ()=>{ try { const r = localStorage.getItem(CLAVE_RED); return r==='gc' || r==='both'? r : 'alc'; } catch(e){ return 'alc'; } };
+const recuerdaInicio = ()=>{ try { localStorage.setItem(CLAVE_INICIO, sel===null? 'ciudad' : META.muns[sel]); localStorage.setItem(CLAVE_RED, resp); } catch(e){} };
 function guardaURL(){ if (restaurando) return; recuerdaInicio(); const u = urlEstado(); if (u === location.pathname + location.search + location.hash) return;
   try { history.pushState({consulta:true}, '', u); } catch(e){} }
 function aplicarURL(){ const p = new URLSearchParams(location.search); const r = p.get('r')==='gc'? 'gc' : p.get('r')==='both'? 'both' : 'alc';
@@ -1919,13 +1921,22 @@ function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) retur
 $('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
   if (isPhone() && navigator.share){ navigator.share({title: titulo, url: u}).catch(()=>{}); return; }
   copiaTexto(u).then(()=>avisoShare('Enlace copiado'), ()=>avisoShare('No se pudo copiar')); };
-// ---------- entrada por territorio (v17.28) ----------
-// Primera visita sin consulta en la dirección: una sola pregunta. Elegir una alcaldía (o toda la ciudad) abre ahí la herramienta.
-const entradaEl = $('entrada');
-function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false; if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio(); $('scope-title').focus(); }
+// ---------- entrada (v17.28; dos pasos desde la v17.30) ----------
+// Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
+// Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
+const entradaEl = $('entrada'); let entradaRed = 'alc';
+function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false;
+  if (resp!==entradaRed) setResp(entradaRed);
+  if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio();
+  $('scope-title').focus(); }
+function entradaPaso(n){ $('entrada-p1').hidden = n!==1; $('entrada-p2').hidden = n!==2;
+  if (n===1) entradaEl.querySelector('.entrada-red[data-red="'+entradaRed+'"]').focus();
+  else { $('entrada-q').textContent = entradaRed==='gc'? '¿En qué alcaldía quieres ver las vialidades primarias?' : '¿Qué alcaldía quieres revisar?'; $('entrada-q').focus(); } }
 function abreEntrada(){ const g = $('entrada-grid');
   if (!g.children.length) META.muns.map((m,i)=>i).sort((a,b)=>META.munNames[a].localeCompare(META.munNames[b],'es')).forEach(i=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'entrada-op'; b.textContent = META.munNames[i]; b.onclick = ()=>cierraEntrada(i); g.appendChild(b); });
-  entradaEl.hidden = false; appEl.inert = true; g.firstElementChild.focus(); }
+  entradaEl.hidden = false; appEl.inert = true; entradaPaso(1); }
+entradaEl.querySelectorAll('.entrada-red').forEach(b=>{ b.onclick = ()=>{ entradaRed = b.dataset.red; entradaPaso(2); }; });
+$('entrada-volver').onclick = ()=>entradaPaso(1);
 $('entrada-cdmx').onclick = ()=>cierraEntrada(null);
 // ---------- ruta de navegación (auditoría I4) ----------
 function renderCrumb(){
@@ -2191,7 +2202,7 @@ aplicarURL();
 // sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio (v17.28)
 let preguntaEntrada = false;
 { const p = new URLSearchParams(location.search); if (!['a','c','v','r'].some(k=>p.has(k))){ const g = leeInicio(), m = g===null? undefined : munIndex[g];
-    if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } else if (g!=='ciudad') preguntaEntrada = true; } }
+    if (m!==undefined || g==='ciudad'){ const r = leeRed(); if (resp!==r) setResp(r); if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } } else preguntaEntrada = true; } }
 restaurando = false;
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
 // errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)

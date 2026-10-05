@@ -131,7 +131,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   const cfg = await page.evaluate(() => window.SIA_VERSION);
   ok('H-068 la página conoce su versión y el corte de los datos', cfg && /^\d+\.\d+$/.test(cfg.v) && cfg.corte.length > 10, JSON.stringify(cfg));
   ok('H-068 versión y corte visibles en el panel', (await page.$eval('#ver-line', x => x.textContent)).includes('Versión ' + cfg.v));
-  ok('H-005 aviso de asignación preliminar presente bajo «Quién atiende» (panel de capas)', await page.$eval('#prelim-note', x => !x.hidden && getComputedStyle(x).display !== 'none' && /preliminar/.test(x.textContent)));
+  ok('H-005 aviso de asignación preliminar presente en el panel de capas', await page.$eval('#prelim-note', x => !x.hidden && getComputedStyle(x).display !== 'none' && /preliminar/.test(x.textContent)));
   ok('H-068 el diccionario del Excel trae versión y corte', dicVal(x, 'Versión de la herramienta') == cfg.v && dicVal(x, 'Corte de los datos') === cfg.corte, `${dicVal(x, 'Versión de la herramienta')} · ${dicVal(x, 'Corte de los datos')}`);
   ok('H-005 el diccionario del Excel declara la asignación preliminar', x.dic.some(r => /asignación de cada frente .* es preliminar/.test(String(r[0]))));
   if (d) { const t = cp.execFileSync('pdftotext', ['-layout', d.ruta, '-']).toString().replace(/\s+/g, ' ');

@@ -1,4 +1,4 @@
-// v17.28 · Entrada y orientación: entrada por territorio, pestaña inicial «Dónde empezar», panel de capas cerrado con
+// v17.28 y v17.30 · Entrada y orientación: entrada en dos pasos (red y territorio), pestaña inicial «Dónde empezar», panel de capas cerrado con
 // leyenda compacta, «Quién atiende» dentro del panel de capas y botón para compartir la consulta.
 // Uso: node 04_pruebas/prueba_orientacion.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
@@ -13,9 +13,10 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
 
   // ---------- entrada por territorio ----------
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
-    const e = await page.evaluate(() => { const d = document.getElementById('entrada'); return { visible: !d.hidden, ops: d.querySelectorAll('.entrada-op').length, ciudad: !!document.getElementById('entrada-cdmx'), inerte: document.querySelector('.app').inert, foco: document.activeElement.className, rol: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), nombre: !!document.getElementById(d.getAttribute('aria-labelledby')) }; });
-    ok('primera visita sin consulta: se pregunta el territorio', e.visible && e.ops === 16 && e.ciudad, JSON.stringify(e));
-    ok('la entrada es un diálogo con nombre, deja inerte el resto y enfoca la primera alcaldía', e.rol === 'dialog' && e.modal === 'true' && e.nombre && e.inerte && e.foco === 'entrada-op');
+    const e = await page.evaluate(() => { const d = document.getElementById('entrada'); return { visible: !d.hidden, ops: d.querySelectorAll('.entrada-op').length, ciudad: !!document.getElementById('entrada-cdmx'), inerte: document.querySelector('.app').inert, foco: document.activeElement.className, redes: d.querySelectorAll('.entrada-red').length, paso1: !document.getElementById('entrada-p1').hidden, paso2: !document.getElementById('entrada-p2').hidden, texto: d.innerText, rol: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), nombre: !!document.getElementById(d.getAttribute('aria-labelledby')) }; });
+    ok('primera visita sin consulta: se pregunta primero qué red consultar, con dos opciones', e.visible && e.redes === 2 && e.paso1 && !e.paso2, JSON.stringify(e));
+    ok('la entrada es un diálogo con nombre, deja inerte el resto y enfoca la primera opción', e.rol === 'dialog' && e.modal === 'true' && e.nombre && e.inerte && e.foco === 'entrada-red');
+    ok('la entrada dice que la herramienta es para las alcaldías y para el Gobierno de la Ciudad', /alcaldías/.test(e.texto) && /Gobierno de la Ciudad/.test(e.texto) && /Gobierno Central/.test(e.texto));
     const ini = await page.evaluate(() => ({ tab: document.querySelector('.tabs [aria-selected="true"]').id, capas: document.querySelector('.legend').classList.contains('open') }));
     ok('la pestaña inicial es «Dónde empezar» y el panel de capas empieza cerrado', ini.tab === 'tab-ini' && !ini.capas, JSON.stringify(ini));
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
@@ -25,6 +26,12 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('con «toda la ciudad» recordada no se vuelve a preguntar', await page.evaluate(() => document.getElementById('entrada').hidden));
     await ctx.close(); }
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
+    await page.click('.entrada-red[data-red="alc"]'); await page.waitForTimeout(200);
+    const p2 = await page.evaluate(() => ({ paso2: !document.getElementById('entrada-p2').hidden, ops: document.querySelectorAll('.entrada-op').length, q: document.getElementById('entrada-q').textContent, foco: document.activeElement.id }));
+    ok('segundo paso: 16 alcaldías y «Ver toda la ciudad»; el foco pasa a la pregunta', p2.paso2 && p2.ops === 16 && /alcaldía/.test(p2.q) && p2.foco === 'entrada-q', JSON.stringify(p2));
+    await page.click('#entrada-volver'); await page.waitForTimeout(150);
+    ok('se puede volver al primer paso', await page.evaluate(() => !document.getElementById('entrada-p1').hidden && document.getElementById('entrada-p2').hidden));
+    await page.click('.entrada-red[data-red="alc"]');
     await page.evaluate(() => [...document.querySelectorAll('.entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await page.waitForTimeout(600);
     const a = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, url: location.search, guarda: localStorage.getItem('cp_inicio'), entrada: document.getElementById('entrada').hidden }));
     ok('elegir una alcaldía abre la herramienta en ella y la deja en la dirección', a.titulo === 'Iztapalapa' && /a=007/.test(a.url) && a.guarda === '007' && a.entrada, JSON.stringify(a));
@@ -33,6 +40,24 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('la siguiente visita abre en la última alcaldía consultada, sin preguntar', r.titulo === 'Iztapalapa' && r.entrada && /a=007/.test(r.url), JSON.stringify(r));
     await page.evaluate(() => document.getElementById('zcity').click()); await page.waitForTimeout(500);
     ok('volver a toda la ciudad también se recuerda', await page.evaluate(() => localStorage.getItem('cp_inicio')) === 'ciudad');
+    await ctx.close(); }
+  { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
+    await page.click('.entrada-red[data-red="gc"]'); await page.waitForTimeout(200);
+    ok('con Gobierno Central, el segundo paso pregunta por las vialidades primarias', /vialidades primarias/.test(await page.$eval('#entrada-q', x => x.textContent)));
+    await page.evaluate(() => [...document.querySelectorAll('.entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await page.waitForTimeout(700);
+    const g = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, url: location.search, red: localStorage.getItem('cp_red'), gc: document.querySelector('button[data-resp="gc"]').getAttribute('aria-pressed'), mapsum: document.getElementById('mapsum').innerText }));
+    ok('entrar por Gobierno Central abre las vialidades primarias de la alcaldía, con sus avenidas en «Dónde empezar»', g.resp === 'gc' && g.titulo === 'Iztapalapa' && /^Avenidas de la alcaldía Iztapalapa/.test(g.ini) && g.n > 0 && g.gc === 'true', JSON.stringify(g));
+    ok('la red queda en la dirección y se recuerda', /r=gc/.test(g.url) && /a=007/.test(g.url) && g.red === 'gc');
+    await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+    const r = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, entrada: document.getElementById('entrada').hidden, url: location.search }));
+    ok('la siguiente visita abre en la misma red y alcaldía, sin preguntar', r.resp === 'gc' && r.titulo === 'Iztapalapa' && r.entrada && /r=gc/.test(r.url), JSON.stringify(r));
+    await ctx.close(); }
+  { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
+    await page.click('.entrada-red[data-red="gc"]'); await page.evaluate(() => document.getElementById('entrada-cdmx').click()); await page.waitForTimeout(600);
+    const c = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, red: localStorage.getItem('cp_red'), inicio: localStorage.getItem('cp_inicio') }));
+    ok('Gobierno Central en toda la ciudad: avenidas de la ciudad, y se recuerda', c.resp === 'gc' && c.titulo === 'Ciudad de México' && /^Avenidas de la ciudad/.test(c.ini) && c.red === 'gc' && c.inicio === 'ciudad', JSON.stringify(c));
+    await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+    ok('al volver, sigue en Gobierno Central y toda la ciudad', await page.evaluate(() => document.body.dataset.resp === 'gc' && document.getElementById('entrada').hidden && document.getElementById('scope-title').textContent === 'Ciudad de México'));
     await ctx.close(); }
   { const { page, ctx } = await L.abrir(browser, srv.url + '?modo=ligero&a=005#nomap', { entrada: true }, errores);
     const r = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, entrada: document.getElementById('entrada').hidden, guarda: localStorage.getItem('cp_inicio') }));
@@ -80,9 +105,9 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
 
     // ---------- capas, leyenda compacta y «Quién atiende» ----------
     const cap = await page.evaluate(() => { const lg = document.querySelector('.legend'), mini = document.getElementById('leymini'); const vis = e => getComputedStyle(e).display !== 'none';
-      return { cerrada: !lg.classList.contains('open') && !vis(lg), mini: vis(mini), colores: [...mini.querySelectorAll('i')].map(i => getComputedStyle(i).backgroundColor), respEnCapas: !!lg.querySelector('button[data-resp="gc"]') && !document.querySelector('.panel button[data-resp]'), prelimEnCapas: !!lg.querySelector('#prelim-note'), grupo: !!document.getElementById(lg.querySelector('.chips').getAttribute('aria-labelledby')) }; });
+      return { cerrada: !lg.classList.contains('open') && !vis(lg), mini: vis(mini), colores: [...mini.querySelectorAll('i')].map(i => getComputedStyle(i).backgroundColor), respEnPanel: !!document.querySelector('.panel .query button[data-resp="gc"]') && !lg.querySelector('button[data-resp]') && document.querySelector('.panel .query button[data-resp="gc"]').offsetParent !== null, prelimEnCapas: !!lg.querySelector('#prelim-note') && !!lg.querySelector('#resp-note'), grupo: !!document.getElementById(document.querySelector('.resp-row .chips').getAttribute('aria-labelledby')) }; });
     ok('el panel de capas está cerrado y la leyenda compacta muestra cinco colores distintos', cap.cerrada && cap.mini && new Set(cap.colores).size === 5, cap.colores.join(' '));
-    ok('«Quién atiende» y el aviso de asignación preliminar están en el panel de capas, con nombre de grupo', cap.respEnCapas && cap.prelimEnCapas && cap.grupo, JSON.stringify(cap));
+    ok('la fila «Atiende» está a la vista junto al buscador; su explicación y el aviso de asignación preliminar, en el panel de capas', cap.respEnPanel && cap.prelimEnCapas && cap.grupo, JSON.stringify(cap));
     await page.evaluate(() => document.getElementById('leymini').click()); await page.waitForTimeout(300);
     const ab = await page.evaluate(() => ({ abierta: document.querySelector('.legend').classList.contains('open'), mini: getComputedStyle(document.getElementById('leymini')).display, foco: document.activeElement.id, prelim: getComputedStyle(document.getElementById('prelim-note')).display !== 'none' && document.getElementById('prelim-note').offsetParent !== null }));
     ok('la leyenda compacta abre el panel de capas y cede su lugar', ab.abierta && ab.mini === 'none' && ab.foco === 'legend-toggle' && ab.prelim, JSON.stringify(ab));
@@ -90,8 +115,11 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
 
   // ---------- teléfono ----------
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true, viewport: { width: 360, height: 640 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true }, errores);
-    const t = await page.evaluate(() => { const c = document.querySelector('.entrada-card'); const b = [...c.querySelectorAll('button')].map(x => x.getBoundingClientRect()); return { desborde: c.scrollWidth - c.clientWidth, chico: b.filter(r => r.height < 44).length, fuera: b.filter(r => r.right > innerWidth + 1 || r.left < -1).length }; });
+    const t = await page.evaluate(() => { const c = document.querySelector('.entrada-card'); const b = [...c.querySelectorAll('button')].filter(x => x.offsetParent !== null && !x.classList.contains('linkbtn')).map(x => x.getBoundingClientRect()); return { desborde: c.scrollWidth - c.clientWidth, chico: b.filter(r => r.height < 44).length, fuera: b.filter(r => r.right > innerWidth + 1 || r.left < -1).length }; });
     ok('en teléfono la entrada no se sale a lo ancho y sus botones miden al menos 44 px', t.desborde <= 0 && t.chico === 0 && t.fuera === 0, JSON.stringify(t));
+    await page.evaluate(() => document.querySelector('.entrada-red[data-red="alc"]').click()); await page.waitForTimeout(200);
+    const t2 = await page.evaluate(() => { const c = document.querySelector('.entrada-card'); const b = [...c.querySelectorAll('button')].filter(x => x.offsetParent !== null && !x.classList.contains('linkbtn')).map(x => x.getBoundingClientRect()); return { desborde: c.scrollWidth - c.clientWidth, chico: b.filter(r => r.height < 44).length, fuera: b.filter(r => r.right > innerWidth + 1 || r.left < -1).length, n: b.length }; });
+    ok('en teléfono, el segundo paso tampoco se desborda', t2.desborde <= 0 && t2.chico === 0 && t2.fuera === 0 && t2.n === 17, JSON.stringify(t2));
     await page.evaluate(() => document.getElementById('entrada-cdmx').click()); await page.waitForTimeout(400);
     const tb = await page.evaluate(() => { const ts = document.querySelector('.tabs'); const m = document.getElementById('leymini').getBoundingClientRect(), s = document.getElementById('scalebar').getBoundingClientRect(); return { tabs: ts.scrollWidth - ts.clientWidth, pagina: document.documentElement.scrollWidth - innerWidth, cruza: !(m.right <= s.left || s.right <= m.left || m.bottom <= s.top || s.bottom <= m.top) }; });
     ok('en teléfono caben las cuatro pestañas, la página no se desborda y la leyenda compacta no tapa la escala', tb.tabs <= 0 && tb.pagina <= 0 && !tb.cruza, JSON.stringify(tb));

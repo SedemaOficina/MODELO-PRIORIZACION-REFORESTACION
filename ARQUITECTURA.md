@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.29 (4 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.30 (4 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -78,7 +78,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
-| `07_leyenda_y_capas.js` | Leyenda-filtro, «Quién atiende» (alcaldías / Gobierno Central; desde la v17.28 dentro del panel de capas), casillas de capas, mapa de fondo | `setResp`, `setLayer`, `setFondo` |
+| `07_leyenda_y_capas.js` | Leyenda-filtro, fila «Atiende» (alcaldías / Gobierno Central; junto al buscador, con su explicación y el aviso de asignación preliminar en el panel de capas), casillas de capas, mapa de fondo | `setResp`, `setLayer`, `setFondo` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; universo de intervención (Muy Alta, Alta y Media) y cuadro «Quién atiende» en km de frente por responsable | `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `repartoHtml`, `univHtml`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías; calle consultada (la resaltada). Pestaña inicial «Dónde empezar» (`renderInicio`): colonias del ámbito con orden elegible, calles de la colonia o avenidas | `nomFrente` (nombre único de un frente; «Frente sin nombre de calle (INEGI)»), `buildStreets`, `buildAvenues`, `desgHtml` (desglose de la calle por prioridad), `calleCoincide` y `renderUbicar` (paso de ubicación de un nombre repetido: alcaldías con conteo y renglones sin cifras), `renderResults`, `highlightStreet`, `calleSel` |
 | `09_tramos.js` | Tramos de la calle consultada: agrupa sus frentes de esquina a esquina con una regla geométrica (casi paralelos, en lados opuestos y traslapados) y nombra las vialidades que los delimitan; se calcula al consultar, sin cambiar los datos | `tramosDeCalle`, `entreTxt`, `tramosSel`, `renderTramos` |
@@ -119,7 +119,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 **Accesibilidad (bloque F1-B5):**
 - *Anuncios:* `anunciaAmbito()` (`10_seleccion.js`) escribe el ámbito y su cifra en `#sr-estado` (región viva); el conteo del listado, el estado de las descargas y el mensaje del cargador tienen `role="status"`; los errores de carga, `role="alert"`.
 - *Foco:* al elegir en el buscador el foco pasa a `#scope-title`; `showCard` enfoca la ficha (`enfocaFicha`) y `hideCard(true)` lo devuelve al control de origen; Esc cierra ayuda, ficha y capas (`13_interfaz.js`); con la ayuda abierta `.app` queda `inert`. En teléfono, si el foco llega a un control tapado por la ficha, la ficha se cierra.
-- *Entrada y recuerdo del territorio (v17.28):* sin consulta en la dirección, `16_arranque.js` abre en la última alcaldía consultada (`localStorage`, clave `cp_inicio`: clave de alcaldía o `ciudad`); si no hay nada recordado, `abreEntrada()` pregunta el territorio. Un enlace con consulta manda sobre lo recordado y no lo modifica. Si el navegador no permite `localStorage`, la herramienta pregunta en cada visita.
+- *Entrada y recuerdo del territorio (v17.28):* sin consulta en la dirección, `16_arranque.js` abre en la última alcaldía consultada (`localStorage`, clave `cp_inicio`: clave de alcaldía o `ciudad`; y, desde la v17.30, la red en `cp_red`: `alc`, `gc` o `both`); si no hay nada recordado, `abreEntrada()` pregunta, en dos pasos, la red (alcaldías o Gobierno Central) y el territorio. Un enlace con consulta manda sobre lo recordado y no lo modifica. Si el navegador no permite `localStorage`, la herramienta pregunta en cada visita.
 - *Listados:* los renglones son `li` con `role="button"`, se activan con Entrar o barra espaciadora (delegado en `09_listados.js`). Elegir un tramo abre la ficha de su frente de mayor prioridad: es la vía de teclado a la ficha de un frente.
 - *Mapa:* el lienzo lleva `role="application"` y un nombre que remite al listado; el texto está en `data-nombre` de `#map`.
 - *Documentos:* `propsPDF` y `propsExcel` ponen idioma, título y autoría. Las fichas no están etiquetadas (jsPDF no puede).
