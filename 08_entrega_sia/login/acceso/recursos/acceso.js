@@ -40,7 +40,7 @@
   $('f-entrar').addEventListener('submit', async e => { e.preventDefault(); const f = e.target; limpia(f); aviso('');
     const correo = $('correo').value.trim(), contrasena = $('contrasena').value;
     let mal = false;
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { error('correo-err', 'Escribe tu correo completo, por ejemplo nombre@alcaldia.cdmx.gob.mx.'); mal = true; }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { error('correo-err', 'Escribe tu correo completo, por ejemplo nombre@correo.com.'); mal = true; }
     if (!contrasena) { error('contrasena-err', 'Escribe tu contraseña.'); mal = true; }
     if (mal) { f.querySelector('[aria-invalid=true]').focus(); return; }
     ocupado(f, true);

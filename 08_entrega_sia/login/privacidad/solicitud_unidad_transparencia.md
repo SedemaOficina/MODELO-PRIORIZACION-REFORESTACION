@@ -26,7 +26,7 @@ Este registro implica un tratamiento de datos personales nuevo. Antes de poner e
 | Unidad responsable | Oficina de la Secretaría · Sistema de Información Ambiental |
 | Personas titulares | Personal de las alcaldías de la Ciudad de México, de dependencias del Gobierno de la Ciudad y de la SEDEMA que usan la herramienta por razón de su función |
 | Datos identificativos | Nombre completo |
-| Datos electrónicos | Correo institucional; dirección IP; cookie técnica de sesión; huella cifrada de la contraseña (no la contraseña) |
+| Datos electrónicos | Correo electrónico, personal o institucional a elección de la persona (no todo el personal de las alcaldías tiene correo institucional); dirección IP; cookie técnica de sesión; huella cifrada de la contraseña (no la contraseña) |
 | Datos laborales | Institución, alcaldía, permiso en la herramienta |
 | Datos de uso | Fecha y hora de accesos, intentos fallidos, visitas y cierres de sesión; territorio consultado; tipo y nombre de los archivos descargados |
 | Datos sensibles | Ninguno |

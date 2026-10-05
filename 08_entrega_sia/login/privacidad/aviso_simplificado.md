@@ -5,7 +5,7 @@
 La Secretaría del Medio Ambiente de la Ciudad de México, por medio del Sistema de Información Ambiental, es responsable de los datos personales que se recaban para usar la herramienta **Calles prioritarias para reforestar**.
 
 **Datos que se recaban:**
-- Nombre, correo institucional, institución y alcaldía de la cuenta.
+- Nombre, correo electrónico (personal o institucional), institución y alcaldía de la cuenta.
 - Al usar la herramienta: fecha y hora de accesos y visitas, territorio consultado, archivos descargados y dirección IP.
 - La contraseña no se conserva: solo una huella cifrada. No se recaban datos sensibles ni la ubicación.
 
