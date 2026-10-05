@@ -199,6 +199,53 @@ for c in META['cols']:
     geo_co.append(g)
 escribe('colonias_reforestacion', geo_co, co, 'MultiPolygon')
 
+# ---------- estilo incrustado para QGIS (tabla layer_styles): al abrir el GeoPackage, QGIS lo pinta con los colores de la herramienta ----------
+# Los mismos colores que los .sld de GeoServer (02_fuente/css/01_variables.css, p0 a p4). Las prioridades altas se dibujan encima.
+COLORES = [(249, 231, 191), (244, 197, 110), (232, 138, 46), (194, 66, 27), (127, 29, 18)]
+import sqlite3
+
+
+def qml(tipo, ancho):
+    cats = ''.join('<category symbol="%d" value="%d" label="%s" render="true" type="integer"/>' % (k, k, PRIO[k]) for k in range(5))
+    if tipo == 'line':
+        capa = lambda c: ('<layer class="SimpleLine" pass="0" locked="0" enabled="1"><Option type="Map">'
+                          '<Option value="%d,%d,%d,255" type="QString" name="line_color"/><Option value="solid" type="QString" name="line_style"/>'
+                          '<Option value="%s" type="QString" name="line_width"/><Option value="MM" type="QString" name="line_width_unit"/>'
+                          '<Option value="round" type="QString" name="capstyle"/><Option value="round" type="QString" name="joinstyle"/></Option></layer>') % (c + (ancho,))
+    else:
+        capa = lambda c: ('<layer class="SimpleFill" pass="0" locked="0" enabled="1"><Option type="Map">'
+                          '<Option value="%d,%d,%d,153" type="QString" name="color"/><Option value="solid" type="QString" name="style"/>'
+                          '<Option value="107,107,107,204" type="QString" name="outline_color"/><Option value="solid" type="QString" name="outline_style"/>'
+                          '<Option value="0.2" type="QString" name="outline_width"/><Option value="MM" type="QString" name="outline_width_unit"/></Option></layer>') % c
+    simbolos = ''.join('<symbol type="%s" name="%d" alpha="1" clip_to_extent="1" force_rhr="0" frame_rate="10" is_animated="0">%s</symbol>'
+                       % ('line' if tipo == 'line' else 'fill', k, capa(COLORES[k])) for k in range(5))
+    return ("<!DOCTYPE qgis PUBLIC 'http://mrcc.com/qgis.dtd' 'SYSTEM'>\n"
+            '<qgis version="3.34.6-Prizren" styleCategories="Symbology">'
+            '<renderer-v2 type="categorizedSymbol" attr="clase_prioridad" enableorderby="1" forceraster="0" symbollevels="0" referencescale="-1">'
+            '<categories>%s</categories><symbols>%s</symbols>'
+            '<orderby><orderByClause asc="1" nullsFirst="1">"clase_prioridad"</orderByClause></orderby></renderer-v2></qgis>') % (cats, simbolos)
+
+
+def incrusta(nombre, tipo, ancho):
+    con = sqlite3.connect(os.path.join(SAL, nombre + '.gpkg'))
+    con.execute('CREATE TABLE IF NOT EXISTS layer_styles (id INTEGER PRIMARY KEY AUTOINCREMENT, f_table_catalog TEXT(256), f_table_schema TEXT(256), '
+                'f_table_name TEXT(256), f_geometry_column TEXT(256), styleName TEXT(30), styleQML TEXT, styleSLD TEXT, useAsDefault BOOLEAN, '
+                'description TEXT, owner TEXT(30), ui TEXT(30), update_time DATETIME DEFAULT CURRENT_TIMESTAMP)')
+    con.execute("INSERT OR IGNORE INTO gpkg_contents (table_name, data_type, identifier, description) VALUES ('layer_styles', 'attributes', 'layer_styles', '')")
+    con.execute('DELETE FROM layer_styles WHERE f_table_name = ?', (nombre,))
+    ruta_sld = os.path.join(SAL, nombre + '.sld')
+    sld = open(ruta_sld, encoding='utf-8').read() if os.path.exists(ruta_sld) else ''
+    con.execute("INSERT INTO layer_styles (f_table_catalog, f_table_schema, f_table_name, f_geometry_column, styleName, styleQML, styleSLD, useAsDefault, description, owner) "
+                "VALUES ('', '', ?, 'geom', ?, ?, ?, 1, 'Prioridad de reforestación con los colores de la herramienta Calles prioritarias para reforestar', 'SIA')",
+                (nombre, nombre, qml(tipo, ancho), sld))
+    con.commit(); con.close()
+
+
+incrusta('frentes_reforestacion', 'line', '0.4')
+incrusta('vialidades_primarias_reforestacion', 'line', '1.2')
+incrusta('colonias_reforestacion', 'fill', None)
+paso('estilo de QGIS incrustado en los tres GeoPackage')
+
 # ---------- comprobaciones y manifiesto ----------
 kmp = sum(l for l, p_, r_ in zip(fr['longitud_m'], fr['clase_prioridad'], fr['responsable']) if p_ >= 3 and r_ == 'Alcaldía') / 1000
 print('km prioritarios a cargo de las alcaldías: %.1f · frentes de Gobierno Central: %d · vialidades: %d · colonias: %d'

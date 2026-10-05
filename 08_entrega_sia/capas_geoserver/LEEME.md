@@ -19,7 +19,9 @@ Todas las capas:
 - Usan texto en UTF-8.
 - Traen **índice espacial**.
 
-Cada GeoPackage tiene una sola tabla, con el mismo nombre que el archivo. `MANIFIESTO.sha256` trae la huella de cada archivo; para comprobarlos: `sha256sum -c MANIFIESTO.sha256`.
+Cada GeoPackage tiene una tabla de datos, con el mismo nombre que el archivo, y la tabla `layer_styles` con el **estilo incrustado**: QGIS pinta la capa con los colores de la herramienta al abrirla, sin cargar nada más. GeoServer no lee esa tabla; usa el `.sld`, que tiene los mismos colores (`#7F1D12` Muy Alta, `#C2421B` Alta, `#E88A2E` Media, `#F4C56E` Baja, `#F9E7BF` Muy Baja).
+
+No usar el `frentes_manzanas_verdes.qml` del paquete original del modelo: asigna los colores en orden alfabético y pinta «Muy Alta» de verde. `MANIFIESTO.sha256` trae la huella de cada archivo; para comprobarlos: `sha256sum -c MANIFIESTO.sha256`.
 
 ## Publicación (GeoServer, interfaz web)
 
