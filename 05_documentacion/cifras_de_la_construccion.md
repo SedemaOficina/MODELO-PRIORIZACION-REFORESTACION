@@ -20,4 +20,4 @@ Medidas al construir la versión 17.37. README y ARQUITECTURA remiten a esta tab
 | Archivos que se piden al abrir, sin comprimir | 6.7 MB |
 | Archivo único (`_local/calles_prioritarias.html`) | 10.6 MB |
 | Archivos que guarda el navegador para abrir sin conexión | 16 |
-| Mapas de fondo | Calles (CARTO): sin clave · Satélite (Esri): sin clave |
+| Mapas de fondo | Calles (CARTO): con clave · Satélite (Esri): sin clave |

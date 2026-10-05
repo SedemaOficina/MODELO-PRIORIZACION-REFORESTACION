@@ -43,6 +43,6 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Instrumentos de datos personales | **Borradores** en `login/privacidad/`: aviso integral, aviso simplificado y solicitud a la Unidad de Transparencia. **Falta su aprobación** antes de abrir |
 | Configuración de nginx (con y sin login) | Escrita; **sin validar con `nginx -t`** |
 | Guía de instalación, actualización y reversión | Escrita; **sin ensayar por una persona distinta de quien la escribió** |
-| Claves de los mapas de fondo (CARTO y Esri) | Pendientes de solicitar. Sin la de CARTO, el fondo «Calles» muestra la marca «API key required»; «Sin mapa» y «Satélite» funcionan |
+| Claves de los mapas de fondo | CARTO: lista (5 oct 2026), restringida a `sedema.sia.cdmx.gob.mx` y `sedemaoficina.github.io`; para el paquete se toma de `02_fuente/claves.local.json`. Esri: pendiente (el satélite funciona sin clave por ahora) |
 | Insumos originales (modelo de priorización y vialidades primarias) | Localizados y comprobados; en la copia local, con sus huellas en `03_procesamiento_datos/SUMAS_INSUMOS.md` |
 | Capas para GeoServer | Listas en `capas_geoserver/`, revisadas en QGIS. Nota: la caché de teselas de GeoServer está apagada por falta de disco; precargarla requiere espacio en el volumen de datos |
