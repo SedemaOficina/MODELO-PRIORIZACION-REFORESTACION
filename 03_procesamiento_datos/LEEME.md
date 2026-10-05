@@ -10,6 +10,7 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 |---|---|---|
 | `insumos/IDS_ut/` | Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX), con su diccionario | Sí |
 | `insumos/VP_REFORESTACION/` | Capa de vialidades primarias priorizadas para reforestación (SEDEMA, agosto de 2026): `PRIMARIAS_REFORESTACION.shp` y sus archivos | No (copia local desde el 5 oct 2026; huellas en `SUMAS_INSUMOS.md`) |
+| `insumos/originales/` | Los insumos tal como se recibieron: `shp_frentes_manzanasv.rar` (modelo de priorización, nov. 2025, origen de las prioridades) y `VP_REFORESTACION.rar` (vialidades primarias). Huellas y comprobación en `SUMAS_INSUMOS.md` | No: copia local |
 | `insumos/slide_orig.jpg` | Lámina original de composición de frentes (solo para `lamina_composicion.py`) | No |
 | `intermedios/` | Resultados de cada paso: `frentes.npz`, `meta.json`, `cruce.npz` | Sí: permiten regenerar los datos sin repetir los pasos 1 y 2 |
 
@@ -49,6 +50,8 @@ node 04_pruebas/correr_todas.js
 | Insumo | Para qué | Estado al 3 de octubre de 2026 |
 |---|---|---|
 | `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | Localizada el 5 oct 2026 y copiada aquí (copia local). Falta entregarla al SIA |
+| `insumos/originales/shp_frentes_manzanasv.rar` | Origen del modelo (la v6 se armó a partir de él) | Localizado el 5 oct 2026 y copiado aquí |
+| `insumos/slide_orig.jpg` | Solo `lamina_composicion.py` | **No se encontró** en la computadora (búsqueda del 5 oct 2026). No es crítico: sus resultados ya están en `06_entregables/composicion_frentes_manzana*.png` |
 | `07_versiones/calles_prioritarias_v6_original.html` | Paso 1 (origen de los frentes priorizados) | Solo en la copia local; su suma está en `SUMAS_INSUMOS.md` |
 | Modelo de priorización de frentes (SIA, nov. 2025) | Origen de la prioridad de cada frente | No se tiene; depende del SIA |
 
