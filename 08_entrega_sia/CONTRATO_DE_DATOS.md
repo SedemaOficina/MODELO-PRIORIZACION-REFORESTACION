@@ -39,7 +39,7 @@ Grados decimales (longitud, latitud, WGS 84) multiplicados por `Q = 100000` y re
 | 9 | Número de vértices `nv` | ≥ 2 |
 | 10 | `nv` pares (Δlongitud, Δlatitud) | Ver sección 3 |
 
-**Arbolado (bits 0–2).** La herramienta solo usa el valor 1, «sin arbolado». Los valores presentes son 0 (160,694 frentes), 1 (130,119), 2 (62,747), 3 (12,429) y 4 (6,545). Los conteos de 2, 3 y 4 son idénticos a los de banqueta «Conjunto habitacional», «No aplica» y «No especificado», lo que indica que ambos campos usan el mismo catálogo (0 = dispone de arbolado, 1 = no dispone). **Es una inferencia: debe confirmarla quien generó el modelo.** 81,721 frentes (21.9 %) no tienen dato de arbolado ni de banqueta.
+**Arbolado (bits 0–2).** La herramienta solo usa el valor 1, «sin arbolado». Los valores presentes son 0 (160,694 frentes), 1 (130,119), 2 (62,747), 3 (12,429) y 4 (6,545). Los conteos de 2, 3 y 4 son idénticos a los de banqueta «Conjunto habitacional», «No aplica» y «No especificado», porque ambos campos usan el mismo catálogo de INEGI. **Confirmado el 5 oct 2026** con la capa del modelo (`ARBOLES_D` y `BANQUETA_D`, códigos 1 Dispone, 3 No dispone, 7, 8, 9): los conteos de cada código son idénticos. Ver `05_documentacion/capas_geograficas.md`. 81,721 frentes (21.9 %) no tienen dato de arbolado ni de banqueta.
 
 ## 5. `vp.bin` · partes de vialidad primaria
 
