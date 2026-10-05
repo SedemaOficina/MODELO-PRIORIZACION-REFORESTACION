@@ -44,10 +44,11 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
   $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); }
 // ---------- la consulta queda en la dirección (auditoría H-042) ----------
-// r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida. Atrás y Adelante recorren las consultas,
+// r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida, b = banqueta (con | sin; v17.35). Atrás y Adelante recorren las consultas,
 // la consulta sobrevive a una recarga y la dirección se puede compartir.
-function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v'].forEach(k=>p.delete(k));
+function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v','b'].forEach(k=>p.delete(k));
   if (resp!=='alc') p.set('r', resp);
+  if (filtroBanq!=='todas' && resp!=='gc') p.set('b', filtroBanq);
   if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
   const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
 // La última alcaldía y la red consultadas se recuerdan en este navegador (v17.28 y v17.30): la siguiente visita abre ahí. No son datos personales.
@@ -65,6 +66,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
     if (p.has('c') && r!=='gc' && Number.isInteger(c) && c>0 && META.colonias[c] && META.colonias[c].n){ if (selCol!==c) pickColonia(c); }
     else if (p.has('v') && r==='gc' && Number.isInteger(v) && v>0 && VPC.nomenclat[v]){ if (sel!==m){ sel=m; selEl.value = m===null? '' : String(m); } if (selAv!==v) pickAvenida(v); else refresh(); }
     else if (sel!==m || selCol!==null || selAv!==null){ selEl.value = m===null? '' : String(m); setSel(selEl.value); }
+    const b = p.get('b')==='con' || p.get('b')==='sin'? p.get('b') : 'todas'; if (b!==filtroBanq) setBanq(b);
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
 function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;

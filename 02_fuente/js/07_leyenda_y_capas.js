@@ -26,6 +26,7 @@ document.querySelectorAll('button[data-resp]').forEach(b=>{ b.onclick = ()=>{ co
 function setResp(v, sinRefresh){
   respOn.alc = v!=='gc'; respOn.gc = v!=='alc';
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
+  $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
   if (resp===v) return; resp=v;
   document.body.dataset.resp = v;
   if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; }
@@ -41,6 +42,13 @@ function setResp(v, sinRefresh){
     : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para cada responsable.';
   buildVP(); if (!sinRefresh) refresh();
 }
+
+// ---------- fila «Banqueta» (v17.35): filtra los frentes de las alcaldías según INEGI 2020; ver filtroBanq en 03_estado.js ----------
+const banqBtns = document.querySelectorAll('button[data-banq]');
+function setBanq(v){ if (v!=='con' && v!=='sin') v = 'todas'; if (filtroBanq===v) return; filtroBanq = v;
+  banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v)));
+  highlight = null; hideCard(); refresh(); }   // la calle resaltada se arma con el filtro anterior: se suelta
+banqBtns.forEach(b=>{ b.onclick = ()=> setBanq(b.dataset.banq); });
 
 const LAY = { alc: ()=>showAlcB, col: ()=>showColB, fr: ()=>showFrB };
 function setLayer(k, v){ if(k==='alc') showAlcB=v; else if(k==='col') showColB=v; else showFrB=v; document.querySelector(`.seg.lvl button[data-lvl="${k}"]`).setAttribute('aria-pressed', String(v)); }

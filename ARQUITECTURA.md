@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.34 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.35 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -25,7 +25,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
-├── 04_pruebas/                correr_todas.js, diez pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
+├── 04_pruebas/                correr_todas.js, once pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
 ├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
 ├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
@@ -78,7 +78,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
-| `07_leyenda_y_capas.js` | Leyenda-filtro, fila «Atiende» (alcaldías / Gobierno Central; junto al buscador, con su explicación y el aviso de asignación preliminar en el panel de capas), casillas de capas, mapa de fondo | `setResp`, `setLayer`, `setFondo` |
+| `07_leyenda_y_capas.js` | Leyenda-filtro, fila «Atiende» (alcaldías / Gobierno Central; junto al buscador, con su explicación y el aviso de asignación preliminar en el panel de capas), fila «Banqueta» (v17.35), casillas de capas, mapa de fondo | `setResp`, `setBanq`, `setLayer`, `setFondo` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; universo de intervención (Muy Alta, Alta y Media) y cuadro «Quién atiende» en km de frente por responsable | `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `repartoHtml`, `univHtml`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías; calle consultada (la resaltada). Pestaña inicial «Dónde empezar» (`renderInicio`): colonias del ámbito con orden elegible, calles de la colonia o avenidas | `nomFrente` (nombre único de un frente; «Frente sin nombre de calle (INEGI)»), `buildStreets`, `buildAvenues`, `desgHtml` (desglose de la calle por prioridad), `calleCoincide` y `renderUbicar` (paso de ubicación de un nombre repetido: alcaldías con conteo y renglones sin cifras), `renderResults`, `highlightStreet`, `calleSel` |
 | `09_tramos.js` | Tramos de la calle consultada: agrupa sus frentes de esquina a esquina con una regla geométrica (casi paralelos, en lados opuestos y traslapados) y nombra las vialidades que los delimitan; se calcula al consultar, sin cambiar los datos | `tramosDeCalle`, `entreTxt`, `tramosSel`, `renderTramos` |
@@ -105,10 +105,13 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
 | `fondo` | Mapa de fondo: `'no'`, `'calles'` o `'sat'` |
 | `opPrio` | Opacidad de las capas de prioridad (0.2 a 1) |
+| `filtroBanq` | Filtro de banqueta de los frentes de las alcaldías: `'todas'`, `'con'` o `'sin'` (v17.35) |
 
 **Reglas de negocio en un solo lugar:** «prioritario» es clase ≥ `PRIO_MIN` (Alta y Muy Alta) y «universo de intervención», clase ≥ `UNIV_MIN` (Media en adelante). Todo el código pregunta con `esPrio(clase)` y suma con `sumPrio(arreglo)` o `sumUniv(arreglo)`; no debe escribirse `>=3` ni `[3]+[4]`. Las comparaciones `===3` y `===4` que quedan separan Alta de Muy Alta (columnas distintas en los Excel).
 
-**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía. Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición.
+**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía; y, desde la v17.35, el filtro de banqueta (`pasaBanq`). Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición. Las cifras que se guardan en caché (`colStat`, `repStat`, `sinColStat`) se rehacen al cambiar `filtroBanq`; `frSumm` recalcula desde los frentes cuando hay filtro. `banqDesglose` da los km prioritarios con banqueta, sin banqueta y por verificar **sin** aplicar el filtro: es el desglose que muestran siempre el Resumen y las fichas.
+
+**Banqueta (v17.35):** «con» = INEGI 2020 registra banqueta (índice 0 de `META.disp`, «Dispone»); «sin» = cualquier otro valor (no dispone, conjunto habitacional, no aplica, no especificado). Solo afecta a los frentes de manzana; las vialidades primarias no tienen ese dato. La fila se oculta con Gobierno Central.
 
 **Errores y arranque:** `errAmable(mensaje, detalle)` (en `01_utilidades.js`) crea errores cuyo `amable` es lo que ve la persona; el cierre de `app.js` lo muestra con «Reintentar». `config.js` lleva además un vigía (definido en `construir.py`) que avisa si un programa no llega o la carga tarda más de 45 s. `02_datos.js` verifica que cada archivo traiga exactamente los registros declarados. Los textos de los catálogos se neutralizan al cargar (`limpioCat`).
 

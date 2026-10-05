@@ -25,6 +25,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 | `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas y «Compartir» | 1 min |
 | `prueba_casos_limite.js` | Casos de la revisión del 5 oct 2026: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
+| `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central | 1 min |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Lote de fichas de las alcaldías** (no es una prueba; vive aquí porque usa las mismas herramientas): `node 04_pruebas/generar_fichas_alcaldias.js` descarga, por alcaldía, la ficha de la alcaldía, la de vialidades primarias y la de la colonia con más frente prioritario, en `_local/fichas_alcaldias_vX.YY/`; `python 04_pruebas/unir_fichas.py CARPETA` (requiere `pypdf`) las une en `00_todas_las_fichas.pdf` y arma el zip. Unos 5 minutos.

@@ -28,6 +28,9 @@
           <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
           <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
         </div></div>
+        <div class="resp-row banq-row" id="banq-row"><span class="lab" id="banq-label">Banqueta</span><div class="seg pills banq" role="group" aria-labelledby="banq-label">
+          <button type="button" data-banq="todas" aria-pressed="true">Todas</button><button type="button" data-banq="con" aria-pressed="false" title="Frentes donde INEGI 2020 registra banqueta: plantación directa">Con banqueta</button><button type="button" data-banq="sin" aria-pressed="false" title="Sin banqueta registrada o por verificar: requieren reconocimiento en sitio">Sin o por verificar</button>
+        </div></div>
         <nav class="crumb" id="crumb" aria-label="Ruta de la consulta">
           <button type="button" class="cr-city" id="cr-city">Ciudad de México</button><span class="cr-sep" aria-hidden="true">›</span>
           <span class="cr-alc"><select id="alc" aria-label="Alcaldía"><option value="">Elige una alcaldía</option></select></span>
@@ -317,6 +320,7 @@
     <h3><span class="step">4</span>Cómo usar esta herramienta</h3>
     <ul class="uses">
       <li><b>Empiece por Muy Alta y Alta.</b> Son las calles donde el arbolado tiene mayor efecto sobre calor, sombra y equidad. Media se atiende cuando se cubran las anteriores o cuando exista demanda vecinal.</li>
+      <li><b>Separe por banqueta, sin descartar.</b> La fila <b>Banqueta</b> filtra los frentes de las alcaldías según el registro de INEGI 2020: <b>Con banqueta</b> reúne los frentes para plantación directa; <b>Sin o por verificar</b>, los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato, que requieren reconocimiento en sitio. El mapa, las cifras, los listados, los Excel, los mapas descargables y las fichas siguen el filtro; el Resumen y las fichas muestran siempre el desglose completo. El dato puede haber cambiado desde 2020.</li>
       <li><b>Distinga «prioritario» de «universo de intervención».</b> Prioritario es Muy Alta y Alta. El universo de intervención suma además la prioridad Media; la herramienta lo reporta aparte, con los kilómetros que no tienen arbolado y los que además disponen de banqueta según INEGI.</li>
       <li><b>Una calle no tiene una sola prioridad.</b> Cada calle reúne frentes de manzana que pueden tener prioridades distintas; el listado muestra sus kilómetros en cada prioridad y la predominante. Al elegir una calle, la pestaña Listado la divide en tramos de esquina a esquina, con las vialidades que los delimitan; es una aproximación geométrica que se confirma en campo.</li>
       <li><b>Para encontrar una calle, diga dónde.</b> Muchos nombres de calle se repiten en la ciudad. Si busca uno sin elegir alcaldía, la herramienta muestra las alcaldías y colonias donde existe para que elija; también puede escribir la calle con su colonia o alcaldía, por ejemplo «Ayuntamiento Centro».</li>

@@ -31,7 +31,16 @@ let COLORS = new Uint8Array(V*4);
 // Filtro único de frentes del ámbito consultado. Lo usan el mapa, las cifras, el listado, los Excel y las fichas,
 // para que todos hablen del mismo territorio: con colonia elegida manda la colonia (aunque parte de sus frentes
 // pertenezca a otra alcaldía en el catálogo); sin colonia, manda la alcaldía.
-const enAmbito = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.mun[i]===sel);
+// Banqueta (v17.35): «con» = INEGI 2020 registra banqueta (Dispone); «sin» = no la registra o queda por verificar (No dispone,
+// conjunto habitacional, no aplica, no especificado). No descarta frentes: separa los de plantación directa de los que requieren
+// reconocimiento en sitio. Forma parte del filtro único, así que mapa, cifras, listados, Excel, mapas descargables y fichas lo respetan.
+let filtroBanq = 'todas';   // 'todas' | 'con' | 'sin'
+const conBanq = i => ((F.flags[i]>>3)&7)===0;
+const pasaBanq = i => filtroBanq==='todas' || (filtroBanq==='con') === conBanq(i);
+const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.mun[i]===sel);
+const enAmbito = i => enTerritorio(i) && pasaBanq(i);
+// texto que acompaña al ámbito cuando el filtro de banqueta está activo
+const banqTxt = () => filtroBanq==='con'? 'solo frentes con banqueta (INEGI 2020)' : filtroBanq==='sin'? 'solo frentes sin banqueta o por verificar (INEGI 2020)' : '';
 function buildColors(){
   for(let i=0;i<N;i++){ const c=T.prio[F.prio[i]]; const a = enAmbito(i)? 255 : 38; for(let k=start[i];k<start[i+1];k++){ const o=4*k; COLORS[o]=c[0]; COLORS[o+1]=c[1]; COLORS[o+2]=c[2]; COLORS[o+3]=a; } }
   COLORS = COLORS.slice(0);

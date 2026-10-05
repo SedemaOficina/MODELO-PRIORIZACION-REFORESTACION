@@ -25,7 +25,9 @@ async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(file
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 // las descargas de vialidades primarias no se filtran por colonia: su nombre y su ámbito tampoco la declaran
 const scopeSlugVP = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '');
-const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selCol!==null? '_'+slug(colNombre(selCol)) : '') + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '');
+// el filtro de banqueta (v17.35) va en el nombre: dos archivos de la misma consulta con distinto filtro no se confunden
+const banqSlug = ()=> filtroBanq==='con'? '_con_banqueta' : filtroBanq==='sin'? '_sin_banqueta' : '';
+const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selCol!==null? '_'+slug(colNombre(selCol)) : '') + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '') + banqSlug();
 // ---------- diccionario de datos ----------
 const NOTAS_COMUNES = [
   'Prioritario = clases Muy Alta y Alta de la escala de cinco niveles (Muy Alta, Alta, Media, Baja, Muy Baja).',
@@ -124,8 +126,9 @@ function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Bo
 function ambitoTxt(key){
   const vp = key==='tramos' || key==='avenidas';
   if (selAv!==null && (vp || isGC())) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad');
-  if (selCol!==null && !vp) return colNombre(selCol) + ' · ' + META.munNames[sel];
-  return sel===null? 'Ciudad de México' : META.munNames[sel];
+  const b = filtroBanq!=='todas' && !vp? ' · ' + banqTxt() : '';
+  if (selCol!==null && !vp) return colNombre(selCol) + ' · ' + META.munNames[sel] + b;
+  return (sel===null? 'Ciudad de México' : META.munNames[sel]) + b;
 }
 function dictAoa(key, nreg, archivo, extra){
   const d = DIC[key];
@@ -237,7 +240,7 @@ $('dl-calle').onclick = ()=>{
   const idx=[...c.idx].sort((a,b)=> nt(a)-nt(b) || F.prio[b]-F.prio[a]);
   for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([i, META.prio[F.prio[i]], nomFrente(i), META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.n? (k.pob||0) : '', k.n? (k.nbi||0) : '', META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], nt(i)||'', tr.has(i)? entreTxt(tr.get(i)) : '', num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
-  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]]);
+  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${banqSlug()}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]]);
 };
 $('dl-calles').onclick = ()=>{
   if (sel===null) return;
@@ -279,7 +282,8 @@ const geoCoord = (A, k) => [+A[2*k].toFixed(6), +A[2*k+1].toFixed(6)];
 const geoFr = i => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', responsable:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i] });
 const geoVp = i => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', responsable:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i] });
 const geoNota = () => `Calles prioritarias para reforestar · ${ambitoGeo()} · prioridades Muy Alta y Alta. ${FUENTES} La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: la regla está en validación.${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
-const ambitoGeo = () => selCol!==null? `Colonia ${colNombre(selCol)}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
+const ambitoGeoBase = () => selCol!==null? `Colonia ${colNombre(selCol)}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
+const ambitoGeo = () => ambitoGeoBase() + (filtroBanq!=='todas' && respOn.alc && sel!==null? ' · ' + banqTxt() : '');
 const xmlEsc = v => String(v??'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
 function geoJSON(g){ const f = [];
   const linea = (A, a, b) => { const c = []; for(let k=a;k<b;k++) c.push(geoCoord(A,k)); return c; };

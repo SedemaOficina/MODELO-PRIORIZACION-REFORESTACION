@@ -2,17 +2,17 @@
 
 Generado por 02_fuente/construir.py en cada construcción. No editar aquí.
 
-Medidas al construir la versión 17.34. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
+Medidas al construir la versión 17.35. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
 
 | Concepto | Valor |
 |---|---|
-| Versión de la herramienta | 17.34 |
+| Versión de la herramienta | 17.35 |
 | Corte de los datos | modelo de priorización de nov. 2025; vialidades primarias de ago. 2026 |
 | Módulos de lógica (`02_fuente/js/`) | 17 |
 | Hojas de estilo (`02_fuente/css/`) | 8 |
-| `docs/index.html` | 41 KB |
-| `docs/app.js` | 238 KB |
-| `docs/estilos.css` | 67 KB |
+| `docs/index.html` | 43 KB |
+| `docs/app.js` | 243 KB |
+| `docs/estilos.css` | 68 KB |
 | Datos (`docs/datos/*.bin`) | 4.3 MB |
 | Librerías (`docs/libs/*.js`) | 3.3 MB |
 | Tipografías (`docs/fuentes/*.woff2`) | 62 KB |

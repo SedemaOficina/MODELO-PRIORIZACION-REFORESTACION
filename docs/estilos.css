@@ -853,3 +853,14 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
   .mapsum .st{white-space:normal;min-width:0}
   .mapsum .st small{line-height:1.2}
 }
+
+/* ---------- fila «Banqueta» (v17.35): filtro de los frentes de las alcaldías según INEGI 2020 ---------- */
+.query .banq-row{margin-top:6px}
+.banq-row[hidden]{display:none}
+.banq-row .seg.pills{flex-wrap:nowrap;gap:5px}
+.banq-row .seg.pills button{padding:5px 10px;white-space:nowrap}
+.banq-tag{color:var(--guinda-ink);font-weight:600}
+.univline.banq span{font-size:.8125rem}
+@media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
+/* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css, H-076) */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}

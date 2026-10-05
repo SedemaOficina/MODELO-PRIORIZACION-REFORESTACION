@@ -28,8 +28,9 @@ const SIN_NOMBRE = 'Frente sin nombre de calle (INEGI)';
 const sinNombreFr = i => PLACEHOLDER.has(F.name[i]) || !META.names[F.name[i]];
 const nomFrente = i => sinNombreFr(i)? SIN_NOMBRE : META.names[F.name[i]];
 // frentes de alcaldía sin colonia asignada (auditoría H-028): no aparecen en ninguna consulta por colonia
-const SINCOL = (()=>{ const a = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i]) continue; const s=a[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } return a; })();
-const sinColStat = () => sel!==null? SINCOL[sel] : SINCOL.reduce((t,s)=>({n:t.n+s.n, km:t.km+s.km, kmp:t.kmp+s.kmp}), {n:0,km:0,kmp:0});
+let SINCOL = null, SINCOL_B = null;   // se rehace al cambiar el filtro de banqueta
+const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroBanq){ SINCOL_B = filtroBanq; SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaBanq(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
+const sinColStat = () => sel!==null? sinColBase()[sel] : sinColBase().reduce((t,s)=>({n:t.n+s.n, km:t.km+s.km, kmp:t.kmp+s.kmp}), {n:0,km:0,kmp:0});
 function renderAlcRanking(){
   const items = META.muns.map((m,i)=>i).sort((a,b)=> rankOf(a)-rankOf(b));
   $('search-title').textContent = isGC()? 'Alcaldías ordenadas por km prioritarios de vialidad primaria' : 'Alcaldías ordenadas por km de frente prioritario'; $('search-count').textContent='16 alcaldías de la ciudad';
@@ -205,7 +206,7 @@ function renderInicio(){
     const items=[]; for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const s=colStat(i); if (iniOrden==='pl'? s.pl>0 : s.kmp>0) items.push([i,s,c,o.val(s,c)]); }
     items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp); total=items.length;
     cnt.textContent = `${fmt.format(total)} colonia${total===1?'':'s'}, ${o.tit}`;
-    if(!total) return vacio('Este ámbito no tiene colonias con frente prioritario.');
+    if(!total) return vacio(iniOrden==='pl' && filtroBanq==='sin'? 'Este orden cuenta solo frentes con banqueta y el filtro de banqueta muestra los que no la tienen: elige otro orden o la opción «Todas» de Banqueta.' : 'Este ámbito no tiene colonias con frente prioritario.');
     items.slice(0,iniN).forEach(([i,s,c],k)=>{ const tot=sum(s.km);
       const [v,sm] = iniOrden==='pct'? [pct(s.kmp,tot), `${kmFull(s.kmp)} de ${kmFull(tot)} de frente`]
         : iniOrden==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]
