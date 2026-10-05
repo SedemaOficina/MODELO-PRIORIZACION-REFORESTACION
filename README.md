@@ -80,7 +80,7 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 
 | Versión | Qué atendió |
 |---|---|
-| 17.38 | Encabezado con inicio de sesión: «Cómo funciona» y «Cerrar sesión» juntas, debajo del título y alineadas a la derecha (antes «Cerrar sesión» desplazaba a «Cómo funciona» a otro renglón) |
+| 17.38 | Encabezado con inicio de sesión: «Cómo funciona» sigue junto al título y «Cerrar sesión» pasa a «Salir», con ícono, en el renglón de los logotipos (antes desplazaba a «Cómo funciona» a otro renglón). «Compartir» avisa, con sesión, que quien abra el enlace necesita cuenta |
 | 17.37 | Inicio de sesión y registro de usos (decisión: controlar el acceso y saber los usos). La herramienta avisa al servidor qué consulta y qué descarga, solo cuando está instalada con sesión. Se entregan en `08_entrega_sia/login/` el módulo para el backend del SIA, el esquema, la pantalla de acceso, el panel de administración y los borradores de privacidad |
 | 17.36 | Recorrido guiado general de doce pasos por la plataforma: arranca solo en la primera visita, después de la entrada, y se repite desde «Cómo funciona». Muestra la fila Banqueta y abre la ficha de una calle real para enseñar la pre-evaluación con Street View antes de salir a campo |
 | 17.35 | Filtro de banqueta: la fila «Banqueta» (Todas · Con banqueta · Sin o por verificar) separa los frentes de las alcaldías según INEGI 2020 para planear visitas de plantación directa y de reconocimiento en sitio; mapa, cifras, listados, Excel, mapas descargables y fichas siguen el filtro, y el Resumen y las fichas muestran siempre el desglose completo |

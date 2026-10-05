@@ -78,13 +78,14 @@
 .ld-msg{font-size:.75rem;margin-top:4px}
 .ld-err{font-size:.75rem;margin-top:6px;max-width:320px;margin-left:auto;margin-right:auto}
 .ld-err a,.status a,.act-status a{color:var(--guinda-ink);font-weight:600}
-.sesion-salir{text-decoration:underline;cursor:pointer}
-/* acciones del encabezado (v17.38): «Cómo funciona» y, con inicio de sesión, «Cerrar sesión», juntas y en ese orden.
-   Con sesión, el título ocupa su renglón y las dos acciones van debajo, a la derecha, para que el título no se corte */
-.panel-head .head-acts{display:flex;align-items:center;justify-content:flex-end;gap:14px;white-space:nowrap}
-.panel-head .head-acts .linkbtn{margin-top:0;font-size:.75rem}
-body.con-sesion .panel-head h1{grid-column:1/-1}
-body.con-sesion .panel-head .head-acts{grid-column:1/-1}
+/* Cerrar sesión (v17.38): en el renglón de los logotipos, a la derecha, con ícono de salir. «Cómo funciona» sigue junto al título.
+   Sin sesión el logotipo ocupa todo el renglón, como siempre. */
+body.con-sesion .panel-head .logo{grid-column:1}
+.panel-head .sesion-salir{grid-column:2;grid-row:1;justify-self:end;display:inline-flex;align-items:center;gap:4px;min-height:32px;padding:4px 6px;border-radius:6px;
+  color:var(--guinda);font:600 .75rem/1 Cabin,sans-serif;text-decoration:none;cursor:pointer;white-space:nowrap}
+.panel-head .sesion-salir:hover{background:var(--panel-2);color:var(--guinda-ink)}
+.panel-head .sesion-salir svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.panel-head .sesion-salir{min-height:44px;min-width:44px;justify-content:center}}
 /* ---------- ventana de ayuda en teléfono ----------
    En iPhone, 100vh mide más que la pantalla visible (no descuenta las barras del navegador). La ventana, centrada y con ese alto,
    quedaba con su parte superior fuera de la pantalla: el logotipo salía cortado y la × caía encima del texto.

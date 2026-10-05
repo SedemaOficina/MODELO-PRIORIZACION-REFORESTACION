@@ -1980,13 +1980,16 @@ $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t)
 if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; document.body.classList.add('con-sesion'); }
 // ---------- compartir la consulta (v17.28): la dirección ya la conserva; el botón la copia o abre el menú de compartir del teléfono ----------
 let shareT = null;
-function avisoShare(t){ $('share-lbl').textContent = t; $('sr-estado').textContent = t; clearTimeout(shareT); shareT = setTimeout(()=>{ $('share-lbl').textContent = 'Compartir'; }, 2600); }
+function avisoShare(t, largo){ $('share-lbl').textContent = t; $('sr-estado').textContent = largo || t; clearTimeout(shareT); shareT = setTimeout(()=>{ $('share-lbl').textContent = 'Compartir'; }, 2600); }
 function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
   return new Promise((ok, no)=>{ const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly',''); a.className = 'sr'; document.body.appendChild(a); a.select();
     let bien = false; try { bien = document.execCommand('copy'); } catch(e){} a.remove(); bien? ok() : no(); }); }
+// Con inicio de sesión (v17.38) el enlace sirve entre personas con cuenta: quien lo abra entra y vuelve a esa misma consulta
+const NOTA_CUENTA = 'Para abrirlo se necesita una cuenta de la herramienta.';
+if (SESION.inicio) $('share').title = 'Copiar la dirección de esta consulta para compartirla con alguien que tenga cuenta de la herramienta';
 $('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
-  if (isPhone() && navigator.share){ navigator.share({title: titulo, url: u}).catch(()=>{}); return; }
-  copiaTexto(u).then(()=>avisoShare('Enlace copiado'), ()=>avisoShare('No se pudo copiar')); };
+  if (isPhone() && navigator.share){ navigator.share(SESION.inicio? {title: titulo, text: NOTA_CUENTA, url: u} : {title: titulo, url: u}).catch(()=>{}); return; }
+  copiaTexto(u).then(()=>avisoShare('Enlace copiado', SESION.inicio? 'Enlace copiado. ' + NOTA_CUENTA : ''), ()=>avisoShare('No se pudo copiar')); };
 // ---------- entrada (v17.28; dos pasos desde la v17.30) ----------
 // Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
 // Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
@@ -2325,7 +2328,7 @@ const REC_PASOS = [
   { sel:'.resp-row', panel:true, titulo:'Quién atiende', texto:'Alcaldías: las calles y frentes de manzana que planta cada alcaldía. Gobierno Central: las vialidades primarias. Puedes activar las dos.' },
   { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta» reúne los frentes donde INEGI 2020 registra banqueta: son los de plantación directa. «Sin o por verificar» reúne los que no la registran o no tienen dato: no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen la opción que elijas; el Resumen muestra siempre el desglose completo.' },
   { sel:'#crumb', panel:true, titulo:'Tu territorio', texto:'Aquí cambias de alcaldía o vuelves a toda la ciudad. Cuando eliges una colonia o una calle, aparece en esta ruta y puedes quitarla con la ×.' },
-  { sel:'#share', panel:true, titulo:'Comparte la consulta', texto:'«Compartir» copia la dirección de lo que estás viendo (alcaldía, colonia, calle, red y filtro de banqueta) para mandarla a tu equipo: quien la abra verá la misma consulta. «Reiniciar» vuelve al inicio.' },
+  { sel:'#share', panel:true, titulo:'Comparte la consulta', texto:'«Compartir» copia la dirección de lo que estás viendo (alcaldía, colonia, calle, red y filtro de banqueta) para mandarla a tu equipo: quien la abra verá la misma consulta' + (SESION.inicio? ', después de entrar con su cuenta' : '') + '. «Reiniciar» vuelve al inicio.' },
   { sel:'.tabs', panel:true, titulo:'Dónde empezar, cifras y listados', texto:'«Dónde empezar» propone un orden de atención. «Resumen» da las cifras y el desglose por banqueta. El listado reúne las calles o colonias del ámbito. «Descargas» tiene los archivos.' },
   { sel:'#leymini, #zcapas', mapa:true, titulo:'Colores del mapa y capas', texto:'Del rojo oscuro (Muy Alta) al crema (Muy Baja): es la prioridad de reforestación de cada colonia y de cada calle. Toca esta barra o el botón de capas para elegir qué ver (alcaldías, colonias o calles), ocultar prioridades y encender un mapa de fondo de calles o satélite.' },
   { sel:'#card .field-acts a[href*="pano"]', mapa:true, lado:'#card', prep:recFicha, titulo:'Pre-evalúa con Street View', texto:'Toca cualquier calle del mapa para abrir su ficha: prioridad, banqueta según INEGI y coordenadas. Antes de salir, abre Street View y revisa si hay banqueta, si su ancho permite plantar y si hay cocheras, postes, cables o árboles. Así decides qué calles visitar y cuáles necesitan reconocimiento en sitio.' },
