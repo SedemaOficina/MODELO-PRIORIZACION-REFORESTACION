@@ -1977,7 +1977,7 @@ function renderActions(){
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // cierre de sesión: solo aparece si la instalación define su dirección (Fase 2)
-if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; }
+if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; document.body.classList.add('con-sesion'); }
 // ---------- compartir la consulta (v17.28): la dirección ya la conserva; el botón la copia o abre el menú de compartir del teléfono ----------
 let shareT = null;
 function avisoShare(t){ $('share-lbl').textContent = t; $('sr-estado').textContent = t; clearTimeout(shareT); shareT = setTimeout(()=>{ $('share-lbl').textContent = 'Compartir'; }, 2600); }

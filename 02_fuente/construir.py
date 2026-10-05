@@ -77,7 +77,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/calles/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.37'
+VERSION = '17.38'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
