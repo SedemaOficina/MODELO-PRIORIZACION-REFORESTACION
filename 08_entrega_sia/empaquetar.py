@@ -6,7 +6,8 @@ sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; a
 
 Uso:  python3 08_entrega_sia/empaquetar.py
       SIA_SESION_INICIO=/acceso/calles SIA_SESION_CIERRE=/api/calles/salir python3 08_entrega_sia/empaquetar.py
-Sale: _local/entrega/calles-prioritarias_vX.Y_AAAAMMDD.tar.gz   (no se publica)
+Sale: _local/entrega/calles-prioritarias_vX.Y_AAAAMMDD.tar.gz   (no se publica): sitio/, documentos/, login/, MANIFIESTO.sha256 y VERSION.txt
+Con login: SIA_SESION_INICIO=/acceso/calles/ SIA_SESION_CIERRE=/api/calles/salir python3 08_entrega_sia/empaquetar.py
 Requiere únicamente Python 3.
 """
 import hashlib
@@ -50,6 +51,8 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     for d in DOCUMENTOS:
         shutil.copy(os.path.join(AQUI, d), os.path.join(base, 'documentos', d))
     shutil.copy(os.path.join(RAIZ, 'ARQUITECTURA.md'), os.path.join(base, 'documentos', 'ARQUITECTURA.md'))
+    # inicio de sesión y registro de usos (v17.37): pantalla de acceso, módulo del backend, esquema, avisos de privacidad (ver login/LEEME.md)
+    shutil.copytree(os.path.join(AQUI, 'login'), os.path.join(base, 'login'), ignore=shutil.ignore_patterns('node_modules', '__pycache__', '*.log'))
 
     # manifiesto: suma de cada archivo del sitio, en el formato de sha256sum (se verifica con: cd sitio && sha256sum -c ../MANIFIESTO.sha256)
     lineas = []

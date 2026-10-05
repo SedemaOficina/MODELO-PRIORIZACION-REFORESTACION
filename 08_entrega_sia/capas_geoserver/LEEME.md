@@ -30,7 +30,7 @@ Para cada una de las tres capas:
 1. **Almacén:** Almacenes de datos → Agregar → **GeoPackage**. Espacio de trabajo `sia`, nombre igual al del archivo (p. ej. `frentes_reforestacion`). Ruta: el `.gpkg` copiado al directorio de datos del servidor.
 2. **Capa:** Publicar la tabla. SRS declarado `EPSG:4326`; calcular los límites desde los datos.
 3. **Estilo:** Estilos → Agregar → subir el `.sld` correspondiente y asignarlo como estilo por omisión de la capa.
-4. **Caché de teselas:** en la pestaña *Tile Caching* de la capa, activar GeoWebCache con `EPSG:900913` (o `EPSG:3857`) y `image/png`, y **precargar (seed)** los niveles 10 a 16. Sin precarga, cada tesela tarda alrededor de 1 s la primera vez; precargada, alrededor de 0.1 s.
+4. **Caché de teselas:** en la pestaña *Tile Caching* de la capa, activar GeoWebCache con `EPSG:900913` (o `EPSG:3857`) y `image/png`, y **precargar (seed)** los niveles 10 a 16. Sin precarga, cada tesela tarda alrededor de 1 s la primera vez; precargada, alrededor de 0.1 s. **Atención:** según el inventario del SIA, el cacheo de GeoWebCache está apagado por falta de disco y el volumen de datos de GeoServer va al 54 % de 10 GB. Las tres capas ocupan unos 150 MB. Precargar los niveles 10 a 16 de toda la ciudad puede ocupar del orden de 1 a 2 GB. Conviene precargar solo los niveles 13 a 16 (los de calle), o solicitar espacio antes.
 
 ## Para actualizar
 

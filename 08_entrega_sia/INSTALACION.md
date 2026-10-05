@@ -98,6 +98,6 @@ Se fijan al armar el paquete, no en el servidor. Quedan escritos en `sitio/confi
 | `SIA_CARTO_KEY`, `SIA_ESRI_KEY` | Claves de los mapas de fondo, restringidas al dominio | Variables de entorno al correr `empaquetar.py`, o `02_fuente/claves.local.json` (no se publica) |
 | `SIA_SESION_INICIO`, `SIA_SESION_CIERRE` | Direcciones de la pantalla de acceso y del cierre de sesión | Igual. Vacías = sin sesión |
 
-Ejemplo: `SIA_SESION_INICIO=/acceso/calles SIA_SESION_CIERRE=/api/calles/salir python3 08_entrega_sia/empaquetar.py`
+Con el login del SIA (decidido el 5 oct 2026; ver `login/LEEME.md`): `SIA_SESION_INICIO=/acceso/calles/ SIA_SESION_CIERRE=/api/calles/salir python3 08_entrega_sia/empaquetar.py`. Con sesión, la herramienta además registra consultas y descargas en `/api/calles/uso` (otra dirección con `SIA_SESION_USO`).
 
 Con `SIA_SESION_INICIO` definido, la herramienta **no guarda copia para uso sin conexión**: una copia local se abriría sin sesión.

@@ -42,7 +42,12 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta o Alta: el listado de tramos prioritarios estaría vacío.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); usoConsulta(); }
+// Registro de usos (v17.37, solo con sesión): una consulta es el ámbito en que la persona se detiene (1.5 s), no cada clic intermedio.
+// No se anotan toda la ciudad (vista inicial) ni los cambios que hace «Seguirme» al caminar.
+let usoUlt = '', usoT = null;
+function usoConsulta(){ if (!USO_URL || restaurando || locSel) return; clearTimeout(usoT);
+  usoT = setTimeout(()=>{ if (sel===null && selAv===null) return; const a = ambitoUso(), k = JSON.stringify(a); if (k===usoUlt) return; usoUlt = k; avisaUso({ evento:'consulta', ...a }); }, 1500); }
 // ---------- la consulta queda en la dirección (auditoría H-042) ----------
 // r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida, b = banqueta (con | sin; v17.35). Atrás y Adelante recorren las consultas,
 // la consulta sobrevive a una recarga y la dirección se puede compartir.

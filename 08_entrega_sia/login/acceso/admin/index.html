@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Administración · Calles prioritarias para reforestar</title>
+<link rel="stylesheet" href="../recursos/estilos.css">
+<script src="../recursos/admin.js" defer></script>
+</head>
+<body class="admin">
+<header class="barra">
+  <img class="logo" src="../recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+  <div class="titulo"><p class="eyebrow">Calles prioritarias para reforestar</p><h1>Administración de cuentas y usos</h1></div>
+  <p class="quien"><span id="yo">…</span><a href="/calles-prioritarias/">Ir a la herramienta</a><a href="../?cambiar=1">Cambiar mi contraseña</a><a href="/api/calles/salir">Cerrar sesión</a></p>
+</header>
+
+<main class="contenido" id="principal">
+  <p class="aviso alerta" id="sin-permiso" role="alert" hidden></p>
+
+  <div id="panel" hidden>
+    <div class="pestanas" role="tablist" aria-label="Secciones">
+      <button type="button" role="tab" id="t-personas" aria-controls="s-personas" aria-selected="true">Personas</button>
+      <button type="button" role="tab" id="t-usos" aria-controls="s-usos" aria-selected="false">Usos</button>
+    </div>
+
+    <!-- ===== Personas ===== -->
+    <section class="seccion" id="s-personas" role="tabpanel" aria-labelledby="t-personas">
+      <h2>Dar de alta una cuenta</h2>
+      <form class="caja" id="f-alta" novalidate>
+        <div class="rejilla">
+          <div class="campo"><label for="a-correo">Correo institucional</label><input id="a-correo" type="email" autocomplete="off" required></div>
+          <div class="campo"><label for="a-nombre">Nombre completo</label><input id="a-nombre" autocomplete="off" required></div>
+          <div class="campo"><label for="a-inst">Institución</label>
+            <select id="a-inst"><option>Alcaldía</option><option>Gobierno Central</option><option>SEDEMA</option><option>Otra</option></select></div>
+          <div class="campo"><label for="a-alc">Alcaldía</label><select id="a-alc"><option value="">— Ninguna —</option></select></div>
+          <div class="campo"><label for="a-rol">Permiso</label>
+            <select id="a-rol"><option value="usuario">Consulta</option><option value="admin">Administración</option></select></div>
+          <div class="campo"><button type="submit" class="btn">Dar de alta</button></div>
+        </div>
+        <p class="error general" id="alta-err" role="alert" hidden></p>
+        <div class="clave" id="clave" role="status" hidden></div>
+      </form>
+
+      <h2>Cuentas</h2>
+      <div class="caja rejilla">
+        <div class="campo"><label for="buscar">Buscar por nombre, correo o alcaldía</label><input id="buscar" type="search" autocomplete="off"></div>
+        <div class="campo"><label for="filtro">Mostrar</label>
+          <select id="filtro"><option value="activas">Cuentas activas</option><option value="bajas">Dadas de baja</option><option value="todas">Todas</option></select></div>
+      </div>
+      <p class="aviso ok" id="personas-aviso" role="status" hidden></p>
+      <div class="tabla-envoltura"><table>
+        <caption id="personas-cap">Cuentas</caption>
+        <thead><tr><th scope="col">Persona</th><th scope="col">Institución</th><th scope="col">Permiso</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
+        <tbody id="personas"></tbody>
+      </table></div>
+    </section>
+
+    <!-- ===== Usos ===== -->
+    <section class="seccion" id="s-usos" role="tabpanel" aria-labelledby="t-usos" hidden>
+      <h2>Uso de la herramienta</h2>
+      <form class="caja rejilla" id="f-usos">
+        <div class="campo"><label for="u-desde">Desde</label><input id="u-desde" type="date" required></div>
+        <div class="campo"><label for="u-hasta">Hasta</label><input id="u-hasta" type="date" required></div>
+        <div class="campo"><button type="submit" class="btn">Actualizar</button></div>
+        <div class="campo"><a class="btn secundario" id="u-csv" href="#">Descargar bitácora (CSV)</a></div>
+      </form>
+      <p class="aviso alerta" id="usos-err" role="alert" hidden></p>
+      <div class="cifras" id="cifras" aria-live="polite"></div>
+      <div class="tabla-envoltura"><table>
+        <caption>Por institución y alcaldía de quien consulta</caption>
+        <thead><tr><th scope="col">Institución</th><th scope="col">Alcaldía</th><th scope="col">Personas</th><th scope="col">Accesos</th><th scope="col">Consultas</th><th scope="col">Descargas</th><th scope="col"><span class="sr">Proporción de descargas</span></th></tr></thead>
+        <tbody id="u-grupo"></tbody></table></div>
+      <div class="tabla-envoltura"><table>
+        <caption>Territorio consultado (alcaldía elegida en la herramienta)</caption>
+        <thead><tr><th scope="col">Alcaldía consultada</th><th scope="col">Consultas</th><th scope="col">Descargas</th></tr></thead>
+        <tbody id="u-territorio"></tbody></table></div>
+      <div class="tabla-envoltura"><table>
+        <caption>Archivos descargados</caption>
+        <thead><tr><th scope="col">Tipo de archivo</th><th scope="col">Descargas</th></tr></thead>
+        <tbody id="u-archivos"></tbody></table></div>
+      <div class="tabla-envoltura"><table>
+        <caption>Por persona</caption>
+        <thead><tr><th scope="col">Persona</th><th scope="col">Institución</th><th scope="col">Accesos</th><th scope="col">Consultas</th><th scope="col">Descargas</th><th scope="col">Último registro</th></tr></thead>
+        <tbody id="u-persona"></tbody></table></div>
+    </section>
+  </div>
+</main>
+</body>
+</html>

@@ -73,10 +73,11 @@ CARTO_KEY = os.environ.get('SIA_CARTO_KEY') or _claves.get('CARTO_KEY') or CARTO
 # Sesión (Fase 2, auditoría H-078): direcciones del inicio y del cierre de sesión cuando la herramienta se instala detrás de un
 # login. Vacías = sin sesión (GitHub Pages). También se pueden dar con SIA_SESION_INICIO y SIA_SESION_CIERRE o en claves.local.json.
 SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_INICIO') or '',
-          'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or ''}
+          'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or '',
+          'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/calles/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.36'
+VERSION = '17.37'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -302,7 +303,7 @@ print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.en
 if CARTO_KEY or ESRI_KEY:
     print('AVISO: docs/config.js lleva la clave de %s. Al hacer commit queda pública en GitHub y en su historial: '
           'confirmar que está restringida al dominio del sitio en el panel del proveedor.' % ' y de '.join(n for n, k in (('CARTO', CARTO_KEY), ('Esri', ESRI_KEY)) if k))
-if SESION['inicio'] or SESION['cierre']:
+if SESION['inicio'] or SESION['cierre'] or SESION['uso']:
     print('AVISO: docs/ se construyó con direcciones de sesión (%s). Sirven para el SIA, no para GitHub Pages: '
           'para el SIA usar 08_entrega_sia/empaquetar.py y no hacer commit de este docs/.' % (SESION['inicio'] or SESION['cierre']))
 

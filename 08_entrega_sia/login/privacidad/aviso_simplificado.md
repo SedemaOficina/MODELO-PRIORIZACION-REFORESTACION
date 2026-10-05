@@ -1,0 +1,21 @@
+# Aviso de privacidad simplificado
+
+> **BORRADOR para revisión de la Unidad de Transparencia.** Va en la pantalla de acceso, junto al enlace al aviso integral.
+
+La Secretaría del Medio Ambiente de la Ciudad de México, por medio del Sistema de Información Ambiental, es responsable de los datos personales que se recaban para usar la herramienta **Calles prioritarias para reforestar**.
+
+**Datos que se recaban:**
+- Nombre, correo institucional, institución y alcaldía de la cuenta.
+- Al usar la herramienta: fecha y hora de accesos y visitas, territorio consultado, archivos descargados y dirección IP.
+- La contraseña no se conserva: solo una huella cifrada. No se recaban datos sensibles ni la ubicación.
+
+**Finalidades:**
+- Controlar quién entra.
+- Proteger la seguridad de la información.
+- Conocer qué instituciones y alcaldías usan la herramienta y qué consultan y descargan, para planear la reforestación y mejorar la herramienta. Los reportes que se difundan son agregados.
+
+**Transferencias:** no se transfieren, salvo las que prevé la ley.
+
+**Derechos:** puede ejercer sus derechos de acceso, rectificación, cancelación y oposición ante la Unidad de Transparencia de la SEDEMA ([correo o domicilio]).
+
+**Aviso integral:** el aviso de privacidad integral se consulta en `sedema.sia.cdmx.gob.mx/acceso/calles/aviso-de-privacidad.html`.

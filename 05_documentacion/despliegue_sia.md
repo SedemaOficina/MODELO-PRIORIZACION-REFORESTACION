@@ -10,7 +10,7 @@ Extracto público de las decisiones registradas el 24 de septiembre de 2026. Los
 
 ## Decisión previa: para qué es el login
 
-A) restringir el acceso, o B) saber quién usa la herramienta y qué descarga. Recomendación: **B**; los datos del modelo no son reservados y el uso por alcaldía es un indicador útil para la Secretaría. Si se adopta el login, la página pública de GitHub y el artefacto de respaldo deben cerrarse cuando la herramienta esté en el SIA.
+**Decidido el 5 de octubre de 2026: las dos (A y B)** — restringir el acceso a cuentas autorizadas y saber quién usa la herramienta, qué consulta y qué descarga. El módulo, la pantalla de acceso, el panel y los borradores de privacidad están en `08_entrega_sia/login/`. Antes: A) restringir el acceso, o B) saber quién usa la herramienta y qué descarga. Recomendación anterior: **B**; los datos del modelo no son reservados y el uso por alcaldía es un indicador útil para la Secretaría. Si se adopta el login, la página pública de GitHub y el artefacto de respaldo deben cerrarse cuando la herramienta esté en el SIA.
 
 ## Nueve decisiones
 

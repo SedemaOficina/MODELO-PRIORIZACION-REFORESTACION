@@ -12,6 +12,7 @@ let preguntaEntrada = false;
 { const p = new URLSearchParams(location.search); if (!['a','c','v','r'].some(k=>p.has(k))){ const g = leeInicio(), m = g===null? undefined : munIndex[g];
     if (m!==undefined || g==='ciudad'){ const r = leeRed(); if (resp!==r) setResp(r); if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } } else preguntaEntrada = true; } }
 restaurando = false;
+usoConsulta();   // la alcaldía con que abre (recordada o del enlace) también es una consulta (solo con sesión)
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
 // errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
 addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });

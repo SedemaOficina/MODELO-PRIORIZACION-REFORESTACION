@@ -35,20 +35,28 @@ Las direcciones se fijan al empaquetar (`INSTALACION.md`, sección 7).
 
 El bloque comentado «Fase 2 con inicio de sesión» del ejemplo de nginx implementa los puntos 1 y 2.
 
-## 4. Lo que construye el SIA
+## 4. Lo que se entrega construido (desde el 5 de octubre de 2026)
 
-- **Módulo de sesión en el backend de aplicaciones**, con su propia cuenta de base de datos como los demás módulos: `POST /api/calles/entrar`, `GET /api/calles/sesion` (204 o 401), `POST /api/calles/salir`.
-- **Esquema propio** con la tabla de usuarios (correo, contraseña con hash argon2 o bcrypt, alcaldía, rol, activo, fechas) y la bitácora de accesos.
-- **Pantalla de acceso**, fuera de la herramienta.
-- **Alta y baja de usuarios.**
+La Secretaría decidió las dos finalidades: **controlar quién entra** y **saber los usos**. El login ya está construido y probado en `login/`:
+- **Módulo `calles` para `sia-backend`** (Node.js + Express), con su propia cuenta de base de datos (`calles_app`), como los demás módulos. Direcciones:
+  - `POST /api/calles/entrar`
+  - `GET /api/calles/sesion` (204 o 401, para `auth_request`)
+  - `GET|POST /api/calles/salir`
+  - `POST /api/calles/uso`
+  - `POST /api/calles/contrasena`
+  - `/api/calles/admin/…`
+- **Esquema `calles`**: usuarios (contraseñas con huella scrypt), sesiones y bitácora, con depuración automática según los plazos del aviso de privacidad.
+- **Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad**, en `/acceso/calles/`, fuera de la herramienta. Cumplen los criterios de la sección 6.
+- **Registro de usos en la herramienta** (v17.37): consultas y descargas, solo cuando está instalada con sesión.
 
-Tamaño esperado: decenas de usuarios; el módulo no añade carga apreciable ni ocupa disco, salvo la bitácora.
+Al SIA le corresponde instalarlo (`login/LEEME.md`) y operar las altas y bajas desde el panel. Tamaño esperado: decenas de usuarios; el módulo no añade carga apreciable ni ocupa disco, salvo la bitácora.
 
-## 5. Qué puede y qué no puede registrarse
+## 5. Qué se registra y qué no
 
-Los Excel y las fichas se generan en el navegador con datos ya descargados: **el servidor no ve qué territorio se consultó ni qué se descargó**. Con el esquema anterior el SIA obtiene la bitácora de **accesos** (quién entró y cuándo), no la de descargas.
-
-Si se quisiera registrar descargas, habría que añadir un aviso al servidor desde las dos funciones por las que pasan todas (`deliver` y `deliverBlob`, en `11_descargas.js`). Sería un registro informativo, que una persona con conocimientos podría evitar, y convertiría la herramienta en un sistema que envía datos, con su aviso de privacidad. No está hecho: es una decisión institucional.
+- **Accesos y visitas:** los registra el servidor y no se pueden evitar.
+- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. Desde la v17.37 la herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/api/calles/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
+- Ese aviso es **informativo**: una persona con conocimientos técnicos podría evitarlo. El control de acceso, en cambio, lo hace el servidor.
+- El detalle de lo que se registra está en `login/LEEME.md` y en el aviso de privacidad (`login/privacidad/`).
 
 ## 6. Criterios de aceptación de la pantalla de acceso
 

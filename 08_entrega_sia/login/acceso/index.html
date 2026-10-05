@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Acceso · Calles prioritarias para reforestar</title>
+<link rel="stylesheet" href="recursos/estilos.css">
+<script src="recursos/acceso.js" defer></script>
+</head>
+<body class="acceso">
+<main class="tarjeta" id="principal">
+  <img class="logo" src="recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+  <p class="eyebrow">Sistema de Información Ambiental</p>
+  <h1>Calles prioritarias para reforestar</h1>
+
+  <p class="aviso ok" id="aviso" role="status" hidden></p>
+
+  <!-- entrar -->
+  <form id="f-entrar" novalidate>
+    <h2>Iniciar sesión</h2>
+    <p class="nota">Herramienta para el personal de las alcaldías y del Gobierno de la Ciudad. Si no tienes cuenta, pídela a quien administra la herramienta en la Secretaría del Medio Ambiente.</p>
+    <div class="campo">
+      <label for="correo">Correo institucional</label>
+      <input id="correo" name="correo" type="email" autocomplete="username" inputmode="email" required aria-describedby="correo-err">
+      <p class="error" id="correo-err" hidden></p>
+    </div>
+    <div class="campo">
+      <label for="contrasena">Contraseña</label>
+      <div class="con-boton">
+        <input id="contrasena" name="contrasena" type="password" autocomplete="current-password" required aria-describedby="contrasena-err">
+        <button type="button" class="ver" aria-controls="contrasena" aria-pressed="false">Mostrar</button>
+      </div>
+      <p class="error" id="contrasena-err" hidden></p>
+    </div>
+    <p class="error general" id="entrar-err" role="alert" hidden></p>
+    <button type="submit" class="btn">Entrar</button>
+  </form>
+
+  <!-- cambiar la contraseña (obligatorio con una contraseña temporal) -->
+  <form id="f-cambiar" novalidate hidden>
+    <h2 id="cambiar-titulo" tabindex="-1">Crea tu contraseña</h2>
+    <p class="nota" id="cambiar-nota">Entraste con una contraseña temporal. Para continuar, crea una propia: al menos 12 caracteres. Una frase fácil de recordar funciona bien, por ejemplo «jacarandas en mi banqueta».</p>
+    <div class="campo">
+      <label for="actual">Contraseña actual o temporal</label>
+      <div class="con-boton">
+        <input id="actual" type="password" autocomplete="current-password" required aria-describedby="actual-err">
+        <button type="button" class="ver" aria-controls="actual" aria-pressed="false">Mostrar</button>
+      </div>
+      <p class="error" id="actual-err" hidden></p>
+    </div>
+    <div class="campo">
+      <label for="nueva">Contraseña nueva</label>
+      <div class="con-boton">
+        <input id="nueva" type="password" autocomplete="new-password" required minlength="12" aria-describedby="nueva-ayuda nueva-err">
+        <button type="button" class="ver" aria-controls="nueva" aria-pressed="false">Mostrar</button>
+      </div>
+      <p class="ayuda" id="nueva-ayuda">Al menos 12 caracteres; que no contenga tu correo.</p>
+      <p class="error" id="nueva-err" hidden></p>
+    </div>
+    <div class="campo">
+      <label for="nueva2">Escríbela de nuevo</label>
+      <input id="nueva2" type="password" autocomplete="new-password" required aria-describedby="nueva2-err">
+      <p class="error" id="nueva2-err" hidden></p>
+    </div>
+    <p class="error general" id="cambiar-err" role="alert" hidden></p>
+    <button type="submit" class="btn">Guardar y entrar</button>
+  </form>
+
+  <p class="pie">
+    <a href="aviso-de-privacidad.html">Aviso de privacidad</a> ·
+    La herramienta registra los accesos, las consultas y las descargas de cada cuenta para dar seguimiento a su uso.
+  </p>
+</main>
+</body>
+</html>

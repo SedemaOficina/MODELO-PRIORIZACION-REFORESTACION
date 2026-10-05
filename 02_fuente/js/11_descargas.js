@@ -6,7 +6,17 @@ let downloads = null; if (typeof claude !== 'undefined' && claude && claude.use)
 function csvEsc(v){ v=String(v??''); if (/^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = "'" + v; return /[",\r\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
 // fecha AAAAMMDD en el nombre de cada archivo entregado (auditoría H-088)
 const conFecha = name => { const d=new Date(), f=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return name.replace(/(\.[a-z0-9]+)$/i, `_${f}$1`); };
-async function deliver(filename, text){ filename = conFecha(filename);
+// ámbito de la consulta para el registro de usos (solo se envía con sesión; ver avisaUso en 01_utilidades.js)
+function ambitoUso(){ const c = calleSel(); return { red: resp, alcaldia: sel!==null? META.munNames[sel] : '', colonia: selCol!==null? colNombre(selCol) : '',
+  avenida: selAv!==null? VPC.nomenclat[selAv] : '', calle: c? c.nombre : '', banqueta: filtroBanq }; }
+const TIPO_ARCHIVO = [[/^frentes_prioritarios_/, 'excel_frentes'], [/^resumen_calles_prioritarias_/, 'excel_calles'], [/^tramos_prioritarios_/, 'excel_tramos'],
+  [/^resumen_avenidas_prioritarias_/, 'excel_avenidas'], [/^frentes_calle_/, 'excel_calle'], [/^ficha_alcaldia_/, 'ficha_alcaldia'], [/^ficha_colonia_/, 'ficha_colonia'],
+  [/^ficha_vialidades_primarias_/, 'ficha_vialidades'], [/^ficha_avenida_/, 'ficha_avenida'], [/^ficha_calle_/, 'ficha_calle']];
+function usoDescarga(nombre){ if (!USO_URL || /_diccionario\.csv$/.test(nombre)) return;   // el diccionario del CSV acompaña al archivo: no es otra descarga
+  const ext = (nombre.match(/\.([a-z0-9]+)$/i) || [])[1];
+  const tipo = ext==='kml'? 'kml' : ext==='geojson'? 'geojson' : ext==='csv'? 'csv' : (TIPO_ARCHIVO.find(([r])=>r.test(nombre)) || [0, 'otro'])[1];
+  avisaUso({ evento:'descarga', tipo, archivo:nombre, ...ambitoUso() }); }
+async function deliver(filename, text){ filename = conFecha(filename); usoDescarga(filename);
   const st = $('dl-status'); st.textContent='Preparando archivo…';
   const blob = new Blob(['\uFEFF'+text], {type:'text/csv;charset=utf-8'});
   if (downloads){
@@ -17,7 +27,7 @@ async function deliver(filename, text){ filename = conFecha(filename);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
   st.textContent = `Descargado: ${filename}`;
 }
-async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(filename)) filename = conFecha(filename);
+async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(filename)) filename = conFecha(filename); usoDescarga(filename);
   const st = $('dl-status'); st.textContent='Preparando archivo…';
   if (downloads){ try{ await downloads.save({filename, data:blob}); st.textContent=`Guardado: ${filename}`; } catch(err){ st.textContent = err && err.code==='declined' ? 'Descarga cancelada.' : 'No fue posible guardar el archivo en este visor.'; } return; }
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); st.textContent=`Descargado: ${filename}`;

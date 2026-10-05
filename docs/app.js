@@ -33,7 +33,11 @@ new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) i
 aplicaSt(document.documentElement);
 // ---------- sesión (Fase 2; auditoría H-014 y H-078) ----------
 // En el SIA la herramienta puede quedar detrás de un inicio de sesión. Las direcciones las fija construir.py (SESION_*); vacías = sin sesión.
-const SESION = Object.assign({inicio:'', cierre:'', usuario:''}, window.SIA_SESION || {});
+const SESION = Object.assign({inicio:'', cierre:'', usuario:'', uso:''}, window.SIA_SESION || {});
+// Registro de usos (v17.37): SOLO detrás del inicio de sesión del SIA. Avisa al servidor qué ámbito se consulta y qué archivo se descarga,
+// para el reporte de usos por alcaldía (ver 08_entrega_sia/login/). Sin sesión configurada (GitHub Pages, archivo único) no envía nada.
+const USO_URL = SESION.uso || (SESION.inicio ? '/api/calles/uso' : '');
+function avisaUso(datos){ if (!USO_URL || !navigator.sendBeacon) return; try { navigator.sendBeacon(USO_URL, JSON.stringify(datos)); } catch(e){} }
 const SESION_TXT = 'Tu sesión terminó. Vuelve a iniciar sesión para continuar.';
 // Una sesión vencida se reconoce por la respuesta 401 o 403, o porque llega una página (HTML) donde se esperaba un archivo de datos o un programa.
 const esSesion = r => !!r && (r.status===401 || r.status===403 || (r.ok && (r.headers.get('content-type')||'').toLowerCase().includes('text/html')));
@@ -1219,7 +1223,12 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta o Alta: el listado de tramos prioritarios estaría vacío.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); usoConsulta(); }
+// Registro de usos (v17.37, solo con sesión): una consulta es el ámbito en que la persona se detiene (1.5 s), no cada clic intermedio.
+// No se anotan toda la ciudad (vista inicial) ni los cambios que hace «Seguirme» al caminar.
+let usoUlt = '', usoT = null;
+function usoConsulta(){ if (!USO_URL || restaurando || locSel) return; clearTimeout(usoT);
+  usoT = setTimeout(()=>{ if (sel===null && selAv===null) return; const a = ambitoUso(), k = JSON.stringify(a); if (k===usoUlt) return; usoUlt = k; avisaUso({ evento:'consulta', ...a }); }, 1500); }
 // ---------- la consulta queda en la dirección (auditoría H-042) ----------
 // r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida, b = banqueta (con | sin; v17.35). Atrás y Adelante recorren las consultas,
 // la consulta sobrevive a una recarga y la dirección se puede compartir.
@@ -1282,7 +1291,17 @@ let downloads = null; if (typeof claude !== 'undefined' && claude && claude.use)
 function csvEsc(v){ v=String(v??''); if (/^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = "'" + v; return /[",\r\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
 // fecha AAAAMMDD en el nombre de cada archivo entregado (auditoría H-088)
 const conFecha = name => { const d=new Date(), f=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return name.replace(/(\.[a-z0-9]+)$/i, `_${f}$1`); };
-async function deliver(filename, text){ filename = conFecha(filename);
+// ámbito de la consulta para el registro de usos (solo se envía con sesión; ver avisaUso en 01_utilidades.js)
+function ambitoUso(){ const c = calleSel(); return { red: resp, alcaldia: sel!==null? META.munNames[sel] : '', colonia: selCol!==null? colNombre(selCol) : '',
+  avenida: selAv!==null? VPC.nomenclat[selAv] : '', calle: c? c.nombre : '', banqueta: filtroBanq }; }
+const TIPO_ARCHIVO = [[/^frentes_prioritarios_/, 'excel_frentes'], [/^resumen_calles_prioritarias_/, 'excel_calles'], [/^tramos_prioritarios_/, 'excel_tramos'],
+  [/^resumen_avenidas_prioritarias_/, 'excel_avenidas'], [/^frentes_calle_/, 'excel_calle'], [/^ficha_alcaldia_/, 'ficha_alcaldia'], [/^ficha_colonia_/, 'ficha_colonia'],
+  [/^ficha_vialidades_primarias_/, 'ficha_vialidades'], [/^ficha_avenida_/, 'ficha_avenida'], [/^ficha_calle_/, 'ficha_calle']];
+function usoDescarga(nombre){ if (!USO_URL || /_diccionario\.csv$/.test(nombre)) return;   // el diccionario del CSV acompaña al archivo: no es otra descarga
+  const ext = (nombre.match(/\.([a-z0-9]+)$/i) || [])[1];
+  const tipo = ext==='kml'? 'kml' : ext==='geojson'? 'geojson' : ext==='csv'? 'csv' : (TIPO_ARCHIVO.find(([r])=>r.test(nombre)) || [0, 'otro'])[1];
+  avisaUso({ evento:'descarga', tipo, archivo:nombre, ...ambitoUso() }); }
+async function deliver(filename, text){ filename = conFecha(filename); usoDescarga(filename);
   const st = $('dl-status'); st.textContent='Preparando archivo…';
   const blob = new Blob(['\uFEFF'+text], {type:'text/csv;charset=utf-8'});
   if (downloads){
@@ -1293,7 +1312,7 @@ async function deliver(filename, text){ filename = conFecha(filename);
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
   st.textContent = `Descargado: ${filename}`;
 }
-async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(filename)) filename = conFecha(filename);
+async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(filename)) filename = conFecha(filename); usoDescarga(filename);
   const st = $('dl-status'); st.textContent='Preparando archivo…';
   if (downloads){ try{ await downloads.save({filename, data:blob}); st.textContent=`Guardado: ${filename}`; } catch(err){ st.textContent = err && err.code==='declined' ? 'Descarga cancelada.' : 'No fue posible guardar el archivo en este visor.'; } return; }
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); st.textContent=`Descargado: ${filename}`;
@@ -2265,6 +2284,7 @@ let preguntaEntrada = false;
 { const p = new URLSearchParams(location.search); if (!['a','c','v','r'].some(k=>p.has(k))){ const g = leeInicio(), m = g===null? undefined : munIndex[g];
     if (m!==undefined || g==='ciudad'){ const r = leeRed(); if (resp!==r) setResp(r); if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } } else preguntaEntrada = true; } }
 restaurando = false;
+usoConsulta();   // la alcaldía con que abre (recordada o del enlace) también es una consulta (solo con sesión)
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
 // errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
 addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });

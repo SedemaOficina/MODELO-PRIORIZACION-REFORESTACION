@@ -80,16 +80,18 @@ location ^~ /calles-prioritarias/ {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# FASE 2 CON INICIO DE SESIÓN (opcional; ver SESION_Y_LOGIN.md). Sustituye al bloque 2 cuando exista el módulo de sesión.
+# FASE 2 CON INICIO DE SESIÓN (decidido: controlar el acceso y registrar los usos). Ver login/LEEME.md.
+# Sustituye al bloque 2 cuando estén instalados el módulo /api/calles/ en el backend y la pantalla /acceso/calles/.
 # ---------------------------------------------------------------------------------------------------------------------
+# 2-bis) La herramienta, protegida: cada archivo se entrega solo con sesión válida.
 # location ^~ /calles-prioritarias/ {
 #     root /RUTA/DEL/VOLUMEN;
 #     index index.html;
 #     try_files $uri $uri/ =404;
 #     absolute_redirect off;
 #     auth_request /_calles_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
-#     # (mismas cabeceras y bloque de .bin que arriba)
-#
+#     # (las mismas cabeceras de seguridad y caché del bloque 2, y el bloque de los .bin)
+
 #     # Solo la PÁGINA lleva a la pantalla de acceso. Datos y programas responden 401: así la herramienta
 #     # puede decir «Tu sesión terminó» en lugar de «revisa tu conexión».
 #     location = /calles-prioritarias/ {
@@ -99,13 +101,31 @@ location ^~ /calles-prioritarias/ {
 #         try_files /calles-prioritarias/index.html =404;
 #     }
 # }
+# Consulta de sesión (interna): nginx le pasa la cookie y la dirección pedida; el backend anota una visita si es la página.
 # location = /_calles_sesion {
 #     internal;
 #     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/calles/sesion;
 #     proxy_pass_request_body off;
 #     proxy_set_header Content-Length "";
 #     proxy_set_header X-Original-URI $request_uri;
+#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 # }
 # location @calles_acceso {
-#     return 302 /RUTA/DE/LA/PANTALLA/DE/ACCESO?volver=$request_uri;
+#     return 302 /acceso/calles/?volver=$request_uri;   # la pantalla de acceso toma todo lo que sigue a «volver=», aunque lleve «&»
 # }
+
+# 2-ter) Pantalla de acceso y panel de administración: archivos estáticos, SIN auth_request (si no, nadie podría entrar).
+#        /RUTA/DEL/VOLUMEN/acceso-calles es la carpeta login/acceso del paquete.
+# location ^~ /acceso/calles/ {
+#     alias /RUTA/DEL/VOLUMEN/acceso-calles/;
+#     index index.html;
+#     absolute_redirect off;
+#     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
+#     add_header X-Content-Type-Options "nosniff" always;
+#     add_header Referrer-Policy "same-origin" always;
+#     add_header Cache-Control "no-cache" always;
+# }
+
+# 2-cuater) La API del módulo (/api/calles/) va al backend como las demás rutas /api/ del sitio. Si /api/ ya está enrutado,
+#           no hace falta nada más. Debe llegar la IP real de la persona (X-Forwarded-For; con ADIP delante, configurar
+#           set_real_ip_from para la capa intermedia) y el backend debe tener app.set('trust proxy', ...).

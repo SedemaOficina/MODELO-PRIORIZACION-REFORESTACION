@@ -73,13 +73,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 7. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla es decisión de quien administra la cuenta.
 
-## Estado al 5 de octubre de 2026 (versión 17.36)
+## Estado al 5 de octubre de 2026 (versión 17.37)
 
-- Versión vigente: **v17.36**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.37**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 17.37 | Inicio de sesión y registro de usos (decisión: controlar el acceso y saber los usos). La herramienta avisa al servidor qué consulta y qué descarga, solo cuando está instalada con sesión. Se entregan en `08_entrega_sia/login/` el módulo para el backend del SIA, el esquema, la pantalla de acceso, el panel de administración y los borradores de privacidad |
 | 17.36 | Recorrido guiado general de doce pasos por la plataforma: arranca solo en la primera visita, después de la entrada, y se repite desde «Cómo funciona». Muestra la fila Banqueta y abre la ficha de una calle real para enseñar la pre-evaluación con Street View antes de salir a campo |
 | 17.35 | Filtro de banqueta: la fila «Banqueta» (Todas · Con banqueta · Sin o por verificar) separa los frentes de las alcaldías según INEGI 2020 para planear visitas de plantación directa y de reconocimiento en sitio; mapa, cifras, listados, Excel, mapas descargables y fichas siguen el filtro, y el Resumen y las fichas muestran siempre el desglose completo |
 | 17.34 | Librerías sin avisos de seguridad: jsPDF 4.2.1 y SheetJS 0.20.3, con fichas y Excel idénticos a los anteriores; lote de fichas de las 16 alcaldías regenerado (alcaldía, vialidades primarias y colonia con más frente prioritario) |
@@ -105,7 +106,7 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 
 ### Pendientes
 1. **Instalación en el SIA:** el paquete de entrega está escrito (`08_entrega_sia/`). Falta que el SIA valide la configuración de nginx (`nginx -t`), instale en un servidor de ensayo siguiendo solo la guía y corra la lista de verificación.
-2. **Login** (opcional para una herramienta de consulta): nueve decisiones con recomendación y responsable en `05_documentacion/despliegue_sia.md`. Con sesión configurada, la herramienta no guarda copia para uso sin conexión. La integración está descrita en `08_entrega_sia/SESION_Y_LOGIN.md`.
+2. **Login** (decidido el 5 oct 2026: controlar el acceso y saber los usos). Construido y probado en `08_entrega_sia/login/`: falta que la Unidad de Transparencia apruebe los avisos de privacidad (borradores en `login/privacidad/`) y que el SIA lo instale (`login/LEEME.md`). Con sesión configurada, la herramienta no guarda copia para uso sin conexión. La integración está descrita en `08_entrega_sia/SESION_Y_LOGIN.md`.
 3. **Prueba con personal de alcaldías** con la guía de `06_entregables/`, precedida de la prueba de acceso desde la red de cada alcaldía.
 4. **Visto bueno institucional de la rampa de calor** que sustituyó al semáforo.
 5. Validar con la Secretaría la regla del cruce de frentes con vialidades primarias (18 m, o 60 m con coincidencia de nombre).
