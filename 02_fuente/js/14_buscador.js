@@ -25,7 +25,16 @@ function omniIndex(){ if (OM) return OM;
   const seen = new Map(); OM.part = new Map();
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const k=c.n+'|'+(c.cp||'')+'|'+c.m; const a=seen.get(k)||[]; a.push(i); seen.set(k,a); }
   for(const a of seen.values()) if (a.length>1) a.forEach((id,k)=>OM.part.set(id, [k+1, a.length]));
+  // mismo nombre en la misma alcaldía, con otro CP
+  const nm = new Map(); for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const k=c.n+'|'+c.m; nm.set(k, (nm.get(k)||0)+1); }
+  OM.nomRep = new Set([...nm].filter(([,n])=>n>1).map(([k])=>k));
   return OM; }
+// Nombre de una colonia que no se confunde con otra de su alcaldía (v17.32): «parte k de n» si comparte nombre y CP, o su CP
+// si solo comparte el nombre. Se usa en nombres de archivo, títulos de fichas y «Ámbito consultado».
+function colNombre(id){ const c = META.colonias[id]; if (!c) return ''; const I = omniIndex(); const pt = I.part.get(id);
+  if (pt) return `${c.n} (parte ${pt[0]} de ${pt[1]})`;
+  if (I.nomRep.has(c.n+'|'+c.m) && c.cp) return `${c.n} (CP ${c.cp.padStart(5,'0')})`;
+  return c.n; }
 let omniItems=[], omniActive=-1, omniTodas=false;
 function omniSearch(q){
   let qt = toks(q).filter(t=>!STOP.has(t)); if (!qt.length || q.trim().length<2) return null;
@@ -80,7 +89,7 @@ function omniPick(it){
   omniClose(); omni.value=''; omniClear.hidden=true; omni.blur();
   if (it.t==='alc'){ if (isGC() && selAv!==null){ selAv=null; highlight=null; } selEl.value=String(it.i); setSel(String(it.i)); }
   else if (it.t==='col'){ pickColonia(it.i); }
-  else if (it.t==='av'){ if (sel!==null && !avStat(it.a).muns.has(sel)){ sel=null; selEl.value=''; } pickAvenida(it.a); }
+  else if (it.t==='av'){ pickAvenida(it.a); }
   else { const s=omniIndex().stStat.get(it.nid); if (isGC()) setResp('alc');
     const cols = it.col? [it.col] : [...s.cols.keys()].filter(Boolean);
     if (cols.length===1){ pickColonia(cols[0]); const key=it.nid*4096+cols[0]; const st=streetIdx.get(key); if (st){ highlightStreet(key, st); } setTab('list'); renderResults(); }

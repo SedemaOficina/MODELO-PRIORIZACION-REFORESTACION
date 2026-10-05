@@ -16,7 +16,7 @@ const dk = new DeckGL({
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
     if (info.layer.id.startsWith('col-fill')){ const id=info.object.i; const c=META.colonias[id]; if (sel!==null && munIndex[c.m]!==sel) return null; const cs=colStat(id); const pc=c.p>=0? T.prio[c.p]:null; return {html:`<div class="tip">${pc? `<span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span>`:''}<b>${c.n}</b><br><span class="m">${META.munNames[munIndex[c.m]]} · Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'} · ${fmt1.format(cs.kmp)} km prioritarios</span></div>`, style:st}; }
     if (info.layer.id==='vias' && !pinned) return {html:`<div class="tip">${vpHtml(info.index,true)}</div>`, style:st};
-    return (info.layer.id==='fronts' && !pinned && inScope(frReal(info.index))) ? {html:`<div class="tip">${featHtml(frReal(info.index),true)}</div>`, style:st} : null;
+    return (info.layer.id==='fronts' && !pinned && enAmbito(frReal(info.index))) ? {html:`<div class="tip">${featHtml(frReal(info.index),true)}</div>`, style:st} : null;
   },
 });
 // si el equipo o el navegador retiran el contexto gráfico (memoria, suspensión, cambio de tarjeta), el mapa queda en blanco: se avisa
@@ -43,7 +43,6 @@ $('loader').hidden = true; window.SIA_LISTO = true; updateScale();
 // el lienzo del mapa, que es el que recibe el teclado, lleva nombre y rol (auditoría H-049)
 { const cv = mapEl.querySelector('canvas'); if (cv){ cv.setAttribute('role','application'); cv.setAttribute('aria-label', mapEl.dataset.nombre); cv.tabIndex = 0; } }
 
-function inScope(i){ return (sel===null || F.mun[i]===sel) && (selCol===null || F.col[i]===selCol); }
 // La ficha recibe el foco al abrirse y lo devuelve al cerrarse (auditoría H-048). cardOrigen = control desde el que se abrió.
 let cardOrigen = null;
 function enfocaFicha(){ const c=$('card'); const a=document.activeElement; if (a && a!==document.body && !c.contains(a)) cardOrigen = a;

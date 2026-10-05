@@ -36,7 +36,7 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   const nTrD = respOn.gc? vpSumm().recsp.size : 1;
   $('dl-frentes').disabled = $('dl-calles').disabled = (sel===null || nPrD===0);
   $('dl-ficha').disabled = nFrD===0; $('dl-tramos').disabled = nTrD===0;
-  $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && nTrD>0));
+  $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && selCol===null && nTrD>0));
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.'
     : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha que descargar.'
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
@@ -77,14 +77,16 @@ function setSel(v){
 // el catálogo de colonias trae abreviaturas (Pgal, Sto, Ampl…); el buscador las expande
 const ABREV = {pgal:'pedregal', sto:'santo', sta:'santa', ampl:'ampliacion', ampliacion:'ampliacion', secc:'seccion', ote:'oriente', pte:'poniente', nte:'norte', gral:'general', prol:'prolongacion', fracc:'fraccionamiento', cjto:'conjunto', uh:'unidad habitacional', bo:'barrio', pblo:'pueblo'};
 function pickColonia(id){
-  if (isGC()) setResp('alc');
+  if (isGC()) setResp('alc', true);
   const c = META.colonias[id]; const m = munIndex[c.m];
   if (sel!==m){ sel=m; selEl.value=String(m); }
   selCol=id; selAv=null; highlight=null; hideCard(); $('q').value=''; if (isPhone() && !showFrB) setLayer('fr', true); collapseSheet(); refresh(); showCard('col', id);
 }
 function clearColonia(){ if(selCol!==null){ selCol=null; highlight=null; hideCard(); refresh(); } }
 function pickAvenida(a){
-  if (!isGC()) setResp('gc');
+  if (!isGC()) setResp('gc', true);
+  // si la avenida no cruza la alcaldía elegida (tarjeta, buscador o dirección), se consulta en toda la ciudad
+  if (sel!==null && !avStat(a).muns.has(sel)){ sel=null; selEl.value=''; }
   selAv=a; selCol=null; hideCard(); $('q').value='';
   const s=avStat(a); highlight={avId:a, idx:s.idx}; collapseSheet(); refresh();
 }

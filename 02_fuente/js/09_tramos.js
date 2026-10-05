@@ -53,8 +53,8 @@ function tramosDeCalle(idx){
 // texto «entre A y B» de un tramo
 function entreTxt(t){ const a = t.entre[0]!==null? META.names[t.entre[0]] : null, b = t.entre[1]!==null? META.names[t.entre[1]] : null;
   return a && b? (a===b? `a la altura de ${a}` : `entre ${a} y ${b}`) : (a||b)? `desde ${a||b}` : 'sin cruce identificado'; }
-let TR_SEL = null;   // tramos de la calle consultada: {key, lista}
-function tramosSel(){ const c = calleSel(); if (!c){ TR_SEL=null; return null; } const key = highlight.nameId; if (!TR_SEL || TR_SEL.key!==key) TR_SEL = {key, lista:tramosDeCalle(c.idx)}; return TR_SEL.lista; }
+let TR_SEL = null;   // tramos de la calle consultada: {key, idx, lista}. La misma calle trae otros frentes en otro ámbito: se compara también el arreglo
+function tramosSel(){ const c = calleSel(); if (!c){ TR_SEL=null; return null; } const key = highlight.nameId; if (!TR_SEL || TR_SEL.key!==key || TR_SEL.idx!==c.idx) TR_SEL = {key, idx:c.idx, lista:tramosDeCalle(c.idx)}; return TR_SEL.lista; }
 // número de tramo de cada frente de la calle consultada (para el Excel)
 function tramoDeFrente(){ const m = new Map(); const l = tramosSel(); if (l) for(const t of l) for(const i of t.idx) m.set(i, t); return m; }
 function renderTramos(){

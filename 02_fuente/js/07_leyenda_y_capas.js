@@ -22,7 +22,8 @@ function renderLegendNote(){
 // dos casillas combinables: Alcaldía y Gob. Central; al menos una activa
 const respOn = { alc:true, gc:false };
 document.querySelectorAll('button[data-resp]').forEach(b=>{ b.onclick = ()=>{ const k=b.dataset.resp; const other = k==='alc'? respOn.gc : respOn.alc; if (respOn[k] && !other) return; respOn[k]=!respOn[k]; setResp(respOn.alc && respOn.gc? 'both' : respOn.gc? 'gc' : 'alc'); }; });
-function setResp(v){
+// sinRefresh: quien la llama refresca después (pickColonia, pickAvenida, buscador); así no queda un paso intermedio en el historial
+function setResp(v, sinRefresh){
   respOn.alc = v!=='gc'; respOn.gc = v!=='alc';
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   if (resp===v) return; resp=v;
@@ -38,7 +39,7 @@ function setResp(v){
   $('resp-note').textContent = v==='alc' ? 'Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.'
     : v==='gc' ? 'Vialidades primarias y de acceso controlado que atiende el Gobierno de la Ciudad, con su propia prioridad.'
     : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para cada responsable.';
-  buildVP(); refresh();
+  buildVP(); if (!sinRefresh) refresh();
 }
 
 const LAY = { alc: ()=>showAlcB, col: ()=>showColB, fr: ()=>showFrB };

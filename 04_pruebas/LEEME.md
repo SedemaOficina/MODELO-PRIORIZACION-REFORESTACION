@@ -24,6 +24,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_servidor_sia.js` | Instalada en `/calles-prioritarias/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 | `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas y «Compartir» | 1 min |
+| `prueba_casos_limite.js` | Casos de la revisión del 5 oct 2026: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Qué compara cifras.** La prueba integral (`prueba_sitio.js`) es un recorrido de controles: confirma que cada flujo responde, no que las cifras sean correctas. Las cifras las vigila `prueba_coherencia_cifras.js`, que abre los Excel y las fichas PDF y los compara con la pantalla y con un recálculo propio desde `docs/datos/*.bin`. Las dos son necesarias.

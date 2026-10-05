@@ -86,6 +86,9 @@ function wireLocCard(c){
 }
 function selectHere(){ // selecciona la colonia (modo Alcaldías) o la alcaldía (modo Gobierno Central) donde está la persona
   if (!locAuto || myPos.acc > LOC_PRECISO) return;
+  // con la ficha de un frente, tramo o colonia abierta no se cambia de colonia: se la cerraría a quien la está leyendo en campo.
+  // Al cerrarla, la siguiente posición selecciona donde esté la persona.
+  if (pinned && pinned.kind!=='loc') return;
   const w = whereAmI(myPos.lon, myPos.lat); const key = w.alc+'_'+w.col; if (key===locLastSel) return; locLastSel = key;
   if (w.alc===null) return;
   keepView = true; locSel = true;

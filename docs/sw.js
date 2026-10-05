@@ -1,6 +1,6 @@
 // Generado por 02_fuente/construir.py a partir de 02_fuente/construir.py. No editar aquí.
-const CACHE = 'calles-b224effb3c';
-const PRE = ["./", "config.js?v=010428485e", "app.js?v=a2eef878da", "estilos.css?v=2d5befbe6a", "libs/deck.js?v=39eac2ebde", "libs/pako.js?v=f0b2d4965e", "libs/xlsx.js?v=7f749f81a4", "libs/jspdf.js?v=d93ad20f62", "libs/excel_worker.js?v=f5508c5d90&x=7f749f81a4", "datos/data.bin?v=0d38f09868", "datos/meta.bin?v=256168c7a0", "datos/vp.bin?v=953fb39b79", "fuentes/cabin.woff2?v=51380ccf10", "fuentes/roboto.woff2?v=0722b859b4", "img/logo_sedema_reforestacion.png?v=5f36e23ee5", "img/composicion_frentes_manzana.jpg?v=fc3c72613c"];
+const CACHE = 'calles-7da58c3ed8';
+const PRE = ["./", "config.js?v=c2ce6c7254", "app.js?v=0516d9f237", "estilos.css?v=2d5befbe6a", "libs/deck.js?v=39eac2ebde", "libs/pako.js?v=f0b2d4965e", "libs/xlsx.js?v=7f749f81a4", "libs/jspdf.js?v=d93ad20f62", "libs/excel_worker.js?v=f5508c5d90&x=7f749f81a4", "datos/data.bin?v=0d38f09868", "datos/meta.bin?v=256168c7a0", "datos/vp.bin?v=953fb39b79", "fuentes/cabin.woff2?v=51380ccf10", "fuentes/roboto.woff2?v=0722b859b4", "img/logo_sedema_reforestacion.png?v=5f36e23ee5", "img/composicion_frentes_manzana.jpg?v=fc3c72613c"];
 const sirve = r => r && r.ok && !r.redirected && r.type === 'basic';
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => Promise.all(PRE.map(u => fetch(u, {cache: 'reload'}).then(r => sirve(r) ? c.put(u, r) : null).catch(() => null)))).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('calles-') && k !== CACHE).map(k => caches.delete(k))))));
