@@ -19,7 +19,8 @@ const EVENTOS_USO = ['consulta', 'descarga'];
 module.exports = function moduloCalles({ pool, opciones = {} }) {
   const o = {
     cookie: 'calles_sesion',
-    origen: process.env.CALLES_ORIGEN || 'https://sedema.sia.cdmx.gob.mx',   // única procedencia aceptada en peticiones que cambian algo
+    origen: process.env.CALLES_ORIGEN || 'https://sedema.sia.cdmx.gob.mx',   // procedencia aceptada en peticiones que cambian algo (varias, separadas por coma)
+    cookieSegura: true,            // solo la demostración en red local (HTTP) la apaga; en producción siempre va cifrada
     rutaHerramienta: '/calles-prioritarias/',
     rutaAcceso: '/acceso/calles/',
     inactividadMin: 12 * 60,       // la sesión se cierra tras 12 h sin actividad
@@ -36,7 +37,7 @@ module.exports = function moduloCalles({ pool, opciones = {} }) {
     q('INSERT INTO calles.bitacora (usuario_id, evento, detalle, ip) VALUES ($1, $2, $3, $4)', [usuario_id, evento, detalle ? JSON.stringify(detalle) : null, req ? ip(req) : null]);
   const leeCookie = req => { const c = req.get('cookie') || ''; const m = c.split(/;\s*/).find(x => x.startsWith(o.cookie + '=')); return m ? decodeURIComponent(m.slice(o.cookie.length + 1)) : null; };
   const ponCookie = (res, valor, maxSeg) => res.append('Set-Cookie',
-    `${o.cookie}=${valor}; Path=/; HttpOnly; Secure; SameSite=Lax${maxSeg === 0 ? '; Max-Age=0' : `; Max-Age=${maxSeg}`}`);
+    `${o.cookie}=${valor}; Path=/; HttpOnly;${o.cookieSegura ? ' Secure;' : ''} SameSite=Lax${maxSeg === 0 ? '; Max-Age=0' : `; Max-Age=${maxSeg}`}`);
   // dirección de regreso: solo dentro de la herramienta (nunca a otro sitio)
   const volverSeguro = v => (typeof v === 'string' && v.startsWith(o.rutaHerramienta) && !v.startsWith('//') && !/[\r\n\\]/.test(v)) ? v : o.rutaHerramienta;
 
@@ -50,8 +51,9 @@ module.exports = function moduloCalles({ pool, opciones = {} }) {
     return s;
   }
   // las peticiones que cambian algo deben venir de la misma procedencia (protección contra solicitudes cruzadas)
+  const origenes = String(o.origen).split(',').map(s => s.trim()).filter(Boolean);
   const mismaProcedencia = (req, res, next) => { const or = req.get('origin');
-    if (or && or !== o.origen) return res.status(403).json({ error: 'Procedencia no permitida.' }); next(); };
+    if (or && !origenes.includes(or)) return res.status(403).json({ error: 'Procedencia no permitida.' }); next(); };
   const conSesion = (rol) => async (req, res, next) => { try { const s = await sesion(req);
     if (!s) return res.status(401).json({ error: 'Tu sesión terminó. Vuelve a iniciar sesión para continuar.' });
     if (rol && s.rol !== rol) return res.status(403).json({ error: 'No tienes permiso para esta sección.' });

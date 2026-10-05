@@ -9,6 +9,8 @@
 //   DEMO_DATOS=1   carga cuentas ficticias (@ejemplo.gob.mx, contraseña «demostracion-2026») y 90 días de uso simulado
 //   DEMO_PG=1      usa un PostgreSQL de PRUEBAS (variables PG* de la cuenta calles_app, esquema ya instalado) en vez de la base en memoria
 //   SITIO=…/docs   la herramienta a servir (para ver el registro de usos, construida con la sesión: ver ../LEEME.md)
+//   DEMO_RED=192.168.x.x  además, abrirla desde otro equipo de la red (un celular): acepta esa procedencia y la cookie va sin «Secure»
+//                  porque la red local no usa HTTPS. SOLO para la demostración: en producción la cookie siempre es segura.
 'use strict';
 const path = require('path'), fs = require('fs');
 const express = require('express');
@@ -28,7 +30,8 @@ const { huella, temporal } = require('../src/contrasenas');
     ON CONFLICT (correo) DO UPDATE SET huella = EXCLUDED.huella, debe_cambiar = true, activo = true`, [await huella(clave)]);
 
   const app = express(); app.set('trust proxy', true);
-  app.use('/api/calles', moduloCalles({ pool, opciones: { origen: `http://localhost:${PUERTO}`, depurarCadaHoras: 0 } }));
+  const red = process.env.DEMO_RED, origen = `http://localhost:${PUERTO}` + (red ? `,http://${red}:${PUERTO}` : '');
+  app.use('/api/calles', moduloCalles({ pool, opciones: { origen, depurarCadaHoras: 0, cookieSegura: !red } }));
   app.use('/acceso/calles', express.static(path.join(__dirname, '..', '..', 'acceso')));
   // equivalente a auth_request de nginx (ver ../LEEME.md, sección nginx)
   const sitio = process.env.SITIO || path.join(__dirname, '..', '..', '..', '..', 'docs');
@@ -39,5 +42,6 @@ const { huella, temporal } = require('../src/contrasenas');
     if (esPagina) return res.redirect(302, '/acceso/calles/?volver=' + encodeURIComponent(req.originalUrl));
     res.status(401).type('html').send('<html><body>No autorizado</body></html>');
   }, express.static(sitio));
-  app.listen(PUERTO, () => console.log(`Demostración en http://localhost:${PUERTO}/calles-prioritarias/\nCuenta: admin@ejemplo.gob.mx · contraseña temporal: ${clave}\nPanel: http://localhost:${PUERTO}/acceso/calles/admin/`));
+  app.listen(PUERTO, () => console.log(`${red ? `En el celular (misma red Wi-Fi): http://${red}:${PUERTO}/calles-prioritarias/
+` : ''}Demostración en http://localhost:${PUERTO}/calles-prioritarias/\nCuenta: admin@ejemplo.gob.mx · contraseña temporal: ${clave}\nPanel: http://localhost:${PUERTO}/acceso/calles/admin/`));
 })();
