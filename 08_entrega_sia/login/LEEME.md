@@ -17,8 +17,10 @@ Persona ─▶ nginx ─▶ /calles-prioritarias/   (auth_request ─▶ /api/ca
 | `backend/src/` | Módulo Express (`index.js`) y huellas de contraseña (`contrasenas.js`). Sin dependencias nativas: usa `express` y `pg`, que el backend ya tiene |
 | `backend/sql/001_esquema.sql` | Esquema `calles`: usuarios, sesiones, bitácora; función de depuración; cuenta de servicio `calles_app` |
 | `backend/scripts/crear_admin.js` | Crea la primera cuenta de administración (las demás, desde el panel) |
-| `backend/scripts/servidor_demo.js` | Demostración en una sola máquina, sin PostgreSQL ni nginx: para ensayar antes de instalar |
-| `backend/pruebas/` | Pruebas del módulo con una base en memoria (`npm install && npm run pruebas`) |
+| `backend/scripts/servidor_demo.js` | Demostración en una sola máquina (nginx + backend + base), con base en memoria o PostgreSQL de pruebas: para ensayar antes de instalar |
+| `backend/scripts/alta_masiva.js` | Alta de muchas cuentas desde un CSV (los enlaces que designa cada alcaldía), con revisión previa y contraseñas temporales |
+| `backend/scripts/datos_demo.js` | Cuentas ficticias y 90 días de uso simulado para ver el panel lleno (solo en bases de prueba) |
+| `backend/pruebas/` | Pruebas: con base en memoria (`npm run pruebas`) o contra PostgreSQL de pruebas (`PRUEBAS_PG=1`) |
 | `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad y sus recursos |
 | `privacidad/` | Aviso integral, aviso simplificado y solicitud a la Unidad de Transparencia (**borradores**) |
 
@@ -88,7 +90,44 @@ Sin esas variables, por ejemplo en GitHub Pages, no registra nada.
 | 7 | Cinco contraseñas equivocadas seguidas | La cuenta se detiene 15 minutos |
 | 8 | «Cerrar sesión» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión» |
 
-Antes de instalar se puede ensayar todo en una computadora: `cd backend && npm install && node scripts/servidor_demo.js` y abrir `http://localhost:8090/calles-prioritarias/`. Para ver el registro de usos, la herramienta debe estar construida con la sesión (paso 6) y servirse con `SITIO=…/docs`.
+## Ensayo antes de instalar
+
+Todo se puede ensayar en una computadora con Node.js (`cd backend && npm install`).
+
+**Sin base de datos**, con una base en memoria:
+```
+DEMO_DATOS=1 node scripts/servidor_demo.js        → http://localhost:8090/calles-prioritarias/
+```
+
+**Con PostgreSQL de pruebas**, que es la forma recomendada antes de tocar sia-backend. Se ensaya el mismo esquema que irá a producción:
+1. Crear una base de pruebas (su nombre debe contener «prueba») y correr en ella `sql/001_esquema.sql`. Dar contraseña a `calles_app`.
+2. Correr las pruebas contra esa base, con la cuenta de servicio. Comprueban también la depuración por plazos y que `calles_app` no pueda salir de su esquema:
+   ```
+   PRUEBAS_PG=1 PGHOST=localhost PGDATABASE=bd_csia_pruebas PGUSER=calles_app PGPASSWORD=… npm run pruebas
+   ```
+3. Cargar los datos simulados: `node scripts/datos_demo.js --base-de-pruebas`.
+4. Levantar la demostración con esa base: `DEMO_PG=1 node scripts/servidor_demo.js`.
+
+**Los datos simulados** son:
+- 37 cuentas ficticias: dos enlaces por alcaldía, tres del Gobierno Central y dos de SEDEMA. Todas con correo `@ejemplo.gob.mx` y contraseña `demostracion-2026`.
+- 90 días de uso con un patrón realista. Por ejemplo, cada enlace consulta sobre todo su alcaldía.
+
+Permiten ver el panel de usos lleno. El script **se niega** a cargarse en una base que ya tenga cuentas reales. Se quitan con `--borrar`.
+
+Para ver el registro de usos desde la herramienta, esta debe estar construida con la sesión (paso 6 de la instalación) y servirse con `SITIO=…/docs`.
+
+## Alta masiva desde CSV
+
+Cuando las alcaldías designen a sus enlaces por oficio, las cuentas se dan de alta todas juntas desde un CSV. Puede guardarse desde Excel, con coma o punto y coma:
+
+```
+correo,nombre,institucion,alcaldia,rol
+enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
+```
+
+1. `node scripts/alta_masiva.js cuentas.csv` revisa cada renglón y dice qué haría, **sin escribir nada**. Señala correos inválidos o repetidos, alcaldías no reconocidas y roles no válidos.
+2. `node scripts/alta_masiva.js cuentas.csv --aplicar` da de alta las cuentas nuevas. Las que ya existen no se tocan.
+3. Escribe `cuentas_con_contrasenas_AAAAMMDD.csv` con las contraseñas temporales. **Repártelas por canal institucional y borra ese archivo.**
 
 ## Operación
 

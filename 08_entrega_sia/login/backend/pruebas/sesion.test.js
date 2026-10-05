@@ -1,5 +1,8 @@
-// Pruebas del módulo de sesión con una base PostgreSQL en memoria (pg-mem) y el esquema real (sql/001_esquema.sql).
-// Uso: npm install && npm run pruebas
+// Pruebas del módulo de sesión con el esquema real (sql/001_esquema.sql).
+// Por omisión, en una base PostgreSQL en memoria (pg-mem):   npm install && npm run pruebas
+// Contra un PostgreSQL de PRUEBAS con el esquema ya instalado, con la cuenta de servicio calles_app (como en producción):
+//   PRUEBAS_PG=1 PGHOST=… PGDATABASE=… PGUSER=calles_app PGPASSWORD=… npm run pruebas
+// ¡Vacía las tablas de calles en esa base! Solo para bases de prueba.
 'use strict';
 process.env.CALLES_SCRYPT_N = '1024';   // huellas rápidas solo en pruebas
 const test = require('node:test'), assert = require('node:assert/strict');
@@ -10,12 +13,21 @@ const moduloCalles = require('../src');
 const { huella } = require('../src/contrasenas');
 
 const ORIGEN = 'https://sedema.sia.cdmx.gob.mx';
+const REAL = !!process.env.PRUEBAS_PG;
+const abiertos = [];
 async function montar() {
-  const db = newDb();
-  // el esquema real, sin la parte que pg-mem no entiende (función de depuración y permisos de la cuenta de servicio)
-  const sql = fs.readFileSync(path.join(__dirname, '..', 'sql', '001_esquema.sql'), 'utf8').split('-- Plazos de conservación')[0];
-  db.public.none(sql);
-  const { Pool } = db.adapters.createPg(); const pool = new Pool();
+  let pool;
+  if (REAL) {   // PostgreSQL real: se vacían las tablas del esquema calles antes de cada prueba
+    const { Pool } = require('pg'); pool = new Pool(); abiertos.push(pool);
+    if (!/prueba/i.test(process.env.PGDATABASE || '')) throw new Error('PRUEBAS_PG solo contra una base cuyo nombre diga «prueba».');
+    await pool.query('DELETE FROM calles.bitacora'); await pool.query('DELETE FROM calles.sesiones'); await pool.query('DELETE FROM calles.usuarios');
+  } else {
+    const db = newDb();
+    // el esquema real, sin la parte que pg-mem no entiende (función de depuración y permisos de la cuenta de servicio)
+    const sql = fs.readFileSync(path.join(__dirname, '..', 'sql', '001_esquema.sql'), 'utf8').split('-- Plazos de conservación')[0];
+    db.public.none(sql);
+    const { Pool } = db.adapters.createPg(); pool = new Pool();
+  }
   const app = express(); app.set('trust proxy', true);
   app.use('/api/calles', moduloCalles({ pool, opciones: { depurarCadaHoras: 0 } }));
   await pool.query(`INSERT INTO calles.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar) VALUES ('admin@sedema.cdmx.gob.mx', 'Admin', 'SEDEMA', 'admin', $1, true)`, [await huella('temporal-admin-1')]);
@@ -80,7 +92,8 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
   assert.equal((await request(app).patch(`/api/calles/admin/usuarios/${idU}`).set('Origin', ORIGEN).set('Cookie', ck).send({ activo: false })).status, 200);
   assert.equal((await request(app).get('/api/calles/sesion').set('Cookie', cu)).status, 401);
   assert.equal((await entrar(app, 'tecnica@iztapalapa.gob.mx', 'jacarandas en la banqueta')).status, 401);
-  assert.equal((await request(app).patch(`/api/calles/admin/usuarios/1`).set('Origin', ORIGEN).set('Cookie', ck).send({ activo: false })).status, 400, 'no se desactiva a sí misma');
+  const idAdmin = (await pool.query("SELECT id FROM calles.usuarios WHERE correo = 'admin@sedema.cdmx.gob.mx'")).rows[0].id;
+  assert.equal((await request(app).patch(`/api/calles/admin/usuarios/${idAdmin}`).set('Origin', ORIGEN).set('Cookie', ck).send({ activo: false })).status, 400, 'no se desactiva a sí misma');
 
   // ---- restablecer: nueva temporal, la anterior deja de servir ----
   await request(app).patch(`/api/calles/admin/usuarios/${idU}`).set('Origin', ORIGEN).set('Cookie', ck).send({ activo: true });
@@ -100,3 +113,19 @@ test('bloqueo tras 5 intentos fallidos', async () => {
   const r = await entrar(app, 'admin@sedema.cdmx.gob.mx', 'temporal-admin-1');
   assert.equal(r.status, 423, 'aun con la contraseña correcta, la cuenta queda detenida unos minutos'); assert.match(r.body.error, /intentos/);
 });
+
+test('depuración: plazos de conservación (solo con PostgreSQL real)', { skip: !REAL && 'pg-mem no ejecuta funciones SQL' }, async () => {
+  const { pool } = await montar();
+  const { rows } = await pool.query('SELECT id FROM calles.usuarios LIMIT 1'); const id = rows[0].id;
+  const hace = meses => new Date(Date.now() - meses * 30.5 * 864e5);
+  await pool.query(`INSERT INTO calles.bitacora (usuario_id, evento, momento, ip) VALUES ($1, 'acceso', $2, '1.1.1.1'), ($1, 'acceso', $3, '2.2.2.2'), ($1, 'acceso', $4, '3.3.3.3')`, [id, hace(1), hace(8), hace(25)]);
+  await pool.query(`INSERT INTO calles.sesiones (token_huella, usuario_id, expira) VALUES ('vencida', $1, $2)`, [id, hace(1)]);
+  await pool.query('SELECT calles.depurar()');
+  const b = (await pool.query('SELECT ip FROM calles.bitacora ORDER BY momento DESC')).rows.map(r => r.ip);
+  assert.deepEqual(b, ['1.1.1.1', null], 'a los 6 meses se borra la IP; a los 24 meses, el registro');
+  assert.equal((await pool.query(`SELECT count(*) AS n FROM calles.sesiones WHERE token_huella = 'vencida'`)).rows[0].n, '0');
+  // privilegio mínimo: la cuenta de servicio no puede salir de su esquema
+  await assert.rejects(pool.query('CREATE TABLE public.intrusa (x int)'), 'calles_app no crea tablas fuera de su esquema');
+});
+
+test.after(async () => { for (const p of abiertos) await p.end(); });
