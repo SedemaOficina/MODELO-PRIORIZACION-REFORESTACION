@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 17.30 (4 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 17.31 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -25,7 +25,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
-├── 04_pruebas/                correr_todas.js, seis pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
+├── 04_pruebas/                correr_todas.js, nueve pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
 ├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
 ├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
@@ -138,7 +138,6 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `04_auditoria_bloque1.css` | Ajustes del bloque 1 de la auditoría UX |
 | `05_auditoria_bloque2.css` | Ajustes del bloque 2 (panel en tres partes, pestañas, hoja inferior, ayuda) |
 | `06_mi_ubicacion.css` | Botón y tarjeta de Mi ubicación |
-
 | `07_accesibilidad.css` | Texto solo para lector de pantalla, enlace de salto, indicador de foco, bordes de controles, objetivos táctiles en teléfono, tabla y lámina de la ayuda, movimiento reducido e impresión |
 | `08_orientacion.css` | Entrada por territorio, pestaña «Dónde empezar», leyenda compacta, «Quién atiende» dentro del panel de capas y botón «Compartir» (v17.28) |
 

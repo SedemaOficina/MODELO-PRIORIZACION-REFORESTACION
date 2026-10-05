@@ -6,7 +6,7 @@ const L = require('./lib_pruebas.js');
 const SAL = process.env.SALIDA || fs.mkdtempSync(path.join(os.tmpdir(), 'coh-'));
 const ok = L.Registro('coherencia de cifras'); const D = L.decodificar(); const M = D.META, VPC = M.vp;
 // lee un .xlsx con openpyxl y devuelve {datos:[[...]], dic:[[...]]}
-const xlsx = ruta => JSON.parse(cp.execFileSync('python3', ['-c', `
+const xlsx = ruta => JSON.parse(cp.execFileSync(L.PY, ['-c', `
 import openpyxl, json, sys
 wb = openpyxl.load_workbook(sys.argv[1], read_only=True)
 print(json.dumps({'datos': [list(r) for r in wb['Datos'].iter_rows(values_only=True)], 'dic': [list(r) for r in wb['Diccionario'].iter_rows(values_only=True)]}, default=str))`, ruta], { maxBuffer: 1 << 28 }).toString());
@@ -83,7 +83,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   ok('H-013 Excel de tramos de la avenida en la alcaldía: renglones = recálculo', x.datos.length - 1 === vAI.filter(v => v.prio >= 3).length, `${x.datos.length - 1}`);
   d = await baja('dl-ficha-av');
   ok('H-013 la ficha de avenida ya no lleva el nombre de la alcaldía', d && /_toda_la_ciudad(_\d{8})?\.pdf$/.test(d.nombre) && !/iztapalapa/.test(d.nombre), d && d.nombre);
-  if (d) { const txt = cp.execFileSync('pdftotext', ['-layout', d.ruta, '-']).toString();
+  if (d) { const txt = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', d.ruta, '-']).toString();
     const vA = D.VP.filter(v => v.nom === avId); const kmI = vAI.reduce((s, v) => s + v.len, 0) / 1000, kmpI = vAI.filter(v => v.prio >= 3).reduce((s, v) => s + v.len, 0) / 1000;
     ok('H-013 la ficha declara que sus cifras son de la avenida completa', /avenida completa/.test(txt.replace(/\s+/g, ' ')));
     ok('H-013 la ficha da aparte las cifras de la alcaldía consultada', new RegExp(`En Iztapalapa: ${L.kmTxt(kmI)} ${L.kmUn(kmI)} de la avenida, ${L.kmTxt(kmpI)} ${L.kmUn(kmpI)} prioritarios`).test(txt.replace(/\s+/g, ' ')), `${L.kmTxt(kmI)} km · ${L.kmTxt(kmpI)} km prioritarios`);
@@ -134,10 +134,10 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   ok('H-005 aviso de asignación preliminar presente en el panel de capas', await page.$eval('#prelim-note', x => !x.hidden && getComputedStyle(x).display !== 'none' && /preliminar/.test(x.textContent)));
   ok('H-068 el diccionario del Excel trae versión y corte', dicVal(x, 'Versión de la herramienta') == cfg.v && dicVal(x, 'Corte de los datos') === cfg.corte, `${dicVal(x, 'Versión de la herramienta')} · ${dicVal(x, 'Corte de los datos')}`);
   ok('H-005 el diccionario del Excel declara la asignación preliminar', x.dic.some(r => /asignación de cada frente .* es preliminar/.test(String(r[0]))));
-  if (d) { const t = cp.execFileSync('pdftotext', ['-layout', d.ruta, '-']).toString().replace(/\s+/g, ' ');
+  if (d) { const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', d.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('H-005 y H-068 la ficha declara la asignación preliminar y la versión', /es preliminar/.test(t) && t.includes('Versión ' + cfg.v), t.slice(-160)); }
   await L.clic(page, '#zcity'); await page.selectOption('#alc', String(izt)); await page.waitForTimeout(400);
-  for (const id of ['dl-ficha-alc']) { const f = await baja(id); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+  for (const id of ['dl-ficha-alc']) { const f = await baja(id); const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok(`H-005 y H-068 ${id}: asignación preliminar y versión en el pie`, /es preliminar/.test(t) && t.includes('Versión ' + cfg.v)); }
 
   // ---------- H-072, H-085, H-009 y H-017 · rótulos y cifras que salen de los datos ----------
@@ -183,7 +183,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   ok('v17.15 el diccionario del Excel trae el universo de intervención del ámbito', Math.abs(+dicVal(x, 'Universo de intervención del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía') - u3(R.km[0])) < 0.006 && Math.abs(+dicVal(x, 'De ese universo, km de frente sin arbolado y con banqueta (INEGI)') - R.sb[0]) < 0.006);
   { const h = x.datos[0], iu = h.indexOf('km_universo_intervencion'), im = h.indexOf('km_media'), ip = h.indexOf('km_prioritario');
     ok('v17.15 resumen por calle: km_universo_intervencion = km_prioritario + km_media en cada renglón', iu > 0 && im > 0 && x.datos.slice(1).every(r => Math.abs(r[iu] - r[ip] - r[im]) < 0.011) && h.every(c => x.dic.some(q => q[0] === c))); }
-  { const f = await baja('dl-ficha-alc'); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+  { const f = await baja('dl-ficha-alc'); const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('v17.15 la ficha de alcaldía trae el universo de intervención = recálculo', t.includes(`Universo de intervención (Muy Alta, Alta y Media): ${L.kmTxt(u3(R.km[0]))} ${L.kmUn(u3(R.km[0]))}`) && /Versión/.test(t), (t.match(/Universo de intervención.{0,160}/) || [''])[0]); }
   await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
   R = rep(f => f.col === tec2); T = await cuadro();
@@ -203,7 +203,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('v17.16 los tramos reúnen todos los frentes de la calle, sin repetir', frT === nFr0, `tramos ${frT} · lista ${nFr0}`);
     x = xlsx((await baja('dl-calle')).ruta); const h = x.datos[0], it = h.indexOf('tramo');
     ok('v17.16 el Excel de la calle numera el tramo de cada frente y lo define en el diccionario', it > 0 && x.datos.slice(1).every(r => +r[it] >= 1) && new Set(x.datos.slice(1).map(r => r[it])).size === (tr || []).length && +dicVal(x, 'Tramos de la calle') === (tr || []).length && h.every(c => x.dic.some(q => q[0] === c)));
-    const f = await baja('dl-ficha-calle'); const t = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+    const f = await baja('dl-ficha-calle'); const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('v17.16 la ficha de la calle trae la tabla de tramos', /TRAMOS DE LA CALLE/.test(t) && /confirman en campo/.test(t)); }
 
   // ---------- v17.17 · filtro de alcaldía y búsqueda de calle con su lugar ----------
@@ -232,7 +232,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('v17.18 Gobierno Central, alcaldía: equivalente en km de frente = recálculo', ti.includes(`Equivalen a ${L.kmTxt(ki)} ${L.kmUn(ki)} de frente de manzana`), ti.slice(-200));
     x = xlsx((await baja('dl-tramos')).ruta);
     ok('v17.18 el Excel de tramos declara la unidad y el equivalente en km de frente', /sobre el eje/.test(dicVal(x, 'Unidad de las longitudes') || '') && Math.abs(+dicVal(x, 'Equivalente del ámbito en km de frente de manzana (aceras con manzana enfrente)') - ki) < 0.006);
-    const f = await baja('dl-ficha-vpalc'); const tf = cp.execFileSync('pdftotext', ['-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
+    const f = await baja('dl-ficha-vpalc'); const tf = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('v17.18 la ficha de vialidades primarias declara la unidad y el equivalente', /se miden sobre el eje/.test(tf) && tf.includes(`Equivalen a ${L.kmTxt(ki)} ${L.kmUn(ki)} de frente de manzana`), (tf.match(/Los kilómetros de esta ficha.{0,200}/) || [''])[0]); }
   await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
   { x = xlsx((await baja('dl-frentes')).ruta);

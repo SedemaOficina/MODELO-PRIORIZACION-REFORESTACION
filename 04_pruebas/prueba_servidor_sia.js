@@ -10,6 +10,11 @@ const PRE = '/calles-prioritarias/';
 // La misma política que propone 08_entrega_sia/nginx_calles_prioritarias.conf.ejemplo (se lee de ahí para que no diverjan)
 const conf = fs.readFileSync(path.join(__dirname, '..', '08_entrega_sia', 'nginx_calles_prioritarias.conf.ejemplo'), 'utf8');
 const CSP = (conf.match(/add_header Content-Security-Policy "([^"]+)"/) || [])[1];
+// Las reglas de caché del ejemplo (map "$uri|$arg_v"), también leídas de ahí: la primera expresión que coincide decide
+const MAPA = (() => { const b = (conf.match(/map "\$uri\|\$arg_v" \$calles_cache \{([\s\S]*?)\n\}/) || [])[1] || ''; const reglas = []; let def = null;
+  for (const l of b.split('\n')) { const m = l.match(/^\s*"~(.+?)"\s+"([^"]+)";/); if (m) reglas.push([new RegExp(m[1]), m[2]]); const d = l.match(/^\s*default\s+"([^"]+)";/); if (d) def = d[1]; }
+  return { reglas, def }; })();
+const cacheDe = (uri, v) => { const k = uri + '|' + (v || ''); const r = MAPA.reglas.find(([re]) => re.test(k)); return r ? r[1] : MAPA.def; };
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.bin': 'application/octet-stream' };
 // modo: normal | sesion401 (datos y librerías responden 401) | login200 (responden la página de inicio de sesión con 200) | descomprime (los .bin llegan ya descomprimidos)
 function servidor(modo) { const pedidas = [];
@@ -21,7 +26,8 @@ function servidor(modo) { const pedidas = [];
     const protegido = /\.bin$|libs\/(xlsx|jspdf)\.js$/.test(rel);
     if (modo === 'sesion401' && protegido) { res.writeHead(401, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<html><body>No autorizado</body></html>'); }
     if (modo === 'login200' && protegido) { res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' }); return res.end('<html><body><form>Inicia sesión</form></body></html>'); }
-    const cab = { 'Content-Type': TIPOS[path.extname(ruta)] || 'application/octet-stream', 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin' };
+    const v = new URLSearchParams(req.url.split('?')[1] || '').get('v');
+    const cab = { 'Content-Type': TIPOS[path.extname(ruta)] || 'application/octet-stream', 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Cache-Control': cacheDe(PRE + rel, v) };
     if (modo === 'descomprime' && rel.endsWith('.bin')) { res.writeHead(200, cab); return res.end(zlib.gunzipSync(fs.readFileSync(ruta))); }
     res.writeHead(200, cab); fs.createReadStream(ruta).pipe(res); });
   return new Promise(r => s.listen(0, () => { s.url = `http://localhost:${s.address().port}`; s.pedidas = pedidas; r(s); })); }
@@ -29,6 +35,15 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
 
 (async () => {
   ok('el ejemplo de nginx declara una política de seguridad de contenido sin estilos ni programas en línea', !!CSP && !/unsafe-inline|unsafe-eval'/.test(CSP.replace(/'wasm-unsafe-eval'/g, '')), (CSP || '').slice(0, 90));
+  // ---------- 0) caché: la página nunca queda guardada; los archivos con huella, un año ----------
+  { const srv = await servidor('normal'); const cc = async u => (await fetch(srv.url + PRE + u)).headers.get('cache-control');
+    const lib = (fs.readFileSync(path.join(L.DOCS, 'index.html'), 'utf8').match(/app\.js\?v=([0-9a-f]+)/) || [])[1] || 'x';
+    const c = { pagina: await cc(''), avenida: await cc('?a=09&v=123&r=gc'), index: await cc('index.html?v=123'), sw: await cc('sw.js'), app: await cc('app.js?v=' + lib), datos: await cc('datos/data.bin?v=' + lib) };
+    ok('el ejemplo de nginx trae las reglas de caché por ruta y huella', MAPA.reglas.length >= 3 && !!MAPA.def, `${MAPA.reglas.length} reglas`);
+    ok('la página se revalida siempre, también un enlace compartido de avenida (?v= es la avenida, no una huella)', [c.pagina, c.avenida, c.index, c.sw].every(x => x === 'no-cache'), `página ${c.pagina} · avenida ${c.avenida} · index ${c.index} · sw ${c.sw}`);
+    ok('programas y datos con huella se guardan un año', [c.app, c.datos].every(x => /max-age=31536000/.test(x || '')), `app ${c.app} · datos ${c.datos}`);
+    srv.close(); }
+
   const browser = await L.lanzar(); const errores = [];
   const abre = async (srv, url, espera = true) => { const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block' }); await L.sinEntrada(ctx);
     await ctx.addInitScript(() => { window.SIA_PRUEBA = true; window.__csp = []; document.addEventListener('securitypolicyviolation', e => window.__csp.push(e.violatedDirective + ' ← ' + (e.blockedURI || 'en línea') + (e.sourceFile ? ' @' + String(e.sourceFile).split('/').pop() + ':' + e.lineNumber : ''))); });

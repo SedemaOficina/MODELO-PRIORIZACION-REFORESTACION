@@ -4,6 +4,7 @@
 const http = require('http'), fs = require('fs'), path = require('path'), zlib = require('zlib');
 let chromium; try { ({ chromium } = require('playwright')); } catch (e) { ({ chromium } = require('playwright-core')); }
 
+const PY = process.platform === 'win32' ? 'python' : 'python3';   // en Windows «python3» es un acceso directo a la tienda, no Python
 const DOCS = process.env.DOCS || [path.join(__dirname, '..', 'docs'), path.join(process.cwd(), 'docs')].find(p => fs.existsSync(p));
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.bin': 'application/octet-stream' };
 function servidor(puerto, docs = DOCS) {
@@ -125,4 +126,4 @@ function Registro(nombre) {
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { sinEntrada, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

@@ -7,7 +7,9 @@ node 04_pruebas/correr_todas.js            todo: unos 12 minutos sin tarjeta gr�
 node 04_pruebas/correr_todas.js rapidas    datos, construcción y revisión estática: menos de un minuto
 ```
 
-Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la raíz (instala las versiones fijadas en `package.json`: Playwright 1.56.0 y ESLint 9.37.0), y `npx playwright install chromium`. La prueba de coherencia requiere además `openpyxl` y `pdftotext`; la de accesibilidad, `unzip`.
+Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la raíz (instala las versiones fijadas en `package.json`: Playwright 1.56.0 y ESLint 9.37.0), y `npx playwright install chromium`. La prueba de coherencia requiere además `openpyxl` y `pdftotext`.
+
+**En Windows** (desde la v17.31): las pruebas llaman a Python como `python` (en Windows `python3` es un acceso directo a la tienda) y ya no se parten con rutas que llevan espacios. `pdftotext` viene con Git para Windows (`C:\Program Files\Git\mingw64\bin`); las pruebas le piden `-enc UTF-8`, porque en Windows entrega por omisión la codificación del sistema. `correr_todas.js` cuenta como falla una verificación que no pudo correr (por ejemplo, ESLint sin `npm install`): lo que no se revisó no se da por aprobado. Las órdenes de `package.json` que corren Python pasan por `04_pruebas/py.js`, que elige el nombre correcto en cada sistema.
 
 | Verificación | Qué cuida | Duración aproximada |
 |---|---|---|
@@ -19,7 +21,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 1 min |
 | `prueba_coherencia_cifras.js` | Que pantalla, Excel y fichas digan lo mismo que un recálculo independiente desde los datos | 2 min |
 | `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
-| `prueba_servidor_sia.js` | Instalada en `/calles-prioritarias/` con la política de seguridad de contenido del ejemplo de nginx: cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
+| `prueba_servidor_sia.js` | Instalada en `/calles-prioritarias/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 | `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas y «Compartir» | 1 min |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
@@ -97,7 +99,7 @@ Tarda unos 12 minutos sin tarjeta gráfica. Las demás pruebas bloquean el proce
 node 04_pruebas/prueba_accesibilidad.js
 ```
 
-Requiere la utilidad `unzip`. Cada corrección de la auditoría de accesibilidad queda así como comprobación automática (H-076). **No sustituye** la lectura con un lector de pantalla real ni una revisión con una herramienta como axe.
+Las propiedades del Excel se leen con Python (`zipfile`), sin depender de `unzip`. Cada corrección de la auditoría de accesibilidad queda así como comprobación automática (H-076). **No sustituye** la lectura con un lector de pantalla real ni una revisión con una herramienta como axe.
 
 ## Prueba de la construcción
 

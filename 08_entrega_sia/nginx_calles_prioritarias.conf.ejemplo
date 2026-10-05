@@ -14,9 +14,16 @@
 # FRAGMENTO A · dentro de http { }
 # ---------------------------------------------------------------------------------------------------------------------
 # Caché: todo archivo pedido con huella (?v=…) no cambia nunca; lo demás (index.html, sw.js) se revalida siempre.
-map $arg_v $calles_cache {
-    ""       "no-cache";
-    default  "public, max-age=31536000, immutable";
+# La PÁGINA se revalida siempre, traiga o no ?v=: en la dirección de la página, ?v= es la avenida consultada
+# (…/calles-prioritarias/?a=09&v=123), no una huella. Sin estas reglas, un enlace compartido de una avenida dejaría
+# la página guardada un año en el navegador y no vería las actualizaciones.
+# La clave es «ruta|valor de v»; la primera expresión que coincide, en este orden, decide.
+map "$uri|$arg_v" $calles_cache {
+    "~/\|"             "no-cache";
+    "~/index\.html\|"  "no-cache";
+    "~/sw\.js\|"       "no-cache";
+    "~\|$"             "no-cache";
+    default            "public, max-age=31536000, immutable";
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -31,7 +38,9 @@ location = /calles-prioritarias {
 }
 
 # 2) El sitio. /RUTA/DEL/VOLUMEN/calles-prioritarias es un enlace simbólico a la versión vigente (ver INSTALACION.md).
-location /calles-prioritarias/ {
+#    ^~ impide que una regla general del servidor por extensión (p. ej. location ~* \.(js|css)$ { expires …; }) atienda
+#    los archivos de la herramienta: sin ^~, esa regla ganaría y los serviría sin estas cabeceras.
+location ^~ /calles-prioritarias/ {
     root /RUTA/DEL/VOLUMEN;
     index index.html;
     try_files $uri $uri/ =404;
@@ -59,7 +68,10 @@ location /calles-prioritarias/ {
         gzip off;
         types { }
         default_type application/octet-stream;
+        add_header Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self'; img-src 'self' data: blob: https://basemaps.cartocdn.com https://services.arcgisonline.com https://static-map-tiles-api.arcgis.com; connect-src 'self' https://basemaps.cartocdn.com https://services.arcgisonline.com https://static-map-tiles-api.arcgis.com; font-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self'" always;
         add_header X-Content-Type-Options "nosniff" always;
+        add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+        add_header Permissions-Policy "geolocation=(self)" always;
         add_header Cache-Control $calles_cache always;
     }
 
@@ -70,7 +82,7 @@ location /calles-prioritarias/ {
 # ---------------------------------------------------------------------------------------------------------------------
 # FASE 2 CON INICIO DE SESIÓN (opcional; ver SESION_Y_LOGIN.md). Sustituye al bloque 2 cuando exista el módulo de sesión.
 # ---------------------------------------------------------------------------------------------------------------------
-# location /calles-prioritarias/ {
+# location ^~ /calles-prioritarias/ {
 #     root /RUTA/DEL/VOLUMEN;
 #     index index.html;
 #     try_files $uri $uri/ =404;

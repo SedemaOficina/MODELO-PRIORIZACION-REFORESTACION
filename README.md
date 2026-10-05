@@ -22,7 +22,7 @@ Esta carpeta es la **copia de trabajo oficial**: aquí vive la versión vigente,
 | `02_fuente/` | **Aquí se edita.** `plantilla.html` (estructura), `css/` (estilos), `js/` (lógica, un archivo por tema), `datos/*.bin`, `img/`, `libs/` (librerías con sus licencias), `fuentes/` (tipografías) y `construir.py`, que lo ensambla todo. | Sí |
 | `docs/` | **El sitio publicado** (GitHub Pages y, después, el SIA). Lo genera `construir.py`; no se edita a mano. Necesita un servidor web: no se abre con doble clic. | Sí |
 | `03_procesamiento_datos/` | Scripts de Python numerados en el orden en que se corren, con `insumos/` e `intermedios/`, y `reporte_catalogos.py` (listas para homologación). Ver su `LEEME.md`. | Sí, salvo la capa de vialidades primarias (`insumos/VP_REFORESTACION/`) y la lámina original |
-| `04_pruebas/` | `correr_todas.js` corre todo y da una sola señal. Seis pruebas de navegador (integral, coherencia de cifras, arranque sin terceros, errores y robustez, teléfono y uso sin conexión, accesibilidad) y la prueba de la construcción. Ver su `LEEME.md`. | Sí, salvo `capturas/` |
+| `04_pruebas/` | `correr_todas.js` corre todo y da una sola señal. Nueve pruebas de navegador (integral, coherencia de cifras, arranque sin terceros, errores y robustez, teléfono y uso sin conexión, accesibilidad, servidor del SIA, orientación y descargas para mapa) y la prueba de la construcción. Ver su `LEEME.md`. | Sí, salvo `capturas/` |
 | `05_documentacion/` | `cifras_de_la_construccion.md` (tamaños y conteos, generado), `despliegue_sia.md` (decisiones para instalar en el SIA), `auditoria_ux_calles.html` (auditoría UI/UX del 24 sep 2026) y `bitacora/` (registro de versiones y decisiones). | Sí, salvo `bitacora/` |
 | `06_entregables/` | Guía de prueba con personal de alcaldías (Word y PDF), listas de catálogos para homologación en el SIA (Excel) y lámina de composición de frentes de manzana. | Sí |
 | `07_versiones/` | Versiones anteriores de la herramienta, con un `LEEME.md` que relaciona sus nombres con la numeración vigente. | No |
@@ -65,7 +65,7 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 
 ## Cómo se trabaja con Claude
 
-1. Se conecta esta carpeta a la sesión de Claude (Cowork) y el proyecto "Alcaldías-Reforestación".
+1. Se abre esta carpeta en Claude Code (aplicación de escritorio, pestaña Code; desde el 5 oct 2026) o en una sesión de Cowork con el proyecto "Alcaldías-Reforestación". Las reglas de trabajo para Claude están en [`CLAUDE.md`](CLAUDE.md).
 2. Claude edita las piezas de `02_fuente/`, reconstruye, corre las pruebas y **hace el commit** con un resumen y una descripción en español.
 3. Liber revisa el commit en GitHub Desktop (pestaña History) y da **Push origin**. GitHub Pages se actualiza en uno o dos minutos.
 4. Cada cambio se documenta en `05_documentacion/bitacora/`.
@@ -73,13 +73,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 6. **Git sobre la carpeta sincronizada por OneDrive:** la sesión de trabajo no puede borrar archivos, así que cada orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit. Se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 7. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla es decisión de quien administra la cuenta.
 
-## Estado al 4 de octubre de 2026 (versión 17.30)
+## Estado al 5 de octubre de 2026 (versión 17.31)
 
-- Versión vigente: **v17.30**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
+- Versión vigente: **v17.31**, publicada en GitHub Pages. El artefacto «Calles Prioritarias para Reforestar» de Claude es un respaldo que se actualiza a solicitud y puede ir atrás de esta versión.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 17.31 | Revisión con Claude Code, bloque 1: el ejemplo de nginx ya no guarda un año la página de un enlace compartido de avenida (`?v=` es la avenida, no una huella), usa `^~` y repite las cabeceras en los datos; las pruebas corren en Windows |
 | 17.30 | La herramienta es para las alcaldías y para el Gobierno Central: la entrada pregunta primero qué red se consulta (calles y colonias, o vialidades primarias) y después el territorio; se recuerdan ambas; la fila «Atiende» vuelve junto al buscador |
 | 17.29 | Descargas para abrir en un mapa: las calles prioritarias de la consulta como líneas, en KML (Google Earth) y GeoJSON (sistemas de información geográfica) |
 | 17.28 | Entrada y orientación (paquete 1 del informe de propuestas): al entrar se pregunta la alcaldía y se recuerda la última consultada; pestaña inicial «Dónde empezar» con las colonias por atender y orden elegible; las cifras pasan a «Resumen»; panel de capas cerrado al inicio con leyenda compacta; «Quién atiende» y el aviso de asignación preliminar pasan al panel de capas; botón «Compartir» |

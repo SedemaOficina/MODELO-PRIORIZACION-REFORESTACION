@@ -3,11 +3,11 @@
   "private": true,
   "description": "Herramienta de consulta de la Secretaría del Medio Ambiente de la Ciudad de México (SIA). Este archivo solo fija las herramientas de prueba; el sitio no tiene dependencias de Node.",
   "scripts": {
-    "construir": "python3 02_fuente/construir.py",
+    "construir": "node 04_pruebas/py.js 02_fuente/construir.py",
     "lint": "eslint docs/app.js",
-    "datos": "python3 03_procesamiento_datos/verificar_datos.py",
-    "construccion": "python3 04_pruebas/prueba_construccion.py",
-    "rapidas": "npm run datos && npm run construccion && npm run lint",
+    "datos": "node 04_pruebas/py.js 03_procesamiento_datos/verificar_datos.py",
+    "construccion": "node 04_pruebas/py.js 04_pruebas/prueba_construccion.py",
+    "rapidas": "node 04_pruebas/correr_todas.js rapidas",
     "pruebas": "node 04_pruebas/correr_todas.js"
   },
   "devDependencies": {

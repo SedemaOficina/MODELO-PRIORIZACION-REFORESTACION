@@ -94,7 +94,7 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     const pdf = await L.descargar(page, '#dl-ficha-alc', SAL, 120000); const xls = await L.descargar(page, '#dl-calles', SAL, 120000);
     const pb = pdf ? fs.readFileSync(pdf.ruta).toString('latin1') : '';
     ok('H-052 la ficha PDF declara idioma, título y autoría', /\/Lang\s*\(es-MX\)/.test(pb) && /\/Title/.test(pb) && /\/Author/.test(pb), pdf ? pdf.nombre : 'sin archivo');
-    let core = ''; try { core = cp.execSync(`unzip -p "${xls.ruta}" docProps/core.xml`).toString('utf8'); } catch (e) {}
+    let core = ''; try { core = cp.execFileSync(L.PY, ['-c', 'import sys, zipfile; sys.stdout.buffer.write(zipfile.ZipFile(sys.argv[1]).read("docProps/core.xml"))', xls.ruta]).toString('utf8'); } catch (e) {}   // con Python y no con unzip, que Windows no trae
     ok('H-052 el Excel trae título y autoría en sus propiedades', /<dc:title>[^<]+<\/dc:title>/.test(core) && /Secretaría del Medio Ambiente/.test(core), core.slice(0, 80));
     // impresión y movimiento reducido
     await page.emulateMedia({ media: 'print' });
