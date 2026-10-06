@@ -32,7 +32,7 @@ const mejor = M.muns.map(m => { let id = null, v = -1; for (const [c, k] of kmp)
     }
     indice.push(`${String(k + 1).padStart(2, '0')}. ${nom} · colonia con más frente prioritario: ${M.colonias[col.id].n} (${col.km.toFixed(1)} km Muy Alta + Alta)`);
   }
-  fs.writeFileSync(path.join(SAL, '00_indice.txt'), `Fichas de las 16 alcaldías · Calles prioritarias para reforestar · versión ${VERSION}\nGeneradas el ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}. Por alcaldía: 1 ficha de la alcaldía, 2 vialidades primarias (Gobierno Central), 3 colonia con más frente prioritario.\nLa asignación de frentes a la alcaldía o al Gobierno Central es preliminar: la regla del cruce está en validación.\n\n${indice.join('\n')}\n`, 'utf8');
+  fs.writeFileSync(path.join(SAL, '00_indice.txt'), `Fichas de las 16 alcaldías · Modelo de priorización de reforestación urbana · versión ${VERSION}\nGeneradas el ${new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}. Por alcaldía: 1 ficha de la alcaldía, 2 vialidades primarias (Gobierno Central), 3 colonia con más frente prioritario.\nLa asignación de frentes a la alcaldía o al Gobierno Central es preliminar: la regla del cruce está en validación.\n\n${indice.join('\n')}\n`, 'utf8');
   await ctx.close(); await browser.close(); srv.close();
   console.log(errores.length ? `\n${errores.length} problema(s): ${errores.slice(0, 3).join(' | ')}` : `\nLote completo en ${SAL}`); process.exit(errores.length ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

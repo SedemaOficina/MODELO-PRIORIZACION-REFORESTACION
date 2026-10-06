@@ -446,7 +446,7 @@ body.tab-dl .panel-actions{display:none}
 /* encabezado compacto (auditoría M2) */
 .panel-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 16px 10px;border-bottom-width:3px}
 .panel-head .logo{grid-column:1/-1;max-width:230px;height:auto}
-.panel-head h1{margin:0;font-size:1rem;line-height:1.25;text-wrap:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel-head h1{margin:0;font-size:1rem;line-height:1.2;text-wrap:balance}   /* v17.39: el nombre «Modelo de priorización de reforestación urbana» pasa a dos renglones en lugar de cortarse */
 .panel-head p{display:none}
 .panel-head #open-info{white-space:nowrap;font-size:.75rem}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.panel-head .logo{max-width:200px}}

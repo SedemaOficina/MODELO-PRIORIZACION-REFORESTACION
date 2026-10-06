@@ -1,5 +1,5 @@
 # =====================================================================================================================
-# Calles prioritarias para reforestar · configuración de ejemplo para nginx (probada con la sintaxis de nginx 1.26)
+# Modelo de priorización de reforestación urbana · configuración de ejemplo para nginx (probada con la sintaxis de nginx 1.26)
 # Sitio estático en la subruta /calles-prioritarias/ del dominio del SIA, detrás del terminador de HTTPS.
 #
 # NO es un archivo para copiar tal cual: son dos fragmentos que el equipo del SIA integra en su configuración.

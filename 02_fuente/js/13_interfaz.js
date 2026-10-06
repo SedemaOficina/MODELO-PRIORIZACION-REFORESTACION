@@ -20,7 +20,8 @@ addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) ret
   if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
-$('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N - META.cruce.frentes_gc);
+$('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = $('m-n-alc2').textContent = fmt.format(N - META.cruce.frentes_gc);
+$('m-alc-km').textContent = fmt0.format(cityTotKm); $('m-alc-prio').textContent = fmt0.format(cityPrioKm); $('m-alc-pct').textContent = pct(cityPrioKm, cityTotKm);   // red de las alcaldías (v17.39)
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
 // ---------- móvil: hoja inferior y leyenda plegable ----------
@@ -92,7 +93,7 @@ function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) retur
 // Con inicio de sesión (v17.38) el enlace sirve entre personas con cuenta: quien lo abra entra y vuelve a esa misma consulta
 const NOTA_CUENTA = 'Para abrirlo se necesita una cuenta de la herramienta.';
 if (SESION.inicio) $('share').title = 'Copiar la dirección de esta consulta para compartirla con alguien que tenga cuenta de la herramienta';
-$('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
+$('share').onclick = ()=>{ const u = location.href, titulo = 'Modelo de priorización de reforestación urbana · ' + $('scope-title').textContent;
   if (isPhone() && navigator.share){ navigator.share(SESION.inicio? {title: titulo, text: NOTA_CUENTA, url: u} : {title: titulo, url: u}).catch(()=>{}); return; }
   copiaTexto(u).then(()=>avisoShare('Enlace copiado', SESION.inicio? 'Enlace copiado. ' + NOTA_CUENTA : ''), ()=>avisoShare('No se pudo copiar')); };
 // ---------- entrada (v17.28; dos pasos desde la v17.30) ----------

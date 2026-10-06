@@ -1,4 +1,4 @@
-<title>Calles Prioritarias para Reforestar</title>
+<title>Modelo de priorización de reforestación urbana</title>
 <meta name="color-scheme" content="light only">
 <!-- ESTILOS -->
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. Lo que va antes de ESTILOS pasa al <head>. -->
@@ -9,9 +9,9 @@
   <aside class="panel">
     <button class="sheet-grip" id="sheet" type="button" aria-expanded="false" aria-controls="panel-body"><i></i><b id="sheet-label">Ver la consulta</b></button>
     <div class="panel-head">
-      <img class="logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+      <img class="logo" src="img/logo_institucional.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana · Sistema de Información Ambiental de la Ciudad de México">
       <a class="sesion-salir" id="sesion-salir" title="Cerrar sesión" aria-label="Cerrar sesión" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>Salir</span></a>
-      <h1>Calles prioritarias para reforestar</h1>
+      <h1>Modelo de priorización de reforestación urbana</h1>
       
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
@@ -176,8 +176,8 @@
 <!-- ===== Entrada por territorio: se muestra en la primera visita, sin consulta en la dirección (js/13_interfaz.js) ===== -->
 <div class="modal entrada" id="entrada" hidden role="dialog" aria-modal="true" aria-labelledby="entrada-title">
   <div class="modal-card entrada-card">
-    <img class="logo modal-logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
-    <h2 id="entrada-title">Calles prioritarias para reforestar</h2>
+    <img class="logo modal-logo" src="img/logo_institucional.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana · Sistema de Información Ambiental de la Ciudad de México">
+    <h2 id="entrada-title">Modelo de priorización de reforestación urbana</h2>
     <p class="lead">La Secretaría del Medio Ambiente pone esta herramienta a disposición de las alcaldías y de las dependencias del Gobierno de la Ciudad, para consultar dónde conviene plantar primero.</p>
     <div id="entrada-p1">
       <h3 id="entrada-q1">¿Qué quieres consultar?</h3>
@@ -201,53 +201,57 @@
   <div class="modal-card">
     <div class="modal-top">
     <button class="close" id="info-close" aria-label="Cerrar">×</button>
-    <img class="logo modal-logo" src="img/logo_sedema_reforestacion.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+    <img class="logo modal-logo" src="img/logo_institucional.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana · Sistema de Información Ambiental de la Ciudad de México">
     </div>
     <section class="howto" aria-labelledby="howto-title">
-      <div class="eyebrow">Calles prioritarias para reforestar · Ayuda</div>
+      <div class="eyebrow">Ayuda</div>
       <h2 id="howto-title">Cómo usar la herramienta</h2>
-      <p class="rec-cta"><button type="button" class="btn rec-abrir" id="rec-abrir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Recorrido guiado · 1 minuto</button><span>Te muestra paso a paso dónde buscar, cómo separar las calles por banqueta y cómo revisarlas en Street View antes de salir a campo.</span></p>
+      <p class="rec-cta"><button type="button" class="btn rec-abrir" id="rec-abrir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Recorrido guiado · 1 minuto</button><span>Muestra dónde buscar, cómo separar las calles por banqueta y cómo revisarlas en Street View antes de salir a campo.</span></p>
       <ol class="howto-steps">
-        <li><b>Elige qué consultar y dónde.</b> Al entrar, la herramienta pregunta si quieres ver las calles y colonias que atienden las alcaldías o las vialidades primarias que atiende el Gobierno Central, y en qué alcaldía; recuerda tu última consulta. La fila «Atiende», bajo el buscador, cambia de red en cualquier momento, y puedes marcar las dos.</li>
-        <li><b>Revisa «Dónde empezar».</b> La primera pestaña propone un orden de atención: las colonias de la alcaldía y, al elegir una colonia, sus calles; con Gobierno Central, las avenidas. Las colonias pueden ordenarse por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta.</li>
-        <li><b>Busca un lugar concreto.</b> En el buscador escribe una alcaldía, una colonia, una avenida o una calle: basta con algunas palabras, y reconoce abreviaturas como «Calz.» o «Av.».</li>
-        <li><b>Consulta el detalle y descarga.</b> «Resumen» tiene las cifras del ámbito; las otras pestañas, el listado y las descargas en Excel, PDF y archivos para mapa. «Compartir» copia la dirección de la consulta.</li>
-        <li><b>Cambia lo que ves en el mapa.</b> El botón de capas abre las opciones del mapa: capas, mapa de fondo, opacidad y prioridades visibles.</li>
+        <li><b>Elige qué consultar y dónde.</b> Calles y colonias de las alcaldías o vialidades primarias del Gobierno Central, y en qué alcaldía. La fila «Atiende» cambia de red en cualquier momento; puedes marcar ambas.</li>
+        <li><b>Revisa «Dónde empezar».</b> Propone el orden de atención: colonias, calles de la colonia elegida o avenidas. Las colonias se ordenan por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta.</li>
+        <li><b>Busca un lugar.</b> Alcaldía, colonia, avenida o calle; bastan algunas palabras y reconoce abreviaturas («Calz.», «Av.»).</li>
+        <li><b>Consulta y descarga.</b> «Resumen» da las cifras del ámbito; las demás pestañas, el listado y las descargas en Excel, PDF y archivos para mapa. «Compartir» copia la dirección de la consulta.</li>
+        <li><b>Ajusta el mapa.</b> El botón de capas controla capas, mapa de fondo, opacidad y prioridades visibles.</li>
       </ol>
-      <h3 class="howto-gl">Términos que usa la herramienta</h3>
+      <h3 class="howto-gl">Términos</h3>
       <dl class="howto-terms">
-        <dt>Frente de manzana</dt><dd>Cada lado de una manzana que da a la calle. Es la unidad que se prioriza: una calle tiene dos frentes, uno por acera.</dd>
-        <dt>Tramo</dt><dd>Pedazo de una calle o avenida con su propia prioridad. Por eso una misma calle puede verse en varios colores.</dd>
+        <dt>Frente de manzana</dt><dd>Lado de una manzana que da a la calle. Es la unidad que se prioriza: una calle tiene dos frentes, uno por acera.</dd>
+        <dt>Tramo</dt><dd>Segmento de calle o avenida con prioridad propia; por eso una misma calle puede verse en varios colores.</dd>
         <dt>Prioritario</dt><dd>Categorías Muy Alta y Alta: donde conviene plantar primero.</dd>
-        <dt>Atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía en la red local o el Gobierno de la Ciudad en las vialidades primarias.</dd>
+        <dt>Atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía (red local) o el Gobierno de la Ciudad (vialidades primarias).</dd>
       </dl>
     </section>
-    <div class="eyebrow">Programa de Reforestación Urbana · Metodología</div>
-    <h2 id="info-title">¿Cómo se priorizaron las colonias y las calles?</h2>
-    <p class="lead">La prioridad indica dónde conviene plantar primero para que el arbolado llegue a donde más falta hace: las colonias con más calor, mayor rezago social y menos sombra, y dentro de ellas, las calles que hoy tienen menos vegetación. El modelo se construyó en dos pasos, de la colonia a la calle.</p>
+    <div class="eyebrow">Metodología · Programa de Reforestación Urbana</div>
+    <h2 id="info-title" class="sr">Metodología</h2>
+    <p class="lead">La prioridad indica dónde plantar primero: colonias con más calor, mayor rezago social y menos sombra y, dentro de ellas, las calles con menos vegetación. El modelo va de la colonia a la calle.</p>
 
     <h3><span class="step">1</span>Prioridad de la colonia</h3>
-    <p>Cada zona de la ciudad se evaluó con tres criterios técnicos. Cada criterio se clasificó en cinco clases, donde 1 significa menor necesidad de arbolado y 5 la mayor:</p>
+    <p>Tres criterios, cada uno en cinco clases (1 = menor necesidad, 5 = mayor):</p>
     <div class="tbl-wrap" tabindex="0" role="region" aria-label="Criterios de la prioridad de la colonia"><table class="tbl">
-      <thead><tr><th>Criterio</th><th>Fuente</th><th>Clase 1 (menor necesidad)</th><th>Clase 5 (mayor necesidad)</th></tr></thead>
+      <thead><tr><th>Criterio</th><th>Fuente</th><th>Clase 1</th><th>Clase 5</th></tr></thead>
       <tbody>
-        <tr><td>Calor: temperatura de la superficie urbana (isla de calor)</td><td>SEDEMA, 2024</td><td>Menos de 28.8 °C</td><td>Más de 43.1 °C</td></tr>
+        <tr><td>Calor: temperatura de la superficie urbana</td><td>SEDEMA, 2024</td><td>Menos de 28.8 °C</td><td>Más de 43.1 °C</td></tr>
         <tr><td>Rezago social: grado de marginación</td><td>CONAPO, 2020</td><td>Muy bajo</td><td>Muy alto</td></tr>
-        <tr><td>Sombra: superficie cubierta por copas de árboles</td><td>SEDEMA</td><td>55.6 % a 100 % de la zona</td><td>0 % a 12.6 % de la zona</td></tr>
+        <tr><td>Sombra: superficie cubierta por copas</td><td>SEDEMA</td><td>55.6 % a 100 %</td><td>0 % a 12.6 %</td></tr>
       </tbody>
     </table></div>
-    <p>La suma de las tres clases define la <b>prioridad de la colonia</b> en cinco niveles, de Muy Alta a Muy Baja. Es el dato que aparece al seleccionar una colonia y en la ficha de cada calle.</p>
-    <p>El contexto social que reporta el programa —el que se muestra en la caja de la colonia, en las fichas y en los archivos descargables— es el <b>Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX</b>, instrumento oficial de focalización de la Ciudad, con su estrato y su población en pobreza por necesidades básicas insatisfechas. El modelo vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020, como indica la tabla; la actualización del modelo para clasificarlo con el Índice de Desarrollo Social está en proceso.</p>
+    <p>La suma de las tres clases define la <b>prioridad de la colonia</b>, de Muy Alta a Muy Baja.</p>
     <div class="scale" aria-label="Escala de prioridad de Muy Alta a Muy Baja">
       <div class="scale-ends"><span>Atender primero</span><span>Atender después</span></div>
       <div class="scale-bar"><i data-st="background:var(--p4)"></i><i data-st="background:var(--p3)"></i><i data-st="background:var(--p2)"></i><i data-st="background:var(--p1)"></i><i data-st="background:var(--p0)"></i></div>
       <div class="scale-labels"><span>Muy Alta<small>más calor, más rezago, menos sombra</small></span><span>Alta</span><span>Media</span><span>Baja</span><span>Muy Baja<small>zonas frescas y arboladas</small></span></div>
     </div>
+    <p><b>Nota sobre el dato social.</b> El modelo clasifica el rezago con la marginación de CONAPO 2020. Las fichas y las descargas muestran como contexto el Índice de Desarrollo Social de EVALÚA CDMX (estrato y población en pobreza por necesidades básicas insatisfechas).</p>
 
-    <h3><span class="step">2</span>Prioridad de cada calle (frente de manzana)</h3>
-    <p>Un frente de manzana es el tramo de calle que da a un lado de una manzana. Para cada uno de los <span id="m-n-fr">—</span> frentes de la ciudad (INEGI, 2020) se midió cuánta vegetación tiene hoy a partir de imágenes satelitales (índice de vegetación NDVI) y se clasificó en cinco clases: a menos vegetación en la calle, clase más alta.</p>
-    <p>La <b>prioridad final del frente</b> combina la prioridad de la colonia con el verdor de la propia calle. Así, una calle sin árboles en una colonia con calor y rezago queda en <b>Muy Alta</b>; una calle ya arbolada en una colonia fresca y con baja marginación queda en <b>Muy Baja</b>. Este es el nivel de detalle con el que se delimitaron las 20,000 manzanas a intervenir en el programa, y permite ordenar el trabajo calle por calle dentro de cada colonia.</p>
-    <p><b>Una calle no es una sola línea en el mapa: son varios tramos.</b> Cada línea de color que se dibuja es un tramo independiente y tiene su propia prioridad, así que una misma avenida puede aparecer oscura en unas cuadras y clara en otras. Por eso, al buscar una calle por su nombre, la herramienta resalta y suma todos sus tramos: los kilómetros que reporta son la suma de esos tramos, no la longitud de un solo trazo.</p>
+    <h3><span class="step">2</span>Prioridad de cada calle</h3>
+    <p>Para cada uno de los <span id="m-n-fr">—</span> frentes de manzana de la ciudad (INEGI, 2020) se midió la vegetación con imágenes satelitales (NDVI): a menos vegetación, clase más alta. La <b>prioridad final</b> combina la de la colonia con el verdor del frente.</p>
+    <p>Cómo se dibuja cada red:</p>
+    <ul>
+      <li><b>Calles de las alcaldías:</b> un tramo es el frente de una manzana; los dos lados de la calle son tramos distintos (<span id="m-n-alc">—</span> frentes).</li>
+      <li><b>Vialidades primarias:</b> un tramo va de cruce a cruce y se corta al cambiar de alcaldía (<span id="m-vp-tramos">—</span> tramos).</li>
+    </ul>
+    <p>Al buscar una calle, la herramienta resalta y suma todos sus tramos: los kilómetros reportados son esa suma.</p>
     <figure class="diag">
       <svg viewBox="0 0 660 240" role="img" aria-label="Diagrama: una calle se dibuja en tramos. En la red de las alcaldías cada tramo es el frente de una manzana; en las vialidades primarias cada tramo va de cruce a cruce.">
         <text x="0" y="13" font-family="Cabin, sans-serif" font-size="12.5" font-weight="700" fill="#24262A">Calles de las alcaldías</text>
@@ -279,61 +283,46 @@
         </g>
         <text x="348" y="232" font-family="Roboto, sans-serif" font-size="11" fill="#8A8C8E">La avenida también se corta al cambiar de alcaldía.</text>
       </svg>
-      <figcaption>Los colores son las cinco clases de prioridad. La red de las alcaldías está formada por <span id="m-n-alc">—</span> frentes de manzana y la de vialidades primarias por <span id="m-vp-tramos">—</span> tramos; al seleccionar una calle o una avenida, el panel indica cuántos de sus tramos son prioritarios y cuántos kilómetros suman.</figcaption>
+      <figcaption>Los colores son las cinco clases de prioridad.</figcaption>
     </figure>
     <figure class="lamina" tabindex="0" role="group" aria-label="Lámina de la clasificación de frentes; en teléfono se desplaza hacia los lados"><img src="img/composicion_frentes_manzana.jpg" alt="Ortofoto de un conjunto de manzanas y la misma zona con sus frentes clasificados: en verde los que tienen arbolado y en rojo los que no"><figcaption>Así se clasifica el verdor de cada frente de manzana: en verde los tramos con arbolado y en rojo los que no lo tienen. Es el nivel de detalle con el que se prioriza al interior de las colonias.</figcaption></figure>
 
-    <h3><span class="step">3</span>Quién atiende cada calle: alcaldías y Gobierno Central</h3>
-    <p>Las <b>vialidades primarias y de acceso controlado</b> (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales) corresponden al Gobierno de la Ciudad de México; el resto de la red la atienden las alcaldías. La capa de vialidades primarias (<span id="m-vp-km">—</span> km) trae su propia prioridad de reforestación en la misma escala de cinco niveles: <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</p>
-    <p>Para no contar dos veces la misma calle, los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y se excluyen de las cifras, listados y fichas de las alcaldías: son <span id="m-gc-fr">—</span> frentes (<span id="m-gc-km">—</span> km). Un frente se considera sobre la vialidad primaria cuando corre paralelo a ella (diferencia de rumbo de 30° o menos) y está a 18 m o menos de su eje, o hasta 60 m cuando además coincide el nombre de la calle. <b>Esta regla es preliminar y está en validación</b>: la asignación de un frente a la alcaldía o al Gobierno Central puede cambiar cuando se valide. El <span id="m-cov">—</span> de los kilómetros de vialidad primaria tiene frentes asociados; el resto son tramos sin manzanas al frente (vías de acceso controlado, puentes y entronques). La meta del Gobierno de la Ciudad se mide sobre la red primaria completa —los <span id="m-vp-km2">—</span> km—, no sobre el subconjunto con frentes.</p>
-    <p>Por eso el panel separa dos consultas. La primera, <b>Atiende</b>, define de quién es la calle: con <b>Alcaldías</b> se consultan los frentes que planta cada demarcación; con <b>Gobierno Central</b>, las vialidades primarias con su prioridad, su buscador de avenida y sus descargas; ambas casillas pueden estar activas para ver las dos redes juntas. La segunda, bajo el título <b>Lo que indica el modelo de priorización</b>, define el territorio y el detalle con que se consulta ese universo: alcaldía, colonia o avenida, y si el mapa dibuja alcaldías, colonias o calles. Las cifras, los listados, las fichas y los archivos descargables siempre corresponden a la combinación elegida en ambas.</p>
-    <p><b>Nada de esto es una atribución nueva.</b> El reparto que ordena la herramienta ya está en la ley: la Ley Orgánica de Alcaldías encomienda a las demarcaciones los programas de reforestación <b>en las vías secundarias</b>, de modo que las vialidades primarias y de acceso controlado quedan fuera de ese ámbito y corresponden al Gobierno de la Ciudad.</p>
-    <div class="fund">
-      <div class="col">
-        <h4><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21c0-5 2-9 7-11-1 6-3 9-7 11zM12 21c0-4-1.5-7-5-8.5"/></svg>Alcaldías: plantar y cuidar</h4>
-        <dl>
-          <dt>Constitución CDMX, art. 53 B.3 a) fr. XIX y b) fr. XXII</dt>
-          <dd>Servicio público de poda; conservación y mejora de parques urbanos y áreas verdes.</dd>
-          <dt>Ley Ambiental CDMX, art. 106</dt>
-          <dd>Las Alcaldías, en coordinación con la Secretaría, tienen a su cargo la conservación, mantenimiento, protección, restitución y desarrollo de los árboles de su territorio; crear áreas verdes cuando no se alcancen 9 m² por habitante, con especies nativas y conforme a las disposiciones de la Secretaría.</dd>
-          <dt>Ley Ambiental, art. 8 fr. IX–X y art. 110</dt>
-          <dd>Vigilar el arbolado en vía pública, sustituirlo gradualmente por nativas y prestar el servicio de poda.</dd>
-          <dt>Ley Orgánica de Alcaldías, arts. 50 y 52 fr. VI</dt>
-          <dd>Incrementar las áreas verdes por habitante y diseñar e implementar programas de reforestación de especies arbóreas idóneas en las vías secundarias.</dd>
-        </dl>
-      </div>
-      <div class="col">
-        <h4><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v16M7 20h10M5 8h14M8 8l-3 6h6zM16 8l-3 6h6z"/></svg>Secretaría: norma, datos y técnica</h4>
-        <dl>
-          <dt>Ley Ambiental CDMX, art. 7 fr. IV y LI</dt>
-          <dd>Expedir las normas ambientales de la Ciudad (NADF-001; paleta vegetal obligatoria).</dd>
-          <dt>Ley Ambiental, art. 7 fr. VIII y XVII</dt>
-          <dd>Resolver y, en su caso, limitar o negar plantación, poda, derribo y trasplante en suelo urbano; promover la sustitución de exóticas por nativas.</dd>
-          <dt>Ley Ambiental, art. 7 fr. XXXV y art. 107</dt>
-          <dd>Sistema de Información Ambiental e inventario del arbolado urbano, en coordinación con las Alcaldías (reforma del 24 de diciembre de 2025).</dd>
-          <dt>Reglamento Interior, art. 190 fr. V, VI y VII</dt>
-          <dd>Lineamientos de reforestación; autorizar plantación, poda y trasplante en áreas verdes urbanas; asistencia técnica y capacitación.</dd>
-        </dl>
-      </div>
-    </div>
-    <p class="fundnote">Cabildo (Constitución, art. 54): órgano de planeación, coordinación, acuerdo y decisión entre el Gobierno de la Ciudad y las Alcaldías; garantiza el cumplimiento de sus acuerdos.</p>
-
-    <h3><span class="step">4</span>Cómo usar esta herramienta</h3>
-    <ul class="uses">
-      <li><b>Empiece por Muy Alta y Alta.</b> Son las calles donde el arbolado tiene mayor efecto sobre calor, sombra y equidad. Media se atiende cuando se cubran las anteriores o cuando exista demanda vecinal.</li>
-      <li><b>Separe por banqueta, sin descartar.</b> La fila <b>Banqueta</b> filtra los frentes de las alcaldías según el registro de INEGI 2020: <b>Con banqueta</b> reúne los frentes para plantación directa; <b>Sin o por verificar</b>, los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato, que requieren reconocimiento en sitio. El mapa, las cifras, los listados, los Excel, los mapas descargables y las fichas siguen el filtro; el Resumen y las fichas muestran siempre el desglose completo. El dato puede haber cambiado desde 2020.</li>
-      <li><b>Distinga «prioritario» de «universo de intervención».</b> Prioritario es Muy Alta y Alta. El universo de intervención suma además la prioridad Media; la herramienta lo reporta aparte, con los kilómetros que no tienen arbolado y los que además disponen de banqueta según INEGI.</li>
-      <li><b>Una calle no tiene una sola prioridad.</b> Cada calle reúne frentes de manzana que pueden tener prioridades distintas; el listado muestra sus kilómetros en cada prioridad y la predominante. Al elegir una calle, la pestaña Listado la divide en tramos de esquina a esquina, con las vialidades que los delimitan; es una aproximación geométrica que se confirma en campo.</li>
-      <li><b>Para encontrar una calle, diga dónde.</b> Muchos nombres de calle se repiten en la ciudad. Si busca uno sin elegir alcaldía, la herramienta muestra las alcaldías y colonias donde existe para que elija; también puede escribir la calle con su colonia o alcaldía, por ejemplo «Ayuntamiento Centro».</li>
-      <li><b>Trabaje por colonia.</b> Escriba el nombre de la colonia para ver sus kilómetros prioritarios y sus calles con más frente por atender; el resumen por calle ordena las vialidades por kilómetros prioritarios.</li>
-      <li><b>Use el listado descargable para programar cuadrillas.</b> Cada archivo de Excel trae dos hojas: <i>Datos</i>, con calle, tipo de vialidad, colonia, código postal, longitud del frente y coordenadas, y <i>Diccionario</i>, con la definición de cada campo, sus valores posibles, el ámbito consultado y las fuentes. Si no hay conexión para generar el Excel, la herramienta entrega el listado y el diccionario en dos archivos CSV.</li>
-      <li><b>Distinga responsabilidades.</b> Si una calle no aparece en el listado de la alcaldía, revise en el mapa si es una vialidad primaria (en gris): la atiende el Gobierno Central y se consulta activando esa casilla en la fila Atiende.</li>
-      <li><b>No sume unidades distintas.</b> La red de las alcaldías se mide en kilómetros de frente de manzana, una medida por cada acera. Las vialidades primarias del Gobierno Central se miden en kilómetros de vialidad, sobre el eje de la avenida, y la herramienta da además su equivalente en kilómetros de frente. Para comparar o sumar lo que atiende cada quien use el cuadro «Quién atiende», que está todo en kilómetros de frente.</li>
-      <li><b>Lea las cifras como diagnóstico.</b> Los kilómetros prioritarios describen dónde es mayor la necesidad de arbolado según el modelo; no son una meta ni una obligación de plantación, y la participación de cada alcaldía en el total de la ciudad no es una calificación.</li>
-      <li><b>Verifique en campo.</b> El modelo indica dónde es prioritario, no cuántos árboles caben: el espacio de plantación, la banqueta, el cableado y las instalaciones deben confirmarse en sitio.</li>
-      <li><b>Especies y mantenimiento.</b> La selección de especies nativas y el riego y mantenimiento por dos años se acuerdan con la Secretaría conforme al Programa de Reforestación Urbana.</li>
+    <h3><span class="step">3</span>Quién atiende cada calle</h3>
+    <ul>
+      <li><b>Gobierno de la Ciudad:</b> vialidades primarias y de acceso controlado (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales). Son <span id="m-vp-km">—</span> km, de los cuales <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</li>
+      <li><b>Alcaldías:</b> el resto de la red. Son <span id="m-n-alc2">—</span> frentes de manzana (<span id="m-alc-km">—</span> km), de los cuales <span id="m-alc-prio">—</span> km son prioritarios (<span id="m-alc-pct">—</span>).</li>
     </ul>
-    <p class="fine">Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); CONAPO, Índice de marginación urbana 2020; EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial (población, población en pobreza por necesidades básicas insatisfechas y estrato de desarrollo social); SEDEMA, temperatura superficial urbana 2024 y cobertura de copa; Sistema de Información Ambiental, modelo de priorización de frentes de manzana (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026).</p>
+    <p><b>Regla para no contar dos veces.</b> Los frentes que dan a una vialidad primaria se asignan al Gobierno Central y se excluyen de las cifras de las alcaldías: <span id="m-gc-fr">—</span> frentes (<span id="m-gc-km">—</span> km). Un frente se asigna cuando corre paralelo a la vialidad (diferencia de rumbo de 30° o menos) y está a 18 m o menos de su eje, o hasta 60 m si además coincide el nombre.</p>
+    <p>El <span id="m-cov">—</span> de los kilómetros de vialidad primaria tiene frentes asociados; el resto son vías de acceso controlado, puentes y entronques. La meta del Gobierno de la Ciudad se mide sobre los <span id="m-vp-km2">—</span> km completos.</p>
+    <p><b>Dos consultas en el panel.</b> «Atiende» define de quién es la calle. «Lo que indica el modelo de priorización» define el territorio y el detalle (alcaldía, colonia o avenida). Cifras, listados, fichas y descargas corresponden siempre a la combinación elegida.</p>
+    <p><b>Fundamento.</b> No es una atribución nueva: la Ley Orgánica de Alcaldías encomienda a las demarcaciones la reforestación en vías secundarias; las primarias y de acceso controlado corresponden al Gobierno de la Ciudad.</p>
+    <div class="tbl-wrap" tabindex="0" role="region" aria-label="Fundamento de las atribuciones"><table class="tbl">
+      <thead><tr><th>Ámbito</th><th>Disposición</th><th>Contenido</th></tr></thead>
+      <tbody>
+        <tr><td>Alcaldías</td><td>Constitución CDMX, art. 53 B.3 a) fr. XIX y b) fr. XXII</td><td>Servicio público de poda; conservación y mejora de parques urbanos y áreas verdes.</td></tr>
+        <tr><td>Alcaldías</td><td>Ley Ambiental CDMX, art. 106</td><td>Conservación, mantenimiento, protección, restitución y desarrollo de los árboles de su territorio, en coordinación con la Secretaría; crear áreas verdes cuando no se alcancen 9 m² por habitante, con especies nativas.</td></tr>
+        <tr><td>Alcaldías</td><td>Ley Ambiental, art. 8 fr. IX–X y art. 110</td><td>Vigilar el arbolado en vía pública, sustituirlo gradualmente por nativas y prestar el servicio de poda.</td></tr>
+        <tr><td>Alcaldías</td><td>Ley Orgánica de Alcaldías, arts. 50 y 52 fr. VI</td><td>Incrementar áreas verdes por habitante; programas de reforestación en vías secundarias.</td></tr>
+        <tr><td>Secretaría</td><td>Ley Ambiental CDMX, art. 7 fr. IV y LI</td><td>Expedir las normas ambientales (NADF-001; paleta vegetal obligatoria).</td></tr>
+        <tr><td>Secretaría</td><td>Ley Ambiental, art. 7 fr. VIII y XVII</td><td>Resolver, limitar o negar plantación, poda, derribo y trasplante en suelo urbano; promover la sustitución de exóticas por nativas.</td></tr>
+        <tr><td>Secretaría</td><td>Ley Ambiental, art. 7 fr. XXXV y art. 107</td><td>Sistema de Información Ambiental e inventario del arbolado urbano, en coordinación con las Alcaldías (reforma del 24 de diciembre de 2025).</td></tr>
+        <tr><td>Secretaría</td><td>Reglamento Interior, art. 190 fr. V, VI y VII</td><td>Lineamientos de reforestación; autorizar plantación, poda y trasplante en áreas verdes urbanas; asistencia técnica y capacitación.</td></tr>
+        <tr><td>Cabildo</td><td>Constitución CDMX, art. 54</td><td>Órgano de planeación, coordinación, acuerdo y decisión entre el Gobierno de la Ciudad y las Alcaldías.</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3><span class="step">4</span>Criterios de lectura</h3>
+    <ul class="uses">
+      <li><b>Empieza por Muy Alta y Alta.</b> Media se atiende al cubrir las anteriores o cuando exista demanda vecinal.</li>
+      <li><b>Prioritario no es universo de intervención.</b> El universo suma la prioridad Media y se reporta aparte, con los kilómetros sin arbolado y los que además tienen banqueta.</li>
+      <li><b>Separa por banqueta, sin descartar.</b> «Con banqueta» reúne los frentes para plantación directa. «Sin o por verificar» reúne los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato; requieren reconocimiento en sitio. El dato es de INEGI 2020 y puede haber cambiado.</li>
+      <li><b>Una calle no tiene una sola prioridad.</b> El listado muestra sus kilómetros por prioridad y la predominante. Al elegir una calle, se divide en tramos de esquina a esquina; es una aproximación geométrica que se confirma en campo.</li>
+      <li><b>Di dónde está la calle.</b> Muchos nombres se repiten: elige alcaldía o escribe la calle con su colonia («Ayuntamiento Centro»). Si no aparece en el listado de la alcaldía, revisa si es vialidad primaria (en gris) y activa Gobierno Central.</li>
+      <li><b>No sumes unidades distintas.</b> La red de las alcaldías se mide en kilómetros de frente (uno por acera); las vialidades primarias, en kilómetros de vialidad sobre el eje. Para comparar usa el cuadro «Quién atiende», todo en kilómetros de frente.</li>
+      <li><b>Las cifras son diagnóstico.</b> No son meta ni obligación de plantación, y la participación de cada alcaldía en el total no es una calificación. El modelo indica dónde es prioritario, no cuántos árboles caben: espacio, banqueta, cableado e instalaciones se confirman en sitio.</li>
+      <li><b>Programa con el Excel y acuerda con la Secretaría.</b> Cada archivo trae la hoja Datos (calle, tipo de vialidad, colonia, código postal, longitud y coordenadas) y la hoja Diccionario; sin conexión se entregan dos CSV. Las especies nativas y el riego y mantenimiento por dos años se acuerdan con la Secretaría conforme al Programa.</li>
+    </ul>
+    <p class="fine">Fuentes: INEGI, Características del Entorno Urbano 2020; CONAPO, Índice de marginación urbana 2020; EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial; SEDEMA, temperatura superficial urbana 2024 y cobertura de copa; Sistema de Información Ambiental, modelo de priorización de frentes de manzana (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026).</p>
     <h3><span class="step">5</span>Uso con teclado y lector de pantalla</h3>
     <ul>
       <li><b>Tabulador</b> recorre los controles; el enlace «Saltar a la respuesta», al inicio, lleva a las cifras de la consulta.</li>

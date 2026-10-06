@@ -1,4 +1,4 @@
-# Capas para el GeoServer del SIA · Calles prioritarias para reforestar
+# Capas para el GeoServer del SIA · Modelo de priorización de reforestación urbana
 
 Tres capas y sus estilos, para publicarlas en `https://sedema.sia.cdmx.gob.mx/geoserver`, espacio de trabajo `sia`.
 

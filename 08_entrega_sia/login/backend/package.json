@@ -2,7 +2,7 @@
   "name": "calles-prioritarias-sesion",
   "version": "1.0.0",
   "private": true,
-  "description": "Módulo de sesión y bitácora de usos de «Calles prioritarias para reforestar» para sia-backend (Express + PostgreSQL). Sin dependencias nativas.",
+  "description": "Módulo de sesión y bitácora de usos de «Modelo de priorización de reforestación urbana» para sia-backend (Express + PostgreSQL). Sin dependencias nativas.",
   "main": "src/index.js",
   "scripts": {
     "pruebas": "node --test pruebas/*.test.js",

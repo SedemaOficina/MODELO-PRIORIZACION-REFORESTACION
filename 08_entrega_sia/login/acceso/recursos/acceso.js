@@ -1,4 +1,4 @@
-// Pantalla de acceso de «Calles prioritarias para reforestar». Habla con el módulo de sesión (/api/calles/).
+// Pantalla de acceso de «Modelo de priorización de reforestación urbana». Habla con el módulo de sesión (/api/calles/).
 // Sin programas en línea: funciona con la política de seguridad de contenido estricta del sitio.
 'use strict';
 (function () {

@@ -221,7 +221,7 @@ wb = Workbook()
 ws = wb.active
 ws.title = 'Léeme'
 lineas = [('Catálogos de colonias y de calles: listas para homologación', True),
-          ('Herramienta «Calles prioritarias para reforestar» · Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', False),
+          ('Herramienta «Modelo de priorización de reforestación urbana» · Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', False),
           ('', False),
           ('Qué es. Listas de registros de los catálogos que conviene revisar en la fuente de cada capa. Atiende los hallazgos H-029 y H-101 de la auditoría integral del 2 de octubre de 2026.', False),
           ('Qué no es. No es una corrección: la herramienta no modifica los catálogos. Cada lista se entrega para que el SIA decida y corrija en la capa de origen; después se regeneran los datos.', False),

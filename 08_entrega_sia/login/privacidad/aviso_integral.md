@@ -1,6 +1,6 @@
 # Aviso de privacidad integral
 
-## Sistema de datos personales «Cuentas de acceso y bitácora de uso de la herramienta Calles prioritarias para reforestar»
+## Sistema de datos personales «Cuentas de acceso y bitácora de uso de la herramienta Modelo de priorización de reforestación urbana»
 
 > **BORRADOR para revisión de la Unidad de Transparencia y del área jurídica de la SEDEMA.** Lo que está entre corchetes debe completarse o confirmarse. El contenido describe exactamente lo que registra el sistema (`08_entrega_sia/login/`): si el sistema cambia, este aviso debe cambiar con él.
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Arma la herramienta "Calles prioritarias para reforestar" a partir de sus piezas.
+"""Arma la herramienta "Modelo de priorización de reforestación urbana" a partir de sus piezas.
 
 Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   plantilla.html   estructura de la página (sin estilos ni código)
@@ -43,7 +43,7 @@ ESQUELETO = ('<!doctype html><html lang="es-MX"><head><meta charset="utf-8">'
 # Librerías: en el arranque (deck, pako) y bajo demanda (Excel y fichas PDF). Todas salen de libs/, en el sitio y en el archivo único.
 LIBS_ARRANQUE = ('deck.js', 'pako.js')
 LIBS_DEMANDA = ('xlsx.js', 'jspdf.js')
-IMAGENES = {'img/logo_sedema_reforestacion.png': 'image/png', 'img/composicion_frentes_manzana.jpg': 'image/jpeg'}
+IMAGENES = {'img/logo_institucional.png': 'image/png', 'img/composicion_frentes_manzana.jpg': 'image/jpeg'}
 DATOS = ('meta', 'data', 'vp')
 # Tipografías servidas desde el sitio (familia -> archivo en fuentes/). Peso variable de 400 a 700.
 FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
@@ -76,8 +76,9 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or '',
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/calles/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
-# Actualizar VERSION en cada publicación y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '17.38'
+# Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
+VERSION = '1.0'   # primera versión para el SIA; antes de ella, ensayos internos v1 a v17.38 (ver bitácora)
+ACTUALIZACION = '5 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -208,7 +209,7 @@ for k in LIBS_ARRANQUE:
     cuerpo += '<script>' + codigo + '</script>\n'
 cuerpo += ''.join('<script id="lib-%s-b64" type="text/plain">%s</script>\n' % (k, base64.b64encode(leer('libs/' + k, True)).decode()) for k in LIBS_DEMANDA)
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
-cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False))
+cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
 fragmento = CABEZA_PL + ESTILOS_UNICO + cuerpo   # el artefacto no tiene <head> propio: todo va junto
 
@@ -234,7 +235,7 @@ for arch in FUENTES_PUBLICADAS:
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_CARTO_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_CARTO_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)

@@ -1,4 +1,4 @@
-// Módulo de sesión de «Calles prioritarias para reforestar» para sia-backend (Node.js + Express).
+// Módulo de sesión de «Modelo de priorización de reforestación urbana» para sia-backend (Node.js + Express).
 // Controla quién entra (usuarios dados de alta, contraseñas con huella, bloqueo por intentos) y registra los usos
 // (accesos, visitas, consultas por alcaldía y descargas) para saber quién usa la herramienta y para qué.
 //

@@ -19,8 +19,8 @@ const esPrio = p => p >= PRIO_MIN;
 const sumPrio = a => { let t = 0; for (let k = PRIO_MIN; k < a.length; k++) t += a[k]; return t; };   // suma de un arreglo por clase sobre las clases prioritarias
 const sumUniv = a => { let t = 0; for (let k = UNIV_MIN; k < a.length; k++) t += a[k]; return t; };
 // Versión de la herramienta y corte de los datos: los fija construir.py (VERSION y CORTE_DATOS) y se muestran en el panel, las fichas y los Excel.
-const VERSION = Object.assign({v:'', corte:''}, window.SIA_VERSION || {});
-const VERSION_TXT = `Versión ${VERSION.v} · Datos: ${VERSION.corte}`;
+const VERSION = Object.assign({v:'', fecha:'', corte:''}, window.SIA_VERSION || {});
+const VERSION_TXT = `Versión ${VERSION.v}${VERSION.fecha? ' · Última actualización: '+VERSION.fecha : ''} · Datos: ${VERSION.corte}`;
 const PRELIM_TXT = 'La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: resulta de una regla geométrica en validación.';
 // Errores con mensaje para la persona usuaria (auditoría H-035): `amable` es lo que se muestra; el detalle técnico va a la consola.
 function errAmable(msg, detalle){ const e = new Error(detalle || msg); e.amable = msg; return e; }
@@ -1428,10 +1428,10 @@ function ambitoTxt(key){
 function dictAoa(key, nreg, archivo, extra){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
-  const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
+  const a = [['Modelo de priorización de reforestación urbana — Diccionario de datos'], [],
     ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
-    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Corte de los datos', VERSION.corte], [],
+    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Última actualización de la herramienta', VERSION.fecha], ['Corte de los datos', VERSION.corte], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
   for (const f of d.campos) a.push(f);
   a.push([], ['Notas']);
@@ -1471,7 +1471,7 @@ function loadXL(){
 const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
 // Propiedades del libro (auditoría H-052): título, autoría e idioma
-const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Calles prioritarias para reforestar, versión ' + VERSION.v, CreatedDate: new Date() });
+const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, CreatedDate: new Date() });
 function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js' + libV('excel_worker.js') + (libV('xlsx.js')? '&x=' + window.SIA_LIBS_V['xlsx.js'] : '')); } catch(e){ return rej(e); }
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
   w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic, props}); }); }
@@ -1576,7 +1576,7 @@ function geoSel(){ const fr=[], vp=[];
 const geoCoord = (A, k) => [+A[2*k].toFixed(6), +A[2*k+1].toFixed(6)];
 const geoFr = i => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', responsable:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i] });
 const geoVp = i => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', responsable:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i] });
-const geoNota = () => `Calles prioritarias para reforestar · ${ambitoGeo()} · prioridades Muy Alta y Alta. ${FUENTES} La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: la regla está en validación.${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
+const geoNota = () => `Modelo de priorización de reforestación urbana · ${ambitoGeo()} · prioridades Muy Alta y Alta. ${FUENTES} La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: la regla está en validación.${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
 const ambitoGeoBase = () => selCol!==null? `Colonia ${colNombre(selCol)}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
 const ambitoGeo = () => ambitoGeoBase() + (filtroBanq!=='todas' && respOn.alc && sel!==null? ' · ' + banqTxt() : '');
 const xmlEsc = v => String(v??'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
@@ -1584,13 +1584,13 @@ function geoJSON(g){ const f = [];
   const linea = (A, a, b) => { const c = []; for(let k=a;k<b;k++) c.push(geoCoord(A,k)); return c; };
   for (const i of g.fr) f.push(JSON.stringify({type:'Feature', properties:geoFr(i), geometry:{type:'LineString', coordinates:linea(POS, start[i], start[i+1])}}));
   for (const i of g.vp) f.push(JSON.stringify({type:'Feature', properties:geoVp(i), geometry:{type:'LineString', coordinates:linea(VPOS, vstart[i], vstart[i+1])}}));
-  return `{"type":"FeatureCollection","name":${JSON.stringify('Calles prioritarias para reforestar · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota())},"features":[\n${f.join(',\n')}\n]}\n`; }
+  return `{"type":"FeatureCollection","name":${JSON.stringify('Modelo de priorización de reforestación urbana · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota())},"features":[\n${f.join(',\n')}\n]}\n`; }
 function geoKML(g){ const kc = p => { const c = T.prio[p]; const h = v => v.toString(16).padStart(2,'0'); return 'ff' + h(c[2]) + h(c[1]) + h(c[0]); };   // KML: aabbggrr
   const marca = (pr, p, A, a, b, ancho) => { let cs = ''; for(let k=a;k<b;k++){ const q = geoCoord(A,k); cs += q[0]+','+q[1]+',0 '; }
     return `<Placemark><name>${xmlEsc(pr.vialidad)}</name><styleUrl>#p${p}${ancho}</styleUrl><ExtendedData>${Object.entries(pr).map(([k,v])=>`<Data name="${k}"><value>${xmlEsc(v)}</value></Data>`).join('')}</ExtendedData><LineString><tessellate>1</tessellate><coordinates>${cs.trim()}</coordinates></LineString></Placemark>`; };
   const estilos = [3,4].map(p=> `<Style id="p${p}f"><LineStyle><color>${kc(p)}</color><width>3</width></LineStyle></Style><Style id="p${p}v"><LineStyle><color>${kc(p)}</color><width>5</width></LineStyle></Style>`).join('');
   const carpeta = (nombre, marcas) => marcas.length? `<Folder><name>${xmlEsc(nombre)}</name>\n${marcas.join('\n')}\n</Folder>\n` : '';
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Calles prioritarias para reforestar · '+ambitoGeo())}</name><description>${xmlEsc(geoNota())}</description>${estilos}\n`
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Modelo de priorización de reforestación urbana · '+ambitoGeo())}</name><description>${xmlEsc(geoNota())}</description>${estilos}\n`
     + carpeta('Frentes de manzana a cargo de la alcaldía (Muy Alta y Alta)', g.fr.map(i=>marca(geoFr(i), F.prio[i], POS, start[i], start[i+1], 'f')))
     + carpeta('Vialidades primarias a cargo del Gobierno Central (Muy Alta y Alta)', g.vp.map(i=>marca(geoVp(i), VP.prio[i], VPOS, vstart[i], vstart[i+1], 'v')))
     + '</Document></kml>\n'; }
@@ -1620,9 +1620,9 @@ function generaFicha(f){ try { f(); } catch(e){ console.error(e); $('dl-status')
 function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.length<2) return t; let x = ls[0]; while (x.length>1 && doc.getTextWidth(x+'…')>w) x = x.slice(0,-1); return x.replace(/[\s·,;(]+$/,'')+'…'; }
 // título de ficha: se reduce hasta caber en el ancho útil
 // Propiedades del documento (auditoría H-052): idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
-function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Calles prioritarias para reforestar, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
+function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
 function tituloFicha(doc, t, w, x, y){ try { doc.setProperties({ title: 'Ficha · ' + t }); } catch(e){} let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
-const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1400, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
+const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1199, LOGO_H = 318;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
 // El logotipo se entrega a jsPDF como lienzo ya dibujado. Si se le pasa el elemento <img>, jsPDF vuelve a pedir el archivo
 // con una solicitud síncrona, que falla sin conexión y bloquea la página; así, además, la ficha se genera aunque el logotipo no cargue.
@@ -1647,9 +1647,9 @@ function fichaPDF(kind){
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const unit = isVP? 'tramos' : 'frentes';
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 9, lw, lh);
+  const lh = 15.5, lw = lh*LOGO_W/LOGO_H; ponLogo(doc, M, 9.5, lw, lh);   // logotipo en dos renglones (v17.39)
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(isCol? 'Ficha de colonia' : isAlc? 'Ficha de alcaldía' : isVpAlc? 'Ficha de vialidades primarias' : 'Ficha de avenida', W-M, 14, {align:'right'});
-  doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
+  doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Modelo de priorización de reforestación urbana', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
   doc.setDrawColor(...GUINDA); doc.setLineWidth(0.8); doc.line(M, 26.5, W-M, 26.5);
   const title = isCol? colNombre(selCol) : isVpAv? VPC.nomenclat[selAv] : META.munNames[sel];
@@ -1775,8 +1775,8 @@ function fichaPDF(kind){
   // pie
   doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
   const fuentes = isVP
-    ? `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros. Las vialidades primarias y de acceso controlado corresponden al Gobierno de la Ciudad de México. Fuentes: SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); modelo de priorización del Sistema de Información Ambiental. La meta se mide sobre los ${fmt.format(Math.round(VPC.cov.km_total))} km de la red primaria completa. ${PRELIM_TXT} Generado el ${hoy} desde la herramienta Calles prioritarias para reforestar. ${VERSION_TXT}.`
-    : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX). ${PRELIM_TXT} Generado el ${hoy} desde la herramienta Calles prioritarias para reforestar. ${VERSION_TXT}.`;
+    ? `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. Prioridad predominante = categoría con más kilómetros. Las vialidades primarias y de acceso controlado corresponden al Gobierno de la Ciudad de México. Fuentes: SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); modelo de priorización del Sistema de Información Ambiental. La meta se mide sobre los ${fmt.format(Math.round(VPC.cov.km_total))} km de la red primaria completa. ${PRELIM_TXT} Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`
+    : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta y Alta. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX). ${PRELIM_TXT} Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`;
   doc.text(doc.splitTextToSize(fuentes, W-2*M), M, 258);
   const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(colNombre(selCol))}${banqSlug()}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}${banqSlug()}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}_toda_la_ciudad.pdf`;
   deliverBlob(fname, doc.output('blob'));
@@ -1795,9 +1795,9 @@ function fichaCallePDF(){
   const tot=sum(km), kmp=sumPrio(km), ntot=idx.length, np=sumPrio(n);
   const muns=[...munSet].map(m=>META.munNames[m]); const colNoms=[...porCol.keys()].filter(Boolean).map(k=>META.colonias[k].n);
   // encabezado
-  const lw = 118, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 9, lw, lh);
+  const lh = 15.5, lw = lh*LOGO_W/LOGO_H; ponLogo(doc, M, 9.5, lw, lh);   // logotipo en dos renglones (v17.39)
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text('Ficha de calle', W-M, 14, {align:'right'});
-  doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Calles prioritarias para reforestar', W-M, 19, {align:'right'});
+  doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Modelo de priorización de reforestación urbana', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
   doc.setDrawColor(...GUINDA); doc.setLineWidth(0.8); doc.line(M, 26.5, W-M, 26.5);
   doc.setTextColor(...INK); doc.setFont('helvetica','bold'); tituloFicha(doc, c.nombre, W-2*M, M, 38);
@@ -1915,7 +1915,8 @@ addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) ret
   if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
-$('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = fmt.format(N - META.cruce.frentes_gc);
+$('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = $('m-n-alc2').textContent = fmt.format(N - META.cruce.frentes_gc);
+$('m-alc-km').textContent = fmt0.format(cityTotKm); $('m-alc-prio').textContent = fmt0.format(cityPrioKm); $('m-alc-pct').textContent = pct(cityPrioKm, cityTotKm);   // red de las alcaldías (v17.39)
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
 // ---------- móvil: hoja inferior y leyenda plegable ----------
@@ -1987,7 +1988,7 @@ function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) retur
 // Con inicio de sesión (v17.38) el enlace sirve entre personas con cuenta: quien lo abra entra y vuelve a esa misma consulta
 const NOTA_CUENTA = 'Para abrirlo se necesita una cuenta de la herramienta.';
 if (SESION.inicio) $('share').title = 'Copiar la dirección de esta consulta para compartirla con alguien que tenga cuenta de la herramienta';
-$('share').onclick = ()=>{ const u = location.href, titulo = 'Calles prioritarias para reforestar · ' + $('scope-title').textContent;
+$('share').onclick = ()=>{ const u = location.href, titulo = 'Modelo de priorización de reforestación urbana · ' + $('scope-title').textContent;
   if (isPhone() && navigator.share){ navigator.share(SESION.inicio? {title: titulo, text: NOTA_CUENTA, url: u} : {title: titulo, url: u}).catch(()=>{}); return; }
   copiaTexto(u).then(()=>avisoShare('Enlace copiado', SESION.inicio? 'Enlace copiado. ' + NOTA_CUENTA : ''), ()=>avisoShare('No se pudo copiar')); };
 // ---------- entrada (v17.28; dos pasos desde la v17.30) ----------
@@ -2323,7 +2324,7 @@ function recFicha(){ if (isGC()){ const i = recTramo(); if (i<0) return false; c
 
 // pasos: sel = control que se ilumina (el primero visible de la lista); panel/mapa = qué debe verse en teléfono; si = condición
 const REC_PASOS = [
-  { titulo:'Calles prioritarias para reforestar', texto:'En un minuto te mostramos cómo encontrar las calles que conviene reforestar primero, cómo separar las que tienen banqueta y cómo revisarlas antes de salir a campo.' },
+  { titulo:'Modelo de priorización de reforestación urbana', texto:'En un minuto te mostramos cómo encontrar las calles que conviene reforestar primero, cómo separar las que tienen banqueta y cómo revisarlas antes de salir a campo.' },
   { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle. Bastan algunas palabras y se reconocen abreviaturas como «Av.» o «Calz.».' },
   { sel:'.resp-row', panel:true, titulo:'Quién atiende', texto:'Alcaldías: las calles y frentes de manzana que planta cada alcaldía. Gobierno Central: las vialidades primarias. Puedes activar las dos.' },
   { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta» reúne los frentes donde INEGI 2020 registra banqueta: son los de plantación directa. «Sin o por verificar» reúne los que no la registran o no tienen dato: no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen la opción que elijas; el Resumen muestra siempre el desglose completo.' },

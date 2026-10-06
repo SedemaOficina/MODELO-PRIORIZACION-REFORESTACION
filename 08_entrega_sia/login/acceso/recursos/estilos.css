@@ -1,4 +1,4 @@
-/* Acceso y administración de «Calles prioritarias para reforestar». Misma paleta y tipografías que la herramienta
+/* Acceso y administración de «Modelo de priorización de reforestación urbana». Misma paleta y tipografías que la herramienta
    (02_fuente/css/01_variables.css). Contraste ≥ 4.5:1 en texto y ≥ 3:1 en controles; letra en rem; 44 px táctiles. */
 @font-face{font-family:Cabin;src:url(cabin.woff2) format("woff2");font-weight:400 700;font-display:swap}
 @font-face{font-family:Roboto;src:url(roboto.woff2) format("woff2");font-weight:400 700;font-display:swap}

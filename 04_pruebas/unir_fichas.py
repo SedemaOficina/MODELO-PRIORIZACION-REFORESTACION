@@ -18,7 +18,7 @@ pdfs = [os.path.join(d, f) for d in sorted(os.path.join(base, x) for x in os.lis
 w = PdfWriter()
 for p in pdfs:
     w.append(p)
-w.add_metadata({'/Title': 'Fichas de las 16 alcaldías · Calles prioritarias para reforestar',
+w.add_metadata({'/Title': 'Fichas de las 16 alcaldías · Modelo de priorización de reforestación urbana',
                 '/Author': 'Secretaría del Medio Ambiente de la Ciudad de México · SIA'})
 w.compress_identical_objects()   # las fichas comparten tipografías e imágenes: así no se repiten 48 veces
 todas = os.path.join(base, '00_todas_las_fichas.pdf')

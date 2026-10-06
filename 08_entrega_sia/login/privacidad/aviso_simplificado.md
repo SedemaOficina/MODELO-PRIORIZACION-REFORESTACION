@@ -2,7 +2,7 @@
 
 > **BORRADOR para revisión de la Unidad de Transparencia.** Va en la pantalla de acceso, junto al enlace al aviso integral.
 
-La Secretaría del Medio Ambiente de la Ciudad de México, por medio del Sistema de Información Ambiental, es responsable de los datos personales que se recaban para usar la herramienta **Calles prioritarias para reforestar**.
+La Secretaría del Medio Ambiente de la Ciudad de México, por medio del Sistema de Información Ambiental, es responsable de los datos personales que se recaban para usar la herramienta **Modelo de priorización de reforestación urbana**.
 
 **Datos que se recaban:**
 - Nombre, correo electrónico (personal o institucional), institución y alcaldía de la cuenta.

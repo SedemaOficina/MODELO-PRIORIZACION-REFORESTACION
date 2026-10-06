@@ -237,7 +237,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
   { x = xlsx((await baja('dl-frentes')).ruta);
     ok('v17.18 H-071 el diccionario trata la banqueta como condición por verificar', /condición por verificar/.test((x.dic.find(r => r[0] === 'banqueta_inegi') || [])[1] || '')); }
-  ok('v17.18 la ayuda explica las dos unidades', /No sume unidades distintas/.test(await page.content()));
+  ok('v17.18 la ayuda explica las dos unidades', /No sumes? unidades distintas/.test(await page.content()));
 
   // ---------- v17.19 · bloque B: H-008, H-028, H-041, H-043, H-044, H-087, H-088, H-089 ----------
   const generico = n => { n = L.norm(n); return n === '' || n === 'sin referencia' || n === 'sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion'); };

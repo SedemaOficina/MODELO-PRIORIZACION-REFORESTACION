@@ -42,13 +42,13 @@ pagina = '''<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Aviso de privacidad · Calles prioritarias para reforestar</title>
+<title>Aviso de privacidad · Modelo de priorización de reforestación urbana</title>
 <link rel="stylesheet" href="recursos/estilos.css">
 </head>
 <body class="acceso">
 <!-- Generado desde ../privacidad/aviso_integral.md con generar_aviso_html.py: editar allá y regenerar. -->
 <main class="tarjeta documento" id="principal">
-  <img class="logo" src="recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana">
+  <img class="logo" src="recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana · Sistema de Información Ambiental de la Ciudad de México">
   %s
   <p class="pie"><a href="./">Volver a iniciar sesión</a></p>
 </main>

@@ -20,7 +20,7 @@ function recFicha(){ if (isGC()){ const i = recTramo(); if (i<0) return false; c
 
 // pasos: sel = control que se ilumina (el primero visible de la lista); panel/mapa = qué debe verse en teléfono; si = condición
 const REC_PASOS = [
-  { titulo:'Calles prioritarias para reforestar', texto:'En un minuto te mostramos cómo encontrar las calles que conviene reforestar primero, cómo separar las que tienen banqueta y cómo revisarlas antes de salir a campo.' },
+  { titulo:'Modelo de priorización de reforestación urbana', texto:'En un minuto te mostramos cómo encontrar las calles que conviene reforestar primero, cómo separar las que tienen banqueta y cómo revisarlas antes de salir a campo.' },
   { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle. Bastan algunas palabras y se reconocen abreviaturas como «Av.» o «Calz.».' },
   { sel:'.resp-row', panel:true, titulo:'Quién atiende', texto:'Alcaldías: las calles y frentes de manzana que planta cada alcaldía. Gobierno Central: las vialidades primarias. Puedes activar las dos.' },
   { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta» reúne los frentes donde INEGI 2020 registra banqueta: son los de plantación directa. «Sin o por verificar» reúne los que no la registran o no tienen dato: no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen la opción que elijas; el Resumen muestra siempre el desglose completo.' },

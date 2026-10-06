@@ -1,4 +1,4 @@
-# Entrega al SIA · Calles prioritarias para reforestar
+# Entrega al SIA · Modelo de priorización de reforestación urbana
 
 Todo lo que el equipo del Sistema de Información Ambiental necesita para instalar, verificar, actualizar y operar la herramienta en `sedema.sia.cdmx.gob.mx/calles-prioritarias/` sin depender de quien la elaboró.
 

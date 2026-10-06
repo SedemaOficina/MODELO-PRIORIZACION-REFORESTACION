@@ -143,10 +143,10 @@ function ambitoTxt(key){
 function dictAoa(key, nreg, archivo, extra){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
-  const a = [['Calles prioritarias para reforestar — Diccionario de datos'], [],
+  const a = [['Modelo de priorización de reforestación urbana — Diccionario de datos'], [],
     ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)],
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
-    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Corte de los datos', VERSION.corte], [],
+    ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Última actualización de la herramienta', VERSION.fecha], ['Corte de los datos', VERSION.corte], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
   for (const f of d.campos) a.push(f);
   a.push([], ['Notas']);
@@ -186,7 +186,7 @@ function loadXL(){
 const wch = ws => ws.map(w=>({wch:w}));
 // Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
 // Propiedades del libro (auditoría H-052): título, autoría e idioma
-const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Calles prioritarias para reforestar, versión ' + VERSION.v, CreatedDate: new Date() });
+const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, CreatedDate: new Date() });
 function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js' + libV('excel_worker.js') + (libV('xlsx.js')? '&x=' + window.SIA_LIBS_V['xlsx.js'] : '')); } catch(e){ return rej(e); }
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
   w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic, props}); }); }
@@ -291,7 +291,7 @@ function geoSel(){ const fr=[], vp=[];
 const geoCoord = (A, k) => [+A[2*k].toFixed(6), +A[2*k+1].toFixed(6)];
 const geoFr = i => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', responsable:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i] });
 const geoVp = i => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', responsable:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i] });
-const geoNota = () => `Calles prioritarias para reforestar · ${ambitoGeo()} · prioridades Muy Alta y Alta. ${FUENTES} La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: la regla está en validación.${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
+const geoNota = () => `Modelo de priorización de reforestación urbana · ${ambitoGeo()} · prioridades Muy Alta y Alta. ${FUENTES} La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: la regla está en validación.${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
 const ambitoGeoBase = () => selCol!==null? `Colonia ${colNombre(selCol)}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
 const ambitoGeo = () => ambitoGeoBase() + (filtroBanq!=='todas' && respOn.alc && sel!==null? ' · ' + banqTxt() : '');
 const xmlEsc = v => String(v??'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
@@ -299,13 +299,13 @@ function geoJSON(g){ const f = [];
   const linea = (A, a, b) => { const c = []; for(let k=a;k<b;k++) c.push(geoCoord(A,k)); return c; };
   for (const i of g.fr) f.push(JSON.stringify({type:'Feature', properties:geoFr(i), geometry:{type:'LineString', coordinates:linea(POS, start[i], start[i+1])}}));
   for (const i of g.vp) f.push(JSON.stringify({type:'Feature', properties:geoVp(i), geometry:{type:'LineString', coordinates:linea(VPOS, vstart[i], vstart[i+1])}}));
-  return `{"type":"FeatureCollection","name":${JSON.stringify('Calles prioritarias para reforestar · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota())},"features":[\n${f.join(',\n')}\n]}\n`; }
+  return `{"type":"FeatureCollection","name":${JSON.stringify('Modelo de priorización de reforestación urbana · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota())},"features":[\n${f.join(',\n')}\n]}\n`; }
 function geoKML(g){ const kc = p => { const c = T.prio[p]; const h = v => v.toString(16).padStart(2,'0'); return 'ff' + h(c[2]) + h(c[1]) + h(c[0]); };   // KML: aabbggrr
   const marca = (pr, p, A, a, b, ancho) => { let cs = ''; for(let k=a;k<b;k++){ const q = geoCoord(A,k); cs += q[0]+','+q[1]+',0 '; }
     return `<Placemark><name>${xmlEsc(pr.vialidad)}</name><styleUrl>#p${p}${ancho}</styleUrl><ExtendedData>${Object.entries(pr).map(([k,v])=>`<Data name="${k}"><value>${xmlEsc(v)}</value></Data>`).join('')}</ExtendedData><LineString><tessellate>1</tessellate><coordinates>${cs.trim()}</coordinates></LineString></Placemark>`; };
   const estilos = [3,4].map(p=> `<Style id="p${p}f"><LineStyle><color>${kc(p)}</color><width>3</width></LineStyle></Style><Style id="p${p}v"><LineStyle><color>${kc(p)}</color><width>5</width></LineStyle></Style>`).join('');
   const carpeta = (nombre, marcas) => marcas.length? `<Folder><name>${xmlEsc(nombre)}</name>\n${marcas.join('\n')}\n</Folder>\n` : '';
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Calles prioritarias para reforestar · '+ambitoGeo())}</name><description>${xmlEsc(geoNota())}</description>${estilos}\n`
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Modelo de priorización de reforestación urbana · '+ambitoGeo())}</name><description>${xmlEsc(geoNota())}</description>${estilos}\n`
     + carpeta('Frentes de manzana a cargo de la alcaldía (Muy Alta y Alta)', g.fr.map(i=>marca(geoFr(i), F.prio[i], POS, start[i], start[i+1], 'f')))
     + carpeta('Vialidades primarias a cargo del Gobierno Central (Muy Alta y Alta)', g.vp.map(i=>marca(geoVp(i), VP.prio[i], VPOS, vstart[i], vstart[i+1], 'v')))
     + '</Document></kml>\n'; }

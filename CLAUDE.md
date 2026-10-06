@@ -1,4 +1,4 @@
-# Instrucciones para Claude · Calles prioritarias para reforestar
+# Instrucciones para Claude · Modelo de priorización de reforestación urbana
 
 Herramienta de consulta de la Secretaría del Medio Ambiente de la CDMX (SIA) para las 16 alcaldías y el Gobierno Central. Sitio estático: HTML, CSS y JavaScript sin frameworks. Quien la mantiene es Liber.
 
@@ -8,7 +8,7 @@ Antes de cambiar algo, leer `ARQUITECTURA.md` (dónde está cada cosa, reglas de
 
 - **Se edita en `02_fuente/`**, nunca en `docs/` (se regenera). Después de cada cambio: `python 02_fuente/construir.py`.
 - **No borrar archivos.** Lo que sobre se mueve a `_to_delete/` para que Liber lo elimine.
-- **Un commit por versión**, con resumen `vX.YY: …` y descripción en español (ver `git log`). Antes de commitear: subir `VERSION` en `construir.py`, poner la versión vigente en `README.md` (estado y fila de la tabla) y en el encabezado de `ARQUITECTURA.md`, y escribir la nota en `05_documentacion/bitacora/` (siguiente número y renglón en `00_indice.md`; la bitácora no se publica).
+- **Un commit por versión**, con resumen `vX.YY: …` y descripción en español (ver `git log`). Antes de commitear: subir `VERSION` y poner la fecha en `ACTUALIZACION` en `construir.py`, poner la versión vigente en `README.md` (estado y fila de la tabla) y en el encabezado de `ARQUITECTURA.md`, y escribir la nota en `05_documentacion/bitacora/` (siguiente número y renglón en `00_indice.md`; la bitácora no se publica).
 - **Push solo cuando Liber lo pida**; normalmente Liber revisa en GitHub Desktop y da Push origin.
 - **Textos de la herramienta** en español de México, claros para personal de alcaldías, sin tecnicismos.
 - **Reglas de negocio en un solo lugar:** `esPrio`, `sumPrio`, `sumUniv` y `enAmbito(i)`. No escribir `>=3`, `[3]+[4]` ni repetir la condición del ámbito.

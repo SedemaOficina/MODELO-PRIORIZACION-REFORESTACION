@@ -1,4 +1,4 @@
-# Inicio de sesión y registro de usos · Calles prioritarias para reforestar
+# Inicio de sesión y registro de usos · Modelo de priorización de reforestación urbana
 
 Decisión de la Secretaría (5 de octubre de 2026): la herramienta se instala con **acceso restringido a cuentas autorizadas** y **registro de sus usos**, para controlar quién entra y saber qué instituciones y alcaldías la usan, qué consultan y qué descargan.
 

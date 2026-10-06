@@ -2,12 +2,12 @@
 
 > **BORRADOR.** Para enviar como oficio o tarjeta desde la Oficina de la Secretaría · Sistema de Información Ambiental. Lo que está entre corchetes se completa al firmar.
 
-**Asunto:** Revisión de los avisos de privacidad y registro del sistema de datos personales de la herramienta «Calles prioritarias para reforestar».
+**Asunto:** Revisión de los avisos de privacidad y registro del sistema de datos personales de la herramienta «Modelo de priorización de reforestación urbana».
 
 [Nombre y cargo de la persona titular de la Unidad de Transparencia]
 Presente
 
-La Oficina de la Secretaría, por medio del Sistema de Información Ambiental, desarrolló la herramienta **Calles prioritarias para reforestar**: un mapa de consulta para que las alcaldías y las dependencias del Gobierno de la Ciudad identifiquen las colonias, calles y vialidades primarias que conviene reforestar primero.
+La Oficina de la Secretaría, por medio del Sistema de Información Ambiental, desarrolló la herramienta **Modelo de priorización de reforestación urbana**: un mapa de consulta para que las alcaldías y las dependencias del Gobierno de la Ciudad identifiquen las colonias, calles y vialidades primarias que conviene reforestar primero.
 
 Para su instalación en `sedema.sia.cdmx.gob.mx`, la Secretaría determinó que el acceso sea **restringido a cuentas autorizadas** y que se **registre su uso** (accesos, territorios consultados y archivos descargados), con dos fines: controlar quién accede y conocer qué instituciones y alcaldías la usan.
 
@@ -22,7 +22,7 @@ Este registro implica un tratamiento de datos personales nuevo. Antes de poner e
 
 | Elemento | Descripción |
 |---|---|
-| Nombre propuesto | Cuentas de acceso y bitácora de uso de la herramienta Calles prioritarias para reforestar |
+| Nombre propuesto | Cuentas de acceso y bitácora de uso de la herramienta Modelo de priorización de reforestación urbana |
 | Unidad responsable | Oficina de la Secretaría · Sistema de Información Ambiental |
 | Personas titulares | Personal de las alcaldías de la Ciudad de México, de dependencias del Gobierno de la Ciudad y de la SEDEMA que usan la herramienta por razón de su función |
 | Datos identificativos | Nombre completo |
