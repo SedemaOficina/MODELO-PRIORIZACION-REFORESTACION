@@ -17,7 +17,7 @@ Este paquete trae todo lo necesario para instalar la herramienta en `sedema.sia.
 
 ## Comprobar que el paquete llegó completo
 
-Junto al ZIP, en la misma memoria USB, va un archivo con el mismo nombre terminado en `.sha256`. Trae la **suma SHA-256** del ZIP: un código que se calcula a partir de su contenido exacto. Si el ZIP llegó completo y sin cambios, al calcularla sale el mismo código; si se dañó al copiarlo o alguien lo modificó, sale otro. La suma no puede ir dentro del ZIP, porque al incluirla el ZIP cambiaría.
+Junto al ZIP se entrega un archivo con el mismo nombre terminado en `.sha256`. Trae la **suma SHA-256** del ZIP: un código que se calcula a partir de su contenido exacto. Si el ZIP llegó completo y sin cambios, al calcularla sale el mismo código; si se dañó al copiarlo o alguien lo modificó, sale otro. La suma no puede ir dentro del ZIP, porque al incluirla el ZIP cambiaría.
 
 En el servidor (Linux), en la carpeta donde están los dos archivos:
 ```

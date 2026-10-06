@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Arma el paquete de entrega para el SIA: un ZIP limpio, para entregarlo en memoria USB, con la herramienta, el inicio de
+"""Arma el paquete de entrega para el SIA: un ZIP limpio, para entregarlo por enlace de descarga, con la herramienta, el inicio de
 sesión, las capas para GeoServer y los documentos de instalación. No lleva pruebas, demostraciones, borradores ni archivos
 de trabajo.
 
@@ -8,7 +8,7 @@ sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; a
 La sesión va encendida por omisión (/acceso/calles/ y /api/calles/salir); --sin-sesion arma la herramienta sin login.
 
 Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion]
-Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; van juntos en la USB)
+Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; se entregan juntos)
       LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/, capas_geoserver/ y documentos/
 
 Los documentos Markdown pierden, al empaquetarse, lo que va entre <!-- solo-repositorio --> y <!-- /solo-repositorio -->
