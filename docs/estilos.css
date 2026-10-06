@@ -783,7 +783,7 @@ body.con-sesion .panel-head .logo{grid-column:1}
 
 /* ----- entrada por territorio ----- */
 .entrada-card{max-width:620px;padding:26px 30px 24px;text-align:left}
-.entrada-card .modal-logo{display:block;max-width:300px;width:70%;height:auto;margin:0 0 14px}
+.entrada-card .modal-logo{display:block;max-width:100%;width:100%;height:auto;margin:0 0 14px}
 .entrada-card h2{margin:0 0 6px;font:700 1.5rem/1.2 Cabin,sans-serif;color:var(--guinda)}
 .entrada-card .lead{margin:0 0 18px}
 .entrada-card h3{margin:0 0 10px;font:700 1.0625rem/1.25 Cabin,sans-serif;color:var(--ink)}
@@ -871,6 +871,8 @@ body.con-sesion .panel-head .logo{grid-column:1}
 @media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
 /* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css, H-076) */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
+/* v1.0 · logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
+.panel-head .logo{max-width:100%}
 
 /* Recorrido guiado (v17.36, js/17_recorrido.js): un velo que oscurece la página, un foco que deja ver el control y un globo que lo explica */
 .rec-velo{position:fixed;inset:0;z-index:2000;background:transparent}

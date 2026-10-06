@@ -48,7 +48,7 @@ pagina = '''<!doctype html>
 <body class="acceso">
 <!-- Generado desde ../privacidad/aviso_integral.md con generar_aviso_html.py: editar allá y regenerar. -->
 <main class="tarjeta documento" id="principal">
-  <img class="logo" src="recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Reforestación Urbana · Sistema de Información Ambiental de la Ciudad de México">
+  <img class="logo" src="recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Sistema de Información Ambiental de la Ciudad de México · Reforestación Urbana">
   %s
   <p class="pie"><a href="./">Volver a iniciar sesión</a></p>
 </main>

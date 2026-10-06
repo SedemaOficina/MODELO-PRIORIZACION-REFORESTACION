@@ -13,7 +13,7 @@ function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.lengt
 // Propiedades del documento (auditoría H-052): idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
 function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
 function tituloFicha(doc, t, w, x, y){ try { doc.setProperties({ title: 'Ficha · ' + t }); } catch(e){} let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
-const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 1199, LOGO_H = 318;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
+const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 2229, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
 // El logotipo se entrega a jsPDF como lienzo ya dibujado. Si se le pasa el elemento <img>, jsPDF vuelve a pedir el archivo
 // con una solicitud síncrona, que falla sin conexión y bloquea la página; así, además, la ficha se genera aunque el logotipo no cargue.
@@ -38,7 +38,7 @@ function fichaPDF(kind){
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const unit = isVP? 'tramos' : 'frentes';
   // encabezado
-  const lh = 15.5, lw = lh*LOGO_W/LOGO_H; ponLogo(doc, M, 9.5, lw, lh);   // logotipo en dos renglones (v17.39)
+  const lw = 108, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 12, lw, lh);   // logotipo en una fila: Gobierno · SEDEMA · SIA · Reforestación Urbana
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text(isCol? 'Ficha de colonia' : isAlc? 'Ficha de alcaldía' : isVpAlc? 'Ficha de vialidades primarias' : 'Ficha de avenida', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Modelo de priorización de reforestación urbana', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});
@@ -186,7 +186,7 @@ function fichaCallePDF(){
   const tot=sum(km), kmp=sumPrio(km), ntot=idx.length, np=sumPrio(n);
   const muns=[...munSet].map(m=>META.munNames[m]); const colNoms=[...porCol.keys()].filter(Boolean).map(k=>META.colonias[k].n);
   // encabezado
-  const lh = 15.5, lw = lh*LOGO_W/LOGO_H; ponLogo(doc, M, 9.5, lw, lh);   // logotipo en dos renglones (v17.39)
+  const lw = 108, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 12, lw, lh);   // logotipo en una fila: Gobierno · SEDEMA · SIA · Reforestación Urbana
   doc.setTextColor(...GUINDA); doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.text('Ficha de calle', W-M, 14, {align:'right'});
   doc.setTextColor(...GRIS); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.text('Modelo de priorización de reforestación urbana', W-M, 19, {align:'right'});
   doc.setFontSize(7); doc.text('Secretaría del Medio Ambiente · Sistema de Información Ambiental', W-M, 23.2, {align:'right'});

@@ -12,7 +12,7 @@ Medidas al construir la versión 1.0. README y ARQUITECTURA remiten a esta tabla
 | Hojas de estilo (`02_fuente/css/`) | 9 |
 | `docs/index.html` | 38 KB |
 | `docs/app.js` | 258 KB |
-| `docs/estilos.css` | 70 KB |
+| `docs/estilos.css` | 71 KB |
 | Datos (`docs/datos/*.bin`) | 4.3 MB |
 | Librerías (`docs/libs/*.js`) | 3.3 MB |
 | Tipografías (`docs/fuentes/*.woff2`) | 62 KB |

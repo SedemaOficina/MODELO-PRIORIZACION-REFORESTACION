@@ -25,7 +25,7 @@ a{color:var(--guinda-ink)}
 /* ---------- pantalla de acceso ---------- */
 body.acceso{display:flex;min-height:100vh;align-items:flex-start;justify-content:center;padding:clamp(16px,6vh,64px) 16px}
 .tarjeta{width:100%;max-width:440px;background:var(--panel);border-radius:12px;border-top:5px solid var(--guinda);box-shadow:0 8px 28px rgba(36,38,42,.14);padding:24px clamp(18px,5vw,32px) 20px}
-.logo{display:block;width:100%;max-width:300px;height:auto;margin:0 0 18px}
+.logo{display:block;width:100%;max-width:100%;height:auto;margin:0 0 18px}
 .tarjeta h1{margin:4px 0 18px;font-size:1.5rem}
 .tarjeta h2{margin:0 0 6px;font-size:1.125rem;outline:0}
 .nota,.ayuda{margin:0 0 16px;font-size:.875rem;color:var(--ink-2)}
@@ -49,7 +49,7 @@ form .btn{width:100%}
 /* ---------- panel de administración ---------- */
 body.admin{min-height:100vh}
 .barra{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;padding:12px clamp(16px,3vw,32px);background:var(--panel);border-bottom:4px solid var(--guinda)}
-.barra .logo{width:220px;margin:0}
+.barra .logo{width:440px;max-width:100%;margin:0}
 .barra .titulo{flex:1 1 260px}
 .barra h1{margin:2px 0 0;font-size:1.25rem}
 .barra .quien{font-size:.875rem;color:var(--ink-2)}
@@ -82,7 +82,7 @@ tr.inactiva td{color:var(--ink-3)}
 .clave{margin:10px 0 0;padding:14px;border:2px dashed var(--dorado);border-radius:8px;background:#FFFBF3}
 .clave code{display:block;margin:6px 0;font:700 1.25rem/1.3 ui-monospace,Consolas,monospace;color:var(--ink);word-break:break-all}
 @media (max-width:640px){
-  .barra .logo{width:170px}
+  .barra .logo{width:100%}
   th,td{padding:8px}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
