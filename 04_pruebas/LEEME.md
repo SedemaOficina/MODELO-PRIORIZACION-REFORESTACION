@@ -21,7 +21,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 1 min |
 | `prueba_coherencia_cifras.js` | Que pantalla, Excel y fichas digan lo mismo que un recálculo independiente desde los datos | 2 min |
 | `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
-| `prueba_servidor_sia.js` | Instalada en `/calles-prioritarias/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
+| `prueba_servidor_sia.js` | Instalada en `/priorizacion-reforestacion/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 | `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas y «Compartir» | 1 min |
 | `prueba_casos_limite.js` | Casos de la revisión del 5 oct 2026: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
@@ -70,7 +70,7 @@ Requiere además Python 3 con `openpyxl` y la utilidad `pdftotext`. Termina con 
 
 ## Prueba de arranque sin terceros
 
-`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos. Después abre `_local/calles_prioritarias.html` como archivo, con todo dominio externo bloqueado, y verifica que arranca y que entrega un Excel y una ficha PDF con las librerías incrustadas. Por último sirve el sitio desde la subruta `/calles-prioritarias/`, como se instalará en el SIA, y verifica que no pide nada fuera de ella.
+`prueba_sin_terceros.js` carga el sitio con **todos los dominios externos bloqueados** y verifica que arranque, que no haga ninguna solicitud fuera de su origen, que las tipografías Cabin y Roboto vengan de `docs/fuentes/` y que el primer contenido aparezca en menos de 3 segundos. Después abre `_local/priorizacion_reforestacion.html` como archivo, con todo dominio externo bloqueado, y verifica que arranca y que entrega un Excel y una ficha PDF con las librerías incrustadas. Por último sirve el sitio desde la subruta `/priorizacion-reforestacion/`, como se instalará en el SIA, y verifica que no pide nada fuera de ella.
 
 ```
 node 04_pruebas/prueba_sin_terceros.js
@@ -116,7 +116,7 @@ python3 04_pruebas/prueba_construccion.py
 
 ## Prueba del servidor del SIA
 
-`prueba_servidor_sia.js` sirve el sitio desde `/calles-prioritarias/` con la política de seguridad de contenido que declara `08_entrega_sia/nginx_calles_prioritarias.conf.ejemplo` (la lee de ese archivo, para que no diverjan) y comprueba: que la dirección sin barra final redirige y carga; que doce funciones (cifras, barras, leyenda, tramos, ficha, mapas de fondo, Excel, Excel grande, PDF, ayuda, Mi ubicación) trabajan con **cero violaciones** de la política; que ni la página ni el programa traen estilos en línea; que las librerías se piden con huella; que una sesión vencida (respuesta 401, o la página de acceso con código 200) se dice como tal al cargar y al pedir un Excel o una ficha, y que los datos cargan aunque un intermediario los entregue descomprimidos.
+`prueba_servidor_sia.js` sirve el sitio desde `/priorizacion-reforestacion/` con la política de seguridad de contenido que declara `08_entrega_sia/nginx_priorizacion_reforestacion.conf.ejemplo` (la lee de ese archivo, para que no diverjan) y comprueba: que la dirección sin barra final redirige y carga; que doce funciones (cifras, barras, leyenda, tramos, ficha, mapas de fondo, Excel, Excel grande, PDF, ayuda, Mi ubicación) trabajan con **cero violaciones** de la política; que ni la página ni el programa traen estilos en línea; que las librerías se piden con huella; que una sesión vencida (respuesta 401, o la página de acceso con código 200) se dice como tal al cargar y al pedir un Excel o una ficha, y que los datos cargan aunque un intermediario los entregue descomprimidos.
 
 ```
 node 04_pruebas/prueba_servidor_sia.js

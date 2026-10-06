@@ -18,6 +18,6 @@ Medidas al construir la versión 1.0. README y ARQUITECTURA remiten a esta tabla
 | Tipografías (`docs/fuentes/*.woff2`) | 62 KB |
 | Sitio completo (`docs/`) | 8.4 MB |
 | Archivos que se piden al abrir, sin comprimir | 6.7 MB |
-| Archivo único (`_local/calles_prioritarias.html`) | 10.8 MB |
+| Archivo único (`_local/priorizacion_reforestacion.html`) | 10.8 MB |
 | Archivos que guarda el navegador para abrir sin conexión | 16 |
 | Mapas de fondo | Calles (CARTO): con clave · Satélite (Esri): sin clave |

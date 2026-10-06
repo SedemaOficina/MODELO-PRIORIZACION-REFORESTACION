@@ -1,5 +1,5 @@
 {
-  "name": "calles-prioritarias-para-reforestar",
+  "name": "priorizacion-reforestacion",
   "private": true,
   "description": "Herramienta de consulta de la Secretaría del Medio Ambiente de la Ciudad de México (SIA). Este archivo solo fija las herramientas de prueba; el sitio no tiene dependencias de Node.",
   "scripts": {

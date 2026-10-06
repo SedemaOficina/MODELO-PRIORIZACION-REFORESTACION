@@ -1,8 +1,8 @@
-// Panel de administración: cuentas (alta, baja, restablecer, permiso) y reporte de usos. Habla con /api/calles/admin/.
+// Panel de administración: cuentas (alta, baja, restablecer, permiso) y reporte de usos. Habla con /api/priorizacion-reforestacion/admin/.
 // Todo el texto que viene del servidor se inserta como texto (textContent), nunca como HTML.
 'use strict';
 (function () {
-  const API = '/api/calles/';
+  const API = '/api/priorizacion-reforestacion/';
   const $ = id => document.getElementById(id);
   const ALC = { '002': 'Azcapotzalco', '003': 'Coyoacán', '004': 'Cuajimalpa de Morelos', '005': 'Gustavo A. Madero', '006': 'Iztacalco', '007': 'Iztapalapa',
     '008': 'La Magdalena Contreras', '009': 'Milpa Alta', '010': 'Álvaro Obregón', '011': 'Tláhuac', '012': 'Tlalpan', '013': 'Xochimilco', '014': 'Benito Juárez',

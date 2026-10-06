@@ -53,7 +53,7 @@ dif = sorted(k for k in set(publicado) | set(nuevo) if publicado.get(k) != nuevo
 ok('construir desde cero termina sin error', cod == 0, sal.strip().splitlines()[-1] if sal.strip() else '')
 ok('el sitio construido desde cero es idéntico a docs/', not dif, ', '.join(dif[:6]))
 ok('se genera docs/.nojekyll', '.nojekyll' in nuevo)
-ok('se generan el archivo único y las cifras', os.path.isfile(os.path.join(t, '_local', 'calles_prioritarias.html')) and os.path.isfile(os.path.join(t, '05_documentacion', 'cifras_de_la_construccion.md')))
+ok('se generan el archivo único y las cifras', os.path.isfile(os.path.join(t, '_local', 'priorizacion_reforestacion.html')) and os.path.isfile(os.path.join(t, '05_documentacion', 'cifras_de_la_construccion.md')))
 # 2) segunda construcción: no reescribe nada
 antes = {k: os.path.getmtime(os.path.join(t, 'docs', *k.split('/'))) for k in nuevo}
 construir(t)

@@ -5,7 +5,7 @@ de trabajo.
 
 Construye en una carpeta temporal, con los parámetros de la instalación (claves de los mapas de fondo y direcciones de la
 sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; así docs/ y el repositorio no cambian.
-La sesión va encendida por omisión (/acceso/calles/ y /api/calles/salir); --sin-sesion arma la herramienta sin login.
+La sesión va encendida por omisión (/acceso/priorizacion-reforestacion/ y /api/priorizacion-reforestacion/salir); --sin-sesion arma la herramienta sin login.
 
 Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion]
 Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; se entregan juntos)
@@ -27,13 +27,13 @@ import zipfile
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
-DOCUMENTOS = ['INSTALACION.md', 'nginx_calles_prioritarias.conf.ejemplo', 'LISTA_DE_VERIFICACION.md', 'SESION_Y_LOGIN.md']
+DOCUMENTOS = ['INSTALACION.md', 'nginx_priorizacion_reforestacion.conf.ejemplo', 'LISTA_DE_VERIFICACION.md', 'SESION_Y_LOGIN.md']
 CAPAS = ['frentes_reforestacion', 'vialidades_primarias_reforestacion', 'colonias_reforestacion']
 SOLO_REPO = re.compile(r'<!-- solo-repositorio -->.*?<!-- /solo-repositorio -->\n?', re.S)
 
 if '--sin-sesion' not in sys.argv:
-    os.environ.setdefault('SIA_SESION_INICIO', '/acceso/calles/')
-    os.environ.setdefault('SIA_SESION_CIERRE', '/api/calles/salir')
+    os.environ.setdefault('SIA_SESION_INICIO', '/acceso/priorizacion-reforestacion/')
+    os.environ.setdefault('SIA_SESION_CIERRE', '/api/priorizacion-reforestacion/salir')
 
 suma = lambda ruta: hashlib.sha256(open(ruta, 'rb').read()).hexdigest()
 

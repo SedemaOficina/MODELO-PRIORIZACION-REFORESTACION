@@ -1,5 +1,5 @@
 // Alta masiva de cuentas desde un CSV (por ejemplo, los enlaces que cada alcaldía designa por oficio).
-// Uso (en el servidor de aplicaciones, con las variables PG* de la cuenta calles_app):
+// Uso (en el servidor de aplicaciones, con las variables PG* de la cuenta priorizacion_reforestacion_app):
 //   node scripts/alta_masiva.js cuentas.csv                → revisa y muestra qué haría (no escribe nada)
 //   node scripts/alta_masiva.js cuentas.csv --aplicar      → da de alta y escribe cuentas_con_contrasenas_AAAAMMDD.csv
 // CSV (UTF-8, con encabezado; separador coma o punto y coma, como lo guarda Excel):

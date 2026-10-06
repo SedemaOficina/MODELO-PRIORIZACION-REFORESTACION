@@ -1,12 +1,12 @@
-// Pantalla de acceso de «Modelo de priorización de reforestación urbana». Habla con el módulo de sesión (/api/calles/).
+// Pantalla de acceso de «Modelo de priorización de reforestación urbana». Habla con el módulo de sesión (/api/priorizacion-reforestacion/).
 // Sin programas en línea: funciona con la política de seguridad de contenido estricta del sitio.
 'use strict';
 (function () {
-  const API = '/api/calles/', HERRAMIENTA = '/calles-prioritarias/';
+  const API = '/api/priorizacion-reforestacion/', HERRAMIENTA = '/priorizacion-reforestacion/';
   const $ = id => document.getElementById(id);
   const p = new URLSearchParams(location.search);
   // a dónde volver tras entrar: solo dentro de la herramienta (el servidor lo vuelve a revisar)
-  // nginx la manda sin codificar (?volver=/calles-prioritarias/?a=007&b=con): todo lo que sigue a «volver=» es la dirección de regreso
+  // nginx la manda sin codificar (?volver=/priorizacion-reforestacion/?a=007&b=con): todo lo que sigue a «volver=» es la dirección de regreso
   const crudo = (location.search.match(/[?&]volver=(.*)$/) || [])[1] || '';
   const decodifica = t => { try { return /%2F/i.test(t) ? decodeURIComponent(t) : t; } catch (e) { return ''; } };
   const volver = (v => (v && v.startsWith(HERRAMIENTA) && !v.startsWith('//')) ? v : HERRAMIENTA)(decodifica(crudo));

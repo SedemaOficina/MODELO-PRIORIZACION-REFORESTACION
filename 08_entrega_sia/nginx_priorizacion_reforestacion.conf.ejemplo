@@ -1,6 +1,6 @@
 # =====================================================================================================================
 # Modelo de priorización de reforestación urbana · configuración de ejemplo para nginx (probada con la sintaxis de nginx 1.26)
-# Sitio estático en la subruta /calles-prioritarias/ del dominio del SIA, detrás del terminador de HTTPS.
+# Sitio estático en la subruta /priorizacion-reforestacion/ del dominio del SIA, detrás del terminador de HTTPS.
 #
 # NO es un archivo para copiar tal cual: son dos fragmentos que el equipo del SIA integra en su configuración.
 #   FRAGMENTO A  → dentro de http { }      (una sola vez)
@@ -15,7 +15,7 @@
 # ---------------------------------------------------------------------------------------------------------------------
 # Caché: todo archivo pedido con huella (?v=…) no cambia nunca; lo demás (index.html, sw.js) se revalida siempre.
 # La PÁGINA se revalida siempre, traiga o no ?v=: en la dirección de la página, ?v= es la avenida consultada
-# (…/calles-prioritarias/?a=09&v=123), no una huella. Sin estas reglas, un enlace compartido de una avenida dejaría
+# (…/priorizacion-reforestacion/?a=09&v=123), no una huella. Sin estas reglas, un enlace compartido de una avenida dejaría
 # la página guardada un año en el navegador y no vería las actualizaciones.
 # La clave es «ruta|valor de v»; la primera expresión que coincide, en este orden, decide.
 map "$uri|$arg_v" $calles_cache {
@@ -32,15 +32,15 @@ map "$uri|$arg_v" $calles_cache {
 
 # 1) La dirección sin barra final. El servidor recibe HTTP del terminador de HTTPS: con la redirección automática de nginx
 #    la dirección saldría como http://… ; por eso se devuelve una ruta relativa.
-location = /calles-prioritarias {
+location = /priorizacion-reforestacion {
     absolute_redirect off;
-    return 301 /calles-prioritarias/$is_args$args;
+    return 301 /priorizacion-reforestacion/$is_args$args;
 }
 
-# 2) El sitio. /RUTA/DEL/VOLUMEN/calles-prioritarias es un enlace simbólico a la versión vigente (ver INSTALACION.md).
+# 2) El sitio. /RUTA/DEL/VOLUMEN/priorizacion-reforestacion es un enlace simbólico a la versión vigente (ver INSTALACION.md).
 #    ^~ impide que una regla general del servidor por extensión (p. ej. location ~* \.(js|css)$ { expires …; }) atienda
 #    los archivos de la herramienta: sin ^~, esa regla ganaría y los serviría sin estas cabeceras.
-location ^~ /calles-prioritarias/ {
+location ^~ /priorizacion-reforestacion/ {
     root /RUTA/DEL/VOLUMEN;
     index index.html;
     try_files $uri $uri/ =404;
@@ -63,7 +63,7 @@ location ^~ /calles-prioritarias/ {
     gzip_min_length 1024;
 
     # 3) Archivos de datos: ya vienen comprimidos por dentro. No recomprimir ni etiquetar como gzip.
-    location ~ ^/calles-prioritarias/datos/.+\.bin$ {
+    location ~ ^/priorizacion-reforestacion/datos/.+\.bin$ {
         root /RUTA/DEL/VOLUMEN;
         gzip off;
         types { }
@@ -81,43 +81,43 @@ location ^~ /calles-prioritarias/ {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # FASE 2 CON INICIO DE SESIÓN (decidido: controlar el acceso y registrar los usos). Ver login/LEEME.md.
-# Sustituye al bloque 2 cuando estén instalados el módulo /api/calles/ en el backend y la pantalla /acceso/calles/.
+# Sustituye al bloque 2 cuando estén instalados el módulo /api/priorizacion-reforestacion/ en el backend y la pantalla /acceso/priorizacion-reforestacion/.
 # ---------------------------------------------------------------------------------------------------------------------
 # 2-bis) La herramienta, protegida: cada archivo se entrega solo con sesión válida.
-# location ^~ /calles-prioritarias/ {
+# location ^~ /priorizacion-reforestacion/ {
 #     root /RUTA/DEL/VOLUMEN;
 #     index index.html;
 #     try_files $uri $uri/ =404;
 #     absolute_redirect off;
-#     auth_request /_calles_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
+#     auth_request /_priorizacion_reforestacion_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
 #     # (las mismas cabeceras de seguridad y caché del bloque 2, y el bloque de los .bin)
 
 #     # Solo la PÁGINA lleva a la pantalla de acceso. Datos y programas responden 401: así la herramienta
 #     # puede decir «Tu sesión terminó» en lugar de «revisa tu conexión».
-#     location = /calles-prioritarias/ {
+#     location = /priorizacion-reforestacion/ {
 #         root /RUTA/DEL/VOLUMEN;
-#         auth_request /_calles_sesion;
+#         auth_request /_priorizacion_reforestacion_sesion;
 #         error_page 401 = @calles_acceso;
-#         try_files /calles-prioritarias/index.html =404;
+#         try_files /priorizacion-reforestacion/index.html =404;
 #     }
 # }
 # Consulta de sesión (interna): nginx le pasa la cookie y la dirección pedida; el backend anota una visita si es la página.
-# location = /_calles_sesion {
+# location = /_priorizacion_reforestacion_sesion {
 #     internal;
-#     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/calles/sesion;
+#     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/priorizacion-reforestacion/sesion;
 #     proxy_pass_request_body off;
 #     proxy_set_header Content-Length "";
 #     proxy_set_header X-Original-URI $request_uri;
 #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 # }
 # location @calles_acceso {
-#     return 302 /acceso/calles/?volver=$request_uri;   # la pantalla de acceso toma todo lo que sigue a «volver=», aunque lleve «&»
+#     return 302 /acceso/priorizacion-reforestacion/?volver=$request_uri;   # la pantalla de acceso toma todo lo que sigue a «volver=», aunque lleve «&»
 # }
 
 # 2-ter) Pantalla de acceso y panel de administración: archivos estáticos, SIN auth_request (si no, nadie podría entrar).
-#        /RUTA/DEL/VOLUMEN/acceso-calles es la carpeta login/acceso del paquete.
-# location ^~ /acceso/calles/ {
-#     alias /RUTA/DEL/VOLUMEN/acceso-calles/;
+#        /RUTA/DEL/VOLUMEN/acceso-priorizacion-reforestacion es la carpeta login/acceso del paquete.
+# location ^~ /acceso/priorizacion-reforestacion/ {
+#     alias /RUTA/DEL/VOLUMEN/acceso-priorizacion-reforestacion/;
 #     index index.html;
 #     absolute_redirect off;
 #     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
@@ -126,6 +126,6 @@ location ^~ /calles-prioritarias/ {
 #     add_header Cache-Control "no-cache" always;
 # }
 
-# 2-cuater) La API del módulo (/api/calles/) va al backend como las demás rutas /api/ del sitio. Si /api/ ya está enrutado,
+# 2-cuater) La API del módulo (/api/priorizacion-reforestacion/) va al backend como las demás rutas /api/ del sitio. Si /api/ ya está enrutado,
 #           no hace falta nada más. Debe llegar la IP real de la persona (X-Forwarded-For; con ADIP delante, configurar
 #           set_real_ip_from para la capa intermedia) y el backend debe tener app.set('trust proxy', ...).

@@ -1,4 +1,4 @@
-// Preparación para el SIA (Fase 2): la herramienta instalada en la subruta /calles-prioritarias/, detrás de un servidor que
+// Preparación para el SIA (Fase 2): la herramienta instalada en la subruta /priorizacion-reforestacion/, detrás de un servidor que
 // aplica una política de seguridad de contenido (CSP) estricta y las cabeceras de caché de 08_entrega_sia/. Comprueba que
 // todo funcione sin ninguna violación de la política, que la dirección sin barra final redirija bien, que una sesión vencida
 // se reconozca y que los archivos de datos lleguen aunque un proxy los haya descomprimido.
@@ -6,9 +6,9 @@
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
 const L = require('./lib_pruebas.js');
 const ok = L.Registro('servidor del SIA'); const SAL = process.env.SALIDA || fs.mkdtempSync(path.join(os.tmpdir(), 'sia-'));
-const PRE = '/calles-prioritarias/';
-// La misma política que propone 08_entrega_sia/nginx_calles_prioritarias.conf.ejemplo (se lee de ahí para que no diverjan)
-const conf = fs.readFileSync(path.join(__dirname, '..', '08_entrega_sia', 'nginx_calles_prioritarias.conf.ejemplo'), 'utf8');
+const PRE = '/priorizacion-reforestacion/';
+// La misma política que propone 08_entrega_sia/nginx_priorizacion_reforestacion.conf.ejemplo (se lee de ahí para que no diverjan)
+const conf = fs.readFileSync(path.join(__dirname, '..', '08_entrega_sia', 'nginx_priorizacion_reforestacion.conf.ejemplo'), 'utf8');
 const CSP = (conf.match(/add_header Content-Security-Policy "([^"]+)"/) || [])[1];
 // Las reglas de caché del ejemplo (map "$uri|$arg_v"), también leídas de ahí: la primera expresión que coincide decide
 const MAPA = (() => { const b = (conf.match(/map "\$uri\|\$arg_v" \$calles_cache \{([\s\S]*?)\n\}/) || [])[1] || ''; const reglas = []; let def = null;

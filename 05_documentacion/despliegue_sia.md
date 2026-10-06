@@ -4,7 +4,7 @@ Extracto público de las decisiones registradas el 24 de septiembre de 2026. Los
 
 ## Punto de partida
 
-- La herramienta vivirá en la infraestructura del Sistema de Información Ambiental (`sedema.sia.cdmx.gob.mx`) como **sitio estático** en una ruta propia (por ejemplo, `/calles-prioritarias/`). La publica el equipo del SIA; la entrega debe ir lista y documentada.
+- La herramienta vivirá en la infraestructura del Sistema de Información Ambiental (`sedema.sia.cdmx.gob.mx`) como **sitio estático** en una ruta propia (por ejemplo, `/priorizacion-reforestacion/`). La publica el equipo del SIA; la entrega debe ir lista y documentada.
 - **El login no puede resolverse dentro de la página:** cualquier contraseña incluida en ella se puede leer. Debe resolverse en el servidor, de modo que ni la página ni los datos se descarguen sin sesión.
 - Opción recomendada: un módulo de autenticación en el servidor de aplicaciones del SIA, con usuarios por persona, contraseñas con hash, sesión por cookie segura y bitácora de accesos y descargas. Opción provisional para un piloto: autenticación básica del servidor web, sin correo ni recuperación de contraseña.
 
@@ -23,7 +23,7 @@ Extracto público de las decisiones registradas el 24 de septiembre de 2026. Los
 | 5 | Datos personales | Aviso de privacidad y registro del tratamiento | Obligatorio si se guardan correos; turnar a la Unidad de Transparencia antes de abrir | Jurídico / Transparencia |
 | 6 | Origen de las capas | Archivos de la herramienta / servicio de mapas del SIA | Archivos de la herramienta en el primer año | SIA |
 | 7 | Forma de arranque | Piloto con autenticación básica / módulo completo | Piloto de 4 a 6 semanas con 3 o 4 alcaldías; después el módulo completo | Oficina de la Secretaría con el SIA |
-| 8 | Dirección web | `sedema.sia.cdmx.gob.mx/calles-prioritarias/` u otra | Ruta corta y estable (irá impresa en fichas y oficios) | SIA |
+| 8 | Dirección web | `sedema.sia.cdmx.gob.mx/priorizacion-reforestacion/` u otra | Ruta corta y estable (irá impresa en fichas y oficios) | SIA |
 | 9 | Actualizaciones | Quién sube cada versión | La Oficina de la Secretaría entrega el paquete; el SIA lo publica y se registra en la bitácora | SIA |
 
 **Ruta sugerida:** definir la decisión previa y las 1, 2 y 7; reunión con el SIA para las 4, 6, 8 y 9; turno a Transparencia por la 5, en paralelo; con eso se prepara el paquete técnico.

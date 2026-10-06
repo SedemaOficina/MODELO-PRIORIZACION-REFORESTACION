@@ -4,11 +4,11 @@ La Secretaría decidió instalar la herramienta con acceso restringido a cuentas
 
 ## 1. Principio
 
-La sesión no puede resolverse dentro de la página: todo lo que la página contiene se puede leer. La protege el servidor, con `auth_request` de nginx: antes de entregar cualquier archivo de `/calles-prioritarias/`, nginx pregunta al backend si la cookie de sesión es válida.
+La sesión no puede resolverse dentro de la página: todo lo que la página contiene se puede leer. La protege el servidor, con `auth_request` de nginx: antes de entregar cualquier archivo de `/priorizacion-reforestacion/`, nginx pregunta al backend si la cookie de sesión es válida.
 
 ```
-Navegador ── pide /calles-prioritarias/datos/data.bin ──▶ nginx
-                                                          │ auth_request ──▶ backend  /api/calles/sesion
+Navegador ── pide /priorizacion-reforestacion/datos/data.bin ──▶ nginx
+                                                          │ auth_request ──▶ backend  /api/priorizacion-reforestacion/sesion
                                                           │◀── 204 (sesión válida)  o  401
                                                           ▼
                                               entrega el archivo  o  responde 401
@@ -29,7 +29,7 @@ Las direcciones se fijan al armar el paquete; las de este paquete están en `INS
 ## 3. Lo que debe cumplir el servidor
 
 1. **Datos y programas responden 401 sin sesión**, no 200 ni 302. Una redirección a otra ruta del mismo dominio también se reconoce (llega una página HTML), pero una redirección a otro dominio se ve como falla de red.
-2. **Solo la página (`/calles-prioritarias/`) redirige a la pantalla de acceso**, con la dirección de regreso.
+2. **Solo la página (`/priorizacion-reforestacion/`) redirige a la pantalla de acceso**, con la dirección de regreso.
 3. La cookie de sesión: `Secure`, `HttpOnly`, `SameSite=Lax`, con ruta `/`.
 4. El cierre de sesión es una dirección que invalida la cookie y lleva a la pantalla de acceso.
 
@@ -38,15 +38,15 @@ El bloque comentado «Fase 2 con inicio de sesión» del ejemplo de nginx implem
 ## 4. Lo que se entrega construido (desde el 5 de octubre de 2026)
 
 La Secretaría decidió las dos finalidades: **controlar quién entra** y **saber los usos**. El login ya está construido y probado en `login/`:
-- **Módulo `calles` para `sia-backend`** (Node.js + Express), con su propia cuenta de base de datos (`calles_app`), como los demás módulos. Direcciones:
-  - `POST /api/calles/entrar`
-  - `GET /api/calles/sesion` (204 o 401, para `auth_request`)
-  - `GET|POST /api/calles/salir`
-  - `POST /api/calles/uso`
-  - `POST /api/calles/contrasena`
-  - `/api/calles/admin/…`
-- **Esquema `calles`**: usuarios (contraseñas con huella scrypt), sesiones y bitácora, con depuración automática según los plazos del aviso de privacidad.
-- **Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad**, en `/acceso/calles/`, fuera de la herramienta. Cumplen los criterios de la sección 6.
+- **Módulo `priorizacion-reforestacion` para `sia-backend`** (Node.js + Express), con su propia cuenta de base de datos (`priorizacion_reforestacion_app`), como los demás módulos. Direcciones:
+  - `POST /api/priorizacion-reforestacion/entrar`
+  - `GET /api/priorizacion-reforestacion/sesion` (204 o 401, para `auth_request`)
+  - `GET|POST /api/priorizacion-reforestacion/salir`
+  - `POST /api/priorizacion-reforestacion/uso`
+  - `POST /api/priorizacion-reforestacion/contrasena`
+  - `/api/priorizacion-reforestacion/admin/…`
+- **Esquema `priorizacion_reforestacion`**: usuarios (contraseñas con huella scrypt), sesiones y bitácora, con depuración automática según los plazos del aviso de privacidad.
+- **Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad**, en `/acceso/priorizacion-reforestacion/`, fuera de la herramienta. Cumplen los criterios de la sección 6.
 - **Registro de usos en la herramienta:** consultas y descargas, solo cuando está instalada con sesión.
 
 Al SIA le corresponde instalarlo (`login/LEEME.md`) y operar las altas y bajas desde el panel. Tamaño esperado: decenas de usuarios; el módulo no añade carga apreciable ni ocupa disco, salvo la bitácora.
@@ -54,7 +54,7 @@ Al SIA le corresponde instalarlo (`login/LEEME.md`) y operar las altas y bajas d
 ## 5. Qué se registra y qué no
 
 - **Accesos y visitas:** los registra el servidor y no se pueden evitar.
-- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. La herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/api/calles/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
+- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. La herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/api/priorizacion-reforestacion/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
 - Ese aviso es **informativo**: una persona con conocimientos técnicos podría evitarlo. El control de acceso, en cambio, lo hace el servidor.
 - El detalle de lo que se registra está en `login/LEEME.md` y en el aviso de privacidad (`login/acceso/aviso-de-privacidad.html`).
 

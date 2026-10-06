@@ -20,7 +20,7 @@ function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/
 async function fetchBytes(name){
   let r;
   try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
-  catch(e){ throw errAmable(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/calles_prioritarias.html.' : 'No se pudieron descargar los datos. Revisa tu conexión a internet.', 'fetch ' + name + ': ' + (e && e.message || e)); }
+  catch(e){ throw errAmable(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/priorizacion_reforestacion.html.' : 'No se pudieron descargar los datos. Revisa tu conexión a internet.', 'fetch ' + name + ': ' + (e && e.message || e)); }
   if (esSesion(r)) throw errSesion(name + ' ' + r.status + ' ' + (r.headers.get('content-type')||''));
   if (!r.ok) throw errAmable(`No se encontró un archivo de datos en el servidor (${name}, respuesta ${r.status}).`, name + ' ' + r.status);
   if (!r.body || !r.body.getReader){ const b = new Uint8Array(await r.arrayBuffer()); dlDone += b.length; showDl(); return b; }

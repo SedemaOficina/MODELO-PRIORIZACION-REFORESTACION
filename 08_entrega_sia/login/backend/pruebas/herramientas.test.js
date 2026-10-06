@@ -1,6 +1,6 @@
 // Pruebas del alta masiva por CSV y de los datos simulados, con el esquema real en una base en memoria (pg-mem).
 'use strict';
-process.env.CALLES_SCRYPT_N = '1024';
+process.env.PRIORIZACION_SCRYPT_N = '1024';
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('fs'), path = require('path');
 const { newDb } = require('pg-mem');
@@ -27,7 +27,7 @@ test('alta masiva: lee el CSV de Excel (punto y coma, BOM, comillas), revisa cad
   assert.match(errores[1], /^Renglón 6 .*repetido/); assert.match(errores[2], /^Renglón 7 .*necesita su alcaldía/);
   const pool = base();
   const r = await aplica(pool, ok); assert.equal(r.hechas.length, 3); assert.equal(r.existentes.length, 0);
-  const u = (await pool.query("SELECT * FROM calles.usuarios WHERE correo = 'enlace@azcapotzalco.cdmx.gob.mx'")).rows[0];
+  const u = (await pool.query("SELECT * FROM priorizacion_reforestacion.usuarios WHERE correo = 'enlace@azcapotzalco.cdmx.gob.mx'")).rows[0];
   assert.equal(u.debe_cambiar, true); assert.ok(await verifica(r.hechas[0].contrasena_temporal, u.huella), 'la contraseña temporal entregada es la que quedó');
   const r2 = await aplica(pool, ok); assert.equal(r2.hechas.length, 0); assert.equal(r2.existentes.length, 3, 'correr dos veces no duplica ni cambia contraseñas');
 });
@@ -36,28 +36,28 @@ test('datos simulados: cuentas ficticias y 90 días de uso; se niegan en una bas
   const pool = base();
   const r = await datos.sembrar(pool, { dias: 30 });
   assert.equal(r.cuentas, 37); assert.ok(r.registros > 300, `${r.registros} registros`);
-  const n = (await pool.query(`SELECT count(*) AS n FROM calles.usuarios WHERE correo NOT LIKE '%@ejemplo.gob.mx'`)).rows[0].n;
+  const n = (await pool.query(`SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo NOT LIKE '%@ejemplo.gob.mx'`)).rows[0].n;
   assert.equal(+n, 0, 'solo correos @ejemplo.gob.mx');
-  const ev = (await pool.query('SELECT evento, count(*) AS n FROM calles.bitacora GROUP BY evento')).rows;
+  const ev = (await pool.query('SELECT evento, count(*) AS n FROM priorizacion_reforestacion.bitacora GROUP BY evento')).rows;
   for (const e of ['acceso', 'visita', 'consulta', 'descarga']) assert.ok(ev.some(x => x.evento === e && +x.n > 0), e);
   assert.equal(await datos.borrar(pool), 37);
-  await pool.query(`INSERT INTO calles.usuarios (correo, nombre, huella) VALUES ('persona@real.gob.mx', 'Real', 'x')`);
+  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, huella) VALUES ('persona@real.gob.mx', 'Real', 'x')`);
   await assert.rejects(datos.sembrar(pool), /cuentas reales/);
 });
 
 test('alta masiva desde el panel: revisa sin escribir, no aplica con errores, aplica y no duplica; solo administración', async () => {
   const express = require('express'), request = require('supertest'), { huella } = require('../src/contrasenas');
-  const pool = base(); const app = express(); app.use('/api/calles', require('../src')({ pool, opciones: { depurarCadaHoras: 0 } }));
+  const pool = base(); const app = express(); app.use('/api/priorizacion-reforestacion', require('../src')({ pool, opciones: { depurarCadaHoras: 0 } }));
   const O = 'https://sedema.sia.cdmx.gob.mx';
-  await pool.query(`INSERT INTO calles.usuarios (correo, nombre, rol, huella, debe_cambiar) VALUES ('adm@x.mx', 'Adm', 'admin', $1, false), ('usu@x.mx', 'Usu', 'usuario', $1, false)`, [await huella('una contraseña de prueba')]);
-  const entra = async c => (await request(app).post('/api/calles/entrar').set('Origin', O).send({ correo: c, contrasena: 'una contraseña de prueba' })).headers['set-cookie'][0].split(';')[0];
+  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, rol, huella, debe_cambiar) VALUES ('adm@x.mx', 'Adm', 'admin', $1, false), ('usu@x.mx', 'Usu', 'usuario', $1, false)`, [await huella('una contraseña de prueba')]);
+  const entra = async c => (await request(app).post('/api/priorizacion-reforestacion/entrar').set('Origin', O).send({ correo: c, contrasena: 'una contraseña de prueba' })).headers['set-cookie'][0].split(';')[0];
   const ca = await entra('adm@x.mx'), cu = await entra('usu@x.mx');
-  const envia = (ck, csv, aplicar) => request(app).post('/api/calles/admin/usuarios/masiva').set('Origin', O).set('Cookie', ck).send({ csv, aplicar });
+  const envia = (ck, csv, aplicar) => request(app).post('/api/priorizacion-reforestacion/admin/usuarios/masiva').set('Origin', O).set('Cookie', ck).send({ csv, aplicar });
   const bueno = 'correo,nombre,institucion,alcaldia,rol\nana@gmail.com,Ana,Alcaldía,Tlalpan,usuario\nusu@x.mx,Usu,SEDEMA,,usuario\n';
   assert.equal((await envia(cu, bueno, false)).status, 403, 'una cuenta de consulta no hace altas');
   let r = await envia(ca, bueno, false); assert.equal(r.status, 200); assert.equal(r.body.aplicado, false);
   assert.deepEqual(r.body.validas.map(v => [v.correo, v.existe]), [['ana@gmail.com', false], ['usu@x.mx', true]]);
-  assert.equal(+(await pool.query("SELECT count(*) AS n FROM calles.usuarios WHERE correo = 'ana@gmail.com'")).rows[0].n, 0, 'revisar no escribe');
+  assert.equal(+(await pool.query("SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo = 'ana@gmail.com'")).rows[0].n, 0, 'revisar no escribe');
   r = await envia(ca, bueno + 'mal@,X,Alcaldía,Gotham,usuario\n', true); assert.equal(r.body.aplicado, false, 'con errores no se aplica aunque se pida'); assert.equal(r.body.errores.length, 1);
   r = await envia(ca, bueno, true); assert.equal(r.body.aplicado, true); assert.equal(r.body.hechas.length, 1); assert.deepEqual(r.body.existentes, ['usu@x.mx']);
   assert.ok(r.body.hechas[0].contrasena_temporal);

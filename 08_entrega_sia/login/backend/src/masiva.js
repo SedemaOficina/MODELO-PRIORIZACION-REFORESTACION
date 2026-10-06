@@ -44,11 +44,11 @@ async function aplica(pool, cuentas, autor = null) {
   const hechas = [], existentes = [];
   for (const c of cuentas) {
     // una cuenta que ya existe no se toca (ni su contraseña): correr el alta dos veces no cambia nada
-    if ((await pool.query('SELECT 1 FROM calles.usuarios WHERE correo = $1', [c.correo])).rows.length) { existentes.push(c.correo); continue; }
+    if ((await pool.query('SELECT 1 FROM priorizacion_reforestacion.usuarios WHERE correo = $1', [c.correo])).rows.length) { existentes.push(c.correo); continue; }
     const clave = temporal();
-    const { rows } = await pool.query(`INSERT INTO calles.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar) VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
+    const { rows } = await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar) VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
       [c.correo, c.nombre, c.institucion, c.alcaldia_cve, c.rol, await huella(clave)]);
-    await pool.query(`INSERT INTO calles.bitacora (usuario_id, evento, detalle) VALUES ($1, 'admin', $2)`, [autor, JSON.stringify({ accion: 'alta_masiva', usuario: rows[0].id })]);
+    await pool.query(`INSERT INTO priorizacion_reforestacion.bitacora (usuario_id, evento, detalle) VALUES ($1, 'admin', $2)`, [autor, JSON.stringify({ accion: 'alta_masiva', usuario: rows[0].id })]);
     hechas.push({ ...c, contrasena_temporal: clave });
   }
   return { hechas, existentes };

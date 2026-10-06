@@ -30,11 +30,11 @@ cd /tmp && unzip -q modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip
 cd modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/sitio && sha256sum -c ../MANIFIESTO.sha256        # todo debe decir «OK»
 
 # 2. colocarlo como una versión
-mkdir -p VOL/calles-prioritarias_versiones
-cp -r /tmp/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/sitio VOL/calles-prioritarias_versiones/vX.Y_AAAAMMDD
+mkdir -p VOL/priorizacion-reforestacion_versiones
+cp -r /tmp/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/sitio VOL/priorizacion-reforestacion_versiones/vX.Y_AAAAMMDD
 
 # 3. apuntar el enlace a esa versión
-ln -sfn VOL/calles-prioritarias_versiones/vX.Y_AAAAMMDD VOL/calles-prioritarias
+ln -sfn VOL/priorizacion-reforestacion_versiones/vX.Y_AAAAMMDD VOL/priorizacion-reforestacion
 
 # 4. integrar la configuración de nginx (ver el ejemplo), validar y recargar
 nginx -t && systemctl reload nginx
@@ -58,8 +58,8 @@ Cada versión nueva llega como un paquete nuevo. No se sobrescribe la anterior.
 
 ```
 cd /tmp && unzip -q modelo-priorizacion-reforestacion_vNUEVA.zip && cd modelo-priorizacion-reforestacion_vNUEVA/sitio && sha256sum -c ../MANIFIESTO.sha256
-cp -r /tmp/modelo-priorizacion-reforestacion_vNUEVA/sitio VOL/calles-prioritarias_versiones/vNUEVA
-ln -sfn VOL/calles-prioritarias_versiones/vNUEVA VOL/calles-prioritarias          # el cambio es instantáneo
+cp -r /tmp/modelo-priorizacion-reforestacion_vNUEVA/sitio VOL/priorizacion-reforestacion_versiones/vNUEVA
+ln -sfn VOL/priorizacion-reforestacion_versiones/vNUEVA VOL/priorizacion-reforestacion          # el cambio es instantáneo
 ```
 
 No hace falta recargar nginx ni avisar a las personas usuarias: `index.html` no se guarda en caché y todo lo demás lleva huella de versión, así que la siguiente visita recibe la versión nueva completa. Correr los puntos 1, 6 y 13 de la lista de verificación. Conservar las últimas cinco versiones.
@@ -67,7 +67,7 @@ No hace falta recargar nginx ni avisar a las personas usuarias: `index.html` no 
 ## 4. Reversión
 
 ```
-ln -sfn VOL/calles-prioritarias_versiones/vANTERIOR VOL/calles-prioritarias
+ln -sfn VOL/priorizacion-reforestacion_versiones/vANTERIOR VOL/priorizacion-reforestacion
 ```
 
 Es inmediata y no pierde nada: la herramienta no guarda datos.
@@ -106,7 +106,7 @@ Se fijan al armar el paquete, no en el servidor. Quedan escritos en `sitio/confi
 |---|---|
 | Clave de CARTO (fondo «Calles») | Incluida; restringida a `sedema.sia.cdmx.gob.mx` |
 | Clave de Esri (fondo «Satélite») | No hace falta por ahora: el satélite funciona sin clave |
-| Inicio de sesión | Encendido: acceso en `/acceso/calles/`, cierre en `/api/calles/salir`, registro de usos en `/api/calles/uso` (ver `login/LEEME.md`) |
+| Inicio de sesión | Encendido: acceso en `/acceso/priorizacion-reforestacion/`, cierre en `/api/priorizacion-reforestacion/salir`, registro de usos en `/api/priorizacion-reforestacion/uso` (ver `login/LEEME.md`) |
 
 Con inicio de sesión, la herramienta **no guarda copia para uso sin conexión**: una copia local se abriría sin sesión.
 

@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const scrypt = promisify(crypto.scrypt);   // asíncrono: un inicio de sesión no detiene a los demás módulos del backend
 
-const N = +(process.env.CALLES_SCRYPT_N || 2 ** 17), R = 8, P = 1, LARGO = 64;   // CALLES_SCRYPT_N solo para pruebas
+const N = +(process.env.PRIORIZACION_SCRYPT_N || 2 ** 17), R = 8, P = 1, LARGO = 64;   // PRIORIZACION_SCRYPT_N solo para pruebas
 const opciones = (n, r, p) => ({ N: n, r, p, maxmem: 256 * n * r + 1024 * 1024 });
 
 async function huella(contrasena) {

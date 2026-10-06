@@ -33,8 +33,8 @@ const ok = L.Registro('arranque sin terceros');
   ok('sin errores de JavaScript', errores.length === 0, errores.slice(0, 2).join(' | '));
   await ctx.close();
   // ---- versión de un solo archivo (auditoría H-058 y H-095): se abre con doble clic y no pide nada a terceros, ni para Excel ni para fichas ----
-  const unico = path.join(L.DOCS, '..', '_local', 'calles_prioritarias.html');
-  if (!fs.existsSync(unico)) ok('existe _local/calles_prioritarias.html (se genera al construir)', false);
+  const unico = path.join(L.DOCS, '..', '_local', 'priorizacion_reforestacion.html');
+  if (!fs.existsSync(unico)) ok('existe _local/priorizacion_reforestacion.html (se genera al construir)', false);
   else {
     const c2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'es-MX', acceptDownloads: true }); const p2 = await c2.newPage(); p2.setDefaultTimeout(300000);
     const err2 = [], ext2 = []; p2.on('pageerror', e => err2.push(e.message));
@@ -51,8 +51,8 @@ const ok = L.Registro('arranque sin terceros');
     ok('archivo único: sin errores de JavaScript', err2.length === 0, err2.slice(0, 2).join(' | '));
     await c2.close();
   }
-  // ---- en una subruta (auditoría H-077): así se instalará en el SIA, p. ej. /calles-prioritarias/. Todas las direcciones deben ser relativas ----
-  { const http = require('http'); const PRE = '/calles-prioritarias/'; const perdidas = [];
+  // ---- en una subruta (auditoría H-077): así se instalará en el SIA, p. ej. /priorizacion-reforestacion/. Todas las direcciones deben ser relativas ----
+  { const http = require('http'); const PRE = '/priorizacion-reforestacion/'; const perdidas = [];
     const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2' };
     const s2 = http.createServer((req, res) => { let rel = decodeURIComponent(req.url.split('?')[0]);
       if (!rel.startsWith(PRE)) { perdidas.push(rel); res.writeHead(404); return res.end(); }
@@ -62,7 +62,7 @@ const ok = L.Registro('arranque sin terceros');
     await new Promise(r => s2.listen(0, r));
     const c3 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block' }); const p3 = await c3.newPage(); p3.setDefaultTimeout(300000); const err3 = []; p3.on('pageerror', e => err3.push(e.message));
     await p3.goto(`http://localhost:${s2.address().port}${PRE}?modo=ligero`); await p3.waitForSelector('#loader[hidden]', { state: 'attached' }); await p3.selectOption('#alc', '5'); await p3.waitForTimeout(800);
-    ok('subruta: la herramienta carga y consulta desde /calles-prioritarias/ sin pedir nada fuera de esa ruta', perdidas.filter(x => x !== '/favicon.ico').length === 0 && err3.length === 0 && (await p3.$eval('#scope-title', e => e.innerText)).length > 0, perdidas.slice(0, 3).join(' | ') || err3.slice(0, 1).join(''));
+    ok('subruta: la herramienta carga y consulta desde /priorizacion-reforestacion/ sin pedir nada fuera de esa ruta', perdidas.filter(x => x !== '/favicon.ico').length === 0 && err3.length === 0 && (await p3.$eval('#scope-title', e => e.innerText)).length > 0, perdidas.slice(0, 3).join(' | ') || err3.slice(0, 1).join(''));
     await c3.close(); s2.close(); }
   await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

@@ -32,7 +32,7 @@ aplicaSt(document.documentElement);
 const SESION = Object.assign({inicio:'', cierre:'', usuario:'', uso:''}, window.SIA_SESION || {});
 // Registro de usos (v17.37): SOLO detrás del inicio de sesión del SIA. Avisa al servidor qué ámbito se consulta y qué archivo se descarga,
 // para el reporte de usos por alcaldía (ver 08_entrega_sia/login/). Sin sesión configurada (GitHub Pages, archivo único) no envía nada.
-const USO_URL = SESION.uso || (SESION.inicio ? '/api/calles/uso' : '');
+const USO_URL = SESION.uso || (SESION.inicio ? '/api/priorizacion-reforestacion/uso' : '');
 function avisaUso(datos){ if (!USO_URL || !navigator.sendBeacon) return; try { navigator.sendBeacon(USO_URL, JSON.stringify(datos)); } catch(e){} }
 const SESION_TXT = 'Tu sesión terminó. Vuelve a iniciar sesión para continuar.';
 // Una sesión vencida se reconoce por la respuesta 401 o 403, o porque llega una página (HTML) donde se esperaba un archivo de datos o un programa.

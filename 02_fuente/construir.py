@@ -15,7 +15,7 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
 Salidas:
   ../docs/                               sitio para GitHub Pages y el SIA: página, estilos, código,
                                          datos, librerías e imágenes en archivos aparte
-  ../_local/calles_prioritarias.html     un solo archivo para abrir con doble clic, con librerías, tipografías y datos
+  ../_local/priorizacion_reforestacion.html     un solo archivo para abrir con doble clic, con librerías, tipografías y datos
                                          incrustados: no pide nada a terceros (no se publica)
   ../05_documentacion/cifras_de_la_construccion.md   tamaños y conteos medidos en esta construcción
   --artefacto RUTA                       fragmento para el artefacto de Claude (sin esqueleto)
@@ -74,7 +74,7 @@ CARTO_KEY = os.environ.get('SIA_CARTO_KEY') or _claves.get('CARTO_KEY') or CARTO
 # login. Vacías = sin sesión (GitHub Pages). También se pueden dar con SIA_SESION_INICIO y SIA_SESION_CIERRE o en claves.local.json.
 SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_INICIO') or '',
           'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or '',
-          'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/calles/uso si hay sesión
+          'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
 VERSION = '1.0'   # primera versión para el SIA; antes de ella, ensayos internos v1 a v17.38 (ver bitácora)
@@ -298,7 +298,7 @@ if obsoletos:
         os.replace(os.path.join(DOCS, *r.split('/')), destino)
     print('AVISO: %d archivo(s) de docs/ ya no pertenecen al sitio y se movieron a %s: %s' % (len(obsoletos), os.path.relpath(aparte, RAIZ), ', '.join(obsoletos)))
 os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
-open(os.path.join(RAIZ, '_local', 'calles_prioritarias.html'), 'w', encoding='utf-8').write(unico)
+open(os.path.join(RAIZ, '_local', 'priorizacion_reforestacion.html'), 'w', encoding='utf-8').write(unico)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
 # docs/ se publica tal cual en GitHub Pages: si lleva claves o sesión, se dice (auditoría de la v17.33)
 if CARTO_KEY or ESRI_KEY:
@@ -326,7 +326,7 @@ filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_D
          ('Datos (`docs/datos/*.bin`)', tam(total)), ('Librerías (`docs/libs/*.js`)', tam(sum(pesa('libs/' + l) for l in LIBS_PUBLICADAS if l.endswith('.js')))),
          ('Tipografías (`docs/fuentes/*.woff2`)', tam(sum(pesa('fuentes/' + a) for a in FUENTES.values()))),
          ('Sitio completo (`docs/`)', tam(peso_sitio)), ('Archivos que se piden al abrir, sin comprimir', tam(sum(pesa(a) for a in arranque))),
-         ('Archivo único (`_local/calles_prioritarias.html`)', tam(len(unico.encode('utf-8')))),
+         ('Archivo único (`_local/priorizacion_reforestacion.html`)', tam(len(unico.encode('utf-8')))),
          ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
          ('Mapas de fondo', 'Calles (CARTO): %s · Satélite (Esri): %s' % ('con clave' if CARTO_KEY else 'sin clave', 'con clave' if ESRI_KEY else 'sin clave'))]
 cifras = ('# Cifras de la construcción\n\nGenerado por 02_fuente/construir.py en cada construcción. No editar aquí.' + '\n\nMedidas al construir la versión %s. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.\n\n' % VERSION

@@ -1,13 +1,13 @@
 # Entrega al SIA · Modelo de priorización de reforestación urbana
 
-Todo lo que el equipo del Sistema de Información Ambiental necesita para instalar, verificar, actualizar y operar la herramienta en `sedema.sia.cdmx.gob.mx/calles-prioritarias/` sin depender de quien la elaboró.
+Todo lo que el equipo del Sistema de Información Ambiental necesita para instalar, verificar, actualizar y operar la herramienta en `sedema.sia.cdmx.gob.mx/priorizacion-reforestacion/` sin depender de quien la elaboró.
 
 **Cómo se entrega:** `python 08_entrega_sia/empaquetar.py` arma `_local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, que se entrega por enlace de descarga (pesa unos 46 MB, más de lo que admite un adjunto de correo), junto con su archivo `.sha256`. Trae solo lo que se instala: `LEEME.md` (portada, desde `LEEME_PAQUETE.md`), `sitio/` con la sesión configurada, `login/` sin pruebas ni demostraciones, `capas_geoserver/` y `documentos/`. Las instrucciones para quien mantiene el repositorio van entre `<!-- solo-repositorio -->` y no llegan al paquete.
 
 | Documento | Para qué |
 |---|---|
 | [`INSTALACION.md`](INSTALACION.md) | Instalar, actualizar y revertir, paso a paso |
-| [`nginx_calles_prioritarias.conf.ejemplo`](nginx_calles_prioritarias.conf.ejemplo) | Los dos fragmentos de configuración de nginx |
+| [`nginx_priorizacion_reforestacion.conf.ejemplo`](nginx_priorizacion_reforestacion.conf.ejemplo) | Los dos fragmentos de configuración de nginx |
 | [`LISTA_DE_VERIFICACION.md`](LISTA_DE_VERIFICACION.md) | 19 comprobaciones con `curl` y navegador, y qué revisar si alguna falla |
 | [`SESION_Y_LOGIN.md`](SESION_Y_LOGIN.md) | Cómo se integra un inicio de sesión: qué hace ya la herramienta y qué construye el SIA |
 | [`CIERRE_FASE_1.md`](CIERRE_FASE_1.md) | Orden para apagar la página de GitHub y lo demás del piloto (interno; no va en el paquete) |
@@ -19,8 +19,8 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 
 ## En una página
 
-- **Qué es:** un sitio estático (HTML, CSS, JavaScript y tres archivos de datos). La herramienta no usa base de datos ni GeoServer. Pesa 8 MB. El inicio de sesión sí usa el backend y la base de datos (módulo `calles`).
-- **Dónde va:** en el servidor web, junto a los demás sitios que no requieren backend, en la subruta `/calles-prioritarias/`.
+- **Qué es:** un sitio estático (HTML, CSS, JavaScript y tres archivos de datos). La herramienta no usa base de datos ni GeoServer. Pesa 8 MB. El inicio de sesión sí usa el backend y la base de datos (módulo `priorizacion-reforestacion`).
+- **Dónde va:** en el servidor web, junto a los demás sitios que no requieren backend, en la subruta `/priorizacion-reforestacion/`.
 - **Qué necesita del servidor:** servir archivos, la redirección de la dirección sin barra final, no recomprimir los `.bin` y las cabeceras del ejemplo. Nada más.
 - **Qué pide a terceros:** nada para funcionar. Solo si la persona enciende un mapa de fondo, las teselas de CARTO o de Esri; y los enlaces a Google Maps de las fichas, que se abren en otra pestaña.
 - **Datos personales:** los del inicio de sesión y el registro de usos (ver `login/LEEME.md`). «Mi ubicación» se calcula en el teléfono y no se envía.
@@ -34,7 +34,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Punto | Estado |
 |---|---|
 | Sitio autocontenido, sin recursos de terceros para arrancar | Listo |
-| Funciona en una subruta, con rutas relativas | Listo; probado en `/calles-prioritarias/` |
+| Funciona en una subruta, con rutas relativas | Listo; probado en `/priorizacion-reforestacion/` |
 | Política de seguridad de contenido estricta | Listo; probado |
 | Caché del servidor: la página siempre se revalida, también con `?v=` de avenida | Listo; probado |
 | Dirección sin barra final detrás de un terminador de HTTPS | Listo en el ejemplo de nginx; por validar en el servidor |

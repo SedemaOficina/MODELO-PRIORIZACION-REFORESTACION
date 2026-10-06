@@ -1,5 +1,5 @@
 {
-  "name": "calles-prioritarias-sesion",
+  "name": "priorizacion-reforestacion-sesion",
   "version": "1.0.0",
   "private": true,
   "description": "Módulo de sesión y bitácora de usos de «Modelo de priorización de reforestación urbana» para sia-backend (Express + PostgreSQL). Sin dependencias nativas.",

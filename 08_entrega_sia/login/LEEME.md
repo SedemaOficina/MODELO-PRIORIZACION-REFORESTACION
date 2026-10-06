@@ -5,9 +5,9 @@ Decisión de la Secretaría (5 de octubre de 2026): la herramienta se instala co
 Esta carpeta trae todo lo necesario. Encaja en la infraestructura actual del SIA: nginx como entrada, el backend de Node.js + Express con un módulo por sistema y PostgreSQL con un esquema por sistema.
 
 ```
-Persona ─▶ nginx ─▶ /calles-prioritarias/   (auth_request ─▶ /api/calles/sesion: 204 entra · 401 a la pantalla de acceso)
-                 ├▶ /acceso/calles/        pantalla de acceso, cambio de contraseña, panel de administración, aviso de privacidad (estáticos)
-                 └▶ /api/calles/           módulo «calles» en el backend ─▶ PostgreSQL, esquema calles
+Persona ─▶ nginx ─▶ /priorizacion-reforestacion/   (auth_request ─▶ /api/priorizacion-reforestacion/sesion: 204 entra · 401 a la pantalla de acceso)
+                 ├▶ /acceso/priorizacion-reforestacion/        pantalla de acceso, cambio de contraseña, panel de administración, aviso de privacidad (estáticos)
+                 └▶ /api/priorizacion-reforestacion/           módulo «priorizacion-reforestacion» del backend ─▶ PostgreSQL, esquema priorizacion_reforestacion
 ```
 
 ## Contenido
@@ -15,7 +15,7 @@ Persona ─▶ nginx ─▶ /calles-prioritarias/   (auth_request ─▶ /api/ca
 | Carpeta | Qué es |
 |---|---|
 | `backend/src/` | Módulo Express (`index.js`) y huellas de contraseña (`contrasenas.js`). Sin dependencias nativas: usa `express` y `pg`, que el backend ya tiene |
-| `backend/sql/001_esquema.sql` | Esquema `calles`: usuarios, sesiones, bitácora; función de depuración; cuenta de servicio `calles_app` |
+| `backend/sql/001_esquema.sql` | Esquema `priorizacion_reforestacion`: usuarios, sesiones, bitácora; función de depuración; cuenta de servicio `priorizacion_reforestacion_app` |
 | `backend/scripts/crear_admin.js` | Crea la primera cuenta de administración (las demás, desde el panel) |
 | `backend/src/masiva.js`, `backend/scripts/alta_masiva.js` | Alta de muchas cuentas desde un CSV (los enlaces que designa cada alcaldía), con revisión previa y contraseñas temporales: desde el panel o desde la terminal |
 | `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`) y sus recursos |
@@ -42,51 +42,51 @@ El registro de usos trata datos personales: nombre, correo, institución, IP y b
 ```
 psql -d bd_csia -f backend/sql/001_esquema.sql
 ```
-Después, asignar contraseña a la cuenta de servicio (`ALTER ROLE calles_app PASSWORD '…'`) y permitir su conexión solo desde el servidor de aplicaciones, igual que las demás cuentas de servicio.
+Después, asignar contraseña a la cuenta de servicio (`ALTER ROLE priorizacion_reforestacion_app PASSWORD '…'`) y permitir su conexión solo desde el servidor de aplicaciones, igual que las demás cuentas de servicio.
 
 **2. Backend.**
-- Copiar `backend/src/` a la carpeta de módulos de `sia-backend` (por ejemplo `modulos/calles/`).
-- Montar el módulo con su propio pool de `pg`, conectado con la cuenta `calles_app`:
+- Copiar `backend/src/` a la carpeta de módulos de `sia-backend` (por ejemplo `modulos/priorizacion-reforestacion/`).
+- Montar el módulo con su propio pool de `pg`, conectado con la cuenta `priorizacion_reforestacion_app`:
   ```js
   const { Pool } = require('pg');
-  const calles = require('./modulos/calles')({ pool: new Pool({ /* cuenta calles_app, ssl obligatorio */ }) });
+  const priorizacion = require('./modulos/priorizacion-reforestacion')({ pool: new Pool({ /* cuenta priorizacion_reforestacion_app, ssl obligatorio */ }) });
   app.set('trust proxy', /* la red de nginx */);   // para que la bitácora registre la IP de la persona
-  app.use('/api/calles', calles);
+  app.use('/api/priorizacion-reforestacion', priorizacion);
   ```
-- Variable de entorno opcional `CALLES_ORIGEN`. Por omisión es `https://sedema.sia.cdmx.gob.mx`, y es la única procedencia que acepta en peticiones que cambian algo.
-- El módulo depura una vez al día lo vencido: bitácora de 24 meses, IP de 6 meses, cuentas dadas de baja hace 24 meses y sesiones vencidas. También puede programarse en la base: `SELECT calles.depurar();`.
+- Variable de entorno opcional `PRIORIZACION_ORIGEN`. Por omisión es `https://sedema.sia.cdmx.gob.mx`, y es la única procedencia que acepta en peticiones que cambian algo.
+- El módulo depura una vez al día lo vencido: bitácora de 24 meses, IP de 6 meses, cuentas dadas de baja hace 24 meses y sesiones vencidas. También puede programarse en la base: `SELECT priorizacion_reforestacion.depurar();`.
 
-**3. Primera cuenta de administración** (en el servidor de aplicaciones, con las variables `PG*` de `calles_app`):
+**3. Primera cuenta de administración** (en el servidor de aplicaciones, con las variables `PG*` de `priorizacion_reforestacion_app`):
 ```
 node scripts/crear_admin.js correo@sedema.cdmx.gob.mx "Nombre Apellido"
 ```
 Muestra una contraseña temporal; al entrar, se pide cambiarla.
 
-**4. Archivos estáticos.** Copiar `acceso/` al volumen del servidor web, como `acceso-calles/`.
+**4. Archivos estáticos.** Copiar `acceso/` al volumen del servidor web, como `acceso-priorizacion-reforestacion/`.
 
-**5. nginx.** En `../nginx_calles_prioritarias.conf.ejemplo`, el bloque «FASE 2 CON INICIO DE SESIÓN» sustituye al bloque 2. Tiene tres partes:
+**5. nginx.** En `../nginx_priorizacion_reforestacion.conf.ejemplo`, el bloque «FASE 2 CON INICIO DE SESIÓN» sustituye al bloque 2. Tiene tres partes:
 - **2-bis:** la herramienta protegida con `auth_request`.
 - **2-ter:** la pantalla de acceso, sin protección.
 - **2-cuater:** la API, que va por la ruta `/api/` existente.
 
 Validar con `nginx -t`.
 
-**6. La herramienta.** La carpeta `sitio/` del paquete ya viene construida con la sesión: acceso en `/acceso/calles/`, cierre en `/api/calles/salir` y registro de usos en `/api/calles/uso`. Con eso la herramienta:
+**6. La herramienta.** La carpeta `sitio/` del paquete ya viene construida con la sesión: acceso en `/acceso/priorizacion-reforestacion/`, cierre en `/api/priorizacion-reforestacion/salir` y registro de usos en `/api/priorizacion-reforestacion/uso`. Con eso la herramienta:
 - muestra «Salir» junto a los logotipos;
 - reconoce la sesión vencida;
 - no guarda copia sin conexión;
 - registra consultas y descargas.
 <!-- solo-repositorio -->
 
-En el repositorio, el paquete se arma con `SIA_SESION_INICIO=/acceso/calles/ SIA_SESION_CIERRE=/api/calles/salir python 08_entrega_sia/empaquetar.py`. Sin esas variables, por ejemplo en GitHub Pages, la herramienta no registra nada.
+En el repositorio, el paquete se arma con `SIA_SESION_INICIO=/acceso/priorizacion-reforestacion/ SIA_SESION_CIERRE=/api/priorizacion-reforestacion/salir python 08_entrega_sia/empaquetar.py`. Sin esas variables, por ejemplo en GitHub Pages, la herramienta no registra nada.
 <!-- /solo-repositorio -->
 
 ## Comprobación después de instalar
 
 | # | Prueba | Resultado esperado |
 |---|---|---|
-| 1 | Abrir `/calles-prioritarias/` sin sesión | Lleva a `/acceso/calles/?volver=/calles-prioritarias/` |
-| 2 | `curl -sI .../calles-prioritarias/datos/data.bin` sin sesión | `401` |
+| 1 | Abrir `/priorizacion-reforestacion/` sin sesión | Lleva a `/acceso/priorizacion-reforestacion/?volver=/priorizacion-reforestacion/` |
+| 2 | `curl -sI .../priorizacion-reforestacion/datos/data.bin` sin sesión | `401` |
 | 3 | Entrar con la cuenta de administración (contraseña temporal) | Pide crear una contraseña propia y después abre la herramienta |
 | 4 | Abrir un enlace con consulta (`?a=007&b=con`) sin sesión, entrar | Vuelve a esa misma consulta |
 | 5 | En la herramienta, elegir una alcaldía y descargar un Excel | En el panel, pestaña «Usos», aparecen la consulta y la descarga |
@@ -101,14 +101,14 @@ Todo se puede ensayar en una computadora con Node.js (`cd backend && npm install
 
 **Sin base de datos**, con una base en memoria:
 ```
-DEMO_DATOS=1 node scripts/servidor_demo.js        → http://localhost:8090/calles-prioritarias/
+DEMO_DATOS=1 node scripts/servidor_demo.js        → http://localhost:8090/priorizacion-reforestacion/
 ```
 
 **Con PostgreSQL de pruebas**, que es la forma recomendada antes de tocar sia-backend. Se ensaya el mismo esquema que irá a producción:
-1. Crear una base de pruebas (su nombre debe contener «prueba») y correr en ella `sql/001_esquema.sql`. Dar contraseña a `calles_app`.
-2. Correr las pruebas contra esa base, con la cuenta de servicio. Comprueban también la depuración por plazos y que `calles_app` no pueda salir de su esquema:
+1. Crear una base de pruebas (su nombre debe contener «prueba») y correr en ella `sql/001_esquema.sql`. Dar contraseña a `priorizacion_reforestacion_app`.
+2. Correr las pruebas contra esa base, con la cuenta de servicio. Comprueban también la depuración por plazos y que `priorizacion_reforestacion_app` no pueda salir de su esquema:
    ```
-   PRUEBAS_PG=1 PGHOST=localhost PGDATABASE=bd_csia_pruebas PGUSER=calles_app PGPASSWORD=… npm run pruebas
+   PRUEBAS_PG=1 PGHOST=localhost PGDATABASE=bd_csia_pruebas PGUSER=priorizacion_reforestacion_app PGPASSWORD=… npm run pruebas
    ```
 3. Cargar los datos simulados: `node scripts/datos_demo.js --base-de-pruebas`.
 4. Levantar la demostración con esa base: `DEMO_PG=1 node scripts/servidor_demo.js`.
@@ -146,7 +146,7 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 ## Operación
 
 - **Altas** (una por una, o muchas con «Alta masiva desde CSV»):
-  - Desde el panel (`/acceso/calles/admin/`, solo cuentas con permiso de administración).
+  - Desde el panel (`/acceso/priorizacion-reforestacion/admin/`, solo cuentas con permiso de administración).
   - Se elige institución y alcaldía; el panel muestra una contraseña temporal **una sola vez**.
   - Compártela por un medio institucional y por separado del correo.
 - **Bajas:** «Dar de baja» cierra las sesiones de la persona al instante; la cuenta puede reactivarse.

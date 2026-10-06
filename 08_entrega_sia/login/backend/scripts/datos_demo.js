@@ -23,7 +23,7 @@ function azar(semilla) { let s = semilla >>> 0; return () => { s = (s + 0x6D2B79
 
 async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.now() } = {}) {
   const r = azar(semilla), elige = a => a[Math.floor(r() * a.length)], pesado = l => { let t = l.reduce((x, y) => x + y[1], 0) * r(); for (const [v, w] of l) { if ((t -= w) < 0) return v; } return l[0][0]; };
-  const otras = await pool.query(`SELECT count(*) AS n FROM calles.usuarios WHERE correo NOT LIKE '%${DOMINIO}'`);
+  const otras = await pool.query(`SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo NOT LIKE '%${DOMINIO}'`);
   if (+otras.rows[0].n > 0) throw new Error('La base ya tiene cuentas reales: los datos simulados solo se cargan en una base de prueba o vacía.');
   const h = await huella(CLAVE_DEMO);
   const personas = [];
@@ -36,7 +36,7 @@ async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.now() } =
   const ids = [];
   for (const [i, p] of personas.entries()) {
     const baja = i === 7, pendiente = i === 12, detenida = i === 20;   // algunos casos para ver los estados en el panel
-    const { rows } = await pool.query(`INSERT INTO calles.usuarios (correo, nombre, institucion, alcaldia_cve, rol, activo, huella, debe_cambiar, bloqueado_hasta, creado)
+    const { rows } = await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, activo, huella, debe_cambiar, bloqueado_hasta, creado)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (correo) DO UPDATE SET nombre = EXCLUDED.nombre RETURNING id`,
       [p.correo, p.nombre, p.institucion, p.alcaldia_cve, p.rol, !baja, h, pendiente, detenida ? new Date(ahora + 10 * 60000) : null, new Date(ahora - (dias + 5) * 864e5)]);
     ids.push({ ...p, id: rows[0].id, activo: !baja && !pendiente });
@@ -67,17 +67,17 @@ async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.now() } =
   }
   for (let i = 0; i < filas.length; i += 400) {   // por bloques: rápido en PostgreSQL real
     const b = filas.slice(i, i + 400), v = [];
-    const sql = 'INSERT INTO calles.bitacora (usuario_id, evento, detalle, momento, ip) VALUES ' +
+    const sql = 'INSERT INTO priorizacion_reforestacion.bitacora (usuario_id, evento, detalle, momento, ip) VALUES ' +
       b.map((f, j) => { v.push(f[0], f[1], f[2] ? JSON.stringify(f[2]) : null, f[3], f[4]); return `($${j * 5 + 1}, $${j * 5 + 2}, $${j * 5 + 3}, $${j * 5 + 4}, $${j * 5 + 5})`; }).join(', ');
     await pool.query(sql, v);
   }
-  for (const p of ids) await pool.query('UPDATE calles.usuarios SET ultimo_acceso = (SELECT max(momento) FROM calles.bitacora WHERE usuario_id = $1 AND evento = $2) WHERE id = $1', [p.id, 'acceso']);
+  for (const p of ids) await pool.query('UPDATE priorizacion_reforestacion.usuarios SET ultimo_acceso = (SELECT max(momento) FROM priorizacion_reforestacion.bitacora WHERE usuario_id = $1 AND evento = $2) WHERE id = $1', [p.id, 'acceso']);
   return { cuentas: personas.length, registros: filas.length, clave: CLAVE_DEMO };
 }
 
 async function borrar(pool) {
-  await pool.query(`DELETE FROM calles.bitacora WHERE usuario_id IN (SELECT id FROM calles.usuarios WHERE correo LIKE '%${DOMINIO}')`);
-  const { rows } = await pool.query(`DELETE FROM calles.usuarios WHERE correo LIKE '%${DOMINIO}' RETURNING id`);
+  await pool.query(`DELETE FROM priorizacion_reforestacion.bitacora WHERE usuario_id IN (SELECT id FROM priorizacion_reforestacion.usuarios WHERE correo LIKE '%${DOMINIO}')`);
+  const { rows } = await pool.query(`DELETE FROM priorizacion_reforestacion.usuarios WHERE correo LIKE '%${DOMINIO}' RETURNING id`);
   return rows.length;
 }
 
