@@ -23,7 +23,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
 | `prueba_servidor_sia.js` | Instalada en `/priorizacion-reforestacion/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
-| `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas y «Compartir» | 1 min |
+| `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas, sin «Compartir» | 1 min |
 | `prueba_casos_limite.js` | Casos de la revisión del 5 oct 2026: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
 | `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central | 1 min |
 | `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, pasos de banqueta y de Street View, en escritorio y teléfono | 1 min |

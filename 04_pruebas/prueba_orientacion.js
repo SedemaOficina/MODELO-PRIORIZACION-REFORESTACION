@@ -91,9 +91,9 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('elegir una calle la deja como calle consultada', await page.evaluate(() => /Quitar la calle/.test(document.getElementById('cr-rest').innerHTML)));
     ok('sin NaN, undefined ni negativos en la pestaña', !L.MALOS.test(await page.$eval('#tp-ini', x => x.innerText)) && L.negativos(await page.$eval('#tp-ini', x => x.innerText)).length === 0);
     // compartir
-    await page.evaluate(() => document.getElementById('share').click()); await page.waitForTimeout(400);
-    const sh = await page.evaluate(async () => ({ lbl: document.getElementById('share-lbl').textContent, clip: await navigator.clipboard.readText().catch(e => 'ERR ' + e.message), url: location.href }));
-    ok('«Compartir» copia la dirección de la consulta y lo avisa', sh.lbl === 'Enlace copiado' && sh.clip === sh.url && /c=\d+/.test(sh.url), JSON.stringify(sh));
+    ok('v1.0 ya no hay botón «Compartir»; la dirección sigue guardando la consulta', !(await page.$('#share')) && /c=\d+/.test(await page.evaluate(() => location.href)));
+    const ti = await page.evaluate(() => ({ b: (document.querySelector('#ini-title b.unidad') || {}).textContent, t: document.getElementById('ini-title').textContent }));
+    ok('v1.0 el título de «Dónde empezar» destaca lo que se consulta', ti.b === 'Calles' && /^Calles de /.test(ti.t), JSON.stringify(ti));
     // ciudad y Gobierno Central
     await L.clic(page, '#zcity'); await page.waitForTimeout(400);
     const cd = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, sub: document.querySelector('#ini-list li .t').textContent }));

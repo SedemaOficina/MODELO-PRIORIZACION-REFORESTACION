@@ -58,20 +58,18 @@ function locHtml(){
   const p = myPos, w = whereAmI(p.lon, p.lat);
   const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
   const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
-  const impreciso = p.acc > LOC_PRECISO;
   const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`;
   if (w.alc===null) return head + `<h3>Estás fuera de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> Acércate a la ciudad o busca un territorio con el buscador.</div>` + privacy;
-  if (impreciso) return head + `<h3>Tu ubicación es aproximada</h3><div class="sub">Zona de ${META.munNames[w.alc]}, con ±${fmt0.format(Math.round(p.acc))} m de incertidumbre</div>
-    <div class="empty-note"><b>Con esta precisión no es posible decir en qué colonia o calle estás.</b> Sal al aire libre, revisa que el teléfono tenga activada la ubicación precisa y vuelve a intentarlo. Mientras tanto puedes buscar la colonia por su nombre.</div>
-    <div class="acts"><button class="btn secondary act" id="loc-retry" type="button">Intentar de nuevo</button></div>` + privacy;
   const col = w.col!==null? META.colonias[w.col] : null;
   const nb = nearby(p.lon, p.lat);
   const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">Junto a ti: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
   const tit = respOn.alc && respOn.gc? 'Tramos prioritarios cerca de ti' : respOn.gc? 'Vialidades primarias prioritarias cerca de ti' : 'Calles prioritarias cerca de ti';
   const items = nb.list.map(o=>{ const t = tramoLine(o); return `<li><button type="button" data-k="${o.k}" data-i="${o.i}"><span class="pr" data-st="background:rgb(${t.c[0]},${t.c[1]},${t.c[2]})"></span><span class="t"><b>${t.nm}</b><span class="m">${t.sub}</span></span><span class="d">${distTxt(o.d)}<br><span class="m">${rumbo(o.dx, o.dy)}</span></span></button></li>`; }).join('');
   const lista = nb.list.length? `${nb.R>300? `<div class="cardnote">No hay tramos prioritarios a menos de 300 m; estos son los más cercanos.</div>`:''}<ol class="loc-list">${items}</ol>`
-    : `<div class="empty-note"><b>No hay tramos prioritarios a menos de 1.5 km.</b> La zona donde estás no tiene frentes de prioridad Alta o Muy Alta${respOn.gc && !respOn.alc? ' en vialidades primarias' : ''}.</div>`;
-  const aviso = p.acc>50? `<div class="empty-note"><b>Ubicación aproximada.</b> El GPS indica ±${fmt0.format(Math.round(p.acc))} m; al aire libre la precisión mejora. Confirma el tramo en la calle.</div>` : '';
+    : `<div class="empty-note"><b>No hay tramos prioritarios a menos de 1.5 km.</b> La zona donde estás no tiene frentes de prioridad Muy Alta, Alta o Media${respOn.gc && !respOn.alc? ' en vialidades primarias' : ''}.</div>`;
+  // v1.0: con cualquier precisión se responde colonia y calles cercanas (en computadora la ubicación viene de la red y puede errar cientos de metros); el aviso dice cuánto confiar
+  const aviso = p.acc > LOC_PRECISO? `<div class="empty-note"><b>Ubicación aproximada (±${fmt0.format(Math.round(p.acc))} m).</b> En computadora la ubicación se calcula por la red y puede no ser exacta: la colonia y las calles son las del punto que indica el navegador. Si no es tu zona, busca la colonia por su nombre.</div>`
+    : p.acc>50? `<div class="empty-note"><b>Ubicación aproximada.</b> El GPS indica ±${fmt0.format(Math.round(p.acc))} m; al aire libre la precisión mejora. Confirma el tramo en la calle.</div>` : '';
   return head + `<h3>Estás en ${col? col.n : 'una zona sin colonia identificada'}</h3><div class="sub">${META.munNames[w.alc]}${col && col.cp? ' · CP '+col.cp.padStart(5,'0') : ''}</div>`
     + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista
     + `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>` + privacy;
@@ -85,7 +83,7 @@ function wireLocCard(c){
   const rt = c.querySelector('#loc-retry'); if (rt) rt.onclick = ()=>{ stopFollow(); locate(); };
 }
 function selectHere(){ // selecciona la colonia (modo Alcaldías) o la alcaldía (modo Gobierno Central) donde está la persona
-  if (!locAuto || myPos.acc > LOC_PRECISO) return;
+  if (!locAuto) return;
   // con la ficha de un frente, tramo o colonia abierta no se cambia de colonia: se la cerraría a quien la está leyendo en campo.
   // Al cerrarla, la siguiente posición selecciona donde esté la persona.
   if (pinned && pinned.kind!=='loc') return;

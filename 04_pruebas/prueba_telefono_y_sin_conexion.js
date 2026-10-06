@@ -21,7 +21,7 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
   { const { page, ctx } = await L.abrir(browser, U, { geolocation: { ...GPS, accuracy: 5000 }, permissions: ['geolocation'] }, errores);
     await page.$eval('#zloc', b => b.click()); await page.waitForFunction(() => /aproximada|Estás en/.test(document.getElementById('card').innerText), null, { timeout: 30000 }); await page.waitForTimeout(500);
     const e = await L.estado(page);
-    ok('H-040 con ±5,000 m no se afirma colonia ni «Junto a ti», ni se cambia la consulta', /Tu ubicación es aproximada/.test(e.card || '') && !/Junto a ti|Estás en/.test(e.card || '') && e.alcSel === '' && /Ciudad de México/.test(e.titulo), `${(e.card || '').slice(0, 150)} · alc «${e.alcSel}»`);
+    ok('v1.0 con ±5,000 m (computadora) igual se indica la colonia y las calles cercanas, con aviso de ubicación aproximada', /Estás en Vicente Guerrero/.test(e.card || '') && /Ubicación aproximada \(±5,000 m\)/.test(e.card || '') && /cerca de ti/.test(e.card || '') && e.alcSel === String(izt), `${(e.card || '').slice(0, 200)} · alc «${e.alcSel}»`);
     await ctx.close(); }
   // ---------- H-040 · GPS preciso, respuesta tardía y cancelar ----------
   { const { page, ctx } = await L.abrir(browser, U, { geolocation: { ...GPS, accuracy: 12 }, permissions: ['geolocation'] }, errores);
@@ -44,7 +44,8 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
       let n = 0; const t0 = performance.now(); let peor = 0, ant = t0; await new Promise(fin => { const id = setInterval(() => { const a = performance.now(); peor = Math.max(peor, a - ant); ant = a; n++; if (a - t0 > 3000) { clearInterval(id); fin(); } }, 50); });
       return { txt, n, peor: Math.round(peor) }; });
     const d = await esp; const ruta = path.join(SAL, d.suggestedFilename()); await d.saveAs(ruta); const kb = Math.round(fs.statSync(ruta).size / 1024);
-    ok('H-045 se avisa del tamaño antes de entregar un archivo grande', /archivo grande: 56,267 renglones/.test(r.txt), r.txt);
+    const nEsp = L.decodificar().F.filter(f => !f.gc && f.mun === izt && f.prio >= L.PRIO_MIN).length;
+    ok('H-045 se avisa del tamaño antes de entregar un archivo grande', r.txt.includes(`archivo grande: ${L.fN.format(nEsp)} renglones`), `${r.txt} · recálculo ${nEsp}`);
     ok('H-045 la página sigue respondiendo mientras se arma el Excel (ninguna pausa mayor de 1.5 s)', r.peor < 1500 && r.n > 20, `peor pausa ${r.peor} ms · ${r.n} ciclos en 3 s · archivo ${kb} KB`);
     ok('H-045 el archivo se entrega completo', kb > 5000 && /\.xlsx$/.test(d.suggestedFilename()), `${kb} KB`);
     await ctx.close(); }

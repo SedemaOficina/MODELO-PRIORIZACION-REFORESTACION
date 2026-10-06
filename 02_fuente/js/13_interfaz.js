@@ -63,7 +63,7 @@ function renderScopeTitle(){
 function renderActions(){
   const m=$('act-main'), f=$('act-ficha'), lbl=$('act-main-lbl'), hint=$('act-hint');
   let main=null, ficha=null, txt='', why='';
-  if (isGC()){ main='dl-tramos'; txt='Descargar tramos prioritarios (Excel)'; if ($('dl-tramos').disabled) why='Este ámbito no tiene tramos de prioridad Muy Alta o Alta que descargar.'; ficha = selAv!==null? 'dl-ficha-av' : sel!==null? 'dl-ficha-vpalc' : null; }
+  if (isGC()){ main='dl-tramos'; txt='Descargar tramos prioritarios (Excel)'; if ($('dl-tramos').disabled) why='Este ámbito no tiene tramos de prioridad Muy Alta, Alta o Media que descargar.'; ficha = selAv!==null? 'dl-ficha-av' : sel!==null? 'dl-ficha-vpalc' : null; }
   else {
     txt='Descargar frentes prioritarios (Excel)';
     const vacia = selCol!==null && sum(colStat(selCol).n)===0;
@@ -84,18 +84,11 @@ $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).c
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // cierre de sesión: solo aparece si la instalación define su dirección (Fase 2)
 if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; document.body.classList.add('con-sesion'); }
-// ---------- compartir la consulta (v17.28): la dirección ya la conserva; el botón la copia o abre el menú de compartir del teléfono ----------
-let shareT = null;
-function avisoShare(t, largo){ $('share-lbl').textContent = t; $('sr-estado').textContent = largo || t; clearTimeout(shareT); shareT = setTimeout(()=>{ $('share-lbl').textContent = 'Compartir'; }, 2600); }
-function copiaTexto(t){ if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(t);
-  return new Promise((ok, no)=>{ const a = document.createElement('textarea'); a.value = t; a.setAttribute('readonly',''); a.className = 'sr'; document.body.appendChild(a); a.select();
-    let bien = false; try { bien = document.execCommand('copy'); } catch(e){} a.remove(); bien? ok() : no(); }); }
-// Con inicio de sesión (v17.38) el enlace sirve entre personas con cuenta: quien lo abra entra y vuelve a esa misma consulta
-const NOTA_CUENTA = 'Para abrirlo se necesita una cuenta de la herramienta.';
-if (SESION.inicio) $('share').title = 'Copiar la dirección de esta consulta para compartirla con alguien que tenga cuenta de la herramienta';
-$('share').onclick = ()=>{ const u = location.href, titulo = 'Modelo de priorización de reforestación urbana · ' + $('scope-title').textContent;
-  if (isPhone() && navigator.share){ navigator.share(SESION.inicio? {title: titulo, text: NOTA_CUENTA, url: u} : {title: titulo, url: u}).catch(()=>{}); return; }
-  copiaTexto(u).then(()=>avisoShare('Enlace copiado', SESION.inicio? 'Enlace copiado. ' + NOTA_CUENTA : ''), ()=>avisoShare('No se pudo copiar')); };
+// ---------- títulos de lista (v1.0): la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------
+const UNIDAD_RX = /(Colonias|Calles|Avenidas|Tramos|Alcaldías|calles)/;
+function resaltaUnidad(el){ if (!el || el.querySelector('b.unidad')) return; const t = el.textContent, m = t.match(UNIDAD_RX); if (!m) return;
+  const b = document.createElement('b'); b.className = 'unidad'; b.textContent = m[1]; el.replaceChildren(t.slice(0, m.index), b, t.slice(m.index + m[1].length)); }
+for (const id of ['ini-title', 'search-title']){ const el = $(id); if (!el) continue; resaltaUnidad(el); new MutationObserver(()=>resaltaUnidad(el)).observe(el, {childList:true, characterData:true, subtree:true}); }
 // ---------- entrada (v17.28; dos pasos desde la v17.30) ----------
 // Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
 // Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.

@@ -143,7 +143,7 @@ META['city'] = summ(alc_mask)
 META['summ_gc'] = {m: summ((gc == 1) & (mun == i)) for i, m in enumerate(META['muns'])}
 META['city_gc'] = summ(gc == 1)
 META['vp'] = {'nomenclat': nomenclat, 'nombres': nombres, 'circula': circula, 'alctxt': alctxt, 'claves': claves, 'tipos': tiposvp, 'summ': vp_summ, 'city': vp_city, 'cov': vp_cov, 'n': len(VP)}
-META['cruce'] = {'frentes_gc': int(gc.sum()), 'km_gc': round(float(km[gc == 1].sum()), 1), 'km_gc_prio': round(float(km[(gc == 1) & (prio >= 3)].sum()), 1), 'regla': 'frente paralelo (≤30°) a ≤18 m de la vialidad primaria, o a ≤60 m con nombre coincidente'}
+META['cruce'] = {'frentes_gc': int(gc.sum()), 'km_gc': round(float(km[gc == 1].sum()), 1), 'km_gc_prio': round(float(km[(gc == 1) & (prio >= 2)].sum()), 1), 'regla': 'frente paralelo (≤30°) a ≤18 m de la vialidad primaria, o a ≤60 m con nombre coincidente'}
 meta_gz = gzip.compress(json.dumps(META, ensure_ascii=False, separators=(',', ':')).encode(), 9, mtime=0)
 print('catálogos (meta):', len(meta_gz), 'bytes comprimidos')
 # bloques de datos de la herramienta (gzip de varints; construir.py los usa tal cual)

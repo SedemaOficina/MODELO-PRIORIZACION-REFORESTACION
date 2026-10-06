@@ -11,7 +11,7 @@ Medidas al construir la versión 1.0. README y ARQUITECTURA remiten a esta tabla
 | Módulos de lógica (`02_fuente/js/`) | 18 |
 | Hojas de estilo (`02_fuente/css/`) | 9 |
 | `docs/index.html` | 38 KB |
-| `docs/app.js` | 258 KB |
+| `docs/app.js` | 257 KB |
 | `docs/estilos.css` | 71 KB |
 | Datos (`docs/datos/*.bin`) | 4.3 MB |
 | Librerías (`docs/libs/*.js`) | 3.3 MB |

@@ -38,16 +38,18 @@ function decodificar(docs = DOCS) {
   return { META, F, VP, N, NV };
 }
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+// «prioritario» = Muy Alta, Alta y Media (clase ≥ 2) desde la v1.0; mismo umbral que PRIO_MIN de la herramienta
+const PRIO_MIN = 2;
 // ---- cálculo independiente de resúmenes (no usa META.summ ni funciones de la app) ----
 function resumenFrentes(D, { mun = null, col = null, gc = 0 } = {}) {
   const s = { n: [0, 0, 0, 0, 0], m: [0, 0, 0, 0, 0] };
   for (const f of D.F) { if (f.gc !== gc) continue; if (mun !== null && f.mun !== mun) continue; if (col !== null && f.col !== col) continue; s.n[f.prio]++; s.m[f.prio] += f.len; }
-  s.km = s.m.map(x => x / 1000); s.kmp = s.km[3] + s.km[4]; s.kmt = s.km.reduce((a, b) => a + b, 0); s.np = s.n[3] + s.n[4]; s.nt = s.n.reduce((a, b) => a + b, 0); return s;
+  s.km = s.m.map(x => x / 1000); s.kmp = s.km.slice(PRIO_MIN).reduce((a, b) => a + b, 0); s.kmt = s.km.reduce((a, b) => a + b, 0); s.np = s.n.slice(PRIO_MIN).reduce((a, b) => a + b, 0); s.nt = s.n.reduce((a, b) => a + b, 0); return s;
 }
 function resumenVP(D, { mun = null, av = null } = {}) {
   const s = { n: [0, 0, 0, 0, 0], m: [0, 0, 0, 0, 0], recs: new Set(), recsp: new Set() };
-  for (const v of D.VP) { if (mun !== null && v.mun !== mun) continue; if (av !== null && v.nom !== av) continue; s.n[v.prio]++; s.m[v.prio] += v.len; s.recs.add(v.rec); if (v.prio >= 3) s.recsp.add(v.rec); }
-  s.km = s.m.map(x => x / 1000); s.kmp = s.km[3] + s.km[4]; s.kmt = s.km.reduce((a, b) => a + b, 0); s.np = s.n[3] + s.n[4]; s.nt = s.n.reduce((a, b) => a + b, 0); return s;
+  for (const v of D.VP) { if (mun !== null && v.mun !== mun) continue; if (av !== null && v.nom !== av) continue; s.n[v.prio]++; s.m[v.prio] += v.len; s.recs.add(v.rec); if (v.prio >= PRIO_MIN) s.recsp.add(v.rec); }
+  s.km = s.m.map(x => x / 1000); s.kmp = s.km.slice(PRIO_MIN).reduce((a, b) => a + b, 0); s.kmt = s.km.reduce((a, b) => a + b, 0); s.np = s.n.slice(PRIO_MIN).reduce((a, b) => a + b, 0); s.nt = s.n.reduce((a, b) => a + b, 0); return s;
 }
 // formatos tal como los debe mostrar la interfaz (regla documentada: ≥10 km sin decimales, 1–10 un decimal, <1 km en metros)
 const f0 = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 0 }), f1 = new Intl.NumberFormat('es-MX', { maximumFractionDigits: 1 }), fN = new Intl.NumberFormat('es-MX');
@@ -128,4 +130,4 @@ function Registro(nombre) {
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { PRIO_MIN, sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

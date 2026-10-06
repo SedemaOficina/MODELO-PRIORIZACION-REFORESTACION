@@ -12,7 +12,7 @@ const D = L.decodificar(); const M = D.META;
 const slug = s => L.norm(s).replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
 
 // colonia con más km prioritarios a cargo de la alcaldía, por alcaldía (mismo criterio que el ranking de colonias de la herramienta)
-const kmp = new Map(); for (const f of D.F) if (!f.gc && f.col && f.prio >= 3) kmp.set(f.col, (kmp.get(f.col) || 0) + f.len);
+const kmp = new Map(); for (const f of D.F) if (!f.gc && f.col && f.prio >= L.PRIO_MIN) kmp.set(f.col, (kmp.get(f.col) || 0) + f.len);
 const mejor = M.muns.map(m => { let id = null, v = -1; for (const [c, k] of kmp) if (M.colonias[c].m === m && k > v) { id = c; v = k; } return { id, km: v / 1000 }; });
 
 (async () => {

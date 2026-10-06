@@ -16,7 +16,7 @@ print(json.dumps({'datos': [list(r) for r in wb['Datos'].iter_rows(values_only=T
 // recálculo propio: frentes prioritarios a cargo de la alcaldía en un territorio, por banqueta
 const banq = f => (f.flags >> 3) & 7;   // 0 = Dispone
 function calc(terr) { const r = { todas: [0, 0], con: [0, 0], sin: [0, 0], des: [0, 0, 0] };
-  for (const f of D.F) { if (f.gc || f.prio < 3 || !terr(f)) continue; const k = f.len / 1000, b = banq(f);
+  for (const f of D.F) { if (f.gc || f.prio < L.PRIO_MIN || !terr(f)) continue; const k = f.len / 1000, b = banq(f);
     r.todas[0] += k; r.todas[1]++; (b === 0 ? r.con : r.sin)[0] += k; (b === 0 ? r.con : r.sin)[1]++; r.des[b === 0 ? 0 : b === 1 ? 1 : 2] += k; }
   return r; }
 const R = calc(f => f.mun === ALC), RC = calc(f => f.col === COL);
@@ -63,7 +63,19 @@ const kmDe = t => L.numEs(t);   // primera cifra de un texto
   // ---------- 4) Gobierno Central: la fila no aplica ----------
   await ir(page, `&r=gc&a=${CLAVE}`);
   ok('con Gobierno Central la fila «Banqueta» no se muestra', await page.evaluate(() => document.getElementById('banq-row').hidden));
-
+  // v1.0 · banqueta del Gobierno Central como referencia: frentes prioritarios que dan a las vialidades primarias de la alcaldía
+  { const d = [0, 0, 0]; for (const f of D.F) { if (!f.gc || f.prio < L.PRIO_MIN || f.mun !== ALC) continue; const b = banq(f); d[b === 0 ? 0 : b === 1 ? 1 : 2] += f.len / 1000; }
+    const t = d[0] + d[1] + d[2];
+    const ub = await page.$eval('#univbox', x => x.hidden ? '' : x.textContent.replace(/\s+/g, ' '));
+    ok('v1.0 Gobierno Central: el Resumen da la banqueta de los frentes al lado como referencia, igual al recálculo', /Banqueta, como referencia/.test(ub) && ub.includes(`${L.kmTxt(t)} ${L.kmUn(t)}`) && ub.includes(`${L.kmTxt(d[0])} ${L.kmUn(d[0])} tienen banqueta`) && /No es un filtro/.test(ub), ub.slice(0, 220)); }
+  // la ficha de un tramo dice la banqueta de los frentes que tiene al lado: se abre como en campo, desde «Mi ubicación» con Gobierno Central
+  { const { page: pg, ctx: cx } = await L.abrir(browser, base + `&r=gc&a=${CLAVE}#nomap`, { geolocation: { latitude: 19.3560, longitude: -99.0560, accuracy: 12 }, permissions: ['geolocation'] }, errores);
+    await pg.$eval('#zloc', x => x.click()); await pg.waitForFunction(() => document.querySelector('#card .loc-list button'), null, { timeout: 30000 });
+    await pg.$eval('#card .loc-list button', x => x.click()); await pg.waitForTimeout(600);
+    const card = await pg.$eval('#card', x => x.innerText.replace(/\s+/g, ' '));
+    const m = /Banqueta al lado (Sin manzanas al lado: sin dato|([\d,]+) m con banqueta · ([\d,]+) m sin · ([\d,]+) m por verificar)/.exec(card);
+    ok('v1.0 la ficha de un tramo de vialidad primaria da la banqueta de los frentes al lado', !!m && /Quién atiende Gobierno Central/.test(card), card.slice(0, 300));
+    await cx.close(); }
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));
   await ctx.close(); await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);
 })().catch(e => { console.error(e); process.exit(2); });

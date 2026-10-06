@@ -104,7 +104,7 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
 
   // ---------- 3) un proxy entrega los .bin ya descomprimidos ----------
   { const srv = await servidor('descomprime'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero'); await L.elegir(page, 'iztapalapa');
-    ok('H-061 si un proxy entrega los datos ya descomprimidos, la herramienta carga igual', (await page.$eval('#scope-title', e => e.innerText)) === 'Iztapalapa' && /3,389/.test(await page.$eval('#mapsum', e => e.innerText)));
+    ok('H-061 si un proxy entrega los datos ya descomprimidos, la herramienta carga igual', (await page.$eval('#scope-title', e => e.innerText)) === 'Iztapalapa' && (await page.$eval('#mapsum', e => e.innerText)).includes(L.kmTxt(L.resumenFrentes(L.decodificar(), { mun: L.decodificar().META.muns.indexOf('007') }).kmp)));
     await ctx.close(); srv.close(); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));

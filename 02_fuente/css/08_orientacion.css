@@ -55,7 +55,7 @@
 /* ----- explicación de «Atiende», en el panel de capas ----- */
 .legend .lg-note.prelim{margin-top:6px;padding:6px 8px;border-left:3px solid var(--dorado, #B28E5C);background:var(--panel-2);border-radius:0 4px 4px 0}
 
-@media print{ .leymini,.modal.entrada,#share,.ini-orden,.ini-mas{display:none!important} }
+@media print{ .leymini,.modal.entrada,.ini-orden,.ini-mas{display:none!important} }
 
 /* las cifras del ámbito viven en la pestaña Resumen */
 #tp-res .kpis{margin-top:10px}
@@ -93,3 +93,9 @@
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
 /* v1.0 · logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
 .panel-head .logo{max-width:100%}
+/* v1.0 · aire entre bloques del panel: un título de sección que sigue a otro bloque se separa; el primero de la pestaña, no */
+.tabpanel .section-title:not(:first-child),.tabpanel .bars2{margin-top:16px}
+.tabpanel .bars2 .section-title{margin-top:0}
+.univbox{margin-bottom:0}
+/* lo que se consulta (Colonias, Calles, Avenidas…) se destaca en el título de la lista */
+.section-title h2 b.unidad{color:var(--guinda);font-weight:700}

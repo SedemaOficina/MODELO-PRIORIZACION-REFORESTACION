@@ -33,7 +33,7 @@
   .attrib.sat{font-size:.75rem}
 }
 @media (min-width:861px), (min-width:601px) and (max-height:480px){ .legend .row{min-height:26px} }
-/* H-091 · la tabla y la lámina de la ayuda se desplazan dentro de su propio marco en lugar de encogerse */
+/* H-091 · en teléfono las tablas de la ayuda se apilan (cada celda con su etiqueta, si la tiene) y la lámina se ajusta al ancho */
 .tbl-wrap{overflow-x:auto}
 @media (max-width:600px){
   .tbl thead{position:absolute;left:-9999px}
@@ -41,11 +41,8 @@
   .tbl tr{border-bottom:2px solid var(--line-strong);padding:6px 0}
   .tbl td{border-bottom:0;padding:3px 0}
   .tbl td:first-child{font-weight:700}
-  .tbl td:nth-child(2)::before{content:"Fuente: ";color:var(--ink-2)}
-  .tbl td:nth-child(3)::before{content:"Clase 1 (menor necesidad): ";color:var(--ink-2)}
-  .tbl td:nth-child(4)::before{content:"Clase 5 (mayor necesidad): ";color:var(--ink-2)}
-  .modal-card figure.lamina{overflow-x:auto}
-  .modal-card figure.lamina img{width:auto;min-width:720px;max-width:none}
+  .tbl td[data-label]::before{content:attr(data-label) ": ";color:var(--ink-2)}
+  .modal-card figure.lamina img{width:100%;min-width:0;max-width:100%;height:auto}
 }
 /* H-092 · sin movimiento cuando el sistema lo pide */
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important} .loader .bar.indet i{width:12%} }

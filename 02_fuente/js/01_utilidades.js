@@ -10,11 +10,10 @@ const kmUn = v => (v>0 && v<1)? 'm' : 'km';
 const kmFull = v => kmTxt(v)+' '+kmUn(v);
 const sum = a => a.reduce((x,y)=>x+y,0);
 // Reglas de negocio en un solo lugar (auditoría H-038). Clases de prioridad: 0 Muy Baja … 4 Muy Alta.
-//  · «prioritario» = Alta y Muy Alta (clase ≥ PRIO_MIN) · «universo de intervención» = Media, Alta y Muy Alta (clase ≥ UNIV_MIN)
-const PRIO_MIN = 3, UNIV_MIN = 2;
+//  · «prioritario» = Muy Alta, Alta y Media (clase ≥ PRIO_MIN). Desde la v1.0 incluye Media; el antiguo «universo de intervención» quedó igual y se retiró.
+const PRIO_MIN = 2;
 const esPrio = p => p >= PRIO_MIN;
 const sumPrio = a => { let t = 0; for (let k = PRIO_MIN; k < a.length; k++) t += a[k]; return t; };   // suma de un arreglo por clase sobre las clases prioritarias
-const sumUniv = a => { let t = 0; for (let k = UNIV_MIN; k < a.length; k++) t += a[k]; return t; };
 // Versión de la herramienta y corte de los datos: los fija construir.py (VERSION y CORTE_DATOS) y se muestran en el panel, las fichas y los Excel.
 const VERSION = Object.assign({v:'', fecha:'', corte:''}, window.SIA_VERSION || {});
 const VERSION_TXT = `Versión ${VERSION.v}${VERSION.fecha? ' · Última actualización: '+VERSION.fecha : ''} · Datos: ${VERSION.corte}`;

@@ -15,7 +15,7 @@ function featHtml(i, compact){
     <span class="pill"><i data-st="background:${rgb}"></i>Prioridad ${META.prio[F.prio[i]]}</span>
     <h3>${pre}${nm}</h3>
     <div class="sub">${colTxt} · ${META.munNames[F.mun[i]]}</div>
-    <dl><dt>Responsable</dt><dd>${respTxt}</dd>
+    <dl><dt>Quién atiende</dt><dd>${respTxt}</dd>
     <dt>Tipo de vialidad</dt><dd>${tp}</dd>
     <dt>Longitud del frente</dt><dd>${fmt.format(F.len[i])} m</dd>
     <dt>Banqueta (INEGI 2020)</dt><dd>${ban} <small>(por verificar en campo)</small></dd>
@@ -26,6 +26,12 @@ function featHtml(i, compact){
     ${dupCol? '<div class="cardnote">Los datos de la colonia se muestran arriba, en Resultados.</div>' : ''}
     ${fieldActs(midLat(i), midLon(i))}`;
 }
+// v1.0 · banqueta de los frentes de manzana que dan a cada tramo de vialidad primaria (m: con, sin, por verificar), solo informativa
+let VPB = null;
+function vpBanq(i){ if (!VPB){ VPB = new Float32Array(3*NV); for(let f=0;f<N;f++){ if (!F.gc[f] || F.vp[f]<0) continue; const b=(F.flags[f]>>3)&7; VPB[3*F.vp[f]+(b===0? 0 : b===1? 1 : 2)] += F.len[f]; } }
+  return [VPB[3*i], VPB[3*i+1], VPB[3*i+2]]; }
+function vpBanqTxt(i){ const d = vpBanq(i); if (d[0]+d[1]+d[2] < 1) return 'Sin manzanas al lado: sin dato';
+  return `${fmt.format(Math.round(d[0]))} m con banqueta · ${fmt.format(Math.round(d[1]))} m sin · ${fmt.format(Math.round(d[2]))} m por verificar (INEGI 2020)`; }
 function vpHtml(i, compact){
   const c = T.prio[VP.prio[i]]; const rgb=`rgb(${c[0]},${c[1]},${c[2]})`;
   const nom = VPC.nomenclat[VP.nom[i]], nombre = VPC.nombres[VP.nombre[i]];
@@ -38,10 +44,11 @@ function vpHtml(i, compact){
     <span class="pill"><i data-st="background:${rgb}"></i>Prioridad ${META.prio[VP.prio[i]]}</span>
     <h3>${nom}</h3>
     <div class="sub">${nombre} · ${META.munNames[VP.mun[i]]}</div>
-    <dl><dt>Responsable</dt><dd>Gobierno Central</dd>
+    <dl><dt>Quién atiende</dt><dd>Gobierno Central</dd>
     <dt>Tipo</dt><dd>${VPC.tipos[VP.tipo[i]]}</dd>
     <dt>Carriles</dt><dd>${VP.car[i]} · ${VPC.circula[VP.circ[i]].toLowerCase()}</dd>
     <dt>Longitud del tramo</dt><dd>${fmt.format(VP.len[i])} m</dd>
+    <dt>Banqueta al lado</dt><dd>${vpBanqTxt(i)}</dd>
     <dt>Toda la avenida</dt><dd>${fmt1.format(s.km)} km · ${fmt1.format(s.kmp)} km prioritarios</dd>
     <dt>Alcaldías</dt><dd>${[...s.muns].map(m=>META.munNames[m]).join(', ')}</dd></dl>
     ${fieldActs(...vpMid(i))}

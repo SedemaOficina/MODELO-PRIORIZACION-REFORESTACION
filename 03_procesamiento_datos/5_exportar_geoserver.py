@@ -28,6 +28,8 @@ import shapefile
 import shapely
 from pyproj import CRS, Transformer
 
+PRIO_MIN = 2   # «prioritario» = Muy Alta, Alta y Media (clase ≥ 2), igual que PRIO_MIN en 02_fuente/js/01_utilidades.js
+
 SC = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(SC)
 DATOS = os.path.join(RAIZ, '02_fuente', 'datos')
@@ -113,7 +115,7 @@ paso('los %d frentes empatan y tienen la misma prioridad' % N)
 
 GRUPO_B = {0: 'con banqueta', 1: 'sin banqueta'}
 fr = {k: [] for k in ['clave_frente', 'cveft', 'cvegeo', 'cve_mun', 'alcaldia', 'colonia_id', 'colonia', 'cp', 'calle', 'tipo_vial', 'prioridad', 'clase_prioridad',
-                      'prioritario', 'universo_intervencion', 'banqueta_inegi', 'grupo_banqueta', 'arbolado_inegi', 'sin_arbolado', 'responsable',
+                      'prioritario', 'banqueta_inegi', 'grupo_banqueta', 'arbolado_inegi', 'sin_arbolado', 'quien_atiende',
                       'vp_clave', 'longitud_m', 'id_herramienta']}
 geo_fr = []
 for i in range(N):
@@ -124,10 +126,10 @@ for i in range(N):
     fr['colonia_id'].append(int(a[4]) if a[4] else None); fr['colonia'].append(col['n'] if col else None)
     fr['cp'].append(col['cp'].zfill(5) if col and col.get('cp') else None)
     fr['calle'].append(META['names'][int(a[2])] or None); fr['tipo_vial'].append(META['tipos'][int(a[3])] or None)
-    fr['prioridad'].append(PRIO[int(a[1])]); fr['clase_prioridad'].append(int(a[1])); fr['prioritario'].append(int(a[1] >= 3)); fr['universo_intervencion'].append(int(a[1] >= 2))
+    fr['prioridad'].append(PRIO[int(a[1])]); fr['clase_prioridad'].append(int(a[1])); fr['prioritario'].append(int(a[1] >= PRIO_MIN))
     fr['banqueta_inegi'].append(META['disp'][b]); fr['grupo_banqueta'].append(GRUPO_B.get(b, 'por verificar'))
     fr['arbolado_inegi'].append(META['disp'][arb]); fr['sin_arbolado'].append(int(arb == 1))
-    fr['responsable'].append('Gobierno Central' if gc else 'Alcaldía')
+    fr['quien_atiende'].append('Gobierno Central' if gc else 'Alcaldía')
     fr['vp_clave'].append(VPC['claves'][int(VPA[int(a[7]) - 1, 9])] if a[7] else None)
     fr['longitud_m'].append(int(a[5])); fr['id_herramienta'].append(i)
     geo_fr.append(geoms[k])
@@ -169,7 +171,7 @@ for s, r_ in zip(rv.iterShapes(), rv.iterRecords()):
     c = PRIO.index(r_['ref_sedema'])
     vp['clave'].append(r_['CLAVE']); vp['nomenclat'].append(r_['NOMENCLAT']); vp['red_vial'].append(r_['NOMBRE']); vp['tipo_via'].append(r_['TIPO_VIA'])
     vp['carriles'].append(int(r_['CARRILES'])); vp['circulacion'].append(r_['CIRCULA']); vp['alcaldia_capa'].append(r_['ALCALDIA'])
-    vp['prioridad'].append(r_['ref_sedema']); vp['clase_prioridad'].append(c); vp['prioritario'].append(int(c >= 3))
+    vp['prioridad'].append(r_['ref_sedema']); vp['clase_prioridad'].append(c); vp['prioritario'].append(int(c >= PRIO_MIN))
     vp['longitud_m'].append(int(round(sum(shapely.length(shapely.linestrings(p)) for p in utm)))); vp['long_vp'].append(float(r_['long_vp']))
 escribe('vialidades_primarias_reforestacion', geo_vp, vp, 'MultiLineString')
 
@@ -178,7 +180,7 @@ paso('colonias')
 km = {}
 for i in range(N):
     a = FR[i]
-    if not a[4] or (int(a[6]) >> 6) & 1 or a[1] < 3: continue
+    if not a[4] or (int(a[6]) >> 6) & 1 or a[1] < PRIO_MIN: continue
     b = (int(a[6]) >> 3) & 7; s = km.setdefault(int(a[4]), [0.0, 0.0, 0.0]); s[0 if b == 0 else 1 if b == 1 else 2] += a[5] / 1000
 co = {k: [] for k in ['colonia_id', 'colonia', 'cp', 'cve_mun', 'alcaldia', 'prioridad', 'clase_prioridad', 'poblacion', 'desarrollo_social_ids',
                       'unidad_territorial', 'poblacion_pobreza_ut', 'km_prioritarios', 'km_prio_con_banqueta', 'km_prio_sin_banqueta', 'km_prio_por_verificar']}
@@ -236,7 +238,7 @@ def incrusta(nombre, tipo, ancho):
     ruta_sld = os.path.join(SAL, nombre + '.sld')
     sld = open(ruta_sld, encoding='utf-8').read() if os.path.exists(ruta_sld) else ''
     con.execute("INSERT INTO layer_styles (f_table_catalog, f_table_schema, f_table_name, f_geometry_column, styleName, styleQML, styleSLD, useAsDefault, description, owner) "
-                "VALUES ('', '', ?, 'geom', ?, ?, ?, 1, 'Prioridad de reforestación con los colores de la herramienta Calles prioritarias para reforestar', 'SIA')",
+                "VALUES ('', '', ?, 'geom', ?, ?, ?, 1, 'Prioridad de reforestación con los colores de la herramienta Modelo de priorización de reforestación urbana', 'SIA')",
                 (nombre, nombre, qml(tipo, ancho), sld))
     con.commit(); con.close()
 
@@ -247,9 +249,9 @@ incrusta('colonias_reforestacion', 'fill', None)
 paso('estilo de QGIS incrustado en los tres GeoPackage')
 
 # ---------- comprobaciones y manifiesto ----------
-kmp = sum(l for l, p_, r_ in zip(fr['longitud_m'], fr['clase_prioridad'], fr['responsable']) if p_ >= 3 and r_ == 'Alcaldía') / 1000
+kmp = sum(l for l, p_, r_ in zip(fr['longitud_m'], fr['clase_prioridad'], fr['quien_atiende']) if p_ >= PRIO_MIN and r_ == 'Alcaldía') / 1000
 print('km prioritarios a cargo de las alcaldías: %.1f · frentes de Gobierno Central: %d · vialidades: %d · colonias: %d'
-      % (kmp, fr['responsable'].count('Gobierno Central'), len(geo_vp), len(geo_co)))
+      % (kmp, fr['quien_atiende'].count('Gobierno Central'), len(geo_vp), len(geo_co)))
 lineas = []
 for f in sorted(os.listdir(SAL)):
     if f.endswith(('.gpkg', '.sld')):

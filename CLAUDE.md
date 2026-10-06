@@ -11,7 +11,7 @@ Antes de cambiar algo, leer `ARQUITECTURA.md` (dónde está cada cosa, reglas de
 - **Un commit por versión**, con resumen `vX.YY: …` y descripción en español (ver `git log`). Antes de commitear: subir `VERSION` y poner la fecha en `ACTUALIZACION` en `construir.py`, poner la versión vigente en `README.md` (estado y fila de la tabla) y en el encabezado de `ARQUITECTURA.md`, y escribir la nota en `05_documentacion/bitacora/` (siguiente número y renglón en `00_indice.md`; la bitácora no se publica).
 - **Push solo cuando Liber lo pida**; normalmente Liber revisa en GitHub Desktop y da Push origin.
 - **Textos de la herramienta** en español de México, claros para personal de alcaldías, sin tecnicismos.
-- **Reglas de negocio en un solo lugar:** `esPrio`, `sumPrio`, `sumUniv` y `enAmbito(i)`. No escribir `>=3`, `[3]+[4]` ni repetir la condición del ámbito.
+- **Reglas de negocio en un solo lugar:** `esPrio`, `sumPrio` y `enAmbito(i)`. «Prioritario» = Muy Alta, Alta y Media (`PRIO_MIN = 2`). No escribir `>=2`, `[2]+[3]+[4]` ni repetir la condición del ámbito.
 - **Sin `style="`** en plantillas ni HTML generado (política de seguridad de contenido): usar `data-st`.
 - **Claves de mapas de fondo:** nunca en `construir.py` ni en archivos versionados; van en variables de entorno o en `02_fuente/claves.local.json` (no se publica).
 

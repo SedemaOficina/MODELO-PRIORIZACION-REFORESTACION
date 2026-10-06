@@ -19,7 +19,7 @@ function renderAvInfo(){
   const box=$('avinfo'); if (selAv===null){ box.hidden=true; return; }
   const s=avStat(selAv); const d=dom({km:s.kmByP}); const pc=T.prio[d];
   const vsA = vpSumm(); const kmA = sum(vsA.km), kmpA = kmPrio(vsA);
-  box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b> (${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad)<br>Red vial: ${[...s.nombres].join(', ')} · ${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta o Alta)':''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
+  box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b> (${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad)<br>Red vial: ${[...s.nombres].join(', ')} · ${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta, Alta o Media)':''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
 }
 let keepView = false;
 // Anuncio para lectores de pantalla (auditoría H-047): al cambiar la consulta se dice el ámbito y su cifra principal.
@@ -39,8 +39,8 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && selCol===null && nTrD>0));
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.'
     : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha que descargar.'
-    : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta o Alta: el listado de frentes prioritarios estaría vacío.'
-    : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta o Alta: el listado de tramos prioritarios estaría vacío.' : '';
+    : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta, Alta o Media: el listado de frentes prioritarios estaría vacío.'
+    : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta, Alta o Media: el listado de tramos prioritarios estaría vacío.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
   $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); usoConsulta(); }
 // Registro de usos (v17.37, solo con sesión): una consulta es el ámbito en que la persona se detiene (1.5 s), no cada clic intermedio.

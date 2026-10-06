@@ -52,7 +52,7 @@ from collections import Counter
 print(Counter(c.get('ids') for c in M['colonias'][1:] if c.get('n')).most_common())
 # población en colonias prioritarias
 pob=sum(c.get('pob',0) for c in M['colonias'][1:] if c.get('n'))
-pobp=sum(c.get('pob',0) for c in M['colonias'][1:] if c.get('n') and c.get('p',-1)>=3)
+pobp=sum(c.get('pob',0) for c in M['colonias'][1:] if c.get('n') and c.get('p',-1)>=2)
 print(f'población total en colonias {pob:,} · en colonias prioritarias {pobp:,} ({100*pobp/pob:.1f} %)')
 json.dump(M, open(SC+'intermedios/meta.json', 'w', encoding='utf-8'), ensure_ascii=False)
 print('meta.json actualizado')

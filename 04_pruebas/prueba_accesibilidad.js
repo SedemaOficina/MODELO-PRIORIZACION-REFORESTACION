@@ -71,7 +71,7 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     let fuera = 0; for (let i = 0; i < 45; i++) { await page.keyboard.press('Tab'); if (await page.evaluate(() => !!document.activeElement.closest('.app'))) fuera++; }
     const inerte = await page.evaluate(() => document.querySelector('.app').inert === true);
     ok('H-048 con la ayuda abierta el fondo queda inerte y 45 tabulaciones no salen de la ventana', inerte && fuera === 0, `inerte ${inerte} · fuera ${fuera}`);
-    ok('H-049 la ayuda documenta el uso con teclado', /Uso con teclado/.test(await page.$eval('#info-modal', e => e.innerText)));
+    ok('v1.0 la ayuda ya no trae la sección de uso con teclado (decisión de la Secretaría)', !/Uso con teclado/.test(await page.$eval('#info-modal', e => e.innerText)));
     await page.keyboard.press('Escape'); await page.waitForTimeout(700);
     ok('H-048 al cerrar la ayuda el foco vuelve al botón que la abrió y el fondo deja de ser inerte', await page.evaluate(() => document.activeElement.id === 'open-info' && !document.querySelector('.app').inert));
     // contraste de componentes
@@ -118,8 +118,9 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     ok('H-091 en teléfono las pestañas y el selector de alcaldía miden 44 px o más, sin desborde horizontal', t2.tabs >= 44 && t2.sel >= 44 && t2.desborde <= 0, JSON.stringify(t2));
     // ayuda en teléfono: la tabla se apila y la lámina se desplaza dentro de su marco
     await L.clic(page, '#open-info'); await page.waitForTimeout(400);
-    const ay = await page.evaluate(() => { const m = document.querySelector('.modal-card'); const td = document.querySelector('.tbl td'); const f = document.querySelector('figure.lamina'); return { desborde: m.scrollWidth - m.clientWidth, celda: getComputedStyle(td).display, lamina: f.scrollWidth > f.clientWidth, laminaAncho: Math.round(f.querySelector('img').getBoundingClientRect().width) }; });
-    ok('H-091 en teléfono la tabla de la ayuda se apila y la lámina tiene desplazamiento propio', ay.desborde <= 0 && ay.celda === 'block' && ay.lamina && ay.laminaAncho >= 700, JSON.stringify(ay));
+    const ay = await page.evaluate(() => { const m = document.querySelector('.modal-card'); const td = document.querySelector('.tbl td'); const f = document.querySelector('figure.lamina'); const tablas = document.querySelectorAll('.modal-card .tbl'); return { desborde: m.scrollWidth - m.clientWidth, celda: getComputedStyle(td).display, lamina: f.scrollWidth <= f.clientWidth + 1, laminaAncho: Math.round(f.querySelector('img').getBoundingClientRect().width), ancho: Math.round(f.clientWidth), etiquetasCriterios: [...tablas[0].querySelectorAll('td')].filter(c => getComputedStyle(c, '::before').content.includes('Fuente') || getComputedStyle(c, '::before').content.includes('Clase')).length, etiquetasFundamento: tablas[1] ? [...tablas[1].querySelectorAll('td')].filter(c => /Fuente|Clase/.test(getComputedStyle(c, '::before').content)).length : -1 }; });
+    ok('H-091 en teléfono las tablas de la ayuda se apilan y la lámina cabe completa a lo ancho', ay.desborde <= 0 && ay.celda === 'block' && ay.lamina && ay.laminaAncho <= ay.ancho + 1, JSON.stringify(ay));
+    ok('v1.0 en teléfono solo la tabla de criterios lleva las etiquetas «Fuente» y «Clase»; la del fundamento no', ay.etiquetasCriterios === 9 && ay.etiquetasFundamento === 0, JSON.stringify(ay));
     await page.keyboard.press('Escape'); await page.waitForTimeout(700);
     // foco no tapado: con una ficha abierta, enfocar un control tapado la cierra
     await page.evaluate(() => { if (document.body.classList.contains('sheet-open')) document.getElementById('sheet').click(); }); await page.waitForTimeout(300);

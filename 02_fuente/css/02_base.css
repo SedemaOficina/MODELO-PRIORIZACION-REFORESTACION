@@ -92,7 +92,7 @@ button,input,select{font:inherit;color:inherit}
 .kpis.dual .cap:first-child{border-top:0}
 .kpis.dual .kpi{border-top:1px solid var(--line)}
 .gcline{display:block;margin-top:4px;color:var(--guinda);font-weight:500}
-.pobbox{margin-top:-12px}
+.pobbox{margin-top:10px}
 .utline{display:block;margin-top:3px;color:var(--ink-3);font-size:.75rem}
 .pobline{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid var(--dorado-soft);border-left:3px solid var(--dorado);border-radius:7px;background:#FBF6EE;font-size:.75rem;line-height:1.45;color:var(--ink-2)}
 .pobline::before{content:"";width:16px;height:16px;flex:none;margin-top:1px;background:var(--guinda);-webkit-mask:var(--people) center/100% no-repeat;mask:var(--people) center/100% no-repeat}

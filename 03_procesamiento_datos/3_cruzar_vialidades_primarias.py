@@ -111,7 +111,7 @@ for f, s, d, ok in zip(fi, si, dist, rule):
 gc = np.zeros(N, np.int32); gcvp = np.full(N, -1, np.int32)
 for f, (k, d) in best.items(): gc[f] = 1; gcvp[f] = k
 km = fr['ln'] / 1000
-print('frentes GC', gc.sum(), 'km', round(km[gc == 1].sum(), 1), 'km prioritarios GC', round(km[(gc == 1) & (fr['prio'] >= 3)].sum(), 1))
+print('frentes GC', gc.sum(), 'km', round(km[gc == 1].sum(), 1), 'km prioritarios GC', round(km[(gc == 1) & (fr['prio'] >= 2)].sum(), 1))
 # diagnóstico por regla
 only_dist = (dist <= 18) & ~nm
 print('  por distancia sin nombre:', len(set(fi[only_dist])), ' por nombre 30-60m:', len(set(fi[parallel & nm & (dist > 30) & (dist <= 60)])))

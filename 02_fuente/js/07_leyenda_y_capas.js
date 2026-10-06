@@ -39,7 +39,7 @@ function setResp(v, sinRefresh){
   else $('lvl-note').textContent = isGC()? 'Alcaldías va sola, con la prioridad de sus vialidades primarias.' : 'Colonias y Calles se combinan; Alcaldías va sola.';
   $('resp-note').textContent = v==='alc' ? 'Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.'
     : v==='gc' ? 'Vialidades primarias y de acceso controlado que atiende el Gobierno de la Ciudad, con su propia prioridad.'
-    : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para cada responsable.';
+    : 'Las dos redes juntas: cifras, barras y descargas se muestran por separado para las alcaldías y para el Gobierno Central.';
   buildVP(); if (!sinRefresh) refresh();
 }
 

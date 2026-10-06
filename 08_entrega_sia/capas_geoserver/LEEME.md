@@ -4,7 +4,7 @@ Tres capas y sus estilos, para publicarlas en `https://sedema.sia.cdmx.gob.mx/ge
 
 **Se publican como capas NUEVAS.** No sustituyen a `sia:frentes_manzanas` ni a `sia:vial_primarias`:
 - `sia:vial_primarias` es la red completa de INEGI (33,612 segmentos), sin prioridad, y la usan otros visores.
-- Estas capas traen lo que calcula la herramienta (prioridad, banqueta, responsable) y se actualizan con ella.
+- Estas capas traen lo que calcula la herramienta (prioridad, banqueta, quién atiende) y se actualizan con ella.
 
 ## Archivos
 
@@ -52,13 +52,12 @@ Los nombres de las capas y de los campos no cambian.
 | `alcaldia`, `colonia_id`, `colonia`, `cp` | Ubicación. `colonia_id` es el número de la colonia en `colonias_reforestacion`; vacío si el frente no tiene colonia |
 | `calle`, `tipo_vial` | Nombre y tipo de la vialidad (INEGI) |
 | `prioridad`, `clase_prioridad` | Muy Baja a Muy Alta; clase 0 a 4. El estilo usa `clase_prioridad` |
-| `prioritario` | 1 si es Alta o Muy Alta |
-| `universo_intervencion` | 1 si es Media, Alta o Muy Alta |
+| `prioritario` | 1 si es Muy Alta, Alta o Media |
 | `banqueta_inegi` | Valor de INEGI 2020 |
 | `grupo_banqueta` | `con banqueta`, `sin banqueta` o `por verificar` (conjunto habitacional, no aplica o sin dato): el filtro de la herramienta |
 | `arbolado_inegi`, `sin_arbolado` | Arbolado según INEGI; `sin_arbolado` = 1 si no dispone |
-| `responsable` | `Alcaldía` o `Gobierno Central` (frente sobre una vialidad primaria: paralelo a ella y a 18 m o menos de su eje, o hasta 60 m si coincide el nombre) |
-| `vp_clave` | Si el responsable es el Gobierno Central, la `clave` del tramo de vialidad primaria |
+| `quien_atiende` | `Alcaldía` o `Gobierno Central` (frente sobre una vialidad primaria: paralelo a ella y a 18 m o menos de su eje, o hasta 60 m si coincide el nombre) |
+| `vp_clave` | Si atiende el Gobierno Central, la `clave` del tramo de vialidad primaria |
 | `longitud_m` | Metros |
 | `id_herramienta` | Número del frente en la herramienta (cambia si se regeneran sus datos; no usarlo para enlazar) |
 
@@ -86,13 +85,13 @@ La geometría es la **original** del modelo de priorización (nov. 2025), no la 
 | `prioridad`, `clase_prioridad` | Prioridad de la colonia; vacía si no tiene |
 | `poblacion` | Censo 2020 |
 | `desarrollo_social_ids`, `unidad_territorial`, `poblacion_pobreza_ut` | Índice de Desarrollo Social de su unidad territorial (EVALÚA CDMX) |
-| `km_prioritarios` | Km de frente Alta y Muy Alta a cargo de la alcaldía |
+| `km_prioritarios` | Km de frente Muy Alta, Alta y Media a cargo de la alcaldía |
 | `km_prio_con_banqueta`, `km_prio_sin_banqueta`, `km_prio_por_verificar` | Esos km, separados por banqueta |
 
 **Atención:**
 - Los polígonos de colonias están **simplificados**: sirven para ver y ubicar, no para medir superficies.
 - Su origen primario no está identificado. Si el SIA tiene una capa oficial de colonias, conviene usarla y unirle estos campos.
-- La suma de `km_prioritarios` (9,212.9 km) es menor que el total de las alcaldías (9,226.9 km), porque algunos frentes no tienen colonia asignada.
+- La suma de `km_prioritarios` (16,368.2 km) es menor que el total de las alcaldías (16,409.3 km), porque algunos frentes no tienen colonia asignada.
 
 ## Cifras de control
 
@@ -102,10 +101,10 @@ Para comprobar que la capa publicada es la correcta:
 |---|---|
 | Frentes | 372,534 |
 | Frentes a cargo del Gobierno Central | 19,411 |
-| Km Alta + Muy Alta a cargo de las alcaldías | 9,226.9 |
-| — con banqueta | 6,285 km |
-| — sin banqueta | 1,939 km |
-| — por verificar | 1,003 km |
+| Km prioritarios (Muy Alta, Alta y Media) a cargo de las alcaldías | 16,409.3 |
+| — con banqueta | 10,426 km |
+| — sin banqueta | 4,028 km |
+| — por verificar | 1,955 km |
 | Tramos de vialidad primaria | 13,335 |
 | Colonias | 2,243 |
 

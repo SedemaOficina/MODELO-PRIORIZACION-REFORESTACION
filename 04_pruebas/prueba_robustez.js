@@ -32,7 +32,7 @@ const bin = n => fs.readFileSync(path.join(L.DOCS, 'datos', n));
   { const ctx = await browser.newContext({ serviceWorkers: 'block', locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await L.sinEntrada(ctx); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); const page = await ctx.newPage();
     const meta = JSON.parse(zlib.gunzipSync(bin('meta.bin')).toString('utf8')); const tec = meta.colonias.findIndex(c => c && c.n === 'Tecpinco');
     const malo = '<img src=x onerror="window.__inyectado=1">'; meta.colonias[tec].n = 'Tecpinco ' + malo; meta.colonias[tec].ut = 'UT ' + malo;
-    const fr = D.F.find(f => !f.gc && f.col === tec && f.prio >= 3); meta.names[fr.name] = meta.names[fr.name] + ' ' + malo;
+    const fr = D.F.find(f => !f.gc && f.col === tec && f.prio >= L.PRIO_MIN); meta.names[fr.name] = meta.names[fr.name] + ' ' + malo;
     await page.route(/datos\/meta\.bin/, r => r.fulfill({ status: 200, contentType: 'application/octet-stream', body: zlib.gzipSync(Buffer.from(JSON.stringify(meta))) }));
     await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 }); await page.waitForTimeout(500);
     await L.elegirTipo(page, 'Tecpinco', 'Col'); await page.waitForTimeout(600); await page.click('#tab-list'); await page.waitForTimeout(400);

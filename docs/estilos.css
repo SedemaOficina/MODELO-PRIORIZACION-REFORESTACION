@@ -113,7 +113,7 @@ button,input,select{font:inherit;color:inherit}
 .kpis.dual .cap:first-child{border-top:0}
 .kpis.dual .kpi{border-top:1px solid var(--line)}
 .gcline{display:block;margin-top:4px;color:var(--guinda);font-weight:500}
-.pobbox{margin-top:-12px}
+.pobbox{margin-top:10px}
 .utline{display:block;margin-top:3px;color:var(--ink-3);font-size:.75rem}
 .pobline{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;border:1px solid var(--dorado-soft);border-left:3px solid var(--dorado);border-radius:7px;background:#FBF6EE;font-size:.75rem;line-height:1.45;color:var(--ink-2)}
 .pobline::before{content:"";width:16px;height:16px;flex:none;margin-top:1px;background:var(--guinda);-webkit-mask:var(--people) center/100% no-repeat;mask:var(--people) center/100% no-repeat}
@@ -699,7 +699,7 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
   .attrib.sat{font-size:.75rem}
 }
 @media (min-width:861px), (min-width:601px) and (max-height:480px){ .legend .row{min-height:26px} }
-/* H-091 · la tabla y la lámina de la ayuda se desplazan dentro de su propio marco en lugar de encogerse */
+/* H-091 · en teléfono las tablas de la ayuda se apilan (cada celda con su etiqueta, si la tiene) y la lámina se ajusta al ancho */
 .tbl-wrap{overflow-x:auto}
 @media (max-width:600px){
   .tbl thead{position:absolute;left:-9999px}
@@ -707,11 +707,8 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
   .tbl tr{border-bottom:2px solid var(--line-strong);padding:6px 0}
   .tbl td{border-bottom:0;padding:3px 0}
   .tbl td:first-child{font-weight:700}
-  .tbl td:nth-child(2)::before{content:"Fuente: ";color:var(--ink-2)}
-  .tbl td:nth-child(3)::before{content:"Clase 1 (menor necesidad): ";color:var(--ink-2)}
-  .tbl td:nth-child(4)::before{content:"Clase 5 (mayor necesidad): ";color:var(--ink-2)}
-  .modal-card figure.lamina{overflow-x:auto}
-  .modal-card figure.lamina img{width:auto;min-width:720px;max-width:none}
+  .tbl td[data-label]::before{content:attr(data-label) ": ";color:var(--ink-2)}
+  .modal-card figure.lamina img{width:100%;min-width:0;max-width:100%;height:auto}
 }
 /* H-092 · sin movimiento cuando el sistema lo pide */
 @media (prefers-reduced-motion:reduce){ *,*::before,*::after{transition:none!important;animation:none!important;scroll-behavior:auto!important} .loader .bar.indet i{width:12%} }
@@ -835,7 +832,7 @@ body.con-sesion .panel-head .logo{grid-column:1}
 /* ----- explicación de «Atiende», en el panel de capas ----- */
 .legend .lg-note.prelim{margin-top:6px;padding:6px 8px;border-left:3px solid var(--dorado, #B28E5C);background:var(--panel-2);border-radius:0 4px 4px 0}
 
-@media print{ .leymini,.modal.entrada,#share,.ini-orden,.ini-mas{display:none!important} }
+@media print{ .leymini,.modal.entrada,.ini-orden,.ini-mas{display:none!important} }
 
 /* las cifras del ámbito viven en la pestaña Resumen */
 #tp-res .kpis{margin-top:10px}
@@ -873,6 +870,12 @@ body.con-sesion .panel-head .logo{grid-column:1}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
 /* v1.0 · logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
 .panel-head .logo{max-width:100%}
+/* v1.0 · aire entre bloques del panel: un título de sección que sigue a otro bloque se separa; el primero de la pestaña, no */
+.tabpanel .section-title:not(:first-child),.tabpanel .bars2{margin-top:16px}
+.tabpanel .bars2 .section-title{margin-top:0}
+.univbox{margin-bottom:0}
+/* lo que se consulta (Colonias, Calles, Avenidas…) se destaca en el título de la lista */
+.section-title h2 b.unidad{color:var(--guinda);font-weight:700}
 
 /* Recorrido guiado (v17.36, js/17_recorrido.js): un velo que oscurece la página, un foco que deja ver el control y un globo que lo explica */
 .rec-velo{position:fixed;inset:0;z-index:2000;background:transparent}

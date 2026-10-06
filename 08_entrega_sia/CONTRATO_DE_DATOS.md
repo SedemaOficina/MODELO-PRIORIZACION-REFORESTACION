@@ -89,7 +89,7 @@ Grados decimales (longitud, latitud, WGS 84) multiplicados por `Q = 100000` y re
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.
 2. Después de generar: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`, `python3 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js`. `construir.py` se niega a construir con datos distintos de los registrados.
 3. Los catálogos se referencian **por posición**: insertar un elemento en medio de `names`, `colonias` o `vp.nomenclat` cambia el significado de todos los registros.
-4. El número de clases de prioridad (5) y los umbrales «prioritario» (≥ 3) y «universo de intervención» (≥ 2) están en `02_fuente/js/01_utilidades.js` (`PRIO_MIN`, `UNIV_MIN`). Cambiar el número de clases exige revisar la leyenda, las fichas y los Excel.
+4. El número de clases de prioridad (5) y el umbral «prioritario» (≥ 2: Muy Alta, Alta y Media) están en `02_fuente/js/01_utilidades.js` (`PRIO_MIN`). `meta.bin` trae `cruce.km_gc_prio` calculado con el umbral anterior (≥ 3); la herramienta no lo usa y se corrige al regenerar los datos. Cambiar el número de clases exige revisar la leyenda, las fichas y los Excel.
 
 ## 8. Si el SIA quiere servir estos datos desde su base
 
