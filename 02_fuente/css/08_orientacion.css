@@ -52,7 +52,7 @@
   .leymini i{width:14px}
 }
 
-/* ----- explicación de «Atiende» y aviso de asignación preliminar, en el panel de capas ----- */
+/* ----- explicación de «Atiende», en el panel de capas ----- */
 .legend .lg-note.prelim{margin-top:6px;padding:6px 8px;border-left:3px solid var(--dorado, #B28E5C);background:var(--panel-2);border-radius:0 4px 4px 0}
 
 @media print{ .leymini,.modal.entrada,#share,.ini-orden,.ini-mas{display:none!important} }

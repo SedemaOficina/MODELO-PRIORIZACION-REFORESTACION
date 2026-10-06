@@ -7,7 +7,7 @@
 #   FRAGMENTO B  → dentro del server { }   del dominio
 # Sustituir /RUTA/DEL/VOLUMEN por la carpeta del volumen de datos donde viven los sitios estáticos.
 # Esta configuración NO se validó con `nginx -t` en el equipo donde se escribió (no tenía nginx): validarla al integrarla.
-# Lo que sí se probó, con un servidor de ensayo que envía estas mismas cabeceras: 04_pruebas/prueba_servidor_sia.js.
+# Lo que sí se probó, con un servidor de ensayo que envía estas mismas cabeceras (pruebas automáticas de la Oficina de la Secretaría).
 # =====================================================================================================================
 
 # ---------------------------------------------------------------------------------------------------------------------

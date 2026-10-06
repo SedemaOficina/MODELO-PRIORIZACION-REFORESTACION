@@ -1,0 +1,33 @@
+# Modelo de priorización de reforestación urbana · Paquete de instalación para el SIA
+
+Secretaría del Medio Ambiente de la Ciudad de México · Oficina de la Secretaría · Sistema de Información Ambiental.
+
+Este paquete trae todo lo necesario para instalar la herramienta en `sedema.sia.cdmx.gob.mx`, con acceso restringido a cuentas autorizadas y registro de usos, y para publicar sus capas en el GeoServer. Versión, fecha y parámetros: `VERSION.txt`.
+
+## Contenido
+
+| Carpeta o archivo | Qué es | Dónde va |
+|---|---|---|
+| `sitio/` | La herramienta: sitio estático (HTML, CSS, JavaScript y tres archivos de datos, 8 MB). Ya trae la clave del mapa de fondo y la sesión configurada | Servidor web, en la subruta `/calles-prioritarias/` |
+| `MANIFIESTO.sha256` | Suma SHA-256 de cada archivo de `sitio/`, para comprobar que se copió completo | — |
+| `login/acceso/` | Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad (estáticos) | Servidor web, en `/acceso/calles/` |
+| `login/backend/` | Módulo `calles` para `sia-backend` (Node.js + Express), esquema de PostgreSQL y scripts de administración | Servidor de aplicaciones y base de datos |
+| `capas_geoserver/` | Tres capas en GeoPackage (frentes de manzana, vialidades primarias y colonias) con sus estilos | GeoServer (o PostGIS) |
+| `documentos/` | Guía de instalación, ejemplo de nginx, lista de verificación y descripción del inicio de sesión | — |
+
+## Orden de instalación
+
+1. **Base de datos y backend:** `login/LEEME.md`, pasos 1 a 3 (esquema `calles`, módulo en `sia-backend`, primera cuenta de administración).
+2. **Archivos estáticos:** `sitio/` y `login/acceso/`, según `documentos/INSTALACION.md` y `login/LEEME.md`, paso 4.
+3. **nginx:** `documentos/nginx_calles_prioritarias.conf.ejemplo`, bloque «FASE 2 CON INICIO DE SESIÓN». Validar con `nginx -t`.
+4. **Comprobación:** `documentos/LISTA_DE_VERIFICACION.md` y la tabla «Comprobación después de instalar» de `login/LEEME.md`.
+5. **Capas:** `capas_geoserver/LEEME.md`. Son independientes de la herramienta: se pueden publicar antes o después.
+6. **Cuentas:** desde el panel de administración (`/acceso/calles/admin/`), una por una o en bloque con «Alta masiva desde CSV».
+
+## En una página
+
+- **Herramienta:** sitio estático; no usa base de datos ni GeoServer. Solo pide a terceros las teselas del mapa de fondo si la persona lo enciende.
+- **Inicio de sesión:** nginx protege la herramienta con `auth_request`; el módulo `calles` del backend valida la sesión y registra accesos, consultas y descargas en el esquema `calles` de PostgreSQL.
+- **Datos personales:** nombre, correo, institución, alcaldía, bitácora de uso y dirección IP. La Unidad de Transparencia de la SEDEMA aprobó el aviso de privacidad, que se publica en la pantalla de acceso. La depuración automática cumple sus plazos: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
+- **Navegadores:** Chrome o Edge 80, Firefox 79, Safari 15, o posteriores, con WebGL 2.
+- **Soporte:** primer nivel, el SIA (servidor); segundo nivel, la Oficina de la Secretaría (contenido, datos y nuevas versiones).

@@ -35,7 +35,7 @@ Para cada una de las tres capas:
 ## Para actualizar
 
 Cuando cambie el modelo o la herramienta:
-1. Se regeneran los archivos con `python 03_procesamiento_datos/5_exportar_geoserver.py`.
+1. La Oficina de la Secretaría entrega los archivos nuevos.<!-- solo-repositorio --> Se regeneran con `python 03_procesamiento_datos/5_exportar_geoserver.py`.<!-- /solo-repositorio -->
 2. Se reemplazan los `.gpkg` en el servidor.
 3. Se vacía la caché de teselas de las tres capas (*Truncate*).
 
@@ -57,7 +57,7 @@ Los nombres de las capas y de los campos no cambian.
 | `banqueta_inegi` | Valor de INEGI 2020 |
 | `grupo_banqueta` | `con banqueta`, `sin banqueta` o `por verificar` (conjunto habitacional, no aplica o sin dato): el filtro de la herramienta |
 | `arbolado_inegi`, `sin_arbolado` | Arbolado según INEGI; `sin_arbolado` = 1 si no dispone |
-| `responsable` | `Alcaldía` o `Gobierno Central` (frente sobre una vialidad primaria). **Asignación preliminar**: la regla del cruce (18 m, o 60 m con nombre coincidente) está en validación |
+| `responsable` | `Alcaldía` o `Gobierno Central` (frente sobre una vialidad primaria: paralelo a ella y a 18 m o menos de su eje, o hasta 60 m si coincide el nombre) |
 | `vp_clave` | Si el responsable es el Gobierno Central, la `clave` del tramo de vialidad primaria |
 | `longitud_m` | Metros |
 | `id_herramienta` | Número del frente en la herramienta (cambia si se regeneran sus datos; no usarlo para enlazar) |
@@ -109,7 +109,7 @@ Para comprobar que la capa publicada es la correcta:
 | Tramos de vialidad primaria | 13,335 |
 | Colonias | 2,243 |
 
-Son las mismas cifras que muestra la herramienta, versión 17.36.
+Son las mismas cifras que muestra la herramienta, versión 1.0.
 
 ## Cargar las capas en PostGIS (opcional)
 

@@ -1,6 +1,6 @@
 # Inicio de sesión: qué hace la herramienta y qué construye el SIA
 
-El login es **opcional** para una herramienta de consulta y su finalidad está por decidirse (ver `05_documentacion/despliegue_sia.md`). Este documento describe cómo se integra si se decide.
+La Secretaría decidió instalar la herramienta con acceso restringido a cuentas autorizadas y registro de usos. Este documento explica el principio y lo que se entrega; la instalación está en `login/LEEME.md`.
 
 ## 1. Principio
 
@@ -16,15 +16,15 @@ Navegador ── pide /calles-prioritarias/datos/data.bin ──▶ nginx
 
 ## 2. Lo que la herramienta ya hace
 
-| Capacidad | Dónde |
+| Capacidad | Dónde (en `sitio/`) |
 |---|---|
-| Reconoce la sesión vencida: respuesta 401 o 403, o una página HTML donde esperaba datos o un programa | `esSesion`, `causaFalla` en `02_fuente/js/01_utilidades.js` |
+| Reconoce la sesión vencida: respuesta 401 o 403, o una página HTML donde esperaba datos o un programa | `esSesion`, `causaFalla` en `app.js` |
 | Dice «Tu sesión terminó. Vuelve a iniciar sesión para continuar.», con enlace a la pantalla de acceso, en lugar de «revisa tu conexión» | Carga inicial, Excel y fichas PDF |
-| Con la sesión vencida no entrega archivos de respaldo (antes sustituía el Excel por CSV) | `11_descargas.js` |
-| Muestra «Cerrar sesión» en el encabezado si la instalación define esa dirección | `SIA_SESION_CIERRE` |
-| No guarda copia para uso sin conexión cuando hay sesión, y retira la que hubiera | `16_arranque.js` |
+| Con la sesión vencida no entrega archivos de respaldo (antes sustituía el Excel por CSV) | Descargas, en `app.js` |
+| Muestra «Salir» junto a los logotipos si la instalación define esa dirección | `window.SIA_SESION` en `config.js` |
+| No guarda copia para uso sin conexión cuando hay sesión, y retira la que hubiera | Arranque, en `app.js` |
 
-Las direcciones se fijan al empaquetar (`INSTALACION.md`, sección 7).
+Las direcciones se fijan al armar el paquete; las de este paquete están en `INSTALACION.md`, sección 7, y en `VERSION.txt`.
 
 ## 3. Lo que debe cumplir el servidor
 
@@ -47,16 +47,16 @@ La Secretaría decidió las dos finalidades: **controlar quién entra** y **sabe
   - `/api/calles/admin/…`
 - **Esquema `calles`**: usuarios (contraseñas con huella scrypt), sesiones y bitácora, con depuración automática según los plazos del aviso de privacidad.
 - **Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad**, en `/acceso/calles/`, fuera de la herramienta. Cumplen los criterios de la sección 6.
-- **Registro de usos en la herramienta** (v17.37): consultas y descargas, solo cuando está instalada con sesión.
+- **Registro de usos en la herramienta:** consultas y descargas, solo cuando está instalada con sesión.
 
 Al SIA le corresponde instalarlo (`login/LEEME.md`) y operar las altas y bajas desde el panel. Tamaño esperado: decenas de usuarios; el módulo no añade carga apreciable ni ocupa disco, salvo la bitácora.
 
 ## 5. Qué se registra y qué no
 
 - **Accesos y visitas:** los registra el servidor y no se pueden evitar.
-- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. Desde la v17.37 la herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/api/calles/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
+- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. La herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/api/calles/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
 - Ese aviso es **informativo**: una persona con conocimientos técnicos podría evitarlo. El control de acceso, en cambio, lo hace el servidor.
-- El detalle de lo que se registra está en `login/LEEME.md` y en el aviso de privacidad (`login/privacidad/`).
+- El detalle de lo que se registra está en `login/LEEME.md` y en el aviso de privacidad (`login/acceso/aviso-de-privacidad.html`).
 
 ## 6. Criterios de aceptación de la pantalla de acceso
 
@@ -78,5 +78,5 @@ Si la pantalla de acceso no es accesible, nadie con esa necesidad entra a la her
 
 ## 7. Antes de abrir
 
-- **Datos personales:** el login trata correo, contraseña, bitácora de accesos y dirección IP. Requiere aviso de privacidad y registro del tratamiento ante la Unidad de Transparencia **antes** de construir el módulo.
-- **Cierre del piloto:** con login, la página de GitHub y el repositorio público deben apagarse (`CIERRE_FASE_1.md`); si no, el login no restringe nada.
+- **Datos personales:** el login trata correo, contraseña, bitácora de accesos y dirección IP. La Unidad de Transparencia de la SEDEMA aprobó el aviso de privacidad (octubre de 2026); se publica en la pantalla de acceso.
+- **Versión piloto en GitHub:** mientras siga en línea la versión de prueba en GitHub, el login no restringe nada. La Oficina de la Secretaría la retira cuando la herramienta quede publicada en el SIA.

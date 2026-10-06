@@ -105,12 +105,12 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
 
     // ---------- capas, leyenda compacta y «Quién atiende» ----------
     const cap = await page.evaluate(() => { const lg = document.querySelector('.legend'), mini = document.getElementById('leymini'); const vis = e => getComputedStyle(e).display !== 'none';
-      return { cerrada: !lg.classList.contains('open') && !vis(lg), mini: vis(mini), colores: [...mini.querySelectorAll('i')].map(i => getComputedStyle(i).backgroundColor), respEnPanel: !!document.querySelector('.panel .query button[data-resp="gc"]') && !lg.querySelector('button[data-resp]') && document.querySelector('.panel .query button[data-resp="gc"]').offsetParent !== null, prelimEnCapas: !!lg.querySelector('#prelim-note') && !!lg.querySelector('#resp-note'), grupo: !!document.getElementById(document.querySelector('.resp-row .chips').getAttribute('aria-labelledby')) }; });
+      return { cerrada: !lg.classList.contains('open') && !vis(lg), mini: vis(mini), colores: [...mini.querySelectorAll('i')].map(i => getComputedStyle(i).backgroundColor), respEnPanel: !!document.querySelector('.panel .query button[data-resp="gc"]') && !lg.querySelector('button[data-resp]') && document.querySelector('.panel .query button[data-resp="gc"]').offsetParent !== null, explicaEnCapas: !lg.querySelector('#prelim-note') && !!lg.querySelector('#resp-note'), grupo: !!document.getElementById(document.querySelector('.resp-row .chips').getAttribute('aria-labelledby')) }; });
     ok('el panel de capas está cerrado y la leyenda compacta muestra cinco colores distintos', cap.cerrada && cap.mini && new Set(cap.colores).size === 5, cap.colores.join(' '));
-    ok('la fila «Atiende» está a la vista junto al buscador; su explicación y el aviso de asignación preliminar, en el panel de capas', cap.respEnPanel && cap.prelimEnCapas && cap.grupo, JSON.stringify(cap));
+    ok('la fila «Atiende» está a la vista junto al buscador; su explicación, en el panel de capas (sin aviso de asignación preliminar)', cap.respEnPanel && cap.explicaEnCapas && cap.grupo, JSON.stringify(cap));
     await page.evaluate(() => document.getElementById('leymini').click()); await page.waitForTimeout(300);
-    const ab = await page.evaluate(() => ({ abierta: document.querySelector('.legend').classList.contains('open'), mini: getComputedStyle(document.getElementById('leymini')).display, foco: document.activeElement.id, prelim: getComputedStyle(document.getElementById('prelim-note')).display !== 'none' && document.getElementById('prelim-note').offsetParent !== null }));
-    ok('la leyenda compacta abre el panel de capas y cede su lugar', ab.abierta && ab.mini === 'none' && ab.foco === 'legend-toggle' && ab.prelim, JSON.stringify(ab));
+    const ab = await page.evaluate(() => ({ abierta: document.querySelector('.legend').classList.contains('open'), mini: getComputedStyle(document.getElementById('leymini')).display, foco: document.activeElement.id }));
+    ok('la leyenda compacta abre el panel de capas y cede su lugar', ab.abierta && ab.mini === 'none' && ab.foco === 'legend-toggle', JSON.stringify(ab));
     await ctx.close(); }
 
   // ---------- teléfono ----------

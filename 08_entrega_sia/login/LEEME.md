@@ -17,18 +17,24 @@ Persona ─▶ nginx ─▶ /calles-prioritarias/   (auth_request ─▶ /api/ca
 | `backend/src/` | Módulo Express (`index.js`) y huellas de contraseña (`contrasenas.js`). Sin dependencias nativas: usa `express` y `pg`, que el backend ya tiene |
 | `backend/sql/001_esquema.sql` | Esquema `calles`: usuarios, sesiones, bitácora; función de depuración; cuenta de servicio `calles_app` |
 | `backend/scripts/crear_admin.js` | Crea la primera cuenta de administración (las demás, desde el panel) |
-| `backend/scripts/servidor_demo.js` | Demostración en una sola máquina (nginx + backend + base), con base en memoria o PostgreSQL de pruebas: para ensayar antes de instalar |
 | `backend/src/masiva.js`, `backend/scripts/alta_masiva.js` | Alta de muchas cuentas desde un CSV (los enlaces que designa cada alcaldía), con revisión previa y contraseñas temporales: desde el panel o desde la terminal |
+| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`) y sus recursos |
+<!-- solo-repositorio -->
+
+Solo en el repositorio (no van en el paquete del SIA):
+
+| Carpeta | Qué es |
+|---|---|
+| `backend/scripts/servidor_demo.js` | Demostración en una sola máquina (nginx + backend + base), con base en memoria o PostgreSQL de pruebas |
 | `backend/scripts/datos_demo.js` | Cuentas ficticias y 90 días de uso simulado para ver el panel lleno (solo en bases de prueba) |
 | `backend/pruebas/` | Pruebas: con base en memoria (`npm run pruebas`) o contra PostgreSQL de pruebas (`PRUEBAS_PG=1`) |
-| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad y sus recursos |
-| `privacidad/` | Aviso integral, aviso simplificado y solicitud a la Unidad de Transparencia (**borradores**) |
+| `privacidad/` | Textos de los avisos, solicitud y nota a la Unidad de Transparencia |
+| `generar_aviso_html.py` | Genera `acceso/aviso-de-privacidad.html` a partir de `privacidad/aviso_integral.md` |
+<!-- /solo-repositorio -->
 
-## Antes de abrir: privacidad
+## Privacidad
 
-El registro de usos trata datos personales: nombre, correo, institución, IP y bitácora. **El inicio de sesión no debe ponerse en operación** hasta que la Unidad de Transparencia apruebe los avisos y se registre el sistema de datos personales. Ver `privacidad/solicitud_unidad_transparencia.md`. Cuando estén aprobados:
-1. Se pasan los textos finales a `privacidad/aviso_integral.md`.
-2. Se regenera `acceso/aviso-de-privacidad.html` con `python generar_aviso_html.py`.
+El registro de usos trata datos personales: nombre, correo, institución, IP y bitácora. La Unidad de Transparencia de la SEDEMA revisó y aprobó el aviso de privacidad (octubre de 2026). El aviso integral se publica en la pantalla de acceso (`acceso/aviso-de-privacidad.html`) y declara los plazos que cumple la depuración automática: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
 
 ## Instalación
 
@@ -48,7 +54,7 @@ Después, asignar contraseña a la cuenta de servicio (`ALTER ROLE calles_app PA
   app.use('/api/calles', calles);
   ```
 - Variable de entorno opcional `CALLES_ORIGEN`. Por omisión es `https://sedema.sia.cdmx.gob.mx`, y es la única procedencia que acepta en peticiones que cambian algo.
-- El módulo depura una vez al día lo vencido: bitácora de 24 meses, IP de 6 meses, cuentas dadas de baja hace 24 meses y sesiones vencidas. Bases creadas antes de la v1.0: volver a correr `sql/001_esquema.sql` con la cuenta dueña del esquema agrega la columna `baja` y actualiza la depuración. También puede programarse en la base: `SELECT calles.depurar();`.
+- El módulo depura una vez al día lo vencido: bitácora de 24 meses, IP de 6 meses, cuentas dadas de baja hace 24 meses y sesiones vencidas. También puede programarse en la base: `SELECT calles.depurar();`.
 
 **3. Primera cuenta de administración** (en el servidor de aplicaciones, con las variables `PG*` de `calles_app`):
 ```
@@ -65,17 +71,15 @@ Muestra una contraseña temporal; al entrar, se pide cambiarla.
 
 Validar con `nginx -t`.
 
-**6. La herramienta, con la sesión configurada.** Se empaqueta con las direcciones de acceso y de cierre:
-```
-SIA_SESION_INICIO=/acceso/calles/ SIA_SESION_CIERRE=/api/calles/salir python3 08_entrega_sia/empaquetar.py
-```
-Con eso la herramienta:
-- muestra «Cerrar sesión»;
+**6. La herramienta.** La carpeta `sitio/` del paquete ya viene construida con la sesión: acceso en `/acceso/calles/`, cierre en `/api/calles/salir` y registro de usos en `/api/calles/uso`. Con eso la herramienta:
+- muestra «Salir» junto a los logotipos;
 - reconoce la sesión vencida;
 - no guarda copia sin conexión;
-- registra consultas y descargas (desde la v17.37).
+- registra consultas y descargas.
+<!-- solo-repositorio -->
 
-Sin esas variables, por ejemplo en GitHub Pages, no registra nada.
+En el repositorio, el paquete se arma con `SIA_SESION_INICIO=/acceso/calles/ SIA_SESION_CIERRE=/api/calles/salir python 08_entrega_sia/empaquetar.py`. Sin esas variables, por ejemplo en GitHub Pages, la herramienta no registra nada.
+<!-- /solo-repositorio -->
 
 ## Comprobación después de instalar
 
@@ -88,8 +92,9 @@ Sin esas variables, por ejemplo en GitHub Pages, no registra nada.
 | 5 | En la herramienta, elegir una alcaldía y descargar un Excel | En el panel, pestaña «Usos», aparecen la consulta y la descarga |
 | 6 | Dar de baja una cuenta con la sesión abierta en otro navegador | Esa sesión deja de funcionar al instante |
 | 7 | Cinco contraseñas equivocadas seguidas | La cuenta se detiene 15 minutos |
-| 8 | «Cerrar sesión» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión» |
+| 8 | «Salir» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión» |
 
+<!-- solo-repositorio -->
 ## Ensayo antes de instalar
 
 Todo se puede ensayar en una computadora con Node.js (`cd backend && npm install`).
@@ -115,6 +120,7 @@ DEMO_DATOS=1 node scripts/servidor_demo.js        → http://localhost:8090/call
 Permiten ver el panel de usos lleno. El script **se niega** a cargarse en una base que ya tenga cuentas reales. Se quitan con `--borrar`.
 
 Para ver el registro de usos desde la herramienta, esta debe estar construida con la sesión (paso 6 de la instalación) y servirse con `SITIO=…/docs`.
+<!-- /solo-repositorio -->
 
 ## Alta masiva desde CSV
 
@@ -177,7 +183,10 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
   - los cambios automáticos de «Seguirme».
 - **Advertencia:** el registro de consultas y descargas lo envía la propia página. Es informativo: una persona con conocimientos técnicos podría evitarlo. El control de acceso, en cambio, lo hace el servidor y no se puede saltar.
 
+<!-- solo-repositorio -->
 ## Mantenimiento
 
 - **Pruebas del módulo:** `cd backend && npm install && npm run pruebas`.
 - **Aviso de privacidad:** después de editar `privacidad/aviso_integral.md`, regenerar la página con `python 08_entrega_sia/login/generar_aviso_html.py`.
+- **Bases creadas antes de la v1.0:** volver a correr `sql/001_esquema.sql` con la cuenta dueña del esquema agrega la columna `baja` y actualiza la depuración.
+<!-- /solo-repositorio -->

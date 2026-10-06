@@ -15,7 +15,7 @@ Copias locales, **sin modificar**, de las librerías que usa la herramienta. Tod
 
 ## Procedencia y huellas
 
-Cada archivo es idéntico, byte a byte, al que distribuye el paquete oficial (verificado el 2 de octubre de 2026; jsPDF y SheetJS actualizados el 5 de octubre de 2026, v17.34). SheetJS ya no publica en npm desde la 0.18.5: sus versiones con las correcciones de seguridad se distribuyen solo desde su sitio oficial, `cdn.sheetjs.com`. Para comprobarlo: `sha256sum 02_fuente/libs/*.js`.
+Cada archivo es idéntico, byte a byte, al que distribuye el paquete oficial (verificado el 2 de octubre de 2026; jsPDF y SheetJS actualizados el 5 de octubre de 2026). SheetJS ya no publica en npm desde la 0.18.5: sus versiones con las correcciones de seguridad se distribuyen solo desde su sitio oficial, `cdn.sheetjs.com`. Para comprobarlo: `sha256sum 02_fuente/libs/*.js`.
 
 | Archivo | Paquete y ruta de origen | SHA-256 |
 |---|---|---|

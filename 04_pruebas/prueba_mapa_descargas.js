@@ -25,7 +25,7 @@ const num = t => +String(t).replace(/,/g, '').match(/[\d.]+/)[0];
     const km = F.reduce((t, f) => t + f.properties.longitud_m, 0) / 1000;
     ok('GeoJSON: sus longitudes suman los km prioritarios de la pantalla', Math.abs(km - kmPrio) < 0.06, `${km.toFixed(3)} vs ${kmPrio}`);
     ok('GeoJSON: solo Muy Alta y Alta, a cargo de la alcaldía, con vialidad y colonia', F.every(f => /^(Muy Alta|Alta)$/.test(f.properties.prioridad) && f.properties.responsable === 'Alcaldía' && f.properties.vialidad && f.properties.colonia === 'Progreso Tizapan' && Number.isInteger(f.properties.id_frente)));
-    ok('GeoJSON: declara fuentes, asignación preliminar y versión', /INEGI/.test(J.descripcion) && /preliminar/.test(J.descripcion) && /Versión \d+\.\d+/.test(J.descripcion));
+    ok('GeoJSON: declara fuentes y versión, sin aviso de asignación preliminar', /INEGI/.test(J.descripcion) && !/preliminar/.test(J.descripcion) && /Versión \d+\.\d+/.test(J.descripcion));
     const k = await L.descargar(page, '#dl-kml', SAL); const xml = fs.readFileSync(k.ruta, 'utf8');
     const K = await page.evaluate(x => { const d = new DOMParser().parseFromString(x, 'application/xml'); const pm = [...d.getElementsByTagName('Placemark')];
       return { error: d.getElementsByTagName('parsererror').length, n: pm.length, estilos: [...d.getElementsByTagName('Style')].map(s => s.getAttribute('id')), sinEstilo: pm.filter(p => !d.querySelector('Style[id="' + p.getElementsByTagName('styleUrl')[0].textContent.slice(1) + '"]')).length,

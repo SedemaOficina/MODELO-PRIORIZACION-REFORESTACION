@@ -18,7 +18,6 @@ const sumUniv = a => { let t = 0; for (let k = UNIV_MIN; k < a.length; k++) t +=
 // Versión de la herramienta y corte de los datos: los fija construir.py (VERSION y CORTE_DATOS) y se muestran en el panel, las fichas y los Excel.
 const VERSION = Object.assign({v:'', fecha:'', corte:''}, window.SIA_VERSION || {});
 const VERSION_TXT = `Versión ${VERSION.v}${VERSION.fecha? ' · Última actualización: '+VERSION.fecha : ''} · Datos: ${VERSION.corte}`;
-const PRELIM_TXT = 'La asignación de cada frente a la alcaldía o al Gobierno Central es preliminar: resulta de una regla geométrica en validación.';
 // Errores con mensaje para la persona usuaria (auditoría H-035): `amable` es lo que se muestra; el detalle técnico va a la consola.
 function errAmable(msg, detalle){ const e = new Error(detalle || msg); e.amable = msg; return e; }
 // ---------- política de seguridad de contenido (auditoría H-001) ----------

@@ -1,4 +1,4 @@
-<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Modelo de priorización de reforestación urbana</title><meta name="color-scheme" content="light only"><link rel="preload" href="datos/data.bin?v=0d38f09868" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin><link rel="preload" href="fuentes/cabin.woff2?v=51380ccf10" as="font" type="font/woff2" crossorigin><link rel="preload" href="fuentes/roboto.woff2?v=0722b859b4" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="estilos.css?v=efa6c691f3"></head><body>
+<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Modelo de priorización de reforestación urbana</title><meta name="color-scheme" content="light only"><link rel="preload" href="datos/data.bin?v=0d38f09868" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin><link rel="preload" href="fuentes/cabin.woff2?v=51380ccf10" as="font" type="font/woff2" crossorigin><link rel="preload" href="fuentes/roboto.woff2?v=0722b859b4" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="estilos.css?v=592970ce02"></head><body>
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. Lo que va antes de ESTILOS pasa al <head>. -->
@@ -16,7 +16,7 @@
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
-      <!-- consulta: buscador único (js/14_buscador.js), fila «Atiende» y ruta de navegación; la explicación y el aviso de asignación preliminar están en el panel de capas -->
+      <!-- consulta: buscador único (js/14_buscador.js), fila «Atiende» y ruta de navegación; la explicación está en el panel de capas -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -149,8 +149,7 @@
             <button type="button" data-lvl="fr" aria-pressed="true"><i></i>Calles</button>
           </div><p class="lg-note" id="lvl-note">Colonias y Calles se combinan; Alcaldías va sola.</p></div>
       <div class="lg-sec lg-resp"><span class="lg-cap">Quién atiende</span>
-          <p class="lg-note" id="resp-note">Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.</p>
-          <p class="lg-note prelim" id="prelim-note"><b>Asignación preliminar.</b> Qué frentes quedan a cargo de la alcaldía o del Gobierno Central se determinó con una regla geométrica que está en validación.</p></div>
+          <p class="lg-note" id="resp-note">Frentes de manzana que plantan las alcaldías; las vialidades primarias aparecen en gris. Puedes activar las dos.</p></div>
       <div class="lg-sec"><span class="lg-cap" id="fondo-label">Mapa de fondo</span><div class="seg fondo pills" role="group" aria-labelledby="fondo-label">
             <button type="button" data-fondo="no" aria-pressed="true"><i></i>Sin fondo</button>
             <button type="button" data-fondo="calles" aria-pressed="false"><i></i>Calles</button>
@@ -337,5 +336,5 @@
 <script src="config.js?v=2b24ce120c"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=4e8bd26e77"></script>
+<script src="app.js?v=d2e2898f9f"></script>
 </body></html>
