@@ -90,6 +90,7 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
 
   // ---- baja: cierra su sesión al momento ----
   assert.equal((await request(app).patch(`/api/calles/admin/usuarios/${idU}`).set('Origin', ORIGEN).set('Cookie', ck).send({ activo: false })).status, 200);
+  assert.ok((await pool.query('SELECT baja FROM calles.usuarios WHERE id = $1', [idU])).rows[0].baja, 'la baja guarda su fecha: de ahí corren los 24 meses');
   assert.equal((await request(app).get('/api/calles/sesion').set('Cookie', cu)).status, 401);
   assert.equal((await entrar(app, 'tecnica@iztapalapa.gob.mx', 'jacarandas en la banqueta')).status, 401);
   const idAdmin = (await pool.query("SELECT id FROM calles.usuarios WHERE correo = 'admin@sedema.cdmx.gob.mx'")).rows[0].id;
@@ -97,6 +98,7 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
 
   // ---- restablecer: nueva temporal, la anterior deja de servir ----
   await request(app).patch(`/api/calles/admin/usuarios/${idU}`).set('Origin', ORIGEN).set('Cookie', ck).send({ activo: true });
+  assert.equal((await pool.query('SELECT baja FROM calles.usuarios WHERE id = $1', [idU])).rows[0].baja, null, 'al reactivar la cuenta se quita la fecha de baja');
   r = await request(app).post(`/api/calles/admin/usuarios/${idU}/restablecer`).set('Origin', ORIGEN).set('Cookie', ck); assert.equal(r.status, 200);
   assert.equal((await entrar(app, 'tecnica@iztapalapa.gob.mx', 'jacarandas en la banqueta')).status, 401);
   assert.equal((await entrar(app, 'tecnica@iztapalapa.gob.mx', r.body.contrasena_temporal)).body.debe_cambiar, true);
@@ -120,10 +122,13 @@ test('depuración: plazos de conservación (solo con PostgreSQL real)', { skip: 
   const hace = meses => new Date(Date.now() - meses * 30.5 * 864e5);
   await pool.query(`INSERT INTO calles.bitacora (usuario_id, evento, momento, ip) VALUES ($1, 'acceso', $2, '1.1.1.1'), ($1, 'acceso', $3, '2.2.2.2'), ($1, 'acceso', $4, '3.3.3.3')`, [id, hace(1), hace(8), hace(25)]);
   await pool.query(`INSERT INTO calles.sesiones (token_huella, usuario_id, expira) VALUES ('vencida', $1, $2)`, [id, hace(1)]);
+  await pool.query(`INSERT INTO calles.usuarios (correo, nombre, huella, activo, baja) VALUES ('baja25@ejemplo.gob.mx', 'Baja vieja', 'x', false, $1), ('baja23@ejemplo.gob.mx', 'Baja reciente', 'x', false, $2)`, [hace(25), hace(23)]);
   await pool.query('SELECT calles.depurar()');
   const b = (await pool.query('SELECT ip FROM calles.bitacora ORDER BY momento DESC')).rows.map(r => r.ip);
   assert.deepEqual(b, ['1.1.1.1', null], 'a los 6 meses se borra la IP; a los 24 meses, el registro');
   assert.equal((await pool.query(`SELECT count(*) AS n FROM calles.sesiones WHERE token_huella = 'vencida'`)).rows[0].n, '0');
+  const quedan = (await pool.query(`SELECT correo FROM calles.usuarios WHERE correo LIKE 'baja%' ORDER BY correo`)).rows.map(r => r.correo);
+  assert.deepEqual(quedan, ['baja23@ejemplo.gob.mx'], 'una cuenta dada de baja se elimina a los 24 meses de la baja');
   // privilegio mínimo: la cuenta de servicio no puede salir de su esquema
   await assert.rejects(pool.query('CREATE TABLE public.intrusa (x int)'), 'calles_app no crea tablas fuera de su esquema');
 });

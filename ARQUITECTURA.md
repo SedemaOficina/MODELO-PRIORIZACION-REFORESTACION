@@ -31,7 +31,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
 ├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, auditoría UX
 │                              y bitácora de decisiones (la bitácora solo en la copia local)
-├── 06_entregables/            guía de prueba con alcaldías, listas de catálogos para el SIA y lámina de frentes de manzana
+├── 06_entregables/            listas de catálogos para el SIA, logotipo institucional y lámina de frentes de manzana
 ├── 08_entrega_sia/            paquete de entrega al SIA: instalación, nginx, verificación, sesión, contrato de datos
 ├── _local/                    la herramienta en un solo archivo y los paquetes de entrega (generado; solo en la copia local)
 └── 07_versiones/              versiones anteriores (solo en la copia local)

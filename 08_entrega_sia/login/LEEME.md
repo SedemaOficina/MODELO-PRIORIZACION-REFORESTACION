@@ -48,7 +48,7 @@ Después, asignar contraseña a la cuenta de servicio (`ALTER ROLE calles_app PA
   app.use('/api/calles', calles);
   ```
 - Variable de entorno opcional `CALLES_ORIGEN`. Por omisión es `https://sedema.sia.cdmx.gob.mx`, y es la única procedencia que acepta en peticiones que cambian algo.
-- El módulo depura una vez al día lo vencido: bitácora de 24 meses, IP de 6 meses y sesiones vencidas. También puede programarse en la base: `SELECT calles.depurar();`.
+- El módulo depura una vez al día lo vencido: bitácora de 24 meses, IP de 6 meses, cuentas dadas de baja hace 24 meses y sesiones vencidas. Bases creadas antes de la v1.0: volver a correr `sql/001_esquema.sql` con la cuenta dueña del esquema agrega la columna `baja` y actualiza la depuración. También puede programarse en la base: `SELECT calles.depurar();`.
 
 **3. Primera cuenta de administración** (en el servidor de aplicaciones, con las variables `PG*` de `calles_app`):
 ```

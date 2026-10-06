@@ -33,7 +33,7 @@ Este registro implica un tratamiento de datos personales nuevo. Antes de poner e
 | Finalidades | 1) Control de acceso. 2) Seguridad de la información. 3) Seguimiento del uso por institución y alcaldía, con reportes que se difunden solo de forma agregada |
 | Origen de los datos | La institución de la persona (alta de la cuenta) y la propia persona al usar la herramienta (registro automático) |
 | Transferencias | Ninguna, salvo las previstas por la ley |
-| Plazos | Cuenta: mientras esté vigente. Bitácora: 24 meses. Dirección IP: 6 meses. Ambos se eliminan de forma automática. Sesión: 12 h sin actividad o 7 días como máximo |
+| Plazos | Cuenta: mientras esté vigente; tras la baja, se conserva desactivada 24 meses y después se elimina. Bitácora: 24 meses. Dirección IP: 6 meses. Ambos se eliminan de forma automática. Sesión: 12 h sin actividad o 7 días como máximo |
 | Infraestructura | Servidores de la Administración Pública de la Ciudad de México. La base de datos está en una red aislada, con conexiones cifradas y respaldos cifrados |
 | Medidas de seguridad | Cuenta de servicio con privilegios mínimos y esquema propio. Contraseñas con huella scrypt. Detención del acceso tras 5 intentos fallidos. Cookie cifrada, inaccesible a programas de la página. La IP se excluye de reportes y exportaciones. Solo las cuentas con permiso de administración consultan la bitácora |
 | Personas con acceso a la bitácora | Las cuentas con permiso de administración de la herramienta en el SIA [nombres o cargos] |

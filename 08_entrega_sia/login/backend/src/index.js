@@ -161,6 +161,7 @@ module.exports = function moduloCalles({ pool, opciones = {} }) {
     const id = +req.params.id; if (id === req.usuario.id && (b.activo === false || b.rol === 'usuario')) return res.status(400).json({ error: 'No puedes desactivarte ni quitarte el rol de administración a ti mismo.' });
     const cambios = [], vals = [];
     for (const k of ['nombre', 'institucion', 'alcaldia_cve', 'rol', 'activo']) if (b[k] !== undefined) { vals.push(k === 'alcaldia_cve' ? (b[k] || null) : b[k]); cambios.push(`${k} = $${vals.length}`); }
+    if (b.activo === false) cambios.push('baja = COALESCE(baja, now())'); else if (b.activo === true) cambios.push('baja = NULL');   // el plazo de 24 meses corre desde la baja
     if (!cambios.length) return res.status(400).json({ error: 'Nada que cambiar.' });
     vals.push(id); const { rows } = await q(`UPDATE calles.usuarios SET ${cambios.join(', ')}, actualizado = now() WHERE id = $${vals.length} RETURNING *`, vals);
     if (!rows[0]) return res.status(404).json({ error: 'No existe esa cuenta.' });

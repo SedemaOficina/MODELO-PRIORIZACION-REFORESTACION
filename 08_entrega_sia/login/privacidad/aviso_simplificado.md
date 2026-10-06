@@ -16,6 +16,6 @@ La Secretaría del Medio Ambiente de la Ciudad de México, por medio del Sistema
 
 **Transferencias:** no se transfieren, salvo las que prevé la ley.
 
-**Derechos:** puede ejercer sus derechos de acceso, rectificación, cancelación y oposición ante la Unidad de Transparencia de la SEDEMA ([correo o domicilio]).
+**Derechos:** puede ejercer sus derechos de acceso, rectificación, cancelación y oposición ante la Unidad de Transparencia de la SEDEMA (Plaza de la Constitución número 1, piso 3, colonia Centro, alcaldía Cuauhtémoc, C.P. 06000; teléfono 55 53 45 81 87 y 88, extensión 129) o por la Plataforma Nacional de Transparencia.
 
 **Aviso integral:** el aviso de privacidad integral se consulta en `sedema.sia.cdmx.gob.mx/acceso/calles/aviso-de-privacidad.html`.

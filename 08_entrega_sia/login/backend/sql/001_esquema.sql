@@ -1,4 +1,4 @@
--- Módulo de sesión de «Calles prioritarias para reforestar» · esquema propio en la base del SIA (PostgreSQL 17).
+-- Módulo de sesión de «Modelo de priorización de reforestación urbana» · esquema propio en la base del SIA (PostgreSQL 17).
 -- Se crea una sola vez, con una cuenta administradora. La aplicación se conecta con la cuenta de servicio calles_app,
 -- que solo puede leer y escribir en este esquema (como los demás módulos del backend).
 -- Datos personales: correo, nombre, alcaldía o dependencia, bitácora de accesos y usos, dirección IP. Ver ../privacidad/.
@@ -20,9 +20,11 @@ CREATE TABLE IF NOT EXISTS calles.usuarios (
   bloqueado_hasta   timestamptz,
   creado            timestamptz NOT NULL DEFAULT now(),
   actualizado       timestamptz NOT NULL DEFAULT now(),
-  ultimo_acceso     timestamptz
+  ultimo_acceso     timestamptz,
+  baja              timestamptz                          -- fecha de la baja; a los 24 meses la cuenta se elimina (calles.depurar)
 );
 CREATE UNIQUE INDEX IF NOT EXISTS usuarios_correo ON calles.usuarios (correo);
+ALTER TABLE calles.usuarios ADD COLUMN IF NOT EXISTS baja timestamptz;   -- bases creadas antes de la v1.0
 
 -- Sesiones abiertas. La cookie lleva un valor aleatorio; aquí solo su huella SHA-256.
 CREATE TABLE IF NOT EXISTS calles.sesiones (
@@ -48,12 +50,14 @@ CREATE TABLE IF NOT EXISTS calles.bitacora (
 CREATE INDEX IF NOT EXISTS bitacora_momento ON calles.bitacora (momento);
 CREATE INDEX IF NOT EXISTS bitacora_usuario ON calles.bitacora (usuario_id, momento);
 
--- Plazos de conservación (los mismos que declara el aviso de privacidad): bitácora 24 meses, IP 6 meses, sesiones vencidas.
+-- Plazos de conservación (los mismos que declara el aviso de privacidad): bitácora 24 meses, IP 6 meses, cuentas dadas de baja
+-- 24 meses después de la baja, sesiones vencidas.
 -- Se corre una vez al día (cron del servidor o el temporizador del propio módulo).
 CREATE OR REPLACE FUNCTION calles.depurar() RETURNS void LANGUAGE sql AS $$
   DELETE FROM calles.sesiones WHERE expira < now();
   UPDATE calles.bitacora SET ip = NULL WHERE ip IS NOT NULL AND momento < now() - interval '6 months';
   DELETE FROM calles.bitacora WHERE momento < now() - interval '24 months';
+  DELETE FROM calles.usuarios WHERE NOT activo AND baja < now() - interval '24 months';
 $$;
 
 -- Cuenta de servicio de la aplicación (la contraseña se fija aparte, nunca en este archivo).
