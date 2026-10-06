@@ -4,7 +4,7 @@ Para el equipo del SIA. Supone acceso al servidor web por la vía habitual y per
 
 ## 1. Qué se recibe
 
-Un archivo `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip` (en memoria USB) con:
+Un archivo `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, en memoria USB, junto con `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip.sha256`, que trae su suma SHA-256 (cómo comprobarla: `LEEME.md` del paquete). El ZIP contiene:
 
 ```
 modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/

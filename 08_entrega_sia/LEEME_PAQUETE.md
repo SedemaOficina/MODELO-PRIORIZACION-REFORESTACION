@@ -15,6 +15,22 @@ Este paquete trae todo lo necesario para instalar la herramienta en `sedema.sia.
 | `capas_geoserver/` | Tres capas en GeoPackage (frentes de manzana, vialidades primarias y colonias) con sus estilos | GeoServer (o PostGIS) |
 | `documentos/` | Guía de instalación, ejemplo de nginx, lista de verificación y descripción del inicio de sesión | — |
 
+## Comprobar que el paquete llegó completo
+
+Junto al ZIP, en la misma memoria USB, va un archivo con el mismo nombre terminado en `.sha256`. Trae la **suma SHA-256** del ZIP: un código que se calcula a partir de su contenido exacto. Si el ZIP llegó completo y sin cambios, al calcularla sale el mismo código; si se dañó al copiarlo o alguien lo modificó, sale otro. La suma no puede ir dentro del ZIP, porque al incluirla el ZIP cambiaría.
+
+En el servidor (Linux), en la carpeta donde están los dos archivos:
+```
+sha256sum -c modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip.sha256      # debe decir «La suma coincide» u «OK»
+```
+En Windows (PowerShell):
+```
+certutil -hashfile modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip SHA256
+```
+y comparar el resultado con el código del archivo `.sha256`.
+
+Después de descomprimir, `MANIFIESTO.sha256` permite comprobar cada archivo de la herramienta: `cd sitio && sha256sum -c ../MANIFIESTO.sha256`. Las capas tienen el suyo: `cd capas_geoserver && sha256sum -c MANIFIESTO.sha256`.
+
 ## Orden de instalación
 
 1. **Base de datos y backend:** `login/LEEME.md`, pasos 1 a 3 (esquema `calles`, módulo en `sia-backend`, primera cuenta de administración).

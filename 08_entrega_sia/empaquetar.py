@@ -8,7 +8,7 @@ sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; a
 La sesión va encendida por omisión (/acceso/calles/ y /api/calles/salir); --sin-sesion arma la herramienta sin login.
 
 Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion]
-Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip   (no se publica)
+Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; van juntos en la USB)
       LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/, capas_geoserver/ y documentos/
 
 Los documentos Markdown pierden, al empaquetarse, lo que va entre <!-- solo-repositorio --> y <!-- /solo-repositorio -->
@@ -135,6 +135,8 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
             z.write(os.path.join(base, r), nombre + '/' + r)
 finally:
     shutil.rmtree(t, ignore_errors=True)
+# la suma del ZIP va en un archivo aparte, junto a él (dentro cambiaría el ZIP); formato de sha256sum -c
+open(destino + '.sha256', 'w', encoding='utf-8', newline='\n').write('%s  %s\n' % (suma(destino), os.path.basename(destino)))
 print('paquete: %s (%.1f MB, %d archivos; %d del sitio)' % (os.path.relpath(destino, RAIZ), os.path.getsize(destino) / 1048576, len(todo), len(lineas)))
-print('suma del paquete (anotarla al entregar): ' + suma(destino))
+print('suma del paquete: %s (también en %s.sha256)' % (suma(destino), os.path.basename(destino)))
 print('versión %s · clave CARTO: %s · clave Esri: %s · sesión: %s' % (version, con('SIA_CARTO_KEY'), con('SIA_ESRI_KEY'), sesion.get('inicio') or 'no'))
