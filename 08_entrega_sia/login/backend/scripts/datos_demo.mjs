@@ -1,12 +1,14 @@
 // Datos SIMULADOS para ensayar el módulo: cuentas ficticias (@ejemplo.gob.mx) y 90 días de uso con un patrón realista.
 // Sirven para ver el panel de usos «como en la vida real» antes de abrir, en la demostración o en una base de PRUEBAS.
 //
-// Uso con la demostración (base en memoria):   DEMO_DATOS=1 node scripts/servidor_demo.js
-// Uso contra una base de pruebas de PostgreSQL:  node scripts/datos_demo.js --base-de-pruebas   (variables PG* de esa base)
+// Uso con la demostración (base en memoria):   DEMO_DATOS=1 node --import ./pruebas/cargador.mjs scripts/servidor_demo.mjs
+// Uso contra una base de pruebas de PostgreSQL:  node --import ./pruebas/cargador.mjs scripts/datos_demo.mjs --base-de-pruebas   (variables PG* de esa base)
+// Solo para desarrollo y ensayo: no va al backend del SIA.
 // Nunca en producción: se niega si la base ya tiene cuentas que no sean @ejemplo.gob.mx. Para quitar los datos: --borrar.
-'use strict';
-const { huella } = require('../src/contrasenas');
-const { ALCALDIAS } = require('../src');
+import pg from 'pg';
+import { fileURLToPath } from 'node:url';
+const { huella } = await import('../src/modulos/priorizacion-reforestacion/contrasenas.ts');
+const { ALCALDIAS } = await import('../src/modulos/priorizacion-reforestacion/alcaldias.ts');
 
 const DOMINIO = '@ejemplo.gob.mx';
 const CLAVE_DEMO = 'demostracion-2026';   // la misma para todas las cuentas ficticias; solo existe en datos de prueba
@@ -21,7 +23,7 @@ const slug = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().repla
 // azar con semilla: los mismos datos en cada ejecución (útil para comparar)
 function azar(semilla) { let s = semilla >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.now() } = {}) {
+export async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.now() } = {}) {
   const r = azar(semilla), elige = a => a[Math.floor(r() * a.length)], pesado = l => { let t = l.reduce((x, y) => x + y[1], 0) * r(); for (const [v, w] of l) { if ((t -= w) < 0) return v; } return l[0][0]; };
   const otras = await pool.query(`SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo NOT LIKE '%${DOMINIO}'`);
   if (+otras.rows[0].n > 0) throw new Error('La base ya tiene cuentas reales: los datos simulados solo se cargan en una base de prueba o vacía.');
@@ -75,18 +77,18 @@ async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.now() } =
   return { cuentas: personas.length, registros: filas.length, clave: CLAVE_DEMO };
 }
 
-async function borrar(pool) {
+export async function borrar(pool) {
   await pool.query(`DELETE FROM priorizacion_reforestacion.bitacora WHERE usuario_id IN (SELECT id FROM priorizacion_reforestacion.usuarios WHERE correo LIKE '%${DOMINIO}')`);
   const { rows } = await pool.query(`DELETE FROM priorizacion_reforestacion.usuarios WHERE correo LIKE '%${DOMINIO}' RETURNING id`);
   return rows.length;
 }
 
-module.exports = { sembrar, borrar, CLAVE_DEMO, DOMINIO };
+export { CLAVE_DEMO, DOMINIO };
 
-if (require.main === module) (async () => {
+if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) (async () => {
   const a = process.argv.slice(2);
-  if (!a.includes('--base-de-pruebas')) { console.error('Solo para una base de PRUEBAS. Confirma con: node scripts/datos_demo.js --base-de-pruebas  [--borrar]'); process.exit(1); }
-  const { Pool } = require('pg'); const pool = new Pool();
+  if (!a.includes('--base-de-pruebas')) { console.error('Solo para una base de PRUEBAS. Confirma con: node --import ./pruebas/cargador.mjs scripts/datos_demo.mjs --base-de-pruebas  [--borrar]'); process.exit(1); }
+  const pool = new pg.Pool();
   try {
     if (a.includes('--borrar')) console.log(`Cuentas ficticias borradas: ${await borrar(pool)}.`);
     else { const r = await sembrar(pool); console.log(`Listo: ${r.cuentas} cuentas ficticias (${DOMINIO}, contraseña «${r.clave}») y ${r.registros} registros de uso de 90 días.`); }

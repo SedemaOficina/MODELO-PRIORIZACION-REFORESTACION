@@ -1,0 +1,18 @@
+{
+  // Solo para `npm run typecheck`. Deliberadamente NO se llama tsconfig.json:
+  // tsup lo leeria y cambiaria como compila lo que va a produccion. Este
+  // archivo verifica tipos y no emite nada.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2023"],
+    "types": ["node"],
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/**/*.ts"]
+}

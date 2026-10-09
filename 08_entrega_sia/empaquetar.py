@@ -80,18 +80,13 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
         sys.exit('ERROR: el sitio trae archivos que no se esperaban: ' + ', '.join(ajenos))
     open(os.path.join(base, 'MANIFIESTO.sha256'), 'w', encoding='utf-8', newline='\n').write('\n'.join(lineas) + '\n')
 
-    # 2. inicio de sesión: pantalla de acceso, módulo del backend, esquema y scripts de administración (sin pruebas ni demostraciones)
+    # 2. inicio de sesión: pantalla de acceso y, con la estructura del repositorio sia-backend, el módulo (src/modulos/),
+    #    su SQL (db/) y la herramienta de la primera cuenta (herramientas/). Sin pruebas, demostraciones ni package.json:
+    #    el módulo vive dentro de sia-backend y usa sus dependencias.
     L = os.path.join(AQUI, 'login')
     shutil.copytree(os.path.join(L, 'acceso'), os.path.join(base, 'login', 'acceso'))
-    shutil.copytree(os.path.join(L, 'backend', 'src'), os.path.join(base, 'login', 'backend', 'src'))
-    shutil.copytree(os.path.join(L, 'backend', 'sql'), os.path.join(base, 'login', 'backend', 'sql'))
-    os.makedirs(os.path.join(base, 'login', 'backend', 'scripts'))
-    for s in ('crear_admin.js', 'alta_masiva.js'):
-        shutil.copy(os.path.join(L, 'backend', 'scripts', s), os.path.join(base, 'login', 'backend', 'scripts', s))
-    paq = json.load(open(os.path.join(L, 'backend', 'package.json'), encoding='utf-8'))
-    paq.pop('devDependencies', None)
-    paq['scripts'] = {k: v for k, v in paq.get('scripts', {}).items() if 'pruebas' not in v and 'demo' not in v}
-    open(os.path.join(base, 'login', 'backend', 'package.json'), 'w', encoding='utf-8', newline='\n').write(json.dumps(paq, ensure_ascii=False, indent=2) + '\n')
+    for parte in (('src', 'modulos', 'priorizacion-reforestacion'), ('db', 'priorizacion_reforestacion'), ('herramientas', 'priorizacion-reforestacion')):
+        shutil.copytree(os.path.join(L, 'backend', *parte), os.path.join(base, 'login', 'backend', *parte))
     copia_doc(os.path.join(L, 'LEEME.md'), os.path.join(base, 'login', 'LEEME.md'))
 
     # 3. capas para GeoServer, comprobadas contra su manifiesto

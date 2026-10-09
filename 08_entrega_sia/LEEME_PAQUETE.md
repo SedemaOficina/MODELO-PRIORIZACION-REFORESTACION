@@ -11,7 +11,7 @@ Este paquete trae todo lo necesario para instalar la herramienta en `sedema.sia.
 | `sitio/` | La herramienta: sitio estático (HTML, CSS, JavaScript y tres archivos de datos, 8 MB). Ya trae la clave del mapa de fondo y la sesión configurada | Servidor web, en la subruta `/priorizacion-reforestacion/` |
 | `MANIFIESTO.sha256` | Suma SHA-256 de cada archivo de `sitio/`, para comprobar que se copió completo | — |
 | `login/acceso/` | Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad (estáticos) | Servidor web, en `/acceso/priorizacion-reforestacion/` |
-| `login/backend/` | Módulo `priorizacion-reforestacion` para `sia-backend` (Node.js + Express), esquema de PostgreSQL y scripts de administración | Servidor de aplicaciones y base de datos |
+| `login/backend/` | Con la misma estructura que el repositorio `sia-backend`: el módulo en TypeScript (`src/modulos/priorizacion-reforestacion/`), su SQL (`db/priorizacion_reforestacion/`) y la herramienta de la primera cuenta (`herramientas/priorizacion-reforestacion/`) | Repositorio `sia-backend`, en las mismas rutas |
 | `capas_geoserver/` | Tres capas en GeoPackage (frentes de manzana, vialidades primarias y colonias) con sus estilos | GeoServer (o PostGIS) |
 | `documentos/` | Guía de instalación, ejemplo de nginx, lista de verificación y descripción del inicio de sesión | — |
 
@@ -33,7 +33,7 @@ Después de descomprimir, `MANIFIESTO.sha256` permite comprobar cada archivo de 
 
 ## Orden de instalación
 
-1. **Base de datos y backend:** `login/LEEME.md`, pasos 1 a 3 (esquema `priorizacion_reforestacion`, módulo en `sia-backend`, primera cuenta de administración).
+1. **Base de datos y backend:** `login/LEEME.md`, pasos 0 a 4. Se copian las carpetas a `sia-backend`, se aplica el SQL con `db/aplicar.sh`, se agregan las variables con `agregar-clave-modulo.sh` y, **al final**, se despliega el binario; después se crea la primera cuenta de administración.
 2. **Archivos estáticos:** `sitio/` y `login/acceso/`, según `documentos/INSTALACION.md` y `login/LEEME.md`, paso 4.
 3. **nginx:** `documentos/nginx_priorizacion_reforestacion.conf.ejemplo`, bloque «FASE 2 CON INICIO DE SESIÓN». Validar con `nginx -t`.
 4. **Comprobación:** `documentos/LISTA_DE_VERIFICACION.md` y la tabla «Comprobación después de instalar» de `login/LEEME.md`.

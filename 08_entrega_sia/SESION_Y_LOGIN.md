@@ -38,7 +38,7 @@ El bloque comentado «Fase 2 con inicio de sesión» del ejemplo de nginx implem
 ## 4. Lo que se entrega construido (desde el 5 de octubre de 2026)
 
 La Secretaría decidió las dos finalidades: **controlar quién entra** y **saber los usos**. El login ya está construido y probado en `login/`:
-- **Módulo `priorizacion-reforestacion` para `sia-backend`** (Node.js + Express), con su propia cuenta de base de datos (`priorizacion_reforestacion_app`), como los demás módulos. Direcciones:
+- **Módulo `priorizacion-reforestacion` para `sia-backend`** (TypeScript, Express 5), con su propio pool y su propia cuenta de base de datos (`priorizacion_reforestacion_api`), con la misma forma que los demás módulos. Direcciones:
   - `POST /api/priorizacion-reforestacion/entrar`
   - `GET /api/priorizacion-reforestacion/sesion` (204 o 401, para `auth_request`)
   - `GET|POST /api/priorizacion-reforestacion/salir`

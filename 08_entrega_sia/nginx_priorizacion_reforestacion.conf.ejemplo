@@ -18,7 +18,7 @@
 # (…/priorizacion-reforestacion/?a=09&v=123), no una huella. Sin estas reglas, un enlace compartido de una avenida dejaría
 # la página guardada un año en el navegador y no vería las actualizaciones.
 # La clave es «ruta|valor de v»; la primera expresión que coincide, en este orden, decide.
-map "$uri|$arg_v" $calles_cache {
+map "$uri|$arg_v" $priorizacion_reforestacion_cache {
     "~/\|"             "no-cache";
     "~/index\.html\|"  "no-cache";
     "~/sw\.js\|"       "no-cache";
@@ -55,7 +55,7 @@ location ^~ /priorizacion-reforestacion/ {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     # «Mi ubicación» usa el GPS del teléfono: si la política general del sitio niega la geolocalización, aquí debe permitirse.
     add_header Permissions-Policy "geolocation=(self)" always;
-    add_header Cache-Control $calles_cache always;
+    add_header Cache-Control $priorizacion_reforestacion_cache always;
 
     # Compresión de texto (si no está ya activa de forma general). Los .bin NO deben estar en gzip_types.
     gzip on;
@@ -72,7 +72,7 @@ location ^~ /priorizacion-reforestacion/ {
         add_header X-Content-Type-Options "nosniff" always;
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
         add_header Permissions-Policy "geolocation=(self)" always;
-        add_header Cache-Control $calles_cache always;
+        add_header Cache-Control $priorizacion_reforestacion_cache always;
     }
 
     # 4) Lo que no es parte del sitio no se sirve aunque alguien lo copie a la carpeta.
@@ -128,4 +128,5 @@ location ^~ /priorizacion-reforestacion/ {
 
 # 2-cuater) La API del módulo (/api/priorizacion-reforestacion/) va al backend como las demás rutas /api/ del sitio. Si /api/ ya está enrutado,
 #           no hace falta nada más. Debe llegar la IP real de la persona (X-Forwarded-For; con ADIP delante, configurar
-#           set_real_ip_from para la capa intermedia) y el backend debe tener app.set('trust proxy', ...).
+#           set_real_ip_from para la capa intermedia). El módulo toma la ÚLTIMA entrada de X-Forwarded-For, la que agrega
+#           este nginx con $proxy_add_x_forwarded_for, igual que los módulos caec: no hace falta trust proxy en el backend.

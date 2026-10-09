@@ -2,21 +2,32 @@
   "name": "priorizacion-reforestacion-sesion",
   "version": "1.0.0",
   "private": true,
-  "description": "Módulo de sesión y bitácora de usos de «Modelo de priorización de reforestación urbana» para sia-backend (Express + PostgreSQL). Sin dependencias nativas.",
-  "main": "src/index.js",
+  "type": "module",
+  "description": "Módulo «Modelo de priorización de reforestación urbana» para sia-backend: acceso con cuenta y bitácora de usos (Express 5 + PostgreSQL, TypeScript). Se copia a src/modulos/priorizacion-reforestacion/ de sia-backend.",
   "scripts": {
-    "pruebas": "node --test pruebas/*.test.js",
-    "crear-admin": "node scripts/crear_admin.js"
+    "typecheck": "tsc -p tsconfig.check.json",
+    "pruebas": "node --import ./pruebas/cargador.mjs --test pruebas/sesion.test.mjs pruebas/herramientas.test.mjs pruebas/ensamble.test.mjs",
+    "demo": "node --import ./pruebas/cargador.mjs scripts/servidor_demo.mjs"
   },
   "peerDependencies": {
-    "express": ">=4.18",
+    "express": ">=5.0",
     "pg": ">=8.11"
   },
   "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "cors": "^2.8.6",
     "express": "5.2.1",
+    "helmet": "^8.3.0",
     "pg": "8.23.1",
     "pg-mem": "3.0.14",
-    "supertest": "7.3.1"
+    "supertest": "7.3.1",
+    "tsup": "^8.5.1",
+    "typescript": "^7.0.2"
   },
-  "engines": { "node": ">=18" }
+  "engines": {
+    "node": ">=22.6"
+  }
 }

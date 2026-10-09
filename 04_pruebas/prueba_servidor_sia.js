@@ -11,7 +11,7 @@ const PRE = '/priorizacion-reforestacion/';
 const conf = fs.readFileSync(path.join(__dirname, '..', '08_entrega_sia', 'nginx_priorizacion_reforestacion.conf.ejemplo'), 'utf8');
 const CSP = (conf.match(/add_header Content-Security-Policy "([^"]+)"/) || [])[1];
 // Las reglas de caché del ejemplo (map "$uri|$arg_v"), también leídas de ahí: la primera expresión que coincide decide
-const MAPA = (() => { const b = (conf.match(/map "\$uri\|\$arg_v" \$calles_cache \{([\s\S]*?)\n\}/) || [])[1] || ''; const reglas = []; let def = null;
+const MAPA = (() => { const b = (conf.match(/map "\$uri\|\$arg_v" \$priorizacion_reforestacion_cache \{([\s\S]*?)\n\}/) || [])[1] || ''; const reglas = []; let def = null;
   for (const l of b.split('\n')) { const m = l.match(/^\s*"~(.+?)"\s+"([^"]+)";/); if (m) reglas.push([new RegExp(m[1]), m[2]]); const d = l.match(/^\s*default\s+"([^"]+)";/); if (d) def = d[1]; }
   return { reglas, def }; })();
 const cacheDe = (uri, v) => { const k = uri + '|' + (v || ''); const r = MAPA.reglas.find(([re]) => re.test(k)); return r ? r[1] : MAPA.def; };
