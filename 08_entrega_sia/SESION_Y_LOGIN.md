@@ -78,5 +78,5 @@ Si la pantalla de acceso no es accesible, nadie con esa necesidad entra a la her
 
 ## 7. Antes de abrir
 
-- **Datos personales:** el login trata correo, contraseña, bitácora de accesos y dirección IP. La Unidad de Transparencia de la SEDEMA aprobó el aviso de privacidad (octubre de 2026); se publica en la pantalla de acceso.
+- **Datos personales:** el login trata correo, contraseña, bitácora de accesos y dirección IP. El aviso de privacidad se publica en la pantalla de acceso.
 - **Versión piloto en GitHub:** mientras siga en línea la versión de prueba en GitHub, el login no restringe nada. La Oficina de la Secretaría la retira cuando la herramienta quede publicada en el SIA.

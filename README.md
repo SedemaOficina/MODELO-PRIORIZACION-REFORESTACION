@@ -107,7 +107,7 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 
 ### Pendientes
 1. **Instalación en el SIA:** el paquete se entrega por enlace de descarga como un ZIP limpio, con su suma SHA-256 aparte (`python 08_entrega_sia/empaquetar.py` → `_local/entrega/modelo-priorizacion-reforestacion_v1.0_AAAAMMDD.zip`). Falta que el SIA valide la configuración de nginx (`nginx -t`), instale en un servidor de ensayo siguiendo solo la guía y corra la lista de verificación.
-2. **Login** (para controlar el acceso y saber los usos). Construido y probado en `08_entrega_sia/login/`; la Unidad de Transparencia aprobó el aviso de privacidad. Falta que el SIA lo instale (`login/LEEME.md`). Con sesión configurada, la herramienta no guarda copia para uso sin conexión. La integración está descrita en `08_entrega_sia/SESION_Y_LOGIN.md`.
+2. **Login** (para controlar el acceso y saber los usos). Construido y probado en `08_entrega_sia/login/`. Falta que el SIA lo instale (`login/LEEME.md`). Con sesión configurada, la herramienta no guarda copia para uso sin conexión. La integración está descrita en `08_entrega_sia/SESION_Y_LOGIN.md`.
 3. ~~Prueba con personal de alcaldías~~: descartada el 5 oct 2026; la versión 1.0 se entrega directamente al SIA.
 4. **Visto bueno institucional de la rampa de calor** que sustituyó al semáforo.
 5. Validar con la Secretaría la regla del cruce de frentes con vialidades primarias (18 m, o 60 m con coincidencia de nombre).

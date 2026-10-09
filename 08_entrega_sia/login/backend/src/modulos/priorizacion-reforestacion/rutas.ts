@@ -21,10 +21,10 @@ import { ipDeOrigen } from "./procedencia";
    - Registra los usos (accesos, visitas, consultas y descargas) para saber qué
      instituciones y alcaldías usan la herramienta.
 
-   El aviso de privacidad lo aprobó la Unidad de Transparencia (oct. 2026) y se
-   publica en /acceso/priorizacion-reforestacion/aviso-de-privacidad.html. Por eso
-   este módulo NO trae interruptor de captura: apagado, nadie podría entrar a la
-   herramienta.
+   El aviso de privacidad se publica en
+   /acceso/priorizacion-reforestacion/aviso-de-privacidad.html. El registro es parte
+   del acceso: este módulo NO trae interruptor de captura, porque apagado nadie
+   podría entrar a la herramienta.
 
    Montaje (src/index.ts):
      app.use("/api/priorizacion-reforestacion", crearRutasPriorizacionReforestacion(poolPriorizacionReforestacion));

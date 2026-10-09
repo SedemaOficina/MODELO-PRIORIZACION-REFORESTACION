@@ -44,6 +44,6 @@ Después de descomprimir, `MANIFIESTO.sha256` permite comprobar cada archivo de 
 
 - **Herramienta:** sitio estático; no usa base de datos ni GeoServer. Solo pide a terceros las teselas del mapa de fondo si la persona lo enciende.
 - **Inicio de sesión:** nginx protege la herramienta con `auth_request`; el módulo `priorizacion-reforestacion` del backend valida la sesión y registra accesos, consultas y descargas en el esquema `priorizacion_reforestacion` de PostgreSQL.
-- **Datos personales:** nombre, correo, institución, alcaldía, bitácora de uso y dirección IP. La Unidad de Transparencia de la SEDEMA aprobó el aviso de privacidad, que se publica en la pantalla de acceso. La depuración automática cumple sus plazos: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
+- **Datos personales:** nombre, correo, institución, alcaldía, bitácora de uso y dirección IP. El aviso de privacidad se publica en la pantalla de acceso. La depuración automática cumple sus plazos: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
 - **Navegadores:** Chrome o Edge 80, Firefox 79, Safari 15, o posteriores, con WebGL 2.
 - **Soporte:** primer nivel, el SIA (servidor); segundo nivel, la Oficina de la Secretaría (contenido, datos y nuevas versiones).

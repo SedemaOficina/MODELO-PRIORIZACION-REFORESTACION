@@ -34,7 +34,7 @@ Solo en el repositorio (no van en el paquete del SIA):
 
 ## Privacidad
 
-El registro de usos trata datos personales: nombre, correo, institución, IP y bitácora. La Unidad de Transparencia de la SEDEMA revisó y aprobó el aviso de privacidad (octubre de 2026). El aviso integral se publica en la pantalla de acceso (`acceso/aviso-de-privacidad.html`) y declara los plazos que cumple la depuración automática: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
+El registro de usos trata datos personales: nombre, correo, institución, IP y bitácora. El aviso integral se publica en la pantalla de acceso (`acceso/aviso-de-privacidad.html`) y declara los plazos que cumple la depuración automática: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
 
 ## Instalación
 

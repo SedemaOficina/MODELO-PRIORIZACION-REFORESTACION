@@ -6,7 +6,7 @@
 
   Cuentas de acceso a la herramienta y bitácora de uso. Datos personales:
   nombre, correo, institución, alcaldía, bitácora de accesos y usos, IP.
-  Aviso de privacidad aprobado por la Unidad de Transparencia (oct. 2026):
+  Aviso de privacidad:
   /acceso/priorizacion-reforestacion/aviso-de-privacidad.html
 
   ORDEN: este archivo, después 02-priorizacion-reforestacion-rol-y-grants.sql.
