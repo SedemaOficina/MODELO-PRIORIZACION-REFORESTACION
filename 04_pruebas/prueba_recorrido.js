@@ -1,4 +1,4 @@
-// v17.36 · Recorrido guiado: arranca solo en la primera visita (después de la entrada), una sola vez; se repite desde «Cómo funciona».
+// Recorrido guiado: arranca solo en la primera visita (después de la entrada), una sola vez; se repite desde «Cómo funciona».
 // Comprueba cada paso en escritorio y en teléfono: el globo cabe en la pantalla, el foco cae sobre el control que explica, el paso de
 // banqueta y el de Street View (con la ficha de una calle real) están, y al salir la página queda como estaba.
 // Uso: node 04_pruebas/prueba_recorrido.js   · termina con código ≠ 0 si algo falla.

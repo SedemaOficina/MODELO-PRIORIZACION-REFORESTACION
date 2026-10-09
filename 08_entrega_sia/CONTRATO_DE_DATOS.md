@@ -89,7 +89,7 @@ Grados decimales (longitud, latitud, WGS 84) multiplicados por `Q = 100000` y re
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.
 2. Después de generar: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`, `python3 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js`. `construir.py` se niega a construir con datos distintos de los registrados.
 3. Los catálogos se referencian **por posición**: insertar un elemento en medio de `names`, `colonias` o `vp.nomenclat` cambia el significado de todos los registros.
-4. El número de clases de prioridad (5) y el umbral «prioritario» (≥ 2: Muy Alta, Alta y Media) están en `02_fuente/js/01_utilidades.js` (`PRIO_MIN`). `meta.bin` trae `cruce.km_gc_prio` calculado con el umbral anterior (≥ 3); la herramienta no lo usa y se corrige al regenerar los datos. Cambiar el número de clases exige revisar la leyenda, las fichas y los Excel.
+4. El número de clases de prioridad (5) y el umbral «prioritario» (≥ 2: Muy Alta, Alta y Media) están en `02_fuente/js/01_utilidades.js` (`PRIO_MIN`). `meta.bin` trae `cruce.km_gc_prio` calculado con umbral ≥ 3 (solo Muy Alta y Alta); la herramienta no lo usa y se corrige al regenerar los datos. Cambiar el número de clases exige revisar la leyenda, las fichas y los Excel.
 
 ## 8. Si el SIA quiere servir estos datos desde su base
 
@@ -97,4 +97,4 @@ El formato es de entrega, no de servicio: la herramienta carga los tres archivos
 
 ## 9. Limitaciones conocidas de los datos
 
-Documentadas en la auditoría del 2 de octubre de 2026 y **sin corregir**, porque se corrigen en las capas de origen: polígonos de colonias con traslapes; 138 grupos de partes de vialidad con geometría duplicada (unos 21 km); 48 partes y 2 frentes con longitud 0; tramos limítrofes asignados completos a una alcaldía; catálogos con homónimos y formatos anómalos (`06_entregables/Catalogos_para_homologacion_SIA.xlsx`).
+Identificadas en la revisión de los datos y **sin corregir**, porque se corrigen en las capas de origen: polígonos de colonias con traslapes; 138 grupos de partes de vialidad con geometría duplicada (unos 21 km); 48 partes y 2 frentes con longitud 0; tramos limítrofes asignados completos a una alcaldía; catálogos con homónimos y formatos anómalos (`06_entregables/Catalogos_para_homologacion_SIA.xlsx`).

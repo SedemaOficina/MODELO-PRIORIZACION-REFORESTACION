@@ -3,7 +3,7 @@
 const infoModal = $('info-modal'); let lastFocus = null;
 // La ventana se cierra con la × (siempre visible), con "Volver al mapa" al final, con Esc, tocando fuera
 // de ella o con el botón Atrás del teléfono (se registra un paso en el historial al abrirla).
-// Mientras la ayuda está abierta, el resto de la página queda inerte: el foco no sale de la ventana (auditoría H-048)
+// Mientras la ayuda está abierta, el resto de la página queda inerte: el foco no sale de la ventana
 const appEl = document.querySelector('.app');
 function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; appEl.inert = true; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
   try { history.pushState({ayuda:true}, ''); } catch(e){} }
@@ -12,7 +12,7 @@ function closeInfo(){ if (history.state && history.state.ayuda){ history.back();
 addEventListener('popstate', ()=>{ if (!infoModal.hidden) hideInfo(); });
 $('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-close').onclick = closeInfo; $('info-back').onclick = closeInfo;
 infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); });
-// Esc cierra, en este orden: la ayuda, la ficha abierta y el panel de capas; el foco vuelve al control que los abrió (auditoría H-048)
+// Esc cierra, en este orden: la ayuda, la ficha abierta y el panel de capas; el foco vuelve al control que los abrió
 addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) return;
   if (!entradaEl.hidden) return cierraEntrada(null);
   if (!infoModal.hidden) return closeInfo();
@@ -21,7 +21,7 @@ addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) ret
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
 $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = $('m-n-alc2').textContent = fmt.format(N - META.cruce.frentes_gc);
-$('m-alc-km').textContent = fmt0.format(cityTotKm); $('m-alc-prio').textContent = fmt0.format(cityPrioKm); $('m-alc-pct').textContent = pct(cityPrioKm, cityTotKm);   // red de las alcaldías (v17.39)
+$('m-alc-km').textContent = fmt0.format(cityTotKm); $('m-alc-prio').textContent = fmt0.format(cityPrioKm); $('m-alc-pct').textContent = pct(cityPrioKm, cityTotKm);   // red de las alcaldías
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
 // ---------- móvil: hoja inferior y leyenda plegable ----------
@@ -45,11 +45,11 @@ const capasBtn = $('zcapas');
 function setLegend(open){ legendEl.classList.toggle('open', open); legendBtn.setAttribute('aria-expanded', String(open)); capasBtn.setAttribute('aria-expanded', String(open)); capasBtn.classList.toggle('on', open); }
 legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
-setLegend(false);   // el panel de capas empieza cerrado (v17.28): la leyenda compacta dice los colores y lo abre
+setLegend(false);   // el panel de capas empieza cerrado: la leyenda compacta dice los colores y lo abre
 $('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
 addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
-// ---------- pestañas Resumen / Listado / Descargas (auditoría C1) ----------
+// ---------- pestañas Resumen / Listado / Descargas ----------
 function setTab(t){ document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
   document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['ini','res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
@@ -59,7 +59,7 @@ function updTabLabel(){
 function renderScopeTitle(){
   $('scope-title').textContent = selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : '')
     : selCol!==null? META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México'; }
-// ---------- acciones fijas al pie del panel (auditoría C1) ----------
+// ---------- acciones fijas al pie del panel ----------
 function renderActions(){
   const m=$('act-main'), f=$('act-ficha'), lbl=$('act-main-lbl'), hint=$('act-hint');
   let main=null, ficha=null, txt='', why='';
@@ -70,7 +70,7 @@ function renderActions(){
     main = (sel!==null && !vacia)? 'dl-frentes' : null;
     ficha = vacia? null : selCol!==null? 'dl-ficha' : sel!==null? 'dl-ficha-alc' : null;
     why = vacia? 'Esta colonia no tiene frentes a cargo de la alcaldía que descargar.' : sel===null? 'Elige una alcaldía o una colonia para descargar su listado.' : '';
-    // en teléfono, un listado de decenas de miles de frentes pesa demasiado: se ofrece primero el resumen por calle (auditoría H-045)
+    // en teléfono, un listado de decenas de miles de frentes pesa demasiado: se ofrece primero el resumen por calle
     if (main==='dl-frentes' && isPhone() && selCol===null){ const fsG = frSumm(), nG = sumPrio(fsG.n);
       if (nG>GRANDE){ main='dl-calles'; txt='Descargar resumen por calle (Excel)'; why=`En teléfono se ofrece primero el resumen por calle. El listado completo (${fmt.format(nG)} frentes) está en la pestaña Descargas.`; } }
     // con una calle consultada, los botones principales son los de la calle
@@ -82,14 +82,14 @@ function renderActions(){
   hint.hidden = !why; hint.textContent = why; }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
-// cierre de sesión: solo aparece si la instalación define su dirección (Fase 2)
+// cierre de sesión: solo aparece si la instalación define su dirección
 if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; document.body.classList.add('con-sesion'); }
-// ---------- títulos de lista (v1.0): la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------
+// ---------- títulos de lista: la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------
 const UNIDAD_RX = /(Colonias|Calles|Avenidas|Tramos|Alcaldías|calles)/;
 function resaltaUnidad(el){ if (!el || el.querySelector('b.unidad')) return; const t = el.textContent, m = t.match(UNIDAD_RX); if (!m) return;
   const b = document.createElement('b'); b.className = 'unidad'; b.textContent = m[1]; el.replaceChildren(t.slice(0, m.index), b, t.slice(m.index + m[1].length)); }
 for (const id of ['ini-title', 'search-title']){ const el = $(id); if (!el) continue; resaltaUnidad(el); new MutationObserver(()=>resaltaUnidad(el)).observe(el, {childList:true, characterData:true, subtree:true}); }
-// ---------- entrada (v17.28; dos pasos desde la v17.30) ----------
+// ---------- entrada en dos pasos ----------
 // Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
 // Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
 const entradaEl = $('entrada'); let entradaRed = 'alc';
@@ -108,7 +108,7 @@ function abreEntrada(){ const g = $('entrada-grid');
 entradaEl.querySelectorAll('.entrada-red').forEach(b=>{ b.onclick = ()=>{ entradaRed = b.dataset.red; entradaPaso(2); }; });
 $('entrada-volver').onclick = ()=>entradaPaso(1);
 $('entrada-cdmx').onclick = ()=>cierraEntrada(null);
-// ---------- ruta de navegación (auditoría I4) ----------
+// ---------- ruta de navegación ----------
 function renderCrumb(){
   const atRoot = sel===null && selCol===null && selAv===null;
   $('cr-city').setAttribute('aria-current', atRoot? 'page' : 'false');
@@ -117,7 +117,7 @@ function renderCrumb(){
   const rest=$('cr-rest'); let h='';
   if (selCol!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${META.colonias[selCol].n}</span><button type="button" class="cr-up" data-up="col" title="Quitar la colonia y volver a ${META.munNames[sel]}" aria-label="Quitar la colonia y volver a ${META.munNames[sel]}">×</button></span>`;
   else if (selAv!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${VPC.nomenclat[selAv]}</span><button type="button" class="cr-up" data-up="av" title="Quitar la avenida" aria-label="Quitar la avenida">×</button></span>`;
-  // la calle consultada es el último nivel de la ruta y se puede soltar (auditoría H-087)
+  // la calle consultada es el último nivel de la ruta y se puede soltar
   const cs = calleSel(); if (cs) h += `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${cs.nombre}</span><button type="button" class="cr-up" data-up="calle" title="Quitar la calle" aria-label="Quitar la calle consultada">×</button></span>`;
   rest.innerHTML = h; rest.querySelectorAll('.cr-up').forEach(up=>{ up.onclick = ()=>{ const k=up.dataset.up;
     if (k==='calle'){ highlight=null; hideCard(); rerender(); renderResults(); renderActions(); syncCalleBtns(); } else if (k==='col') clearColonia(); else clearAvenida(); }; });

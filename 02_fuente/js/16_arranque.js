@@ -7,19 +7,19 @@ setTab('ini');
 if (isPhone()) setSheetState('peek');
 // consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
 aplicarURL();
-// sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio (v17.28)
+// sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio
 let preguntaEntrada = false;
 { const p = new URLSearchParams(location.search); if (!['a','c','v','r'].some(k=>p.has(k))){ const g = leeInicio(), m = g===null? undefined : munIndex[g];
     if (m!==undefined || g==='ciudad'){ const r = leeRed(); if (resp!==r) setResp(r); if (m!==undefined){ selEl.value = String(m); setSel(String(m)); } } else preguntaEntrada = true; } }
 restaurando = false;
 usoConsulta();   // la alcaldía con que abre (recordada o del enlace) también es una consulta (solo con sesión)
 try { history.replaceState({consulta:true}, '', urlEstado()); } catch(e){}
-// errores inesperados después de cargar: se avisa en lugar de fallar en silencio (auditoría H-035)
+// errores inesperados después de cargar: se avisa en lugar de fallar en silencio
 addEventListener('unhandledrejection', e=>{ console.error(e.reason); avisoMapa('<b>Ocurrió un error inesperado.</b> Si algo dejó de responder, recarga la página.', true); });
-// Uso sin conexión después de la primera visita (auditoría H-057): un proceso de servicio guarda en este navegador los
+// Uso sin conexión después de la primera visita: un proceso de servicio guarda en este navegador los
 // archivos de la propia herramienta (programas, datos, tipografías y generadores de Excel y PDF). No guarda consultas ni datos personales.
 // Detrás de un inicio de sesión (SESION.inicio definido) NO se guarda copia: una copia local se abriría sin sesión. Si quedó una
-// de antes, se retira (auditoría H-014 y H-057).
+// de antes, se retira.
 if ('serviceWorker' in navigator && window.SIA_LIBS && /^https?:$/.test(location.protocol) && window.self===window.top){
   if (SESION.inicio){ navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
     if (window.caches) caches.keys().then(ks => ks.filter(k => k.startsWith('calles-')).forEach(k => caches.delete(k))).catch(()=>{}); }

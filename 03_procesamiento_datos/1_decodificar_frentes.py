@@ -1,4 +1,4 @@
-"""Decodifica el bloque data-b64 del artefacto v6 (varint zigzag + gzip) a arreglos numpy."""
+"""Decodifica el bloque data-b64 de la versión 6 original de la herramienta (varint zigzag + gzip) a arreglos numpy."""
 import base64, gzip, re, json, numpy as np, time
 
 import os
@@ -58,8 +58,7 @@ np.savez_compressed(SC + 'intermedios/frentes.npz', mun=mun, prio=prio, name=nam
 print('saved')
 
 # Catálogos y polígonos de la v6 (bloque meta-b64): alcaldías, colonias, nombres de calle, resúmenes. Son la entrada del paso 2,
-# que les agrega el índice de desarrollo social y escribe meta.json (v17.33: antes ningún paso lo extraía y meta.json
-# solo existía como intermedio guardado).
+# que les agrega el índice de desarrollo social y escribe meta.json.
 m = re.search(r'<script id="meta-b64" type="text/plain">([^<]+)</script>', html)
 meta = json.loads(gzip.decompress(base64.b64decode(m.group(1))).decode('utf-8'))
 json.dump(meta, open(SC + 'intermedios/meta_v6.json', 'w', encoding='utf-8'), ensure_ascii=False)

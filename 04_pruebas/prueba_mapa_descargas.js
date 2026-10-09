@@ -1,4 +1,4 @@
-// v17.29 · Descargas para abrir en un mapa: KML (Google Earth) y GeoJSON (SIG) con las calles prioritarias de la consulta.
+// Descargas para abrir en un mapa: KML (Google Earth) y GeoJSON (SIG) con las calles prioritarias de la consulta.
 // Comprueba que los archivos son válidos, que traen los mismos registros que las cifras de la pantalla y que no se entregan
 // archivos vacíos ni, en teléfono, archivos demasiado pesados.
 // Uso: node 04_pruebas/prueba_mapa_descargas.js   · termina con código ≠ 0 si algo falla.

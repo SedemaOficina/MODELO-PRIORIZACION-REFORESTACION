@@ -1,4 +1,4 @@
-// Recorrido guiado (v17.36): una visita de un minuto por la herramienta. Un foco ilumina cada control y un globo explica para qué
+// Recorrido guiado: una visita de un minuto por la herramienta. Un foco ilumina cada control y un globo explica para qué
 // sirve. Arranca solo la primera vez (después de la entrada, si la hay) y se repite desde «Cómo funciona». Insiste en la banqueta y
 // en Street View: la pre-evaluación desde la oficina decide qué calles se visitan y cuáles requieren reconocimiento en sitio.
 // Lo único que guarda es que ya se vio (cp_recorrido en este navegador).

@@ -8,7 +8,7 @@ const dk = new DeckGL({
   initialViewState: viewState, layers: NOMAP? [] : layers(), style:{background:'transparent'},   // en las pruebas con #nomap no se dibuja nada: abren en segundos aun sin tarjeta gráfica
   useDevicePixels: Math.min(window.devicePixelRatio || 1, 1.5),   // pantallas de alta densidad: menos píxeles por dibujar
   onLoad: ()=> revisarRendimiento(),
-  // un error al dibujar no deja el mapa en blanco sin explicación (auditoría H-034)
+  // un error al dibujar no deja el mapa en blanco sin explicación
   onError: e=>{ console.error(e); avisoMapa('<b>El mapa tuvo un problema al dibujarse.</b> Las cifras, los listados y las descargas siguen disponibles.', true); },
   onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; let moved=false; if (vs.zoom>=15 && lblCenter){ const w=mapEl.clientWidth||800; const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540; moved = Math.hypot(dx,dy)/mpp > w*0.35; } if (zc!==prev || moved) rerender(); updateScale(); return vs; },
   getTooltip: info => {
@@ -33,17 +33,17 @@ mapEl.addEventListener('click', e=>{
     if (cid && cid!==selCol) pickColonia(cid); else if (!cid && sel!==null && F.mun[i]!==sel){ selEl.value=String(F.mun[i]); setSel(String(F.mun[i])); }
     showCard('fr', i); } else hideCard();
 });
-// En modo ligero, dibujar las calles puede tardar: se avisa ANTES de empezar, porque durante el dibujo la página no responde (auditoría H-055)
+// En modo ligero, dibujar las calles puede tardar: se avisa ANTES de empezar, porque durante el dibujo la página no responde
 let dibT = null;
 function rerender(){ if (NOMAP) return;
   if (modoLigero && frVisibles() && showsFrontsMode()){ const d = $('dibujando'); d.hidden = false; clearTimeout(dibT);
     dibT = setTimeout(()=>{ dk.setProps({layers: layers()}); requestAnimationFrame(()=>requestAnimationFrame(()=>{ d.hidden = true; })); }, 40); return; }
   dk.setProps({layers: layers()}); }
 $('loader').hidden = true; window.SIA_LISTO = true; updateScale();
-// el lienzo del mapa, que es el que recibe el teclado, lleva nombre y rol (auditoría H-049)
+// el lienzo del mapa, que es el que recibe el teclado, lleva nombre y rol
 { const cv = mapEl.querySelector('canvas'); if (cv){ cv.setAttribute('role','application'); cv.setAttribute('aria-label', mapEl.dataset.nombre); cv.tabIndex = 0; } }
 
-// La ficha recibe el foco al abrirse y lo devuelve al cerrarse (auditoría H-048). cardOrigen = control desde el que se abrió.
+// La ficha recibe el foco al abrirse y lo devuelve al cerrarse. cardOrigen = control desde el que se abrió.
 let cardOrigen = null;
 function enfocaFicha(){ const c=$('card'); const a=document.activeElement; if (a && a!==document.body && !c.contains(a)) cardOrigen = a;
   const h=c.querySelector('h3'); c.setAttribute('aria-label', 'Ficha: ' + (h? h.textContent : 'elemento seleccionado')); try { c.focus({preventScroll:true}); } catch(e){ c.focus(); } }
@@ -61,7 +61,7 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
 }
 function hideCard(devuelve){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
   if (devuelve===true || dentro){ const o = cardOrigen && cardOrigen.isConnected && cardOrigen.offsetParent!==null? cardOrigen : $('scope-title'); cardOrigen=null; try { o.focus({preventScroll:true}); } catch(e){} } }
-// En teléfono la ficha tapa parte del panel: si el foco llega a un control tapado, la ficha se cierra para que se vea (auditoría H-048, WCAG 2.4.11)
+// En teléfono la ficha tapa parte del panel: si el foco llega a un control tapado, la ficha se cierra para que se vea (WCAG 2.4.11)
 document.addEventListener('focusin', e=>{ const c=$('card'); if (c.hidden || !isPhone() || c.contains(e.target) || !e.target.closest || !e.target.closest('.panel')) return;
   const a=e.target.getBoundingClientRect(), b=c.getBoundingClientRect(); if (a.bottom>b.top+4 && a.top<b.bottom-4) hideCard(); });
 $('zin').onclick = ()=> flyTo({...viewState, zoom:Math.min(18.5, viewState.zoom+1)}, 0);   // acercar y alejar son inmediatos

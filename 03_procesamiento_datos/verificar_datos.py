@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Verifica que los datos de la herramienta sean los registrados (auditoría H-023 y H-024).
+"""Verifica que los datos de la herramienta sean los registrados.
 
 Compara el CONTENIDO descomprimido de 02_fuente/datos/*.bin con las sumas de 02_fuente/datos/SUMAS.json. Se compara el
 contenido y no el archivo porque la compresión gzip depende de la biblioteca zlib de cada equipo: el mismo contenido

@@ -1,16 +1,16 @@
 // Fichas PDF (jsPDF bajo demanda) de colonia, alcaldía, vialidades primarias de la alcaldía, avenida y calle.
-// abre la ficha después de cargar jsPDF (de libs/ en el sitio; del CDN en el artefacto)
+// abre la ficha después de cargar jsPDF (de libs/ en el sitio; incrustada en el archivo único)
 function conPDF(kind){
   loadLib('jspdf.js', 'jspdf')
     .then(()=> generaFicha(()=> fichaPDF(kind)), e=>{ const st = $('dl-status'); if (e && e.causa==='sesion') avisoSesion(st); else st.textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });
 }
-// «no cargó la librería» y «falló la generación» son errores distintos y se dicen distinto (auditoría H-035)
+// «no cargó la librería» y «falló la generación» son errores distintos y se dicen distinto
 function generaFicha(f){ try { f(); } catch(e){ console.error(e); $('dl-status').textContent = 'No fue posible generar la ficha por un error interno. Recarga la página e inténtalo de nuevo; si persiste, avisa al Sistema de Información Ambiental.'; } }
 // ---------- fichas (PDF) ----------
-// texto en una sola línea: si no cabe, se recorta con puntos suspensivos en lugar de cortarse en seco (auditoría H-046)
+// texto en una sola línea: si no cabe, se recorta con puntos suspensivos en lugar de cortarse en seco
 function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.length<2) return t; let x = ls[0]; while (x.length>1 && doc.getTextWidth(x+'…')>w) x = x.slice(0,-1); return x.replace(/[\s·,;(]+$/,'')+'…'; }
 // título de ficha: se reduce hasta caber en el ancho útil
-// Propiedades del documento (auditoría H-052): idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
+// Propiedades del documento: idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
 function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
 function tituloFicha(doc, t, w, x, y){ try { doc.setProperties({ title: 'Ficha · ' + t }); } catch(e){} let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 2229, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
@@ -50,7 +50,7 @@ function fichaPDF(kind){
     : isAlc? `Ciudad de México · ${fmt.format(ntot)} frentes de manzana a cargo de la alcaldía · ${fmt0.format(tot)} km de frentes`
     : isVpAlc? `Ciudad de México · ${fmt.format(ntot)} tramos de vialidad primaria a cargo del Gobierno Central · ${fmt0.format(tot)} km`
     : `${[...av.nombres].join(', ')} · ${[...av.muns].map(m=>META.munNames[m]).join(', ')} · ${fmt1.format(tot)} km · ${fmt.format(ntot)} tramos`;
-  // con filtro de banqueta (v17.35) las cifras de la ficha son las filtradas: el subtítulo lo dice primero, para que no se corte
+  // con filtro de banqueta las cifras de la ficha son las filtradas: el subtítulo lo dice primero, para que no se corte
   const subB = (isCol||isAlc) && filtroBanq!=='todas'? (filtroBanq==='con'? 'Solo con banqueta (INEGI 2020) · ' : 'Solo sin banqueta o por verificar (INEGI 2020) · ') : '';
   doc.text(cortaTxt(doc, subB + sub, W-2*M), M, 44);
   const pk = isCol? c.p : isAlc? (filtroBanq!=='todas'? dom({km:cs.km}) : ALC_DOM[sel]) : isVpAlc? VP_DOM[sel] : dom({km:av.kmByP}); const pc = pk>=0? T.prio[pk] : GRIS;
@@ -66,13 +66,13 @@ function fichaPDF(kind){
   function ampP(){ return isCol? 'de la colonia' : isVpAv? 'de la avenida' : 'de la alcaldía'; }
   const kw=(W-2*M-8)/3; let y=58;
   kp.forEach((k,i)=>{ const x=M+i*(kw+4); doc.setFillColor(...PANEL); doc.setDrawColor(...LINE); doc.roundedRect(x,y,kw,20,2,2,'FD'); doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(k[0], x+4, y+9); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS); doc.text(doc.splitTextToSize(k[1], kw-8), x+4, y+14); });
-  // nota complementaria: se mide su alto real y la gráfica se coloca debajo, sin encimarse (auditoría H-046)
+  // nota complementaria: se mide su alto real y la gráfica se coloca debajo, sin encimarse
   let notaFin = 0; const nota = t => { doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GUINDA); const ls = doc.splitTextToSize(t, W-2*M).slice(0,4); doc.text(ls, M, 81.5, {lineHeightFactor:1.2}); notaFin = 81.5 + (ls.length-1)*3.6; };
   if (isAlc){ const vs=VPC.summ[META.muns[sel]]; const top=[]; for(const [a,s] of (()=>{ const m=new Map(); for(let i=0;i<NV;i++){ if(VP.mun[i]!==sel) continue; const a=VP.nom[i]; m.set(a,(m.get(a)||0)+(esPrio(VP.prio[i])? VP.len[i]/1000:0)); } return m; })()) top.push([a,s]); top.sort((x,y)=>y[1]-x[1]);
     nota(`Gobierno Central atiende además ${fmt0.format(sum(vs.km))} km de vialidades primarias en la alcaldía, medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios); no se cuentan arriba. Principales: ${top.slice(0,3).map(t=>VPC.nomenclat[t[0]]).join(', ')}.`); }
   if (isVpAlc){ const fs=META.summ[META.muns[sel]]; nota(`Los kilómetros de esta ficha se miden sobre el eje de la vialidad. ${gcFrenteTxt(sel, null)}. La alcaldía atiende por su parte ${fmt0.format(sum(fs.km))} km de frentes de manzana (${fmt0.format(kmPrio(fs))} km prioritarios); ver ficha de alcaldía.`); }
   if (isVpAv){
-    // la frase de la alcaldía elegida va primero: es la que se pidió y no debe quedar fuera si la nota es larga
+    // la frase de la alcaldía elegida va primero: es la consultada y no debe quedar fuera si la nota es larga
     let t = '';
     if (sel!==null){ const va=vpSumm(); t = `En ${META.munNames[sel]}: ${kmFull(sum(va.km))} de la avenida, ${kmFull(kmPrio(va))} prioritarios, ${fmt.format(va.recsp.size)} de ${fmt.format(va.recs.size)} tramos prioritarios. `; }
     t += `${avGruposTxt(selAv)? avGruposTxt(selAv)+'. ' : ''}Las cifras de esta ficha corresponden a la avenida completa, en todas las alcaldías que cruza, medidas sobre el eje. ${gcFrenteTxt(null, selAv)}.`;
@@ -122,11 +122,11 @@ function fichaPDF(kind){
   // tabla
   y=y+62;
   // lo prioritario (Muy Alta, Alta y Media) del ámbito de la ficha: sin arbolado, Gobierno Central y desglose por banqueta, en km de frente de manzana
-  const NR = (isCol||isAlc)? (sinNombre.kmp>0? 9 : 10) : 14;   // dos renglones menos desde la v17.35: el párrafo lleva el desglose por banqueta
+  const NR = (isCol||isAlc)? (sinNombre.kmp>0? 9 : 10) : 14;   // en colonia y alcaldía, menos renglones: el párrafo lleva el desglose por banqueta
   if (isCol||isAlc){ const R = repStat(sel, isCol? selCol : null);
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...INK);
     const ug = sumPrio(R.km[1]);
-    // v17.35: el filtro de banqueta, si está activo, y el desglose por banqueta de los km prioritarios, siempre
+    // el filtro de banqueta, si está activo, y el desglose por banqueta de los km prioritarios, siempre
     const lsU = doc.splitTextToSize(`${filtroBanq!=='todas'? 'Consulta filtrada: '+banqTxt()+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente prioritario sobre vialidades primarias ${isCol?'de la colonia':'de la alcaldía'}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
     doc.text(lsU, M, y+2, {lineHeightFactor:1.25});
     y += 16 + Math.max(0, lsU.length-3)*4.4; }
@@ -160,7 +160,7 @@ function fichaPDF(kind){
   rows.forEach((r,i)=>{ const yy=y+6+i*6.2; if(i%2){ doc.setFillColor(252,251,249); doc.rect(M,yy-4.2,W-2*M,6.2,'F'); }
     r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
   if(!rows.length){ doc.setTextColor(...GRIS); doc.text('Sin registros prioritarios.', M+1.5, y+6); }
-  // frentes prioritarios sin nombre de calle: no caben en una tabla por calle, pero se reportan (auditoría H-008)
+  // frentes prioritarios sin nombre de calle: no caben en una tabla por calle, pero se reportan
   if ((isCol||isAlc) && sinNombre.kmp>0){ doc.setFontSize(8); doc.setTextColor(...GRIS);
     doc.text(doc.splitTextToSize(`Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${isCol?'de la colonia':'de la alcaldía'} no tienen nombre de calle en INEGI (${fmt.format(sinNombre.np)} frentes); no aparecen en los listados por calle, pero sí en el Excel de frentes.`, W-2*M-3).slice(0,2), M+1.5, y+6+Math.max(rows.length,1)*6.2-1.5, {lineHeightFactor:1.2}); }
   // pie
@@ -264,7 +264,7 @@ $('dl-ficha-alc').onclick = ()=>conPDF('alc');
 $('dl-ficha-vpalc').onclick = ()=>conPDF('vpalc');
 $('dl-ficha-av').onclick = ()=>conPDF('vpav');
 
-// ---------- estado de las descargas visible desde donde se piden, y un archivo por clic (auditoría H-036) ----------
+// ---------- estado de las descargas visible desde donde se piden, y un archivo por clic ----------
 // El aviso de estado vive en la pestaña Descargas; el pie fijo lo repite, porque sus botones funcionan desde cualquier pestaña.
 // Mientras un archivo se prepara, los botones de descarga no aceptan otro clic.
 let GENERANDO = false, genT = null;
@@ -278,7 +278,7 @@ new MutationObserver(()=>{ const t = $('dl-status').textContent.trim(); const a 
 ['dl-frentes','dl-calles','dl-tramos','dl-avenidas','dl-calle','dl-ficha-calle','dl-ficha-vpalc','dl-ficha-av','dl-ficha-alc','dl-ficha','dl-kml','dl-geojson'].forEach(id=>{ const b = $(id), h = b.onclick; if (!h) return;
   b.onclick = e=>{ if (GENERANDO || b.disabled) return; GENERANDO = true; document.body.classList.add('generando'); $('dl-status').textContent = 'Preparando archivo…';
     // un Excel grande en un equipo lento puede pasar de 90 s: primero se avisa que sigue en proceso y solo a los 5 min se da por fallido
-    // (antes se decía «No fue posible» a los 90 s, se liberaban los botones y el archivo llegaba después: la persona lo pedía dos veces)
+    // (darlo por fallido antes soltaría los botones y el archivo llegaría después: la persona lo pediría dos veces)
     genT = setTimeout(()=>{ if (!GENERANDO) return;
       if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'Preparando archivo… es grande y en este equipo tarda; sigue en proceso.';
       genT = setTimeout(()=>{ if (GENERANDO){ finGenera(); if (EN_CURSO.test($('dl-status').textContent)) $('dl-status').textContent = 'No fue posible preparar el archivo. Inténtalo de nuevo.'; } }, 210000); }, 90000);

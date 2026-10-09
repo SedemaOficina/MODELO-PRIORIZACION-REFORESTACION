@@ -4,7 +4,7 @@ GitHub puede repetir, en cada cambio que llega al repositorio, las verificacione
 
 **Qué cambia al activarla.** En cada *Push*, la pestaña *Actions* del repositorio muestra una palomita verde o una cruz roja. Si falla, GitHub envía un correo a la cuenta. La página publicada no depende de este resultado. Es gratuita en repositorios públicos.
 
-**Por qué no se activó.** El archivo va en `.github/workflows/`, una carpeta que la sesión de trabajo no puede escribir. Activarla es decisión de quien administra la cuenta.
+**Quién la activa.** El archivo va en `.github/workflows/` y se crea desde github.com con la cuenta que administra el repositorio. Activarla le corresponde a quien la administra.
 
 ## Cómo activarla
 
@@ -16,7 +16,7 @@ GitHub puede repetir, en cada cambio que llega al repositorio, las verificacione
 Para desactivarla: borrar ese archivo desde github.com, o en *Settings → Actions* deshabilitar las acciones del repositorio.
 
 ```yaml
-# Verificación automática en cada cambio que llega a GitHub (auditoría H-038): datos, construcción y revisión estática.
+# Verificación automática en cada cambio que llega a GitHub: datos, construcción y revisión estática.
 # No abre el navegador: las seis pruebas de navegador se corren en el equipo de trabajo antes de cada commit (04_pruebas/LEEME.md).
 # Si falla, GitHub avisa por correo a la cuenta del repositorio; la página publicada no cambia por ello.
 name: Verificar

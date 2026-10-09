@@ -1,4 +1,4 @@
-// Biblioteca común de las pruebas que comparan cifras (auditoría integral del 2 de octubre de 2026).
+// Biblioteca común de las pruebas que comparan cifras.
 // Decodificador PROPIO e independiente de la aplicación: lee docs/datos/*.bin (gzip + varint zigzag) con Node.
 // Variables de entorno: DOCS (carpeta docs/ a probar; por omisión ../docs), PW_CHROME (ejecutable de Chromium).
 const http = require('http'), fs = require('fs'), path = require('path'), zlib = require('zlib');
@@ -38,7 +38,7 @@ function decodificar(docs = DOCS) {
   return { META, F, VP, N, NV };
 }
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
-// «prioritario» = Muy Alta, Alta y Media (clase ≥ 2) desde la v1.0; mismo umbral que PRIO_MIN de la herramienta
+// «prioritario» = Muy Alta, Alta y Media (clase ≥ 2); mismo umbral que PRIO_MIN de la herramienta
 const PRIO_MIN = 2;
 // ---- cálculo independiente de resúmenes (no usa META.summ ni funciones de la app) ----
 function resumenFrentes(D, { mun = null, col = null, gc = 0 } = {}) {
@@ -62,9 +62,9 @@ async function lanzar() {
   if (process.env.PW_CHROME) op.executablePath = process.env.PW_CHROME;
   return chromium.launch(op);
 }
-// La primera visita pregunta el territorio (v17.28). Las pruebas parten de «toda la ciudad», como una visita que ya eligió;
+// La primera visita pregunta el territorio. Las pruebas parten de «toda la ciudad», como una visita que ya eligió;
 // `entrada: true` en abrir() deja la primera visita tal cual.
-// También marca como visto el recorrido guiado (v17.36), para que no tape lo que revisan las pruebas; prueba_recorrido.js lo pide.
+// También marca como visto el recorrido guiado, para que no tape lo que revisan las pruebas; prueba_recorrido.js lo pide.
 const sinEntrada = ctx => ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); localStorage.setItem('cp_recorrido', 'visto'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });
 async function abrir(browser, url, opciones = {}, errores = []) {
   const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => k !== 'entrada' && k !== 'recorrido')) });
@@ -77,7 +77,7 @@ async function abrir(browser, url, opciones = {}, errores = []) {
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errores.push('console: ' + m.text()); });
   await page.route(u => u.hostname.startsWith('fonts.'), r => r.fulfill({ status: 200, body: '', contentType: 'text/css' }));
   await page.goto(url); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
-  // las pruebas heredadas leen las cifras de la pestaña Resumen; la pestaña inicial («Dónde empezar») tiene su propia prueba
+  // las pruebas leen las cifras de la pestaña Resumen; la pestaña inicial («Dónde empezar») tiene su propia prueba
   if (!opciones.entrada) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); });
   return { ctx, page };
 }
@@ -116,7 +116,7 @@ async function descargar(page, sel, dir, t = 90000) {
   if (!d) return null; const nombre = d.suggestedFilename(); const ruta = path.join(dir, nombre); await d.saveAs(ruta); return { nombre, ruta, ms: Date.now() - t0, bytes: fs.statSync(ruta).size };
 }
 
-// ---- manejo de controles (compartido por prueba_descargas.js y prueba_estado_vacio.js) ----
+// ---- manejo de controles (compartido por las pruebas) ----
 const RSP = { alc: ['alc'], gc: ['gc'], both: ['alc', 'gc'] };
 async function ponResp(page, v) { const act = async () => page.$$eval('button[data-resp]', bs => Object.fromEntries(bs.map(b => [b.dataset.resp, b.getAttribute('aria-pressed') === 'true'])));
   let a = await act(); for (const k of ['alc', 'gc']) if (RSP[v].includes(k) && !a[k]) await clic(page, `button[data-resp="${k}"]`);

@@ -9,7 +9,7 @@ node 04_pruebas/correr_todas.js rapidas    datos, construcción y revisión est�
 
 Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la raíz (instala las versiones fijadas en `package.json`: Playwright 1.56.0 y ESLint 9.37.0), y `npx playwright install chromium`. La prueba de coherencia requiere además `openpyxl` y `pdftotext`.
 
-**En Windows** (desde la v17.31): las pruebas llaman a Python como `python` (en Windows `python3` es un acceso directo a la tienda) y ya no se parten con rutas que llevan espacios. `pdftotext` viene con Git para Windows (`C:\Program Files\Git\mingw64\bin`); las pruebas le piden `-enc UTF-8`, porque en Windows entrega por omisión la codificación del sistema. `correr_todas.js` cuenta como falla una verificación que no pudo correr (por ejemplo, ESLint sin `npm install`): lo que no se revisó no se da por aprobado. Las órdenes de `package.json` que corren Python pasan por `04_pruebas/py.js`, que elige el nombre correcto en cada sistema.
+**En Windows**: las pruebas llaman a Python como `python` (en Windows `python3` es un acceso directo a la tienda) y no se parten con rutas que llevan espacios. `pdftotext` viene con Git para Windows (`C:\Program Files\Git\mingw64\bin`); las pruebas le piden `-enc UTF-8`, porque en Windows entrega por omisión la codificación del sistema. `correr_todas.js` cuenta como falla una verificación que no pudo correr (por ejemplo, ESLint sin `npm install`): lo que no se revisó no se da por aprobado. Las órdenes de `package.json` que corren Python pasan por `04_pruebas/py.js`, que elige el nombre correcto en cada sistema.
 
 | Verificación | Qué cuida | Duración aproximada |
 |---|---|---|
@@ -24,7 +24,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_servidor_sia.js` | Instalada en `/priorizacion-reforestacion/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
 | `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas, sin «Compartir» | 1 min |
-| `prueba_casos_limite.js` | Casos de la revisión del 5 oct 2026: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
+| `prueba_casos_limite.js` | Casos límite: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
 | `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central | 1 min |
 | `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, pasos de banqueta y de Street View, en escritorio y teléfono | 1 min |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
@@ -60,7 +60,7 @@ Imprime `OK` o `FALLA` por cada punto y termina con error si algo falla. Las des
 
 ## Prueba de coherencia de cifras
 
-`prueba_coherencia_cifras.js` (usa `lib_pruebas.js`) compara lo que muestra la pantalla con el **contenido** de los Excel y las fichas PDF y con un recálculo independiente desde `docs/datos/*.bin`: colonias con frentes en otra alcaldía (Tecpinco), unidades de la leyenda, tramos por `id_tramo`, avenida acotada a alcaldía y calles homónimas. Desde la v17.15 verifica además el cuadro «Quién atiende» (km de frente por responsable y prioridad), el universo de intervención (Muy Alta, Alta y Media) con sus cifras sin arbolado y con banqueta, la población de ese universo y el desglose de cada calle por prioridad; desde la v17.16, los tramos de la calle consultada (cuadro, Excel y ficha); desde la v17.17, el paso de ubicación de las calles con nombre repetido (alcaldías con conteo, renglones sin cifras) y la búsqueda de calle con su colonia o alcaldía; desde la v17.18, el equivalente en km de frente de las vialidades primarias y la banqueta como condición; desde la v17.19, el nombre único de los frentes sin calle, el identificador y la fecha en los Excel, el punto a media longitud, los frentes sin colonia, el aviso del filtro de la leyenda, las descargas sin registros, las avenidas homónimas y la calle en la ruta de navegación.
+`prueba_coherencia_cifras.js` (usa `lib_pruebas.js`) compara lo que muestra la pantalla con el **contenido** de los Excel y las fichas PDF y con un recálculo independiente desde `docs/datos/*.bin`: colonias con frentes en otra alcaldía (Tecpinco), unidades de la leyenda, tramos por `id_tramo`, avenida acotada a alcaldía y calles homónimas. Verifica además el cuadro «Quién atiende» (km de frente por responsable y prioridad), el universo de intervención (Muy Alta, Alta y Media) con sus cifras sin arbolado y con banqueta, la población de ese universo y el desglose de cada calle por prioridad; los tramos de la calle consultada (cuadro, Excel y ficha); el paso de ubicación de las calles con nombre repetido (alcaldías con conteo, renglones sin cifras) y la búsqueda de calle con su colonia o alcaldía; el equivalente en km de frente de las vialidades primarias y la banqueta como condición; el nombre único de los frentes sin calle, el identificador y la fecha en los Excel, el punto a media longitud, los frentes sin colonia, el aviso del filtro de la leyenda, las descargas sin registros, las avenidas homónimas y la calle en la ruta de navegación.
 
 ```
 node 04_pruebas/prueba_coherencia_cifras.js
@@ -104,7 +104,7 @@ Tarda unos 2 minutos. Las demás pruebas bloquean el proceso de servicio (`servi
 node 04_pruebas/prueba_accesibilidad.js
 ```
 
-Las propiedades del Excel se leen con Python (`zipfile`), sin depender de `unzip`. Cada corrección de la auditoría de accesibilidad queda así como comprobación automática (H-076). **No sustituye** la lectura con un lector de pantalla real ni una revisión con una herramienta como axe.
+Las propiedades del Excel se leen con Python (`zipfile`), sin depender de `unzip`. Cada criterio de accesibilidad revisado queda así como comprobación automática. **No sustituye** la lectura con un lector de pantalla real ni una revisión con una herramienta como axe.
 
 ## Prueba de la construcción
 
@@ -124,9 +124,9 @@ node 04_pruebas/prueba_servidor_sia.js
 
 No sustituye la validación en el nginx real del SIA: el servidor de la prueba es de Node y solo reproduce las cabeceras.
 
-## Entrada y orientación (v17.28)
+## Entrada y orientación
 
-`prueba_orientacion.js` comprueba que la primera visita pregunta el territorio y la siguiente abre en la última alcaldía consultada, que un enlace compartido no pregunta, que «Dónde empezar» lista las colonias en el orden elegido (y coincide con el listado de colonias que ya existía), que elegir una colonia pasa a sus calles, que el panel de capas empieza cerrado con la leyenda compacta, que «Quién atiende» y el aviso de asignación preliminar están en el panel de capas y que «Compartir» copia la dirección.
+`prueba_orientacion.js` comprueba que la primera visita pregunta el territorio y la siguiente abre en la última alcaldía consultada, que un enlace compartido no pregunta, que «Dónde empezar» lista las colonias en el orden elegido (y coincide con el listado de colonias), que elegir una colonia pasa a sus calles, que el panel de capas empieza cerrado con la leyenda compacta, que «Quién atiende» y el aviso de asignación preliminar están en el panel de capas y que no hay botón «Compartir»: la consulta queda en la dirección.
 
 Las demás pruebas parten de «toda la ciudad» (`L.sinEntrada`) y leen las cifras en la pestaña Resumen.
 
@@ -134,7 +134,7 @@ Las demás pruebas parten de «toda la ciudad» (`L.sinEntrada`) y leen las cifr
 node 04_pruebas/prueba_orientacion.js
 ```
 
-## Descargas para abrir en un mapa (v17.29)
+## Descargas para abrir en un mapa
 
 `prueba_mapa_descargas.js` descarga el GeoJSON y el KML de una colonia, de una alcaldía grande y de las vialidades primarias, y comprueba: que son válidos (JSON y XML bien formados, líneas con coordenadas dentro de la ciudad), que traen tantas líneas como frentes prioritarios dice la pantalla y que sus longitudes suman los mismos kilómetros, que declaran fuentes, asignación preliminar y versión, y que en teléfono no se entrega el archivo de una alcaldía grande.
 

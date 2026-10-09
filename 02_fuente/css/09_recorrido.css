@@ -1,4 +1,4 @@
-/* Recorrido guiado (v17.36, js/17_recorrido.js): un velo que oscurece la página, un foco que deja ver el control y un globo que lo explica */
+/* Recorrido guiado (js/17_recorrido.js): un velo que oscurece la página, un foco que deja ver el control y un globo que lo explica */
 .rec-velo{position:fixed;inset:0;z-index:2000;background:transparent}
 .rec-velo.sin-foco{background:rgba(20,22,26,.6)}
 .rec-foco{position:fixed;z-index:2001;border-radius:10px;pointer-events:none;box-shadow:0 0 0 3px var(--dorado),0 0 0 200vmax rgba(20,22,26,.6);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease}

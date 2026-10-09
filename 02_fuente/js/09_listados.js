@@ -22,12 +22,12 @@ const AV_N = VPC.nomenclat.map(norm);
 function desgHtml(s){ const d = dom({km:s.kp}); const partes = []; for(let p=4;p>=0;p--) if (s.kp[p]>0) partes.push(`<span><i data-st="background:var(--p${p})"></i>${META.prio[p]} ${kmFull(s.kp[p])}</span>`);
   return `<div class="desg" aria-label="Kilómetros de frente de la calle por prioridad">${partes.join('')}</div>${partes.length>1? `<div class="t">Prioridad predominante: ${META.prio[d]} · ${kmFull(s.km)} de frente en total</div>` : ''}`; }
 const PLACEHOLDER = new Set(META.names.map((n,i)=>[norm(n),i]).filter(([n])=> n==='' || n==='sin referencia' || n==='sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion')).map(x=>x[1]));
-// Nombre de un frente, igual en tarjeta, listados, Mi ubicación, Excel y fichas (auditoría H-008): los nombres genéricos de INEGI
+// Nombre de un frente, igual en tarjeta, listados, Mi ubicación, Excel y fichas: los nombres genéricos de INEGI
 // («Ninguno», «Sin Referencia», «Manzana o Edificación Contigua» y variantes como «Privada Ninguno») no son nombres de calle.
 const SIN_NOMBRE = 'Frente sin nombre de calle (INEGI)';
 const sinNombreFr = i => PLACEHOLDER.has(F.name[i]) || !META.names[F.name[i]];
 const nomFrente = i => sinNombreFr(i)? SIN_NOMBRE : META.names[F.name[i]];
-// frentes de alcaldía sin colonia asignada (auditoría H-028): no aparecen en ninguna consulta por colonia
+// frentes de alcaldía sin colonia asignada: no aparecen en ninguna consulta por colonia
 let SINCOL = null, SINCOL_B = null;   // se rehace al cambiar el filtro de banqueta
 const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroBanq){ SINCOL_B = filtroBanq; SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaBanq(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
 const sinColStat = () => sel!==null? sinColBase()[sel] : sinColBase().reduce((t,s)=>({n:t.n+s.n, km:t.km+s.km, kmp:t.kmp+s.kmp}), {n:0,km:0,kmp:0});
@@ -102,7 +102,7 @@ function renderUbicar(items, qRaw){
 function renderResults(){
   const q = norm($('q').value.trim()); locChips('');
   if (alcOnly() && sel===null && q.length<2){ renderAlcRanking(); return; }
-  if (colLista() && selCol===null && q.length<2){ renderColoniaRanking(); return; }   // depende de las casillas, no del zoom (auditoría H-075)
+  if (colLista() && selCol===null && q.length<2){ renderColoniaRanking(); return; }   // depende de las casillas, no del zoom
   if (isGC() && selAv!==null && q.length<2){ renderAvenueByAlc(); return; }
   const ul = $('results'); ul.innerHTML='';
   if (isGC()){
@@ -164,14 +164,14 @@ function highlightStreet(nid, s){
   hideCard(); collapseSheet(); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns();
 }
 $('q').addEventListener('input', renderResults);
-// Renglones de los listados (auditoría H-049): se activan también con la barra espaciadora y, como el listado se vuelve a
+// Renglones de los listados: se activan también con la barra espaciadora y, como el listado se vuelve a
 // armar al elegir, el foco pasa al título de la respuesta (cambio de ámbito) o regresa al renglón elegido (calle consultada).
 for (const id of ['results','tramos']) $(id).addEventListener('keydown', e=>{ const li = e.target; if (!li.matches || !li.matches('li[tabindex]')) return;
   if (e.key===' '){ e.preventDefault(); li.click(); } if (e.key!==' ' && e.key!=='Enter') return;
   setTimeout(()=>{ const a = document.activeElement; if (a && a!==document.body && a.isConnected) return;
     ($('results').querySelector('li.active') || $('scope-title')).focus(); }, 60); });
 
-// ---------- pestaña «Dónde empezar» (v17.28) ----------
+// ---------- pestaña «Dónde empezar» ----------
 // Propone un orden de atención sin depender de las casillas de capas: colonias del ámbito (con criterio de orden elegible),
 // calles de la colonia consultada o avenidas cuando solo se consulta al Gobierno Central.
 let iniOrden = 'kmp', iniN = 10;

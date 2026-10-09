@@ -1,5 +1,5 @@
-// v17.28 y v17.30 · Entrada y orientación: entrada en dos pasos (red y territorio), pestaña inicial «Dónde empezar», panel de capas cerrado con
-// leyenda compacta, «Quién atiende» dentro del panel de capas y botón para compartir la consulta.
+// Entrada y orientación: entrada en dos pasos (red y territorio), pestaña inicial «Dónde empezar», panel de capas cerrado con
+// leyenda compacta, «Quién atiende» dentro del panel de capas y la consulta guardada en la dirección.
 // Uso: node 04_pruebas/prueba_orientacion.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
 const ok = L.Registro('orientación');
@@ -72,7 +72,7 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('con una alcaldía, «Dónde empezar» lista diez colonias numeradas', /Colonias de Iztapalapa/.test(est.tit) && f.length === 10 && f.map(x => x.pos).join() === '1,2,3,4,5,6,7,8,9,10' && est.orden, est.tit + ' · ' + est.cnt);
     ok('las cifras del ámbito están en la pestaña Resumen', est.kpisEnResumen && est.resumenOculto);
     ok('orden por km prioritarios: no creciente', noCrece(f.map(x => num(x.k) * (/\bm$/.test(x.k) ? 0.001 : 1))), f.map(x => x.k).join(' | '));
-    // contraste con el listado de colonias que ya existía (capa Calles apagada)
+    // contraste con el listado de colonias (capa Calles apagada)
     await page.evaluate(() => document.querySelector('.seg.lvl button[data-lvl="fr"]').click()); await page.waitForTimeout(300);
     const viejo = await page.$$eval('#results li[role=button] .n', ls => ls.map(l => l.innerText.trim()));
     ok('coincide con el listado de colonias por km prioritarios', viejo.length === 10 && viejo.join('|') === f.map(x => x.nombre).join('|'), viejo.slice(0, 3).join(', '));
@@ -91,9 +91,9 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('elegir una calle la deja como calle consultada', await page.evaluate(() => /Quitar la calle/.test(document.getElementById('cr-rest').innerHTML)));
     ok('sin NaN, undefined ni negativos en la pestaña', !L.MALOS.test(await page.$eval('#tp-ini', x => x.innerText)) && L.negativos(await page.$eval('#tp-ini', x => x.innerText)).length === 0);
     // compartir
-    ok('v1.0 ya no hay botón «Compartir»; la dirección sigue guardando la consulta', !(await page.$('#share')) && /c=\d+/.test(await page.evaluate(() => location.href)));
+    ok('no hay botón «Compartir»; la dirección guarda la consulta', !(await page.$('#share')) && /c=\d+/.test(await page.evaluate(() => location.href)));
     const ti = await page.evaluate(() => ({ b: (document.querySelector('#ini-title b.unidad') || {}).textContent, t: document.getElementById('ini-title').textContent }));
-    ok('v1.0 el título de «Dónde empezar» destaca lo que se consulta', ti.b === 'Calles' && /^Calles de /.test(ti.t), JSON.stringify(ti));
+    ok('el título de «Dónde empezar» destaca lo que se consulta', ti.b === 'Calles' && /^Calles de /.test(ti.t), JSON.stringify(ti));
     // ciudad y Gobierno Central
     await L.clic(page, '#zcity'); await page.waitForTimeout(400);
     const cd = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, sub: document.querySelector('#ini-list li .t').textContent }));

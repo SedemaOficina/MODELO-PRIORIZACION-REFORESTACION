@@ -26,7 +26,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   const browser = await chromium.launch({ args: ['--use-gl=swiftshader', '--enable-unsafe-swiftshader'] });
   const errores = [];
   const abrir = async (opciones) => {
-    const ctx = await browser.newContext({ acceptDownloads: true, ...opciones }); await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); localStorage.setItem('cp_recorrido', 'visto'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });   // sin la pregunta de territorio de la primera visita (v17.28) ni el recorrido guiado (v17.36)
+    const ctx = await browser.newContext({ acceptDownloads: true, ...opciones }); await ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); localStorage.setItem('cp_recorrido', 'visto'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });   // sin la pregunta de territorio de la primera visita ni el recorrido guiado
     const page = await ctx.newPage(); page.setDefaultTimeout(180000);
     page.on('pageerror', e => errores.push(e.message)); await page.route(u => u.hostname.startsWith('fonts.'), sinFuentes);
     const t0 = Date.now(); await page.goto(URL); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(1500);
@@ -79,7 +79,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   ok('botón de la casa responde después de acercar con la rueda', escRueda !== escCiudad && (await texto(page, '#scalebar')) === escCiudad, `${escRueda} → ${await texto(page, '#scalebar')}`);
   // mapa de fondo satelital: las teselas se simulan para no depender de internet
   let teselas = 0; const servs = new Set(), u_esri = u => u.includes('arcgisonline.com'); await page.route(u => ['tiles.maps.eox.at', 'basemaps.cartocdn.com', 'static-map-tiles-api.arcgis.com', 'services.arcgisonline.com'].includes(u.hostname), r => { teselas++; if (u_esri(r.request().url())) servs.add(r.request().url().split('/tile/')[0].split('/services/')[1]); r.fulfill({ status: 200, body: TESELA, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' } }); });
-  const hastaTeselas = async () => { for (let i = 0; i < 120 && !teselas; i++) await page.waitForTimeout(500); await page.waitForTimeout(500); };   // espera por condición, no por tiempo fijo (auditoría H-077)
+  const hastaTeselas = async () => { for (let i = 0; i < 120 && !teselas; i++) await page.waitForTimeout(500); await page.waitForTimeout(500); };   // espera por condición, no por tiempo fijo
   await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await hastaTeselas();
   ok('mapa de fondo de calles con su atribución', teselas > 0 && (await texto(page, '#attrib')).includes('OpenStreetMap'), `${teselas} teselas`); teselas = 0;
   await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await hastaTeselas();

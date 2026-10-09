@@ -35,7 +35,7 @@ def varint_bytes(vals):
 
 # ---------- vialidades primarias ----------
 to_wgs = Transformer.from_crs('EPSG:32614', 'EPSG:4326', always_xy=True)
-# La capa debe venir en UTM zona 14 norte (EPSG:32614): se comprueba en su .prj en lugar de suponerlo (auditoría H-024).
+# La capa debe venir en UTM zona 14 norte (EPSG:32614): se comprueba en su .prj en lugar de suponerlo.
 _prj = SC + 'insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.prj'
 if os.path.isfile(_prj) and '14n' not in open(_prj, encoding='utf-8', errors='replace').read().lower().replace(' ', '').replace('_', ''):
     sys.exit('ERROR: la capa de vialidades primarias no está en UTM zona 14 norte (revisar su .prj); no se generó nada.')
@@ -51,7 +51,7 @@ for rec_i, sr in enumerate(r.iterShapeRecords()):
         lon, lat = to_wgs.transform(p[:, 0], p[:, 1])
         VP.append({'rec': rec_i, 'a': rec, 'lon': lon, 'lat': lat, 'len': L})
 # El cruce (paso 3) se hizo contra una capa concreta: cada frente de Gobierno Central guarda el número de la parte de vialidad
-# a la que quedó enlazado. Si la capa cambió y no se repitió el paso 3, esos números apuntan a otra vialidad (auditoría H-023).
+# a la que quedó enlazado. Si la capa cambió y no se repitió el paso 3, esos números apuntan a otra vialidad.
 if int(gcvp.max()) >= len(VP):
     sys.exit('ERROR: el cruce enlaza a la parte %d y la capa solo tiene %d partes. Repetir el paso 3 con esta capa; no se generó nada.' % (int(gcvp.max()), len(VP)))
 if 'nvp' in cr and int(cr['nvp']) != len(VP):

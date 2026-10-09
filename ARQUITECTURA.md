@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.0 (5 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.0 (8 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -29,7 +29,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 ├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
 ├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
-├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, auditoría UX
+├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, revisión de experiencia de uso
 │                              y bitácora de decisiones (la bitácora solo en la copia local)
 ├── 06_entregables/            listas de catálogos para el SIA, logotipo institucional y lámina de frentes de manzana
 ├── 08_entrega_sia/            paquete de entrega al SIA: instalación, nginx, verificación, sesión, contrato de datos
@@ -46,11 +46,10 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `docs/` | GitHub Pages y el servidor del SIA | `index.html` + `estilos.css` + `config.js` + `app.js` + `sw.js` + `datos/` + `libs/` + `fuentes/` + `img/`, cada referencia con huella `?v=` para la caché del navegador. **Sin programas ni estilos en línea:** todo el JavaScript y todo el CSS van en archivos, de modo que el sitio funciona bajo una política de seguridad de contenido estricta (lo comprueba `04_pruebas/prueba_servidor_sia.js`). `<title>`, `<meta>` y la hoja de estilos van en `<head>`: lo que la plantilla trae antes del marcador `<!-- ESTILOS -->` pasa al encabezado. |
 | `_local/priorizacion_reforestacion.html` | Abrir con doble clic, sin servidor, también en redes que bloquean dominios externos | Todo incrustado en un archivo: estilos, tipografías, imágenes, datos y las cuatro librerías (deck.gl y pako como programa; SheetJS y jsPDF en base64, se activan al pedir un Excel o una ficha). No pide nada a terceros. No se publica. |
 | `05_documentacion/cifras_de_la_construccion.md` | Documentación | Tamaños y conteos medidos en la construcción. |
-| `--artefacto RUTA` | Respaldo como artefacto de Claude | Igual que el anterior, sin la envoltura `<html>`. |
 
 - `css/*.css` se concatenan en orden alfabético → `estilos.css`.
 - `js/*.js` se concatenan en orden alfabético dentro de una función asíncrona (`(async function(){ … })()`) → `app.js`. Por eso **todos los archivos comparten el mismo alcance**: una variable o función de `03_estado.js` se usa directamente en `10_seleccion.js`. Si al cargar ocurre un error, el cargador lo muestra en lugar del mapa.
-- `config.js` indica dónde están las librerías (`SIA_LIBS`) y su huella (`SIA_LIBS_V`), la huella y el tamaño de los datos (`SIA_DATOS`), las claves de los mapas de fondo y las direcciones de la sesión (`SIA_SESION`). Claves y sesión no se escriben en `construir.py`: se toman de variables de entorno (`SIA_CARTO_KEY`, `SIA_ESRI_KEY`, `SIA_SESION_INICIO`, `SIA_SESION_CIERRE`) o de `02_fuente/claves.local.json`, que no se publica. Si no existe (archivo único o artefacto), la app lee los datos incrustados.
+- `config.js` indica dónde están las librerías (`SIA_LIBS`) y su huella (`SIA_LIBS_V`), la huella y el tamaño de los datos (`SIA_DATOS`), las claves de los mapas de fondo y las direcciones de la sesión (`SIA_SESION`). Claves y sesión no se escriben en `construir.py`: se toman de variables de entorno (`SIA_CARTO_KEY`, `SIA_ESRI_KEY`, `SIA_SESION_INICIO`, `SIA_SESION_CIERRE`) o de `02_fuente/claves.local.json`, que no se publica. Si no existe (archivo único), la app lee los datos incrustados.
 - Solo se reescriben los archivos que cambiaron, así Git no ve cambios falsos.
 - **Valida antes de escribir:** las listas `JS_ESPERADOS` y `CSS_ESPERADOS` nombran cada módulo; si falta, sobra o está vacío uno, se detiene con código 1 y no escribe nada. Para agregar un módulo hay que añadirlo a la lista. De `libs/` y `fuentes/` solo se publica lo listado en `LIBS_PUBLICADAS` y `FUENTES_PUBLICADAS`.
 - **Datos verificados:** compara el contenido descomprimido de `datos/*.bin` con `datos/SUMAS.json` y se detiene si no coincide. Se compara el contenido porque la compresión gzip cambia de un equipo a otro. Tras regenerar los datos a propósito: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`.
@@ -66,30 +65,30 @@ MODELO-PRIORIZACION-REFORESTACION/
 3. `02_datos.js` descarga los tres `.bin` con barra de avance, los descomprime (`DecompressionStream`, o pako si no existe) y los decodifica.
 4. `03_estado.js` a `15_mi_ubicacion.js` preparan estado, mapa, panel y eventos; `16_arranque.js` fija el estado inicial.
 5. jsPDF y SheetJS se cargan solo al pedir una ficha o un Excel (`loadLib`).
-6. `16_arranque.js` registra `sw.js` (lo genera `construir.py`): guarda en el navegador los archivos de la herramienta con el nombre de caché `calles-<huella>`, de modo que la siguiente visita abre sin conexión. La página se pide primero a la red y solo si falla se usa la copia; cada publicación cambia la huella y descarta la copia anterior. No se registra en el archivo único ni dentro de un marco. **Fase 2:** revisar junto con el inicio de sesión del SIA, para que no sirva la herramienta a quien no ha entrado.
+6. `16_arranque.js` registra `sw.js` (lo genera `construir.py`): guarda en el navegador los archivos de la herramienta con el nombre de caché `calles-<huella>`, de modo que la siguiente visita abre sin conexión. La página se pide primero a la red y solo si falla se usa la copia; cada publicación cambia la huella y descarta la copia anterior. No se registra en el archivo único ni dentro de un marco. Con la sesión configurada (`SESION.inicio`) tampoco se registra, y se retira la copia que hubiera: una copia local se abriría sin sesión.
 
 ## 5. Módulos de `02_fuente/js/`
 
 | Archivo | Responsabilidad | Funciones principales |
 |---|---|---|
-| `01_utilidades.js` | `$`, formatos de número, km y porcentaje; **reglas de negocio** («prioritario»); errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `PRIO_MIN`, `UNIV_MIN`, `esPrio`, `sumPrio`, `sumUniv`, `errAmable`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
+| `01_utilidades.js` | `$`, formatos de número, km y porcentaje; **reglas de negocio** («prioritario»); errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `PRIO_MIN`, `esPrio`, `sumPrio`, `errAmable`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
 | `02_datos.js` | Descarga, descompresión y decodificación de los datos; `puntoMedio` es la única regla de punto medio (a media longitud sobre la línea) | `fetchBytes`, `gunzip`, `reader`, `puntoMedio` |
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP` |
 | `04_mapa_capas.js` | Vista del mapa, nombres de calle, barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento` |
-| `07_leyenda_y_capas.js` | Leyenda-filtro, fila «Atiende» (alcaldías / Gobierno Central; junto al buscador, con su explicación en el panel de capas), fila «Banqueta» (v17.35), casillas de capas, mapa de fondo | `setResp`, `setBanq`, `setLayer`, `setFondo` |
-| `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; desglose de lo prioritario por banqueta y cuadro «Quién atiende» en km de frente por responsable | `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `repartoHtml`, `univHtml`, `renderSummary` |
+| `07_leyenda_y_capas.js` | Leyenda-filtro, fila «Atiende» (alcaldías / Gobierno Central; junto al buscador, con su explicación en el panel de capas), fila «Banqueta», casillas de capas, mapa de fondo | `setResp`, `setBanq`, `setLayer`, `setFondo` |
+| `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; desglose de lo prioritario por banqueta y cuadro «Quién atiende» en km de frente por responsable | `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `repartoHtml`, `renderSummary` |
 | `09_listados.js` | Pestaña "Listado": calles dentro de su colonia, avenidas, colonias, alcaldías; calle consultada (la resaltada). Pestaña inicial «Dónde empezar» (`renderInicio`): colonias del ámbito con orden elegible, calles de la colonia o avenidas | `nomFrente` (nombre único de un frente; «Frente sin nombre de calle (INEGI)»), `buildStreets`, `buildAvenues`, `desgHtml` (desglose de la calle por prioridad), `calleCoincide` y `renderUbicar` (paso de ubicación de un nombre repetido: alcaldías con conteo y renglones sin cifras), `renderResults`, `highlightStreet`, `calleSel` |
 | `09_tramos.js` | Tramos de la calle consultada: agrupa sus frentes de esquina a esquina con una regla geométrica (casi paralelos, en lados opuestos y traslapados) y nombra las vialidades que los delimitan; se calcula al consultar, sin cambiar los datos | `tramosDeCalle`, `entreTxt`, `tramosSel`, `renderTramos` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
-| `11_descargas.js` | Exportación geográfica de las calles prioritarias (`geoDescarga`: KML y GeoJSON, mismos registros que los Excel de frentes y tramos; v17.29). CSV y Excel con diccionario de datos; carga de librerías bajo demanda (de `libs/` en el sitio, de la copia incrustada en el archivo único) | `deliverTable`, `dictAoa`, `loadLib`, `libIncrustada`, `excelAparte` |
+| `11_descargas.js` | Exportación geográfica de las calles prioritarias (`geoDescarga`: KML y GeoJSON, mismos registros que los Excel de frentes y tramos). CSV y Excel con diccionario de datos; carga de librerías bajo demanda (de `libs/` en el sitio, de la copia incrustada en el archivo único) | `deliverTable`, `dictAoa`, `loadLib`, `libIncrustada`, `excelAparte` |
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |
-| `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación, entrada por territorio (`abreEntrada`), leyenda compacta y botón «Compartir» | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
+| `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación, entrada por territorio (`abreEntrada`) y leyenda compacta | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
 | `14_buscador.js` | Buscador único con abreviaturas y tolerancia a errores; nombre que distingue a las colonias homónimas de una alcaldía («parte k de n» o su CP), usado en archivos, fichas y «Ámbito consultado» | `omniIndex`, `omniSearch`, `omniPick`, `colNombre` |
 | `15_mi_ubicacion.js` | GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
 | `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
-| `17_recorrido.js` | Recorrido guiado (v17.36): velo, foco sobre cada control y globo con el texto; arranca solo la primera vez (después de la entrada, mediante `trasEntrada` de `13_interfaz.js`) y desde el botón de «Cómo funciona». El paso de Street View abre la ficha de un frente prioritario con nombre del ámbito. No arranca solo en las pruebas automáticas salvo que se pida (`window.SIA_RECORRIDO`) | `recorrido`, `recPaso`, `recColoca`, `recFin` |
+| `17_recorrido.js` | Recorrido guiado: velo, foco sobre cada control y globo con el texto; arranca solo la primera vez (después de la entrada, mediante `trasEntrada` de `13_interfaz.js`) y desde el botón de «Cómo funciona». El paso de Street View abre la ficha de un frente prioritario con nombre del ámbito. No arranca solo en las pruebas automáticas salvo que se pida (`window.SIA_RECORRIDO`) | `recorrido`, `recPaso`, `recColoca`, `recFin` |
 
 ### Estado global (en `03_estado.js`)
 
@@ -106,26 +105,26 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
 | `fondo` | Mapa de fondo: `'no'`, `'calles'` o `'sat'` |
 | `opPrio` | Opacidad de las capas de prioridad (0.2 a 1) |
-| `filtroBanq` | Filtro de banqueta de los frentes de las alcaldías: `'todas'`, `'con'` o `'sin'` (v17.35) |
+| `filtroBanq` | Filtro de banqueta de los frentes de las alcaldías: `'todas'`, `'con'` o `'sin'` |
 
-**Reglas de negocio en un solo lugar:** «prioritario» es clase ≥ `PRIO_MIN` = 2 (Muy Alta, Alta y Media; desde la v1.0, que retiró el «universo de intervención», porque quedó igual). Todo el código pregunta con `esPrio(clase)` y suma con `sumPrio(arreglo)`; no debe escribirse `>=2` ni `[2]+[3]+[4]`. Las pruebas usan el mismo umbral desde `lib_pruebas.js` (`L.PRIO_MIN`) y la exportación de capas desde `PRIO_MIN` en `5_exportar_geoserver.py`.
+**Reglas de negocio en un solo lugar:** «prioritario» es clase ≥ `PRIO_MIN` = 2 (Muy Alta, Alta y Media). Todo el código pregunta con `esPrio(clase)` y suma con `sumPrio(arreglo)`; no debe escribirse `>=2` ni `[2]+[3]+[4]`. Las pruebas usan el mismo umbral desde `lib_pruebas.js` (`L.PRIO_MIN`) y la exportación de capas desde `PRIO_MIN` en `5_exportar_geoserver.py`.
 
-**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía; y, desde la v17.35, el filtro de banqueta (`pasaBanq`). Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición. Las cifras que se guardan en caché (`colStat`, `repStat`, `sinColStat`) se rehacen al cambiar `filtroBanq`; `frSumm` recalcula desde los frentes cuando hay filtro. `banqDesglose` da los km prioritarios con banqueta, sin banqueta y por verificar **sin** aplicar el filtro: es el desglose que muestran siempre el Resumen y las fichas.
+**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía; y además el filtro de banqueta (`pasaBanq`). Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición. Las cifras que se guardan en caché (`colStat`, `repStat`, `sinColStat`) se rehacen al cambiar `filtroBanq`; `frSumm` recalcula desde los frentes cuando hay filtro. `banqDesglose` da los km prioritarios con banqueta, sin banqueta y por verificar **sin** aplicar el filtro: es el desglose que muestran siempre el Resumen y las fichas.
 
-**Banqueta (v17.35):** «con» = INEGI 2020 registra banqueta (índice 0 de `META.disp`, «Dispone»); «sin» = cualquier otro valor (no dispone, conjunto habitacional, no aplica, no especificado). Solo afecta a los frentes de manzana; las vialidades primarias no tienen ese dato. La fila se oculta con Gobierno Central.
+**Banqueta:** «con» = INEGI 2020 registra banqueta (índice 0 de `META.disp`, «Dispone»); «sin» = cualquier otro valor (no dispone, conjunto habitacional, no aplica, no especificado). Solo afecta a los frentes de manzana; las vialidades primarias no tienen ese dato. La fila se oculta con Gobierno Central.
 
 **Errores y arranque:** `errAmable(mensaje, detalle)` (en `01_utilidades.js`) crea errores cuyo `amable` es lo que ve la persona; el cierre de `app.js` lo muestra con «Reintentar». `config.js` lleva además un vigía (definido en `construir.py`) que avisa si un programa no llega o la carga tarda más de 45 s. `02_datos.js` verifica que cada archivo traiga exactamente los registros declarados. Los textos de los catálogos se neutralizan al cargar (`limpioCat`).
 
 **Estilos calculados sin atributo `style` (política de seguridad de contenido):** una política estricta rechaza `style="…"` escrito en el HTML. Las plantillas escriben `data-st="propiedad:valor"` y `aplicaSt` (`01_utilidades.js`), con un observador de cambios, lo aplica por programa, que sí está permitido. **No escribir `style="` en plantillas ni en la página**: la prueba del servidor lo detecta. Asignar `elemento.style.x = …` desde el código sí es válido.
 
-**Registro de usos (v17.37):** con la sesión configurada (`SESION.inicio`), `avisaUso` (`01_utilidades.js`) envía con `navigator.sendBeacon` a `/api/priorizacion-reforestacion/uso` (o `SESION.uso`) cada descarga (`usoDescarga`, llamada desde `deliver` y `deliverBlob`, con el tipo de archivo deducido del nombre) y cada consulta (`usoConsulta` al final de `refresh()`, tras 1.5 s en el mismo ámbito; no anota toda la ciudad ni los cambios de «Seguirme»). El ámbito lo arma `ambitoUso` (`11_descargas.js`). Sin sesión no envía nada. El servidor y el panel están en `08_entrega_sia/login/`.
+**Registro de usos:** con la sesión configurada (`SESION.inicio`), `avisaUso` (`01_utilidades.js`) envía con `navigator.sendBeacon` a `/api/priorizacion-reforestacion/uso` (o `SESION.uso`) cada descarga (`usoDescarga`, llamada desde `deliver` y `deliverBlob`, con el tipo de archivo deducido del nombre) y cada consulta (`usoConsulta` al final de `refresh()`, tras 1.5 s en el mismo ámbito; no anota toda la ciudad ni los cambios de «Seguirme»). El ámbito lo arma `ambitoUso` (`11_descargas.js`). Sin sesión no envía nada. El servidor y el panel están en `08_entrega_sia/login/`.
 
 **Sesión (Fase 2):** `esSesion` reconoce una respuesta 401 o 403, o una página HTML donde se esperaba un archivo; `causaFalla(url)` distingue sesión, red y servidor cuando una librería no llega; `avisoSesion` escribe el mensaje con el enlace de `SESION.inicio`. Con `SESION.inicio` definido no se registra `sw.js`. Ver `08_entrega_sia/SESION_Y_LOGIN.md`.
 
-**Accesibilidad (bloque F1-B5):**
+**Accesibilidad:**
 - *Anuncios:* `anunciaAmbito()` (`10_seleccion.js`) escribe el ámbito y su cifra en `#sr-estado` (región viva); el conteo del listado, el estado de las descargas y el mensaje del cargador tienen `role="status"`; los errores de carga, `role="alert"`.
 - *Foco:* al elegir en el buscador el foco pasa a `#scope-title`; `showCard` enfoca la ficha (`enfocaFicha`) y `hideCard(true)` lo devuelve al control de origen; Esc cierra ayuda, ficha y capas (`13_interfaz.js`); con la ayuda abierta `.app` queda `inert`. En teléfono, si el foco llega a un control tapado por la ficha, la ficha se cierra.
-- *Entrada y recuerdo del territorio (v17.28):* sin consulta en la dirección, `16_arranque.js` abre en la última alcaldía consultada (`localStorage`, clave `cp_inicio`: clave de alcaldía o `ciudad`; y, desde la v17.30, la red en `cp_red`: `alc`, `gc` o `both`); si no hay nada recordado, `abreEntrada()` pregunta, en dos pasos, la red (alcaldías o Gobierno Central) y el territorio. Un enlace con consulta manda sobre lo recordado y no lo modifica. Si el navegador no permite `localStorage`, la herramienta pregunta en cada visita.
+- *Entrada y recuerdo del territorio:* sin consulta en la dirección, `16_arranque.js` abre en la última alcaldía consultada (`localStorage`, clave `cp_inicio`: clave de alcaldía o `ciudad`; y la red en `cp_red`: `alc`, `gc` o `both`); si no hay nada recordado, `abreEntrada()` pregunta, en dos pasos, la red (alcaldías o Gobierno Central) y el territorio. Un enlace con consulta manda sobre lo recordado y no lo modifica. Si el navegador no permite `localStorage`, la herramienta pregunta en cada visita.
 - *Listados:* los renglones son `li` con `role="button"`, se activan con Entrar o barra espaciadora (delegado en `09_listados.js`). Elegir un tramo abre la ficha de su frente de mayor prioridad: es la vía de teclado a la ficha de un frente.
 - *Mapa:* el lienzo lleva `role="application"` y un nombre que remite al listado; el texto está en `data-nombre` de `#map`.
 - *Documentos:* `propsPDF` y `propsExcel` ponen idioma, título y autoría. Las fichas no están etiquetadas (jsPDF no puede).
@@ -141,16 +140,14 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `01_variables.css` | Paleta institucional, rampa de prioridad (`--p0` Muy Baja … `--p4` Muy Alta), colores del mapa, `--loc`. **Cambiar un color aquí lo cambia en toda la herramienta**, mapa incluido. |
 | `02_base.css` | Tipografía, panel, cifras, barras, mapa, leyenda, tarjetas, ventana, cargador, teléfono |
 | `03_controles.css` | Foco, campos, menús, barra de herramientas, barra de resumen, casillas |
-| `04_auditoria_bloque1.css` | Ajustes del bloque 1 de la auditoría UX |
-| `05_auditoria_bloque2.css` | Ajustes del bloque 2 (panel en tres partes, pestañas, hoja inferior, ayuda) |
+| `04_pantalla_y_leyenda.css` | Sin desborde en teléfono, barra de escala, leyenda-filtro, encabezado compacto, estados vacíos y acciones de campo |
+| `05_panel_y_hoja_inferior.css` | Panel en tres partes (consulta, respuesta y acciones), pestañas, ruta de navegación y hoja inferior en teléfono |
 | `06_mi_ubicacion.css` | Botón y tarjeta de Mi ubicación |
 | `07_accesibilidad.css` | Texto solo para lector de pantalla, enlace de salto, indicador de foco, bordes de controles, objetivos táctiles en teléfono, tabla y lámina de la ayuda, movimiento reducido e impresión |
-| `08_orientacion.css` | Entrada por territorio, pestaña «Dónde empezar», leyenda compacta, «Quién atiende» dentro del panel de capas y botón «Compartir» (v17.28) |
-| `09_recorrido.css` | Velo, foco y globo del recorrido guiado y su botón en «Cómo funciona» (v17.36) |
+| `08_orientacion.css` | Entrada por territorio, pestaña «Dónde empezar», leyenda compacta, «Quién atiende» dentro del panel de capas y acciones junto al título de la consulta |
+| `09_recorrido.css` | Velo, foco y globo del recorrido guiado y su botón en «Cómo funciona» |
 
 Los archivos 04, 05 y 07 ajustan reglas de los anteriores: **el orden importa**. Los tamaños de letra van en `rem` (16 px = 1 rem) para respetar el tamaño configurado en el navegador; el mínimo es 0.75 rem. Para cambiar un componente, buscar su clase en todos los archivos de `css/`.
-
-Los códigos entre paréntesis en los comentarios, como "(auditoría C3)", remiten a los hallazgos del informe `05_documentacion/auditoria_ux_calles.html`.
 
 ## 7. Datos
 
@@ -180,8 +177,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 
 | Qué | Dónde | Nota |
 |---|---|---|
-| deck.gl 9.4, pako 2.1, jsPDF 4.2.1, SheetJS 0.20.3 | `docs/libs/` (sitio) · incrustadas (archivo único y artefacto) | Copias idénticas a las del paquete oficial: npm, salvo SheetJS, que se distribuye desde `cdn.sheetjs.com` (huellas SHA-256 en `libs/LICENCIAS.md`), con el texto de cada licencia en `libs/LICENCIA_*.txt`. Ninguna versión las pide a una red de distribución externa |
-| Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único y artefacto) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
+| deck.gl 9.4, pako 2.1, jsPDF 4.2.1, SheetJS 0.20.3 | `docs/libs/` (sitio) · incrustadas (archivo único) | Copias idénticas a las del paquete oficial: npm, salvo SheetJS, que se distribuye desde `cdn.sheetjs.com` (huellas SHA-256 en `libs/LICENCIAS.md`), con el texto de cada licencia en `libs/LICENCIA_*.txt`. Ninguna versión las pide a una red de distribución externa |
+| Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
 | Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Desde el 29 de septiembre de 2026 CARTO exige una clave propia (gratuita hasta cierto volumen); sin ella las teselas llegan con la marca «API key required». La clave se da con `SIA_CARTO_KEY` o en `02_fuente/claves.local.json` (ver sección 9). Atribución obligatoria. Solo se pide si el usuario lo enciende |
@@ -210,7 +207,7 @@ Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_prueba
 ### 9 bis. Rendimiento y modo ligero
 
 - Lo pesado es **dibujar** los 372 mil frentes (≈1 millón de vértices), no el código. Con tarjeta gráfica es fluido; sin ella (aceleración por hardware desactivada, escritorios remotos o máquinas virtuales) cada zoom puede tardar decenas de segundos.
-- Al cargar, `revisarRendimiento()` lee el nombre del dibujante de WebGL. Si es por software (SwiftShader, llvmpipe, Microsoft Basic Render), activa el **modo ligero**: sin animaciones, resolución 1×, frentes solo a partir del zoom 13 (antes, las colonias pintadas por prioridad) y un aviso con los pasos para activar la aceleración.
+- Al cargar, `revisarRendimiento()` lee el nombre del dibujante de WebGL. Si es por software (SwiftShader, llvmpipe, Microsoft Basic Render), activa el **modo ligero**: sin animaciones, resolución 1×, frentes solo a partir del zoom 13 (por debajo, las colonias pintadas por prioridad) y un aviso con los pasos para activar la aceleración.
 - En modo ligero, con una alcaldía, colonia o calle consultada solo se dibujan los frentes de esa consulta (`frontsSub`, `frReal` en `04_mapa_capas.js`) y aparece el indicador «Dibujando calles…».
 - Excel de más de 20 mil filas (`GRANDE` en `11_descargas.js`): se arma en `libs/excel_worker.js` y se avisa del tamaño; si el proceso auxiliar no está disponible se arma en la página.
 - Teléfono: la regla única es `MQ_TEL` (`01_utilidades.js`) y su equivalente en CSS: angosto y alto = hoja inferior; teléfono en horizontal (alto ≤ 480 px) = panel lateral de 300 px.

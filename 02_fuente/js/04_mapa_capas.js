@@ -10,14 +10,14 @@ function fitTo(bounds, pad=40){
 const CITY_BOUNDS = [-99.365,19.048,-98.940,19.593];
 viewState = fitTo(CITY_BOUNDS, 24);
 // Solo para las pruebas automáticas (04_pruebas): con window.SIA_PRUEBA y #nomap en la dirección no se redibuja el mapa.
-// En el sitio publicado la variable no existe y #nomap no hace nada (auditoría H-086).
+// En el sitio publicado la variable no existe y #nomap no hace nada.
 const NOMAP = window.SIA_PRUEBA===true && location.hash==='#nomap';
-// Sin animación en modo ligero o si la persona pidió reducir movimiento: cada cuadro de animación redibuja el mapa.
+// Sin animación en modo ligero o si el sistema pide reducir movimiento: cada cuadro de animación redibuja el mapa.
 let nVista = 0;
 function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; } const sinAnim = modoLigero || ms===0 || matchMedia('(prefers-reduced-motion: reduce)').matches;
   const prev = viewState.zoom;
   // _n hace única cada orden: deck.gl ignora una vista inicial igual a la anterior aunque el usuario ya
-  // haya movido el mapa con el ratón o los dedos (por eso "toda la ciudad" a veces no hacía nada)
+  // haya movido el mapa con el ratón o los dedos (sin _n, "toda la ciudad" podría no hacer nada)
   dk.setProps({initialViewState:{...vs, _n: ++nVista, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
   // sin animación deck.gl no avisa del cambio de vista: se actualizan aquí capas y escala
   if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev)) rerender(); updateScale(); } }
@@ -30,7 +30,7 @@ function frontsData(){
   if (!FR_DATA || FR_DATA.attributes.getColor.value!==COLORS || FR_DATA.attributes.getFilterValue.value!==FILTER)
     FR_DATA = {length:N, startIndices:start, attributes:{ getPath:{value:POS,size:2}, getColor:{value:COLORS,size:4,normalized:true}, getFilterValue:{value:FILTER,size:2} }};
   return FR_DATA; }
-// En modo ligero, con una alcaldía o colonia elegida, solo se dibujan los frentes de ese ámbito (auditoría H-055):
+// En modo ligero, con una alcaldía o colonia elegida, solo se dibujan los frentes de ese ámbito:
 // sin tarjeta gráfica el costo crece con cada vértice enviado, aunque quede fuera de la vista.
 let FR_SUB = null;
 const frParcial = ()=> modoLigero && (sel!==null || selCol!==null);
@@ -45,7 +45,7 @@ function vpData(){
   if (!VP_DATA || VP_DATA.attributes.getColor.value!==VCOLORS || VP_DATA.attributes.getFilterValue.value!==VFILTER)
     VP_DATA = {length:NV, startIndices:vstart, attributes:{ getPath:{value:VPOS,size:2}, getColor:{value:VCOLORS,size:4,normalized:true}, getFilterValue:{value:VFILTER,size:2} }};
   return VP_DATA; }
-// ---------- nombres de calle desde los propios frentes (zoom ≥ 15; auditoría C3) ----------
+// ---------- nombres de calle desde los propios frentes (zoom ≥ 15) ----------
 let COL_FR = null; const STL = new Map(); const COL_BB = new Map(); let lblCenter = null;
 function colFrentes(){ if (COL_FR) return COL_FR; COL_FR = new Map(); for(let i=0;i<N;i++){ const c=F.col[i]; let a=COL_FR.get(c); if(!a){ a=[]; COL_FR.set(c,a); } a.push(i); } return COL_FR; }
 function colBB(c){ let b=COL_BB.get(c); if(!b){ b=colBounds(c); COL_BB.set(c,b); } return b; }
@@ -59,14 +59,14 @@ function streetLabelData(){
   const b=vp.getBounds(); const out=[]; lblCenter=[viewState.longitude, viewState.latitude];
   for(const c of COLS){ if(sel!==null && munIndex[c.mun]!==sel) continue; const bb=colBB(c.i); if(bb[2]<b[0]||bb[0]>b[2]||bb[3]<b[1]||bb[1]>b[3]) continue; for(const l of colStreetLabels(c.i)) out.push(l); }
   return out; }
-// ---------- barra de escala (auditoría C3) ----------
+// ---------- barra de escala ----------
 function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 40075016.686*Math.cos(viewState.latitude*Math.PI/180)/(512*Math.pow(2,viewState.zoom));
   const steps=[10,20,50,100,200,500,1000,2000,5000,10000,20000]; let m=steps[0]; for(const st of steps){ if(st/mpp<=110) m=st; }
   el.querySelector('i').style.width = Math.round(m/mpp)+'px'; el.querySelector('span').textContent = m>=1000? (m/1000)+' km' : m+' m'; }
 let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
 // Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
-//  · calles: CARTO Positron sobre OpenStreetMap. Desde el 29 de septiembre de 2026 CARTO exige una clave propia
+//  · calles: CARTO Positron sobre OpenStreetMap. CARTO exige una clave propia
 //    (window.SIA_CARTO_KEY: construir.py la toma de SIA_CARTO_KEY o de claves.local.json); sin ella las teselas llegan con la marca «API key required».
 //  · sat: imagen de satélite de Esri (World Imagery) con la capa de referencia de nombres de vías encima
 //    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY: construir.py la toma

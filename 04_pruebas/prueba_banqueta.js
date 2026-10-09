@@ -1,4 +1,4 @@
-// v17.35 · Filtro de banqueta: los frentes de las alcaldías se separan en «con banqueta» (INEGI 2020 registra banqueta) y
+// Filtro de banqueta: los frentes de las alcaldías se separan en «con banqueta» (INEGI 2020 registra banqueta) y
 // «sin o por verificar» (no la registra, conjunto habitacional, no aplica o sin dato). Comprueba con un recálculo propio desde
 // los datos que pantalla, desglose, Excel, GeoJSON y ficha digan lo mismo con cada opción, y que la consulta viaje en la dirección.
 // Uso: node 04_pruebas/prueba_banqueta.js   · termina con código ≠ 0 si algo falla.
@@ -28,7 +28,7 @@ const kmDe = t => L.numEs(t);   // primera cifra de un texto
   const ir = async (page, q) => { await page.goto(base + q + '#nomap'); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(700); await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
   const { page, ctx } = await L.abrir(browser, base + '#nomap', {}, errores);
 
-  // ---------- 1) sin filtro: cifras de siempre y desglose ----------
+  // ---------- 1) sin filtro: cifras completas y desglose ----------
   await ir(page, `&a=${CLAVE}`); let e = await L.estado(page);
   const fila = await page.evaluate(() => ({ vis: !document.getElementById('banq-row').hidden, pres: [...document.querySelectorAll('button[data-banq]')].map(b => b.dataset.banq + ':' + b.getAttribute('aria-pressed')).join(' ') }));
   ok('la fila «Banqueta» se ve con Alcaldías y abre en «Todas»', fila.vis && /todas:true/.test(fila.pres), fila.pres);
@@ -63,18 +63,18 @@ const kmDe = t => L.numEs(t);   // primera cifra de un texto
   // ---------- 4) Gobierno Central: la fila no aplica ----------
   await ir(page, `&r=gc&a=${CLAVE}`);
   ok('con Gobierno Central la fila «Banqueta» no se muestra', await page.evaluate(() => document.getElementById('banq-row').hidden));
-  // v1.0 · banqueta del Gobierno Central como referencia: frentes prioritarios que dan a las vialidades primarias de la alcaldía
+  // banqueta del Gobierno Central como referencia: frentes prioritarios que dan a las vialidades primarias de la alcaldía
   { const d = [0, 0, 0]; for (const f of D.F) { if (!f.gc || f.prio < L.PRIO_MIN || f.mun !== ALC) continue; const b = banq(f); d[b === 0 ? 0 : b === 1 ? 1 : 2] += f.len / 1000; }
     const t = d[0] + d[1] + d[2];
     const ub = await page.$eval('#univbox', x => x.hidden ? '' : x.textContent.replace(/\s+/g, ' '));
-    ok('v1.0 Gobierno Central: el Resumen da la banqueta de los frentes al lado como referencia, igual al recálculo', /Banqueta, como referencia/.test(ub) && ub.includes(`${L.kmTxt(t)} ${L.kmUn(t)}`) && ub.includes(`${L.kmTxt(d[0])} ${L.kmUn(d[0])} tienen banqueta`) && /No es un filtro/.test(ub), ub.slice(0, 220)); }
+    ok('Gobierno Central: el Resumen da la banqueta de los frentes al lado como referencia, igual al recálculo', /Banqueta, como referencia/.test(ub) && ub.includes(`${L.kmTxt(t)} ${L.kmUn(t)}`) && ub.includes(`${L.kmTxt(d[0])} ${L.kmUn(d[0])} tienen banqueta`) && /No es un filtro/.test(ub), ub.slice(0, 220)); }
   // la ficha de un tramo dice la banqueta de los frentes que tiene al lado: se abre como en campo, desde «Mi ubicación» con Gobierno Central
   { const { page: pg, ctx: cx } = await L.abrir(browser, base + `&r=gc&a=${CLAVE}#nomap`, { geolocation: { latitude: 19.3560, longitude: -99.0560, accuracy: 12 }, permissions: ['geolocation'] }, errores);
     await pg.$eval('#zloc', x => x.click()); await pg.waitForFunction(() => document.querySelector('#card .loc-list button'), null, { timeout: 30000 });
     await pg.$eval('#card .loc-list button', x => x.click()); await pg.waitForTimeout(600);
     const card = await pg.$eval('#card', x => x.innerText.replace(/\s+/g, ' '));
     const m = /Banqueta al lado (Sin manzanas al lado: sin dato|([\d,]+) m con banqueta · ([\d,]+) m sin · ([\d,]+) m por verificar)/.exec(card);
-    ok('v1.0 la ficha de un tramo de vialidad primaria da la banqueta de los frentes al lado', !!m && /Quién atiende Gobierno Central/.test(card), card.slice(0, 300));
+    ok('la ficha de un tramo de vialidad primaria da la banqueta de los frentes al lado', !!m && /Quién atiende Gobierno Central/.test(card), card.slice(0, 300));
     await cx.close(); }
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));
   await ctx.close(); await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);

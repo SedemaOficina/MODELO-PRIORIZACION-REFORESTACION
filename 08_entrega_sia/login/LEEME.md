@@ -1,6 +1,6 @@
 # Inicio de sesión y registro de usos · Modelo de priorización de reforestación urbana
 
-Decisión de la Secretaría (5 de octubre de 2026): la herramienta se instala con **acceso restringido a cuentas autorizadas** y **registro de sus usos**, para controlar quién entra y saber qué instituciones y alcaldías la usan, qué consultan y qué descargan.
+La herramienta se instala con **acceso restringido a cuentas autorizadas** y **registro de sus usos**, para controlar quién entra y saber qué instituciones y alcaldías la usan, qué consultan y qué descargan.
 
 Esta carpeta trae todo lo necesario. Encaja en la infraestructura actual del SIA: nginx como entrada, el backend de Node.js + Express con un módulo por sistema y PostgreSQL con un esquema por sistema.
 
@@ -209,5 +209,4 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 
 - **Pruebas y tipos:** `cd backend && npm install && npm run typecheck && npm run pruebas`.
 - **Aviso de privacidad:** después de editar `privacidad/aviso_integral.md`, regenerar la página con `python 08_entrega_sia/login/generar_aviso_html.py`.
-- **La versión anterior en JavaScript** (`src/index.js`, `sql/001_esquema.sql`, rol `priorizacion_reforestacion_app`) está en `_to_delete/`. La reemplazó la de TypeScript con las convenciones de `sia-backend` (8 oct 2026).
 <!-- /solo-repositorio -->

@@ -1,6 +1,6 @@
 # Inicio de sesión: qué hace la herramienta y qué construye el SIA
 
-La Secretaría decidió instalar la herramienta con acceso restringido a cuentas autorizadas y registro de usos. Este documento explica el principio y lo que se entrega; la instalación está en `login/LEEME.md`.
+La herramienta se instala con acceso restringido a cuentas autorizadas y registro de usos. Este documento explica el principio y lo que se entrega; la instalación está en `login/LEEME.md`.
 
 ## 1. Principio
 
@@ -20,7 +20,7 @@ Navegador ── pide /priorizacion-reforestacion/datos/data.bin ──▶ nginx
 |---|---|
 | Reconoce la sesión vencida: respuesta 401 o 403, o una página HTML donde esperaba datos o un programa | `esSesion`, `causaFalla` en `app.js` |
 | Dice «Tu sesión terminó. Vuelve a iniciar sesión para continuar.», con enlace a la pantalla de acceso, en lugar de «revisa tu conexión» | Carga inicial, Excel y fichas PDF |
-| Con la sesión vencida no entrega archivos de respaldo (antes sustituía el Excel por CSV) | Descargas, en `app.js` |
+| Con la sesión vencida no entrega archivos de respaldo | Descargas, en `app.js` |
 | Muestra «Salir» junto a los logotipos si la instalación define esa dirección | `window.SIA_SESION` en `config.js` |
 | No guarda copia para uso sin conexión cuando hay sesión, y retira la que hubiera | Arranque, en `app.js` |
 
@@ -35,9 +35,9 @@ Las direcciones se fijan al armar el paquete; las de este paquete están en `INS
 
 El bloque comentado «Fase 2 con inicio de sesión» del ejemplo de nginx implementa los puntos 1 y 2.
 
-## 4. Lo que se entrega construido (desde el 5 de octubre de 2026)
+## 4. Lo que se entrega construido
 
-La Secretaría decidió las dos finalidades: **controlar quién entra** y **saber los usos**. El login ya está construido y probado en `login/`:
+El login tiene dos finalidades: **controlar quién entra** y **saber los usos**. Está construido y probado en `login/`:
 - **Módulo `priorizacion-reforestacion` para `sia-backend`** (TypeScript, Express 5), con su propio pool y su propia cuenta de base de datos (`priorizacion_reforestacion_api`), con la misma forma que los demás módulos. Direcciones:
   - `POST /api/priorizacion-reforestacion/entrar`
   - `GET /api/priorizacion-reforestacion/sesion` (204 o 401, para `auth_request`)
@@ -74,7 +74,7 @@ Si la pantalla de acceso no es accesible, nadie con esa necesidad entra a la her
 10. Sin límite de tiempo para escribir; si la sesión va a vencer, se avisa.
 11. Sin CAPTCHA que dependa solo de la vista.
 12. Idioma declarado (`lang="es-MX"`) y título de página propio.
-13. Tras entrar, regresa a la dirección que la persona pidió, con su consulta.
+13. Tras entrar, regresa a la dirección solicitada, con su consulta.
 
 ## 7. Antes de abrir
 

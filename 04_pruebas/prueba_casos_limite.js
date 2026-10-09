@@ -1,4 +1,4 @@
-// v17.32 · Casos límite de la revisión con Claude Code (5 oct 2026): consultas que mezclan red, alcaldía y avenida, el historial,
+// Casos límite: consultas que mezclan red, alcaldía y avenida, el historial,
 // colonias homónimas, descargas para mapa con una colonia y el candado de un archivo por clic.
 // Uso: node 04_pruebas/prueba_casos_limite.js   · termina con código ≠ 0 si algo falla.
 const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');

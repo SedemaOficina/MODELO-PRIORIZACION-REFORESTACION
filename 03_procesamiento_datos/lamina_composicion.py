@@ -65,7 +65,7 @@ wash = patch.resize((NW, NH), Image.LANCZOS).filter(ImageFilter.GaussianBlur(22)
 canvas = Image.blend(Image.new('RGB', (NW, NH), base), wash, 0.45)
 d = ImageDraw.Draw(canvas)
 
-# Tipografías: Liberation Sans en Linux, Arial en Windows y macOS; se usa la primera que exista (auditoría H-024).
+# Tipografías: Liberation Sans en Linux, Arial en Windows y macOS; se usa la primera que exista.
 def _fuente(*rutas):
     for r in rutas:
         if os.path.isfile(r):

@@ -1,5 +1,5 @@
 // Buscador único: alcaldías, colonias, avenidas y calles, con abreviaturas y tolerancia a errores.
-// ---------- buscador único (auditoría C6) ----------
+// ---------- buscador único ----------
 const omni=$('omni'), omniList=$('omni-list'), omniClear=$('omni-clear');
 const OMNI_AB = Object.assign({}, ABREV, {calz:'calzada', clz:'calzada', av:'avenida', avda:'avenida', ave:'avenida', blvd:'boulevard', cda:'cerrada', priv:'privada', and:'andador', circ:'circuito', cto:'circuito', dr:'doctor', ing:'ingeniero', lic:'licenciado', mtro:'maestro', pdte:'presidente', fco:'francisco', gpe:'guadalupe', ma:'maria', col:'colonia', sn:'san', sta:'santa', sto:'santo'});
 const STOP = new Set(['de','del','la','las','los','el','y','en']);
@@ -29,7 +29,7 @@ function omniIndex(){ if (OM) return OM;
   const nm = new Map(); for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const k=c.n+'|'+c.m; nm.set(k, (nm.get(k)||0)+1); }
   OM.nomRep = new Set([...nm].filter(([,n])=>n>1).map(([k])=>k));
   return OM; }
-// Nombre de una colonia que no se confunde con otra de su alcaldía (v17.32): «parte k de n» si comparte nombre y CP, o su CP
+// Nombre de una colonia que no se confunde con otra de su alcaldía: «parte k de n» si comparte nombre y CP, o su CP
 // si solo comparte el nombre. Se usa en nombres de archivo, títulos de fichas y «Ámbito consultado».
 function colNombre(id){ const c = META.colonias[id]; if (!c) return ''; const I = omniIndex(); const pt = I.part.get(id);
   if (pt) return `${c.n} (parte ${pt[0]} de ${pt[1]})`;
@@ -38,7 +38,7 @@ function colNombre(id){ const c = META.colonias[id]; if (!c) return ''; const I 
 let omniItems=[], omniActive=-1, omniTodas=false;
 function omniSearch(q){
   let qt = toks(q).filter(t=>!STOP.has(t)); if (!qt.length || q.trim().length<2) return null;
-  // «col.» o «colonia» delante del nombre es una forma de hablar, no parte del nombre (auditoría H-039)
+  // «col.» o «colonia» delante del nombre es una forma de hablar, no parte del nombre
   const qtCol = (qt.length>1 && qt[0]==='colonia')? qt.slice(1) : qt;
   const I = omniIndex(); omniTypo=false; const R = {alc:[], col:[], av:[], st:[]};
   I.alc.forEach((ct,i)=>{ const s=omniMatch(qt,ct); if(s) R.alc.push({t:'alc', i, s: s+1.5}); });
@@ -99,7 +99,7 @@ function omniPick(it){
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   collapseSheet();
-  // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí (auditoría H-048)
+  // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí
   setTimeout(()=>{ try { $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }, 0); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });

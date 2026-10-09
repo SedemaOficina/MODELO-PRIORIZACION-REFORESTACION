@@ -1,5 +1,5 @@
-/* v17.28 · Entrada y orientación: entrada por territorio, pestaña «Dónde empezar», leyenda compacta,
-   «Quién atiende» dentro del panel de capas y botón para compartir la consulta. */
+/* Entrada y orientación: entrada por territorio, pestaña «Dónde empezar», leyenda compacta,
+   «Quién atiende» dentro del panel de capas y acciones del encabezado de la consulta. */
 
 /* ----- entrada por territorio ----- */
 .entrada-card{max-width:620px;padding:26px 30px 24px;text-align:left}
@@ -33,7 +33,7 @@
   .tabs button{padding-left:8px;padding-right:8px}
 }
 
-/* ----- compartir la consulta ----- */
+/* ----- acciones junto al título de la consulta ----- */
 .scope-acts{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:none}
 
 /* ----- leyenda compacta: visible mientras el panel de capas está cerrado ----- */
@@ -52,18 +52,16 @@
   .leymini i{width:14px}
 }
 
-/* ----- explicación de «Atiende», en el panel de capas ----- */
-.legend .lg-note.prelim{margin-top:6px;padding:6px 8px;border-left:3px solid var(--dorado, #B28E5C);background:var(--panel-2);border-radius:0 4px 4px 0}
 
 @media print{ .leymini,.modal.entrada,.ini-orden,.ini-mas{display:none!important} }
 
 /* las cifras del ámbito viven en la pestaña Resumen */
 #tp-res .kpis{margin-top:10px}
 
-/* v17.29 · descargas para abrir en un mapa (KML y GeoJSON) */
+/* descargas para abrir en un mapa (KML y GeoJSON) */
 .geo-title{margin-top:16px}
 
-/* v17.30 · entrada en dos pasos: qué red se consulta (alcaldías o Gobierno Central) y dónde */
+/* entrada en dos pasos: qué red se consulta (alcaldías o Gobierno Central) y dónde */
 .entrada-resp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .entrada-red{display:grid;grid-template-columns:34px minmax(0,1fr);gap:2px 12px;align-items:start;min-height:84px;padding:14px;border:1.5px solid var(--ctl);border-radius:10px;background:var(--panel);color:var(--ink);text-align:left;cursor:pointer;font:inherit;transition:background .12s ease,border-color .12s ease}
 .entrada-red:hover{background:var(--panel-2);border-color:var(--guinda)}
@@ -74,14 +72,14 @@
 #entrada-q:focus{outline:none}
 .query .resp-row{margin-top:8px}
 @media (max-width:600px){ .entrada-resp{grid-template-columns:1fr} }
-/* v17.30 · recuadro del mapa en teléfono: con Gobierno Central el texto de la cifra es largo y dejaba sin espacio al nombre */
+/* recuadro del mapa en teléfono: con Gobierno Central el texto de la cifra es largo y no debe dejar sin espacio al nombre */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   .mapsum .scope{flex:0 0 auto;max-width:46%}
   .mapsum .st{white-space:normal;min-width:0}
   .mapsum .st small{line-height:1.2}
 }
 
-/* ---------- fila «Banqueta» (v17.35): filtro de los frentes de las alcaldías según INEGI 2020 ---------- */
+/* ---------- fila «Banqueta»: filtro de los frentes de las alcaldías según INEGI 2020 ---------- */
 .query .banq-row{margin-top:6px}
 .banq-row[hidden]{display:none}
 .banq-row .seg.pills{flex-wrap:nowrap;gap:5px}
@@ -89,11 +87,11 @@
 .banq-tag{color:var(--guinda-ink);font-weight:600}
 .univline.banq span{font-size:.8125rem}
 @media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
-/* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css, H-076) */
+/* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css) */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
-/* v1.0 · logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
+/* logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
 .panel-head .logo{max-width:100%}
-/* v1.0 · aire entre bloques del panel: un título de sección que sigue a otro bloque se separa; el primero de la pestaña, no */
+/* aire entre bloques del panel: un título de sección que sigue a otro bloque se separa; el primero de la pestaña, no */
 .tabpanel .section-title:not(:first-child),.tabpanel .bars2{margin-top:16px}
 .tabpanel .bars2 .section-title{margin-top:0}
 .univbox{margin-bottom:0}

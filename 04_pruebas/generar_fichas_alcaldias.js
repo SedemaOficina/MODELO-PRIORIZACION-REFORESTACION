@@ -1,6 +1,6 @@
-// Lote de fichas PDF para las 16 alcaldías (pendiente 8 del README; esquema de la nota 03 de la bitácora, más vialidades primarias).
+// Lote de fichas PDF para las 16 alcaldías.
 // Por alcaldía, en orden alfabético: ficha de la alcaldía, ficha de vialidades primarias (Gobierno Central) y ficha de la colonia
-// con más frente prioritario (km Muy Alta + Alta a cargo de la alcaldía). Las fichas son las mismas que descarga la herramienta.
+// con más frente prioritario (km prioritarios a cargo de la alcaldía). Las fichas son las mismas que descarga la herramienta.
 // Uso: node 04_pruebas/generar_fichas_alcaldias.js [CARPETA]   (por omisión _local/fichas_alcaldias_vX.YY; no se publica)
 // Después, para el PDF combinado y el zip: python 04_pruebas/unir_fichas.py CARPETA
 const fs = require('fs'), path = require('path');

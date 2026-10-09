@@ -25,7 +25,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 - **Qué pide a terceros:** nada para funcionar. Solo si la persona enciende un mapa de fondo, las teselas de CARTO o de Esri; y los enlaces a Google Maps de las fichas, que se abren en otra pestaña.
 - **Datos personales:** los del inicio de sesión y el registro de usos (ver `login/LEEME.md`). «Mi ubicación» se calcula en el teléfono y no se envía.
 - **Política de seguridad de contenido:** funciona con una política estricta, sin `'unsafe-inline'` ni `'unsafe-eval'`. Probado: 12 de 12 funciones, cero violaciones.
-- **Inicio de sesión:** decidido (5 oct 2026): acceso solo con cuenta y registro de usos (accesos, consultas y descargas por institución y alcaldía). Se entrega construido y probado en `login/`; el SIA lo instala. La Unidad de Transparencia aprobó el aviso de privacidad.
+- **Inicio de sesión:** acceso solo con cuenta y registro de usos (accesos, consultas y descargas por institución y alcaldía). Se entrega construido y probado en `login/`; el SIA lo instala. La Unidad de Transparencia aprobó el aviso de privacidad.
 - **Navegadores:** Chrome o Edge 80, Firefox 79, Safari 15, o posteriores, con WebGL 2.
 - **Soporte:** Oficina de la Secretaría, Sistema de Información Ambiental. El código y la documentación de mantenimiento están en `ARQUITECTURA.md`, en la raíz del repositorio.
 

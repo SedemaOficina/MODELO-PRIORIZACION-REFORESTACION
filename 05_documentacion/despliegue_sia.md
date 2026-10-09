@@ -10,7 +10,7 @@ Extracto público de las decisiones registradas el 24 de septiembre de 2026. Los
 
 ## Decisión previa: para qué es el login
 
-**Decidido el 5 de octubre de 2026: las dos (A y B)** — restringir el acceso a cuentas autorizadas y saber quién usa la herramienta, qué consulta y qué descarga. El módulo, la pantalla de acceso, el panel y los borradores de privacidad están en `08_entrega_sia/login/`. Antes: A) restringir el acceso, o B) saber quién usa la herramienta y qué descarga. Recomendación anterior: **B**; los datos del modelo no son reservados y el uso por alcaldía es un indicador útil para la Secretaría. Si se adopta el login, la página pública de GitHub y el artefacto de respaldo deben cerrarse cuando la herramienta esté en el SIA.
+Opciones: A) restringir el acceso a cuentas autorizadas; B) saber quién usa la herramienta, qué consulta y qué descarga. **Se adoptaron las dos (5 de octubre de 2026).** El módulo, la pantalla de acceso, el panel y los textos de privacidad están en `08_entrega_sia/login/`. Con el login, la página pública de GitHub y las copias de respaldo se cierran cuando la herramienta esté en el SIA (`08_entrega_sia/CIERRE_FASE_1.md`).
 
 ## Nueve decisiones
 
@@ -36,7 +36,7 @@ La guía de instalación, el ejemplo de nginx, la lista de verificación y la in
 
 ## Puntos técnicos ya identificados para la instalación
 
-- **Política de seguridad de contenido:** resuelto en la v17.26. El sitio no trae programas ni estilos en línea y funciona bajo una política estricta (la del ejemplo de nginx).
-- **Uso sin conexión (`sw.js`):** resuelto en la v17.26. Con las direcciones de sesión configuradas, la herramienta no guarda copia local y retira la que hubiera.
+- **Política de seguridad de contenido:** resuelto. El sitio no trae programas ni estilos en línea y funciona bajo una política estricta (la del ejemplo de nginx).
+- **Uso sin conexión (`sw.js`):** resuelto. Con las direcciones de sesión configuradas, la herramienta no guarda copia local y retira la que hubiera.
 - **Mapas de fondo:** las cabeceras del servidor deben permitir imágenes de `basemaps.cartocdn.com`, `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`, o bien usar un fondo propio del SIA.
 - **Servidor web:** redirección de la ruta sin barra final, `.bin` como `application/octet-stream` sin volver a comprimir, y caché larga para los archivos con `?v=`.

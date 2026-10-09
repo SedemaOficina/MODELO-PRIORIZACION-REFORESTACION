@@ -9,7 +9,7 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 | Carpeta | Contenido | ¿En el repositorio? |
 |---|---|---|
 | `insumos/IDS_ut/` | Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX), con su diccionario | Sí |
-| `insumos/VP_REFORESTACION/` | Capa de vialidades primarias priorizadas para reforestación (SEDEMA, agosto de 2026): `PRIMARIAS_REFORESTACION.shp` y sus archivos | No (copia local desde el 5 oct 2026; huellas en `SUMAS_INSUMOS.md`) |
+| `insumos/VP_REFORESTACION/` | Capa de vialidades primarias priorizadas para reforestación (SEDEMA, agosto de 2026): `PRIMARIAS_REFORESTACION.shp` y sus archivos | No (copia local; huellas en `SUMAS_INSUMOS.md`) |
 | `insumos/originales/` | Los insumos tal como se recibieron: `shp_frentes_manzanasv.rar` (modelo de priorización, nov. 2025, origen de las prioridades) y `VP_REFORESTACION.rar` (vialidades primarias). Huellas y comprobación en `SUMAS_INSUMOS.md` | No: copia local |
 | `insumos/slide_orig.jpg` | Lámina original de composición de frentes (solo para `lamina_composicion.py`) | No |
 | `intermedios/` | Resultados de cada paso: `frentes.npz`, `meta.json`, `cruce.npz` | Sí: permiten regenerar los datos sin repetir los pasos 1 y 2 |
@@ -34,7 +34,7 @@ python3 02_fuente/construir.py
 node 04_pruebas/correr_todas.js
 ```
 
-**Reproducibilidad (5 oct 2026, v17.33):** los pasos 1 y 2 se volvieron a correr desde la v6 en una copia aparte, con las versiones de `requirements.txt`, y dieron `frentes.npz` y `meta.json` idénticos a los guardados. Hasta la v17.32 ningún paso extraía el catálogo de la v6: `meta.json` solo existía como intermedio guardado y el paso 2 lo sobrescribía con su propia salida.
+**Reproducibilidad (comprobada el 5 oct 2026):** los pasos 1 y 2, corridos desde la versión 6 en una copia aparte con las versiones de `requirements.txt`, dan `frentes.npz` y `meta.json` idénticos a los guardados.
 
 ## Verificación de los datos
 
@@ -44,15 +44,15 @@ node 04_pruebas/correr_todas.js
 
 - El paso 3 guarda en `cruce.npz` el número de partes de la capa con la que hizo el cruce (`nvp`).
 - El paso 4 se detiene sin generar nada si el cruce enlaza a una parte que la capa no tiene, si la capa tiene otro número de partes que la del cruce, si la capa no está en UTM zona 14 norte (lee su `.prj`) o si los kilómetros de los frentes no cuadran con el resumen del modelo.
-- Estas comprobaciones se escribieron el 3 de octubre de 2026 sin poder ejecutar los pasos 3 y 4. El 5 de octubre, ya con la capa, se corrieron en una copia aparte y pasaron. El resultado coincide con los datos publicados salvo 144 enlaces de frente a parte contigua de la capa (empates de distancia; ver `SUMAS_INSUMOS.md`).
+- Estas comprobaciones se corrieron con la capa en una copia aparte (5 oct 2026) y pasaron. El resultado coincide con los datos publicados salvo 144 enlaces de frente a parte contigua de la capa (empates de distancia; ver `SUMAS_INSUMOS.md`).
 
 ## Insumos que no están en el repositorio
 
-| Insumo | Para qué | Estado al 3 de octubre de 2026 |
+| Insumo | Para qué | Estado |
 |---|---|---|
-| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | Localizada el 5 oct 2026 y copiada aquí (copia local). Falta entregarla al SIA |
-| `insumos/originales/shp_frentes_manzanasv.rar` | Origen del modelo (la v6 se armó a partir de él) | Localizado el 5 oct 2026 y copiado aquí |
-| `insumos/slide_orig.jpg` | Solo `lamina_composicion.py` | **No se encontró** en la computadora (búsqueda del 5 oct 2026). No es crítico: sus resultados ya están en `06_entregables/composicion_frentes_manzana*.png` |
+| `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | Copia local. Falta entregarla al SIA |
+| `insumos/originales/shp_frentes_manzanasv.rar` | Origen del modelo (la v6 se armó a partir de él) | Copia local |
+| `insumos/slide_orig.jpg` | Solo `lamina_composicion.py` | **No se encontró** en la copia local. No es crítico: sus resultados ya están en `06_entregables/composicion_frentes_manzana*.png` |
 | `07_versiones/calles_prioritarias_v6_original.html` | Paso 1 (origen de los frentes priorizados) | Solo en la copia local; su suma está en `SUMAS_INSUMOS.md` |
 | Modelo de priorización de frentes (SIA, nov. 2025) | Origen de la prioridad de cada frente | No se tiene; depende del SIA |
 

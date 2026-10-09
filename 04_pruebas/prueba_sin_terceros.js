@@ -1,4 +1,4 @@
-// Arranque sin terceros (auditoría H-002): la página debe cargar y funcionar sin pedir nada fuera de su propio origen,
+// Arranque sin terceros: la página debe cargar y funcionar sin pedir nada fuera de su propio origen,
 // y las tipografías Cabin y Roboto deben venir del sitio. Termina con código ≠ 0 si algo falla.
 // Uso: node 04_pruebas/prueba_sin_terceros.js   (CAPTURA=ruta.png guarda una captura)
 const L = require('./lib_pruebas.js'); const path = require('path'), fs = require('fs');
@@ -32,7 +32,7 @@ const ok = L.Registro('arranque sin terceros');
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
   ok('sin errores de JavaScript', errores.length === 0, errores.slice(0, 2).join(' | '));
   await ctx.close();
-  // ---- versión de un solo archivo (auditoría H-058 y H-095): se abre con doble clic y no pide nada a terceros, ni para Excel ni para fichas ----
+  // ---- versión de un solo archivo: se abre con doble clic y no pide nada a terceros, ni para Excel ni para fichas ----
   const unico = path.join(L.DOCS, '..', '_local', 'priorizacion_reforestacion.html');
   if (!fs.existsSync(unico)) ok('existe _local/priorizacion_reforestacion.html (se genera al construir)', false);
   else {
@@ -51,7 +51,7 @@ const ok = L.Registro('arranque sin terceros');
     ok('archivo único: sin errores de JavaScript', err2.length === 0, err2.slice(0, 2).join(' | '));
     await c2.close();
   }
-  // ---- en una subruta (auditoría H-077): así se instalará en el SIA, p. ej. /priorizacion-reforestacion/. Todas las direcciones deben ser relativas ----
+  // ---- en una subruta: así se instalará en el SIA, p. ej. /priorizacion-reforestacion/. Todas las direcciones deben ser relativas ----
   { const http = require('http'); const PRE = '/priorizacion-reforestacion/'; const perdidas = [];
     const tipos = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2' };
     const s2 = http.createServer((req, res) => { let rel = decodeURIComponent(req.url.split('?')[0]);

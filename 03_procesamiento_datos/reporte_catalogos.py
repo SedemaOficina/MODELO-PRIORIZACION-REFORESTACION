@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Listas de los catálogos de colonias y de calles para su homologación en el SIA (auditoría H-029 y H-101).
+"""Listas de los catálogos de colonias y de calles para su homologación en el SIA.
 
 Solo lee los datos publicados (02_fuente/datos/*.bin) y escribe un Excel con las listas. NO modifica ningún catálogo:
 la corrección corresponde a la fuente de cada capa.
@@ -190,7 +190,7 @@ for i, (mun, prio, name, col, ln, gc, x, y) in enumerate(FR):
     if norm(NOM[name]) == 'prueba':
         c = COL[col] if 0 <= col < len(COL) else {}
         r.append([i, NOM[name], ALC_I[mun], c.get('n', ''), META['prio'][prio], ln, round(y, 5), round(x, 5)])
-hojas.append(('Calle «Prueba»', 'Frentes cuyo nombre de calle es «Prueba» (auditoría H-101). Puede ser un nombre real o un residuo de captura en la fuente: se contrasta con la capa de frentes de INEGI. Las coordenadas son las del primer vértice del frente.',
+hojas.append(('Calle «Prueba»', 'Frentes cuyo nombre de calle es «Prueba». Puede ser un nombre real o un residuo de captura en la fuente: se contrasta con la capa de frentes de INEGI. Las coordenadas son las del primer vértice del frente.',
               ['Número de frente', 'Nombre', 'Alcaldía', 'Colonia', 'Prioridad', 'Longitud (m)', 'Latitud', 'Longitud'], r))
 
 # ---------- vialidades primarias ----------
@@ -223,7 +223,7 @@ ws.title = 'Léeme'
 lineas = [('Catálogos de colonias y de calles: listas para homologación', True),
           ('Herramienta «Modelo de priorización de reforestación urbana» · Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', False),
           ('', False),
-          ('Qué es. Listas de registros de los catálogos que conviene revisar en la fuente de cada capa. Atiende los hallazgos H-029 y H-101 de la auditoría integral del 2 de octubre de 2026.', False),
+          ('Qué es. Listas de registros de los catálogos que conviene revisar en la fuente de cada capa.', False),
           ('Qué no es. No es una corrección: la herramienta no modifica los catálogos. Cada lista se entrega para que el SIA decida y corrija en la capa de origen; después se regeneran los datos.', False),
           ('Origen. Datos publicados de la herramienta (%s frentes, %s colonias con nombre, %s nombres de calle en uso). Generado con 03_procesamiento_datos/reporte_catalogos.py.'
            % (format(N, ','), format(sum(1 for c in COL if c.get('n')), ','), format(sum(1 for i in range(len(NOM)) if nom_n[i]), ',')), False),

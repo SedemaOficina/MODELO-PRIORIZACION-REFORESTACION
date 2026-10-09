@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Prueba de la construcción (auditoría H-026, H-024 y H-025): construir.py debe dar el mismo sitio desde cero, detenerse
+"""Prueba de la construcción: construir.py debe dar el mismo sitio desde cero, detenerse
 ANTES de escribir si falta o sobra una pieza, no publicar archivos imprevistos y apartar lo obsoleto sin borrarlo.
 
 Trabaja sobre copias en una carpeta temporal: no toca la carpeta del proyecto.
@@ -98,7 +98,7 @@ debe_fallar('datos cortados: se detiene y no escribe nada', lambda t: open(F(t, 
 debe_fallar('datos distintos de los registrados: se detiene y no escribe nada', lambda t: shutil.copy(F(t, 'datos', 'vp.bin'), F(t, 'datos', 'data.bin')))
 debe_fallar('argumento desconocido: se detiene y no escribe nada', lambda t: None, '--publicar')
 debe_fallar('un módulo vacío: se detiene y no escribe nada', lambda t: open(F(t, 'js', '08_resumenes.js'), 'w').close())
-debe_fallar('falta datos/SUMAS.json: se detiene y no escribe nada (antes se omitía la verificación de los datos)', lambda t: os.remove(F(t, 'datos', 'SUMAS.json')))
+debe_fallar('falta datos/SUMAS.json: se detiene y no escribe nada (sin él no se verifican los datos)', lambda t: os.remove(F(t, 'datos', 'SUMAS.json')))
 debe_fallar('claves.local.json mal escrito: se detiene con un mensaje claro', lambda t: open(F(t, 'claves.local.json'), 'w', encoding='utf-8').write('{"CARTO_KEY": "x"'))
 # claves guardadas con el Bloc de notas o PowerShell 5.1 (con BOM): se leen, y se avisa que quedarán públicas en docs/
 t = copia()

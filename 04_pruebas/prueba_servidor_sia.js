@@ -1,4 +1,4 @@
-// Preparación para el SIA (Fase 2): la herramienta instalada en la subruta /priorizacion-reforestacion/, detrás de un servidor que
+// Instalación en el SIA: la herramienta instalada en la subruta /priorizacion-reforestacion/, detrás de un servidor que
 // aplica una política de seguridad de contenido (CSP) estricta y las cabeceras de caché de 08_entrega_sia/. Comprueba que
 // todo funcione sin ninguna violación de la política, que la dirección sin barra final redirija bien, que una sesión vencida
 // se reconozca y que los archivos de datos lleguen aunque un proxy los haya descomprimido.
@@ -53,7 +53,7 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
 
   // ---------- 1) recorrido completo bajo la política estricta ----------
   { const srv = await servidor('normal'); const { page, ctx } = await abre(srv, PRE.slice(0, -1) + '?modo=ligero');   // se entra SIN la barra final
-    ok('H-015 la dirección sin barra final redirige a la subruta y la herramienta carga', page.url().includes(PRE) && srv.pedidas.filter(p => !p.startsWith(PRE.slice(0, -1))).length === 0, page.url().replace(srv.url, ''));
+    ok('la dirección sin barra final redirige a la subruta y la herramienta carga', page.url().includes(PRE) && srv.pedidas.filter(p => !p.startsWith(PRE.slice(0, -1))).length === 0, page.url().replace(srv.url, ''));
     await L.elegir(page, 'iztapalapa'); await page.waitForTimeout(1500);
     const f = {}; f.alcaldia = (await page.$eval('#scope-title', e => e.innerText)) === 'Iztapalapa';
     const estilo = await page.evaluate(() => { const g = s => { const e = document.querySelector(s); return e ? getComputedStyle(e) : null; }; const b = g('#bars .fill'), l = g('#legend-rows .row i'), o = [...document.querySelectorAll('#tp-dl .btn[hidden]')];
@@ -73,15 +73,15 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     await L.clic(page, '#open-info'); await page.waitForTimeout(500); f.ayuda = await page.evaluate(() => { const i = document.querySelector('.scale-bar i'); return !document.getElementById('info-modal').hidden && !!i && !/rgba\(0, 0, 0, 0\)/.test(getComputedStyle(i).backgroundColor); }); await page.keyboard.press('Escape'); await page.waitForTimeout(600);
     await L.clic(page, '#zloc'); await page.waitForTimeout(1500); f.ubicacion = await page.evaluate(() => !document.getElementById('card').hidden);
     const mal = Object.entries(f).filter(([, v]) => !v).map(([k]) => k);
-    ok(`H-001 bajo la política estricta funcionan las ${Object.keys(f).length} funciones revisadas`, mal.length === 0, mal.join(', ') || Object.keys(f).join(', '));
+    ok(`bajo la política estricta funcionan las ${Object.keys(f).length} funciones revisadas`, mal.length === 0, mal.join(', ') || Object.keys(f).join(', '));
     const v = await page.evaluate(() => window.__csp); const res = {}; v.forEach(x => { const k = x.replace(/:\d+$/, ''); res[k] = (res[k] || 0) + 1; });
-    ok('H-001 ninguna violación de la política de seguridad de contenido en todo el recorrido', v.length === 0, `${v.length} · ` + Object.entries(res).slice(0, 6).map(([k, n]) => `${n}× ${k}`).join(' | '));
+    ok('ninguna violación de la política de seguridad de contenido en todo el recorrido', v.length === 0, `${v.length} · ` + Object.entries(res).slice(0, 6).map(([k, n]) => `${n}× ${k}`).join(' | '));
     const html = fs.readFileSync(path.join(L.DOCS, 'index.html'), 'utf8');
-    ok('H-001 la página no trae bloques <style> ni atributos style', !/<style/.test(html) && !/\sstyle="/.test(html), `${(html.match(/<style/g) || []).length} bloques · ${(html.match(/\sstyle="/g) || []).length} atributos`);
+    ok('la página no trae bloques <style> ni atributos style', !/<style/.test(html) && !/\sstyle="/.test(html), `${(html.match(/<style/g) || []).length} bloques · ${(html.match(/\sstyle="/g) || []).length} atributos`);
     const app = fs.readFileSync(path.join(L.DOCS, 'app.js'), 'utf8');
-    ok('H-001 el programa no inserta atributos style ni usa cssText', !/style="/.test(app) && !/cssText/.test(app) && !/cssText/.test(fs.readFileSync(path.join(L.DOCS, 'config.js'), 'utf8')), `${(app.match(/style="/g) || []).length} patrones`);
-    ok('H-060 las librerías de Excel y PDF se piden con huella de versión', srv.pedidas.filter(q => /libs\/(xlsx|jspdf|excel_worker)\.js/.test(q)).every(q => /\?v=[0-9a-f]{10}/.test(q)) && srv.pedidas.some(q => /libs\/jspdf\.js\?v=/.test(q)), srv.pedidas.filter(q => /libs\/(xlsx|jspdf|excel_worker)/.test(q)).map(q => q.split('/').pop()).join(' '));
-    ok('H-098 los enlaces a terceros no envían la dirección de la consulta', await page.evaluate(() => [...document.querySelectorAll('a[target="_blank"]')].every(a => /noreferrer/.test(a.rel))));
+    ok('el programa no inserta atributos style ni usa cssText', !/style="/.test(app) && !/cssText/.test(app) && !/cssText/.test(fs.readFileSync(path.join(L.DOCS, 'config.js'), 'utf8')), `${(app.match(/style="/g) || []).length} patrones`);
+    ok('las librerías de Excel y PDF se piden con huella de versión', srv.pedidas.filter(q => /libs\/(xlsx|jspdf|excel_worker)\.js/.test(q)).every(q => /\?v=[0-9a-f]{10}/.test(q)) && srv.pedidas.some(q => /libs\/jspdf\.js\?v=/.test(q)), srv.pedidas.filter(q => /libs\/(xlsx|jspdf|excel_worker)/.test(q)).map(q => q.split('/').pop()).join(' '));
+    ok('los enlaces a terceros no envían la dirección de la consulta', await page.evaluate(() => [...document.querySelectorAll('a[target="_blank"]')].every(a => /noreferrer/.test(a.rel))));
     await ctx.close(); srv.close(); }
 
   // ---------- 2) sesión vencida ----------
@@ -89,22 +89,22 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     const srv = await servidor(modo); const { page, ctx } = await abre(srv, PRE + '?modo=ligero', false);
     await page.waitForSelector('#loader .reintenta, #loader [role=alert]', { timeout: 120000 }).catch(() => {});
     const t = await page.$eval('#loader', l => l.innerText.replace(/\s+/g, ' '));
-    ok(`H-014 al cargar, si ${nombre}, se dice que la sesión terminó (no «revisa tu conexión»)`, /sesión/i.test(t) && !/conexión|incorrect|header/i.test(t), t.slice(0, 110));
+    ok(`al cargar, si ${nombre}, se dice que la sesión terminó (no «revisa tu conexión»)`, /sesión/i.test(t) && !/conexión|incorrect|header/i.test(t), t.slice(0, 110));
     await ctx.close(); srv.close(); }
   { // sesión que vence a media consulta: la página ya cargó y las librerías de descarga responden 401
     const srv = await servidor('normal'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero'); await L.elegir(page, 'iztapalapa');
     await page.route(/libs\/(jspdf|xlsx|excel_worker)\.js/, r => r.fulfill({ status: 401, contentType: 'text/html', body: '<html>No autorizado</html>' }));
     await page.$eval('#dl-ficha-alc', b => b.click()); await page.waitForTimeout(4000);
     const t1 = await page.$eval('#dl-status', e => e.innerText);
-    ok('H-014 con la sesión vencida, la ficha PDF avisa que la sesión terminó', /sesión/i.test(t1), t1.slice(0, 100));
+    ok('con la sesión vencida, la ficha PDF avisa que la sesión terminó', /sesión/i.test(t1), t1.slice(0, 100));
     const desc = []; page.on('download', d => desc.push(d.suggestedFilename())); await page.$eval('#dl-calles', b => b.click()); await page.waitForTimeout(6000);
     const t2 = await page.$eval('#dl-status', e => e.innerText);
-    ok('H-014 con la sesión vencida, el Excel no se sustituye por CSV: avisa que la sesión terminó', /sesión/i.test(t2) && desc.length === 0, `${t2.slice(0, 80)} · descargas: ${desc.join(', ') || 'ninguna'}`);
+    ok('con la sesión vencida, el Excel no se sustituye por CSV: avisa que la sesión terminó', /sesión/i.test(t2) && desc.length === 0, `${t2.slice(0, 80)} · descargas: ${desc.join(', ') || 'ninguna'}`);
     await ctx.close(); srv.close(); }
 
   // ---------- 3) un proxy entrega los .bin ya descomprimidos ----------
   { const srv = await servidor('descomprime'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero'); await L.elegir(page, 'iztapalapa');
-    ok('H-061 si un proxy entrega los datos ya descomprimidos, la herramienta carga igual', (await page.$eval('#scope-title', e => e.innerText)) === 'Iztapalapa' && (await page.$eval('#mapsum', e => e.innerText)).includes(L.kmTxt(L.resumenFrentes(L.decodificar(), { mun: L.decodificar().META.muns.indexOf('007') }).kmp)));
+    ok('si un proxy entrega los datos ya descomprimidos, la herramienta carga igual', (await page.$eval('#scope-title', e => e.innerText)) === 'Iztapalapa' && (await page.$eval('#mapsum', e => e.innerText)).includes(L.kmTxt(L.resumenFrentes(L.decodificar(), { mun: L.decodificar().META.muns.indexOf('007') }).kmp)));
     await ctx.close(); srv.close(); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));

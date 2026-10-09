@@ -3,8 +3,8 @@
 
 Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   plantilla.html   estructura de la página (sin estilos ni código)
-  css/*.css        estilos, en orden de aplicación (01_variables … 06_mi_ubicacion)
-  js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 16_arranque);
+  css/*.css        estilos, en orden de aplicación (01_variables … 09_recorrido)
+  js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 17_recorrido);
                    se unen en un solo app.js dentro de una función asíncrona
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
   img/             logotipo y lámina de la metodología
@@ -18,9 +18,8 @@ Salidas:
   ../_local/priorizacion_reforestacion.html     un solo archivo para abrir con doble clic, con librerías, tipografías y datos
                                          incrustados: no pide nada a terceros (no se publica)
   ../05_documentacion/cifras_de_la_construccion.md   tamaños y conteos medidos en esta construcción
-  --artefacto RUTA                       fragmento para el artefacto de Claude (sin esqueleto)
 
-Uso:  python3 02_fuente/construir.py [--artefacto RUTA]
+Uso:  python 02_fuente/construir.py
 """
 import base64
 import gzip
@@ -34,7 +33,7 @@ FUENTE = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(FUENTE)
 DOCS = os.path.join(RAIZ, 'docs')
 
-# Esqueleto de página completa (el mismo que agrega el artefacto) más idioma y la instrucción de no
+# Esqueleto de página completa con idioma y la instrucción de no
 # aparecer en buscadores. Para permitir la difusión, dejar ROBOTS = ''.
 ROBOTS = '<meta name="robots" content="noindex, nofollow">'
 ESQUELETO = ('<!doctype html><html lang="es-MX"><head><meta charset="utf-8">'
@@ -51,11 +50,11 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 # vías (World_Transportation) desde services.arcgisonline.com, sin clave (pendiente de regularizar con cuenta de Esri).
 # La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
 ESRI_KEY = ''
-# Clave de CARTO para el fondo «Calles». Desde el 29 de septiembre de 2026 CARTO exige una clave propia; sin ella las
+# Clave de CARTO para el fondo «Calles». CARTO exige una clave propia; sin ella las
 # teselas llegan con la marca de agua «API key required». Se solicita sin costo en carto.com (sin cuenta) y va en la
 # dirección de cada tesela (?key=), así que también queda visible en la página.
 CARTO_KEY = ''
-# Las claves NO se escriben en este archivo, que es público (auditoría H-063). Se toman, en este orden, de las variables de
+# Las claves NO se escriben en este archivo, que es público. Se toman, en este orden, de las variables de
 # entorno SIA_ESRI_KEY y SIA_CARTO_KEY o del archivo 02_fuente/claves.local.json (no se publica; ver .gitignore):
 #   {"ESRI_KEY": "…", "CARTO_KEY": "…"}
 # Al construir con claves, estas quedan en docs/config.js: son visibles para quien abra la página (es lo normal en mapas web),
@@ -70,15 +69,15 @@ if os.path.isfile(os.path.join(FUENTE, 'claves.local.json')):
         sys.exit(1)
 ESRI_KEY = os.environ.get('SIA_ESRI_KEY') or _claves.get('ESRI_KEY') or ESRI_KEY
 CARTO_KEY = os.environ.get('SIA_CARTO_KEY') or _claves.get('CARTO_KEY') or CARTO_KEY
-# Sesión (Fase 2, auditoría H-078): direcciones del inicio y del cierre de sesión cuando la herramienta se instala detrás de un
+# Sesión: direcciones del inicio y del cierre de sesión cuando la herramienta se instala detrás de un
 # login. Vacías = sin sesión (GitHub Pages). También se pueden dar con SIA_SESION_INICIO y SIA_SESION_CIERRE o en claves.local.json.
 SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_INICIO') or '',
           'cierre': os.environ.get('SIA_SESION_CIERRE') or _claves.get('SESION_CIERRE') or '',
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.0'   # primera versión para el SIA; antes de ella, ensayos internos v1 a v17.38 (ver bitácora)
-ACTUALIZACION = '5 de octubre de 2026'
+VERSION = '1.0'   # primera versión para el SIA
+ACTUALIZACION = '8 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -95,7 +94,7 @@ SALIDA = {}   # archivos del sitio (ruta relativa a docs/ -> bytes). Se escriben
 
 
 def poner(rel, contenido):
-    """Anota un archivo del sitio. Nada se escribe hasta el final (auditoría H-026): un error a media construcción no deja docs/ a medias."""
+    """Anota un archivo del sitio. Nada se escribe hasta el final: un error a media construcción no deja docs/ a medias."""
     SALIDA[rel] = contenido.encode('utf-8') if isinstance(contenido, str) else contenido
 
 
@@ -104,19 +103,18 @@ def falla(mensaje):
     sys.exit(1)
 
 
-# ---------- piezas esperadas (auditoría H-026): si falta o sobra una, la construcción se detiene antes de escribir ----------
+# ---------- piezas esperadas: si falta o sobra una, la construcción se detiene antes de escribir ----------
 JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
                 '07_leyenda_y_capas.js', '08_resumenes.js', '09_listados.js', '09_tramos.js', '10_seleccion.js', '11_descargas.js',
                 '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js', '17_recorrido.js']
-CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_auditoria_bloque1.css', '05_auditoria_bloque2.css',
+CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_pantalla_y_leyenda.css', '05_panel_y_hoja_inferior.css',
                  '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css', '09_recorrido.css']
 # Lo único de libs/ y fuentes/ que se publica. Un archivo que no esté aquí no llega a docs/.
 LIBS_PUBLICADAS = ['deck.js', 'pako.js', 'jspdf.js', 'xlsx.js', 'excel_worker.js', 'LICENCIAS.md',
                    'LICENCIA_deck.gl.txt', 'LICENCIA_pako.txt', 'LICENCIA_jspdf.txt', 'LICENCIA_xlsx.txt']
 FUENTES_PUBLICADAS = ['cabin.woff2', 'roboto.woff2', 'OFL_Cabin.txt', 'OFL_Roboto.txt']
-args = sys.argv[1:]
-if args and not (len(args) == 2 and args[0] == '--artefacto'):
-    falla('uso: python3 02_fuente/construir.py [--artefacto RUTA]')
+if sys.argv[1:]:
+    falla('uso: python 02_fuente/construir.py   (no recibe argumentos)')
 for carpeta, ext, esperados in (('js', '.js', JS_ESPERADOS), ('css', '.css', CSS_ESPERADOS)):
     hay = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n.endswith(ext))
     faltan, sobran = [n for n in esperados if n not in hay], [n for n in hay if n not in esperados]
@@ -133,7 +131,7 @@ for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLIC
     extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n != 'SUMAS.json')
     if extra:
         print('AVISO: %s/ trae archivos que no se publican: %s.' % (carpeta, ', '.join(extra)))
-# Los datos deben ser los verificados (auditoría H-024): se compara el contenido descomprimido con datos/SUMAS.json,
+# Los datos deben ser los verificados: se compara el contenido descomprimido con datos/SUMAS.json,
 # porque la compresión cambia de un equipo a otro aunque el contenido sea el mismo.
 ruta_sumas = os.path.join(FUENTE, 'datos', 'SUMAS.json')
 if not os.path.isfile(ruta_sumas):
@@ -159,7 +157,7 @@ CIERRE = ("})().catch(err=>{ console.error(err); window.SIA_LISTO = true; const 
           " if (err && err.sesion && window.SIA_SESION && window.SIA_SESION.inicio){ const a=document.createElement('a'); a.href=window.SIA_SESION.inicio; a.textContent='Iniciar sesión'; m.appendChild(a); }"
           ""
           " const b=document.createElement('button'); b.type='button'; b.className='reintenta'; b.textContent='Reintentar'; b.onclick=()=>location.reload(); d.appendChild(b); });\n")
-# Vigilancia del arranque (auditoría H-035). Va en un archivo aparte de app.js para que funcione aunque app.js no llegue:
+# Vigilancia del arranque. Va en un archivo aparte de app.js para que funcione aunque app.js no llegue:
 # avisa si un programa no se pudo descargar y ofrece reintentar cuando la carga tarda demasiado.
 VIGIA = ("(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=document.getElementById('loader'); if(!l || l.querySelector('.lento')) return; var d=l.querySelector('div');"
          " var p=document.createElement('div'); p.className='lento'; p.setAttribute('role','alert'); p.textContent=t; d.appendChild(p);"
@@ -181,14 +179,14 @@ def css_fuentes(direccion):
 
 
 plantilla = leer('plantilla.html')
-# Lo que la plantilla trae antes del marcador de estilos (<title>, <meta>) va en <head>, no en <body> (auditoría H-092).
+# Lo que la plantilla trae antes del marcador de estilos (<title>, <meta>) va en <head>, no en <body>.
 if plantilla.count('<!-- ESTILOS -->') != 1:
     falla('plantilla.html debe tener exactamente un marcador <!-- ESTILOS -->.')
 CABEZA_PL, plantilla = plantilla.split('<!-- ESTILOS -->')
 CABEZA_PL = CABEZA_PL.strip().replace('\n', '')
 assert CABEZA_PL.startswith('<title>') and '<div' not in CABEZA_PL, 'antes de <!-- ESTILOS --> solo van <title> y <meta>'
 plantilla = '<!-- ESTILOS -->' + plantilla
-# Ningún recurso de terceros en la ruta de arranque (auditoría H-002): la plantilla no puede enlazar hojas ni código externos.
+# Ningún recurso de terceros en la ruta de arranque: la plantilla no puede enlazar hojas ni código externos.
 assert 'fonts.googleapis' not in plantilla and 'fonts.gstatic' not in plantilla, 'la plantilla no debe pedir tipografías a terceros'
 estilos = '/* ' + AVISO % 'css/' + ' */\n' + unir('css', '.css')
 app = '// ' + AVISO % 'js/' + '\n' + APERTURA + unir('js', '.js') + CIERRE
@@ -196,7 +194,7 @@ for img in IMAGENES:
     assert ('src="%s"' % img) in plantilla, 'la plantilla no usa ' + img
 
 # ---------- 1) versión en un solo archivo: estilos, tipografías, imágenes, datos y librerías incrustados ----------
-# No pide nada a terceros (auditoría H-058 y H-095): sirve en redes que bloquean dominios externos.
+# No pide nada a terceros: sirve en redes que bloquean dominios externos.
 incrustadas = css_fuentes(lambda a: 'data:font/woff2;base64,' + base64.b64encode(leer('fuentes/' + a, True)).decode())
 ESTILOS_UNICO = '<style>\n' + incrustadas + estilos + '</style>'
 cuerpo = plantilla.replace('<!-- ESTILOS -->', '')
@@ -211,8 +209,6 @@ cuerpo += ''.join('<script id="lib-%s-b64" type="text/plain">%s</script>\n' % (k
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
 cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
-fragmento = CABEZA_PL + ESTILOS_UNICO + cuerpo   # el artefacto no tiene <head> propio: todo va junto
-
 unico = ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + ESTILOS_UNICO) + cuerpo + '</body></html>\n'
 
 # ---------- 2) sitio: cada pieza en su archivo, con huella ?v= para la caché del navegador ----------
@@ -259,9 +255,9 @@ pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + precarga + HOJA) + 
           + sitio + '</body></html>\n')
 poner('index.html', pagina)
 
-# ---------- proceso de servicio: la herramienta abre sin conexión después de la primera visita (auditoría H-057) ----------
+# ---------- proceso de servicio: la herramienta abre sin conexión después de la primera visita ----------
 # Guarda solo archivos propios, por su dirección exacta (con huella). No guarda respuestas con error, redirigidas ni de otro origen,
-# para convivir con el login de la Fase 2 (un 401 o un 302 nunca quedan en la caché).
+# para convivir con el inicio de sesión del SIA (un 401 o un 302 nunca quedan en la caché).
 PRE = (['./', 'config.js?v=%s' % v(config), 'app.js?v=%s' % v(app), 'estilos.css?v=%s' % v(estilos)]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('deck.js', 'pako.js')]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('xlsx.js', 'jspdf.js')] + ['libs/excel_worker.js?v=%s&x=%s' % (lver['excel_worker.js'], lver['xlsx.js'])]
@@ -300,7 +296,7 @@ if obsoletos:
 os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
 open(os.path.join(RAIZ, '_local', 'priorizacion_reforestacion.html'), 'w', encoding='utf-8').write(unico)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
-# docs/ se publica tal cual en GitHub Pages: si lleva claves o sesión, se dice (auditoría de la v17.33)
+# docs/ se publica tal cual en GitHub Pages: si lleva claves o sesión, se dice
 if CARTO_KEY or ESRI_KEY:
     print('AVISO: docs/config.js lleva la clave de %s. Al hacer commit queda pública en GitHub y en su historial: '
           'confirmar que está restringida al dominio del sitio en el panel del proveedor.' % ' y de '.join(n for n, k in (('CARTO', CARTO_KEY), ('Esri', ESRI_KEY)) if k))
@@ -308,7 +304,7 @@ if SESION['inicio'] or SESION['cierre'] or SESION['uso']:
     print('AVISO: docs/ se construyó con direcciones de sesión (%s). Sirven para el SIA, no para GitHub Pages: '
           'para el SIA usar 08_entrega_sia/empaquetar.py y no hacer commit de este docs/.' % (SESION['inicio'] or SESION['cierre']))
 
-# ---------- cifras de la documentación (auditoría H-069): se miden aquí para que README y ARQUITECTURA no las repitan a mano ----------
+# ---------- cifras de la documentación: se miden aquí para que README y ARQUITECTURA no las repitan a mano ----------
 def tam(n):
     return '%.1f MB' % (n / 1048576) if n >= 1048576 else '%d KB' % round(n / 1024)
 
@@ -339,8 +335,3 @@ if not (os.path.exists(ruta_cifras) and open(ruta_cifras, encoding='utf-8').read
 lee_readme = os.path.join(RAIZ, 'README.md')
 if os.path.exists(lee_readme) and ('**v%s**' % VERSION) not in open(lee_readme, encoding='utf-8').read():
     print('AVISO: README.md no menciona la versión v%s como vigente; actualizarlo antes del commit.' % VERSION)
-
-if args:
-    ruta = args[1]
-    open(ruta, 'w', encoding='utf-8').write(fragmento)
-    print('fragmento para el artefacto en', ruta)

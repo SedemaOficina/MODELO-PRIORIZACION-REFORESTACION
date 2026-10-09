@@ -1,4 +1,4 @@
-// Corre todas las verificaciones, una tras otra, y da una sola señal: código 0 si todo pasó (auditoría H-077).
+// Corre todas las verificaciones, una tras otra, y da una sola señal: código 0 si todo pasó.
 // Uso: node 04_pruebas/correr_todas.js          todas (unos 12 minutos sin tarjeta gráfica)
 //      node 04_pruebas/correr_todas.js rapidas  solo las que no abren el navegador (menos de un minuto)
 const cp = require('child_process'), path = require('path'), fs = require('fs');

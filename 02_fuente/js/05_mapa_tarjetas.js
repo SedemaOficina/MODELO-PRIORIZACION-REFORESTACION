@@ -26,7 +26,7 @@ function featHtml(i, compact){
     ${dupCol? '<div class="cardnote">Los datos de la colonia se muestran arriba, en Resultados.</div>' : ''}
     ${fieldActs(midLat(i), midLon(i))}`;
 }
-// v1.0 · banqueta de los frentes de manzana que dan a cada tramo de vialidad primaria (m: con, sin, por verificar), solo informativa
+// Banqueta de los frentes de manzana que dan a cada tramo de vialidad primaria (m: con, sin, por verificar), solo informativa
 let VPB = null;
 function vpBanq(i){ if (!VPB){ VPB = new Float32Array(3*NV); for(let f=0;f<N;f++){ if (!F.gc[f] || F.vp[f]<0) continue; const b=(F.flags[f]>>3)&7; VPB[3*F.vp[f]+(b===0? 0 : b===1? 1 : 2)] += F.len[f]; } }
   return [VPB[3*i], VPB[3*i+1], VPB[3*i+2]]; }
@@ -54,7 +54,7 @@ function vpHtml(i, compact){
     ${fieldActs(...vpMid(i))}
     ${isGC()? `<button class="btn secondary act" id="card-av" type="button">Ver toda la avenida</button>` : ''}`;
 }
-// acciones para salir a campo (enlaces externos y copia de coordenadas) (auditoría I5)
+// acciones para salir a campo (enlaces externos y copia de coordenadas)
 function fieldActs(lat, lon){ const ll = `${lat.toFixed(6)},${lon.toFixed(6)}`;
   return `<div class="field-acts">
     <a class="fa" href="https://www.google.com/maps/dir/?api=1&destination=${ll}" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-12a7 7 0 0 1 14 0c0 5.8-7 12-7 12z"/><circle cx="12" cy="9" r="2.5"/></svg>Cómo llegar</a>

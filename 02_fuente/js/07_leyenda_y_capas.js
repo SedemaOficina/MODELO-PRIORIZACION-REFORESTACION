@@ -8,7 +8,7 @@ META.prio.slice().reverse().forEach((p, ri)=>{
   row.onclick = toggle; row.onkeydown = e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } };
   lg.appendChild(row);
 });
-// el filtro por prioridad solo cambia el mapa: se dice siempre, y se avisa si no queda ninguna prioridad visible (auditoría H-041)
+// el filtro por prioridad solo cambia el mapa: se dice siempre, y se avisa si no queda ninguna prioridad visible
 function notaFiltro(){ const n=$('lg-filter-note'); if(!n) return; const ninguna = !visible.some(Boolean); n.classList.toggle('warn', ninguna);
   n.textContent = ninguna? 'Ninguna prioridad está visible: el mapa no muestra calles. Activa al menos una casilla.' : 'Estas casillas solo cambian lo que se ve en el mapa. Las cifras, los listados y las descargas incluyen todas las prioridades.'; }
 function renderLegendNote(){
@@ -43,7 +43,7 @@ function setResp(v, sinRefresh){
   buildVP(); if (!sinRefresh) refresh();
 }
 
-// ---------- fila «Banqueta» (v17.35): filtra los frentes de las alcaldías según INEGI 2020; ver filtroBanq en 03_estado.js ----------
+// ---------- fila «Banqueta»: filtra los frentes de las alcaldías según INEGI 2020; ver filtroBanq en 03_estado.js ----------
 const banqBtns = document.querySelectorAll('button[data-banq]');
 function setBanq(v){ if (v!=='con' && v!=='sin') v = 'todas'; if (filtroBanq===v) return; filtroBanq = v;
   banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v)));

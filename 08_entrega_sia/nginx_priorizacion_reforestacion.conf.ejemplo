@@ -80,7 +80,7 @@ location ^~ /priorizacion-reforestacion/ {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# FASE 2 CON INICIO DE SESIÓN (decidido: controlar el acceso y registrar los usos). Ver login/LEEME.md.
+# FASE 2 CON INICIO DE SESIÓN (controla el acceso y registra los usos). Ver login/LEEME.md.
 # Sustituye al bloque 2 cuando estén instalados el módulo /api/priorizacion-reforestacion/ en el backend y la pantalla /acceso/priorizacion-reforestacion/.
 # ---------------------------------------------------------------------------------------------------------------------
 # 2-bis) La herramienta, protegida: cada archivo se entrega solo con sesión válida.

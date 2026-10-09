@@ -1,10 +1,8 @@
 // Descargas: CSV y Excel (SheetJS bajo demanda) con diccionario de datos.
 // ---------- descargas ----------
-// Integración opcional con el visor de artefactos (solo existe ahí); en el sitio publicado no hay tal objeto.
-let downloads = null; if (typeof claude !== 'undefined' && claude && claude.use){ try { downloads = await claude.use('downloads'); } catch(e){ downloads = null; } }
-// CSV de respaldo: se neutralizan las celdas que una hoja de cálculo interpretaría como fórmula (auditoría H-090)
+// CSV de respaldo: se neutralizan las celdas que una hoja de cálculo interpretaría como fórmula
 function csvEsc(v){ v=String(v??''); if (/^[=+\-@\t\r]/.test(v) && !/^-?\d+(\.\d+)?$/.test(v)) v = "'" + v; return /[",\r\n;]/.test(v)? '"'+v.replace(/"/g,'""')+'"' : v; }
-// fecha AAAAMMDD en el nombre de cada archivo entregado (auditoría H-088)
+// fecha AAAAMMDD en el nombre de cada archivo entregado
 const conFecha = name => { const d=new Date(), f=`${d.getFullYear()}${String(d.getMonth()+1).padStart(2,'0')}${String(d.getDate()).padStart(2,'0')}`; return name.replace(/(\.[a-z0-9]+)$/i, `_${f}$1`); };
 // ámbito de la consulta para el registro de usos (solo se envía con sesión; ver avisaUso en 01_utilidades.js)
 function ambitoUso(){ const c = calleSel(); return { red: resp, alcaldia: sel!==null? META.munNames[sel] : '', colonia: selCol!==null? colNombre(selCol) : '',
@@ -19,23 +17,17 @@ function usoDescarga(nombre){ if (!USO_URL || /_diccionario\.csv$/.test(nombre))
 async function deliver(filename, text){ filename = conFecha(filename); usoDescarga(filename);
   const st = $('dl-status'); st.textContent='Preparando archivo…';
   const blob = new Blob(['\uFEFF'+text], {type:'text/csv;charset=utf-8'});
-  if (downloads){
-    try{ await downloads.save({filename, data:blob}); st.textContent = `Guardado: ${filename}`; }
-    catch(err){ st.textContent = err && err.code==='declined' ? 'Descarga cancelada.' : 'No fue posible guardar el archivo en este visor.'; }
-    return;
-  }
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
   st.textContent = `Descargado: ${filename}`;
 }
 async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(filename)) filename = conFecha(filename); usoDescarga(filename);
   const st = $('dl-status'); st.textContent='Preparando archivo…';
-  if (downloads){ try{ await downloads.save({filename, data:blob}); st.textContent=`Guardado: ${filename}`; } catch(err){ st.textContent = err && err.code==='declined' ? 'Descarga cancelada.' : 'No fue posible guardar el archivo en este visor.'; } return; }
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); st.textContent=`Descargado: ${filename}`;
 }
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
 // las descargas de vialidades primarias no se filtran por colonia: su nombre y su ámbito tampoco la declaran
 const scopeSlugVP = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '');
-// el filtro de banqueta (v17.35) va en el nombre: dos archivos de la misma consulta con distinto filtro no se confunden
+// el filtro de banqueta va en el nombre: dos archivos de la misma consulta con distinto filtro no se confunden
 const banqSlug = ()=> filtroBanq==='con'? '_con_banqueta' : filtroBanq==='sin'? '_sin_banqueta' : '';
 const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selCol!==null? '_'+slug(colNombre(selCol)) : '') + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '') + banqSlug();
 // ---------- diccionario de datos ----------
@@ -156,12 +148,12 @@ function dictAoa(key, nreg, archivo, extra){
 }
 // ---------- exportación a Excel (datos + diccionario) ----------
 // librerías bajo demanda: de docs/libs en el sitio (window.SIA_LIBS) o, en la versión de un solo archivo, de la copia
-// incrustada en la propia página (<script id="lib-ARCHIVO-b64">). Ninguna versión pide librerías a terceros (auditoría H-058, H-095).
+// incrustada en la propia página (<script id="lib-ARCHIVO-b64">). Ninguna versión pide librerías a terceros.
 function libIncrustada(file){ const el = document.getElementById('lib-' + file + '-b64'); if (!el) return null;
   const bin = atob(el.textContent.trim()), u8 = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u8[i] = bin.charCodeAt(i);
   return URL.createObjectURL(new Blob([u8], {type:'text/javascript'})); }
-const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces (auditoría H-036)
-// huella de versión de cada librería (la escribe construir.py en config.js): tras una actualización nunca se usa una copia anterior (auditoría H-060)
+const LIB_EN_CURSO = {};   // una sola descarga por librería aunque se pida varias veces
+// huella de versión de cada librería (la escribe construir.py en config.js): tras una actualización nunca se usa una copia anterior
 const libV = file => (window.SIA_LIBS_V && window.SIA_LIBS_V[file]) ? '?v=' + window.SIA_LIBS_V[file] : '';
 function loadLib(file, glob){
   if (window[glob]) return Promise.resolve(window[glob]);
@@ -171,7 +163,7 @@ function loadLib(file, glob){
     const src = window.SIA_LIBS ? window.SIA_LIBS + file + libV(file) : libIncrustada(file);
     if (!src) return rej(new Error('la librería ' + file + ' no viene en esta copia'));
     s.src = src;
-    // si no llega, se averigua por qué: una sesión vencida no es una falla de conexión (auditoría H-014)
+    // si no llega, se averigua por qué: una sesión vencida no es una falla de conexión
     const fallo = ()=>{ delete LIB_EN_CURSO[file]; s.remove(); causaFalla(src).then(c => rej(Object.assign(new Error('no se pudo cargar la librería ' + file), {causa:c}))); };
     s.onload = ()=> window[glob] ? res(window[glob]) : fallo();
     s.onerror = fallo;
@@ -184,8 +176,8 @@ function loadXL(){
   return loadLib('xlsx.js', 'XLSX').then(x => (XL = x));
 }
 const wch = ws => ws.map(w=>({wch:w}));
-// Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo (auditoría H-045)
-// Propiedades del libro (auditoría H-052): título, autoría e idioma
+// Excel en un proceso auxiliar: la página sigue respondiendo mientras se arma el archivo
+// Propiedades del libro: título, autoría e idioma
 const propsExcel = base => ({ Title: base.replace(/_/g,' '), Subject:'Priorización de calles para reforestación urbana', Author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', Company:'Secretaría del Medio Ambiente de la Ciudad de México', Language:'es-MX', Comments:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, CreatedDate: new Date() });
 function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ let w; try { w = new Worker(window.SIA_LIBS + 'excel_worker.js' + libV('excel_worker.js') + (libV('xlsx.js')? '&x=' + window.SIA_LIBS_V['xlsx.js'] : '')); } catch(e){ return rej(e); }
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
@@ -279,7 +271,7 @@ $('dl-avenidas').onclick = ()=>{
 
 document.fonts && document.fonts.ready.then(()=> rerender());
 
-// ---------- exportación geográfica (v17.29): las calles prioritarias de la consulta como líneas ----------
+// ---------- exportación geográfica: las calles prioritarias de la consulta como líneas ----------
 // Mismos registros que «frentes prioritarios» y «tramos prioritarios» en Excel: frentes de alcaldía Muy Alta, Alta y Media del ámbito
 // (requiere alcaldía o colonia) y, con Gobierno Central activo, tramos prioritarios de vialidad primaria.
 // KML para Google Earth; GeoJSON (RFC 7946, WGS 84) para un sistema de información geográfica. Solo se descarga: nada se captura.
@@ -311,7 +303,7 @@ function geoKML(g){ const kc = p => { const c = T.prio[p]; const h = v => v.toSt
     + '</Document></kml>\n'; }
 function geoDescarga(tipo){ const st = $('dl-status'); const g = geoSel(); const n = g.fr.length + g.vp.length;
   if (!n){ st.textContent = (respOn.alc && sel===null && !respOn.gc)? 'Elige una alcaldía o una colonia para descargar sus calles como mapa.' : 'Este ámbito no tiene calles de prioridad Muy Alta, Alta o Media que descargar.'; return; }
-  // en teléfono un archivo de decenas de miles de líneas pesa demasiado: se pide acotar a una colonia (mismo criterio que el Excel, auditoría H-045)
+  // en teléfono un archivo de decenas de miles de líneas pesa demasiado: se pide acotar a una colonia (mismo criterio que el Excel)
   if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un teléfono. Elige una colonia o descárgalo desde una computadora.`; return; }
   st.textContent = n>GRANDE? `Preparando un archivo grande: ${fmt.format(n)} líneas, alrededor de ${fmt0.format(Math.max(1, n*(tipo==='kml'? 0.0006 : 0.00033)))} MB…` : 'Preparando archivo…';
   setTimeout(()=>{ try {

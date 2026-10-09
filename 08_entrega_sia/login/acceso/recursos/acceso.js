@@ -47,7 +47,7 @@
     try { const r = await llama('entrar', { correo, contrasena, volver });
       if (!r.ok) { error('entrar-err', r.d.error || 'No fue posible entrar. Inténtalo de nuevo.'); $('contrasena').value = ''; $('contrasena').focus(); return; }
       if (r.d.debe_cambiar) { $('actual').value = contrasena; aCambiar(true); return; }
-      location.assign(r.d.volver || volver);   // criterio 13: regresa a la consulta que la persona pidió
+      location.assign(r.d.volver || volver);   // criterio 13: regresa a la consulta solicitada
     } catch (err) { error('entrar-err', sinRed()); } finally { ocupado(f, false); } });
 
   // ---- cambiar la contraseña ----
@@ -66,7 +66,7 @@
   // ---- al abrir ----
   if (p.get('salida')) aviso('Cerraste tu sesión.');
   if (p.get('vencida')) aviso('Tu sesión terminó. Vuelve a iniciar sesión para continuar.', 'alerta');
-  // con sesión abierta: si debe cambiar la contraseña se pide; si pidió cambiarla (?cambiar=1) también; si no, a la herramienta
+  // con sesión abierta: si debe cambiar la contraseña se pide; si la persona quiere cambiarla (?cambiar=1) también; si no, a la herramienta
   llama('yo').then(r => { if (!r.ok) { $('correo').focus(); return; }
     if (r.d.debe_cambiar || p.get('cambiar')) { aCambiar(r.d.debe_cambiar); return; }
     location.replace(volver); }).catch(() => $('correo').focus());

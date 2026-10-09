@@ -193,17 +193,6 @@ button,input,select{font:inherit;color:inherit}
 .modal-card figure{margin:12px 0 4px}
 .modal-card figure img{width:100%;height:auto;border:1px solid var(--line);border-radius:6px;display:block}
 .modal-card figcaption{font-size:.75rem;color:var(--ink-3);margin-top:6px}
-.fund{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:14px 0 4px}
-.fund .col{border:1px solid var(--line);border-radius:9px;padding:13px 15px;background:var(--panel-2)}
-.fund .col+.col{background:#FBF6EE;border-color:var(--dorado-soft)}
-.fund h4{margin:0 0 9px;font-family:Cabin,sans-serif;font-size:1rem;font-weight:700;color:var(--guinda);display:flex;align-items:center;gap:8px}
-.fund h4 svg{width:19px;height:19px;stroke:var(--guinda);fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
-.fund dl{margin:0}
-.fund dt{font-weight:700;font-size:.75rem;margin-top:9px;color:var(--ink)}
-.fund dl>dt:first-child{margin-top:0}
-.fund dd{margin:2px 0 0;font-size:.75rem;color:var(--ink-2);line-height:1.5}
-.fundnote{font-size:.75rem;color:var(--guinda);font-style:italic;margin:8px 0 0;line-height:1.5}
-@media (max-width:700px){ .fund{grid-template-columns:1fr} }
 .scale{margin:14px 0 6px}
 .scale-ends{display:flex;justify-content:space-between;font-family:Cabin,sans-serif;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;color:var(--ink-2);margin-bottom:6px}
 .scale-ends span:first-child::before{content:"◀ "}.scale-ends span:last-child::after{content:" ▶"}

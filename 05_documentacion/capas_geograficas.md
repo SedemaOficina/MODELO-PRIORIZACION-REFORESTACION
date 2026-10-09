@@ -1,6 +1,6 @@
 # Capas geográficas de la herramienta
 
-Lista para comparar con las capas del GeoServer del SIA, antes de conectar la herramienta a ellas. Se revisó el 5 de octubre de 2026 (v17.36) directamente en los archivos.
+Lista para comparar con las capas del GeoServer del SIA, antes de conectar la herramienta a ellas. Se revisó el 5 de octubre de 2026 directamente en los archivos.
 
 La herramienta **no lee capas en vivo**: usa tres archivos ya procesados (`02_fuente/datos/*.bin`, formato en `08_entrega_sia/CONTRATO_DE_DATOS.md`). Esos archivos salen de **cinco capas**. Tres son archivos de origen; las de alcaldías y colonias venían ya incluidas en la versión 6 de la herramienta.
 
