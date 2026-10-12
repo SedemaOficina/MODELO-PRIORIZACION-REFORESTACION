@@ -53,6 +53,11 @@ const ok = L.Registro('nombres del mapa');
   const med = await page.evaluate(() => { const p = window.__MAPA.capa('st-labels'); const d = p ? p.data : []; return { n: d.length, m: d.filter(x => x.media).length }; });
   ok('casi todos los nombres de calle van sobre la línea media entre los frentes de los dos lados (no encima de la línea de prioridad)', med.n >= 8 && med.m / med.n >= 0.85, `${med.m} de ${med.n}`);
 
+  // contorno de los nombres de calle: grosor en pantalla ≈ (outlineWidth / radius) × radius × 0.75 × tamaño / 64 (ver 04_nombres_mapa.js)
+  const cont = await page.evaluate(() => { const p = window.__MAPA.capa('st-labels'); if (!p) return null; const f = p.fontSettings || {}, r = f.radius || 12, t = typeof p.getSize === 'number' ? p.getSize : 12;
+    return { px: Math.min(1, p.outlineWidth / r) * r * 0.75 * t / (f.fontSize || 64), ancho: p.outlineWidth, radio: r }; });
+  ok('los nombres de calle llevan contorno de 2 px o más, que tapa las líneas que los cruzan', cont && cont.px >= 2, JSON.stringify(cont));
+
   // ---------- dedos «fantasma» ----------
   const dedos = await page.evaluate(async () => {
     const M = window.__MAPA, el = document.querySelector('#map canvas') || document.getElementById('map'); const espera = ms => new Promise(r => setTimeout(r, ms));

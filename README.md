@@ -72,13 +72,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla le corresponde a quien administra la cuenta.
 
-## Estado al 12 de octubre de 2026 (versión 1.5)
+## Estado al 12 de octubre de 2026 (versión 1.6)
 
-- Versión vigente: **v1.5**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.6**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.6 | Contraste de los nombres del mapa de lejos: contorno blanco de unos 2.3 px (antes 0.8 px) alrededor de cada nombre de calle, colonia y alcaldía, que tapa las líneas de prioridad que lo cruzan. Bajo los nombres, el color de las líneas Alta y Muy Alta pasa de 3.0 % a 0.6 % de la caja (Iztapalapa, zoom 15.2). |
 | 1.5 | La herramienta abre con el fondo propio «Calles»: las calles se ven desde el principio. De lejos solo pide parques, ANP y agua (143 KB, que el navegador guarda para abrir sin conexión); las manzanas, al acercarse. «Reiniciar» vuelve a ese fondo. El archivo único, que no trae los datos del fondo, abre sin fondo. |
 | 1.4 | Fondo propio «Calles» en lugar de CARTO: manzanas del Catastro de la CDMX en gris claro sobre suelo blanco (la calle se ve como el hueco entre manzanas), parques y jardines del Inventario de Áreas Verdes 2017, ANP y AVA oficiales y cuerpos de agua, con los frentes encima. Alojado con el sitio (`datos/fondo/`, 1.6 MB; `03_procesamiento_datos/6_fondo.py`): sin terceros ni claves. Se pide al encenderlo y las manzanas, por alcaldía, desde el zoom 13. Con este fondo, el tinte de prioridad de las colonias va más tenue. Se quitan la clave de CARTO y su dominio en las cabeceras de seguridad. Ninguna cifra cambia. |
 | 1.3 | Acomodo propio de los nombres del mapa (`04_nombres_mapa.js`) en lugar del filtro de choques de deck.gl: ningún nombre encimado (antes 530 pares en las seis zonas de muestra) ni bajo los paneles; no brincan al mover el mapa; un nombre solo donde cabe en un tramo recto y los tramos seguidos se encadenan; más nombres de cerca (zoom 17.2: de 0–17 a 6–17 por vista) y menos amontonamiento de lejos. Las vialidades primarias llevan nombre. Solo se nombran calles con frentes de las prioridades visibles. Juego de letras fijo (con 'auto' el zoom se trababa). Líneas de los frentes más delgadas (4 m, máximo 6 px; antes 6 m y 9 px). Ninguna cifra cambia. |
