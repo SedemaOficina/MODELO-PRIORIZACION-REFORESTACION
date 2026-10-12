@@ -408,8 +408,7 @@ const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services
 const ESRI_AGOL = 'https://services.arcgisonline.com/ArcGIS/rest/services/';
 const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener noreferrer">${t}</a>`;
 const FONDOS = {
-  calles: { propio:true, nota:'',
-    atrib:'Manzanas: Catastro de la Ciudad de México · Parques, jardines y cuerpos de agua: SEDEMA · ANP y AVA: SEDEMA y CONANP' },
+  calles: { propio:true, nota:'', atrib:'' },   // fondo propio: sin crédito sobre el mapa
   sat: ESRI_KEY
     ? { url: ESRI_TILES+'arcgis/imagery/static/tile/{z}/{y}/{x}?token='+encodeURIComponent(ESRI_KEY), size:512, max:19, op:.9, nota:'',
         atrib:`Powered by ${enlace('https://www.esri.com','Esri')} · Imagen: Esri, Vantor, Earthstar Geographics y GIS User Community · Vías y lugares: Esri, HERE, Garmin, © OpenStreetMap contributors` }
@@ -699,7 +698,7 @@ function featHtml(i, compact){
     <dl><dt>Quién atiende</dt><dd>${respTxt}</dd>
     <dt>Tipo de vialidad</dt><dd>${tp}</dd>
     <dt>Longitud del frente</dt><dd>${fmt.format(F.len[i])} m</dd>
-    <dt>Banqueta (INEGI 2020)</dt><dd>${ban} <small>(por verificar en campo)</small></dd>
+    <dt>Banqueta (INEGI 2020)</dt><dd>${ban}</dd>
     ${dupCol? '' : `<dt>Prioridad de la colonia</dt><dd>${cc? dot(cc):''}${cp}</dd>
     <dt>Desarrollo social (IDS) de su unidad territorial</dt><dd>${col.ids||'—'}</dd>
     <dt>Población de la colonia</dt><dd>${col.pob? fmt.format(col.pob)+' hab.' : '—'}</dd>`}
@@ -892,9 +891,9 @@ META.prio.slice().reverse().forEach((p, ri)=>{
   row.onclick = toggle; row.onkeydown = e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } };
   lg.appendChild(row);
 });
-// el filtro por prioridad solo cambia el mapa: se dice siempre, y se avisa si no queda ninguna prioridad visible
-function notaFiltro(){ const n=$('lg-filter-note'); if(!n) return; const ninguna = !visible.some(Boolean); n.classList.toggle('warn', ninguna);
-  n.textContent = ninguna? 'Ninguna prioridad está visible: el mapa no muestra calles. Activa al menos una casilla.' : 'Estas casillas solo cambian lo que se ve en el mapa. Las cifras, los listados y las descargas incluyen todas las prioridades.'; }
+// aviso solo cuando no queda ninguna prioridad visible
+function notaFiltro(){ const n=$('lg-filter-note'); if(!n) return; n.hidden = visible.some(Boolean);
+  n.textContent = n.hidden? '' : 'Ninguna prioridad está visible: el mapa no muestra calles. Activa al menos una casilla.'; }
 function renderLegendNote(){
   $('legend-vp').innerHTML = resp==='alc'
     ? `<i class="sw ctx"></i><span>Vialidades primarias (Gobierno Central)</span>`
@@ -951,8 +950,7 @@ function setFondo(k){ fondoUI(k); rerender(); }
 function fondoUI(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
   document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
   $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con); document.body.classList.toggle('fondo-propio', !!(f && f.propio));
-  // el crédito del fondo propio también va en el panel de capas: en el celular no cabe sobre el mapa
-  const n = $('fondo-note'), nota = con? (f.propio? 'Fuentes: '+f.atrib : f.nota) : ''; n.hidden = !nota; n.textContent = nota;
+  const n = $('fondo-note'), nota = con? f.nota : ''; n.hidden = !nota; n.textContent = nota;
   ajustaEscala(); }
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
 function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }
@@ -2241,9 +2239,10 @@ function pantalla(p, op={}){
     // lo elegido desde una lista: «atrás» regresa a la lista
     if (p==='mapa' && op.desdeLista) history.pushState({...(history.state || {}), pantalla:'mapa'}, ''); } }
 const verMapa = op=> pantalla('mapa', op), verInfo = op=> pantalla('info', op);
-// el botón del mapa dice lo que se verá al volver a la información
+// el botón del mapa dice «Volver a la información» y, abajo, el lugar consultado
 function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
-  const s = highlight && highlight.avId!==undefined? 'Ver la avenida' : highlight? 'Ver la calle' : selAv!==null? 'Ver la avenida' : selCol!==null? 'Ver la colonia' : sel!==null? 'Ver la alcaldía' : 'Ver la ciudad';
+  const s = highlight && highlight.avId!==undefined? VPC.nomenclat[highlight.avId] : highlight? (META.names[highlight.nameId] || 'Calle sin nombre')
+    : selAv!==null? VPC.nomenclat[selAv] : selCol!==null? 'Col. '+META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México';
   if (t.textContent!==s) t.textContent = s; }
 // al elegir desde el panel en el celular, la respuesta queda a la vista (sin cambiar de pantalla: desde el mapa, se sigue en el mapa)
 const alaRespuesta = ()=>{ if (!isPhone() || PANTALLA!=='info') return; const k=$('answer'); if (k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
@@ -2278,7 +2277,7 @@ function updTabLabel(){
   $('tab-list').textContent = lbl; }
 function renderScopeTitle(){
   $('scope-title').textContent = selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : '')
-    : selCol!==null? META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México'; }
+    : selCol!==null? 'Col. '+META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México'; }   // «Col.» para que se sepa que es una colonia
 // ---------- acciones fijas al pie del panel ----------
 function renderActions(){
   const m=$('act-main'), f=$('act-ficha'), lbl=$('act-main-lbl'), hint=$('act-hint');
@@ -2335,7 +2334,7 @@ function renderCrumb(){
   $('cr-city').title = atRoot? '' : 'Volver a toda la ciudad';
   selEl.classList.toggle('unset', sel===null);
   const rest=$('cr-rest'); let h='';
-  if (selCol!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${META.colonias[selCol].n}</span><button type="button" class="cr-up" data-up="col" title="Quitar la colonia y volver a ${META.munNames[sel]}" aria-label="Quitar la colonia y volver a ${META.munNames[sel]}">×</button></span>`;
+  if (selCol!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>Col. ${META.colonias[selCol].n}</span><button type="button" class="cr-up" data-up="col" title="Quitar la colonia y volver a ${META.munNames[sel]}" aria-label="Quitar la colonia y volver a ${META.munNames[sel]}">×</button></span>`;
   else if (selAv!==null) h = `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${VPC.nomenclat[selAv]}</span><button type="button" class="cr-up" data-up="av" title="Quitar la avenida" aria-label="Quitar la avenida">×</button></span>`;
   // la calle consultada es el último nivel de la ruta y se puede soltar
   const cs = calleSel(); if (cs) h += `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${cs.nombre}</span><button type="button" class="cr-up" data-up="calle" title="Quitar la calle" aria-label="Quitar la calle consultada">×</button></span>`;
@@ -2437,11 +2436,11 @@ function omniRender(){
     else { const w = whereAmI(co.lon, co.lat); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-0';
       li.innerHTML = `<span class="ty">Punto</span><span class="nm">Ir a ${crd(co.lat)}, ${crd(co.lon)}</span><span class="m">${w.alc===null? 'Fuera de la Ciudad de México' : (w.col!==null? META.colonias[w.col].n+' · ' : '')+META.munNames[w.alc]}</span>`;
       omniItems.push({t:'pto', ...co}); li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[0]); }; }
-    omniList.appendChild(li); omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
+    omniList.appendChild(li); omniMuestra(); return; }
   const R = omniSearch(omni.value);
   if (!R){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); return; }
   const groups = [['alc','Alcaldías'],['col','Colonias'],['av','Avenidas · Gobierno Central'],['st','Calles · alcaldías']].filter(([k])=>R[k].length).sort((a,b)=> R[b[0]][0].s - R[a[0]][0].s);
-  if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
+  if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniMuestra(); return; }
   const I = omniIndex();
   for (const [k,title] of groups){ const g=document.createElement('li'); g.className='grp'; g.setAttribute('role','presentation'); g.textContent=title; omniList.appendChild(g);
     for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-'+omniItems.length; let html='';
@@ -2454,7 +2453,14 @@ function omniRender(){
       li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[n]); }; omniList.appendChild(li); } }
   if (R.nCol>R.col.length){ const v=document.createElement('li'); v.className='mas'; v.setAttribute('role','option'); v.textContent=`Ver las ${fmt.format(Math.min(R.nCol,40))} colonias que coinciden`; v.onmousedown=e=>{ e.preventDefault(); omniTodas=true; omniRender(); }; omniList.appendChild(v); }
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
-  omniList.hidden=false; omni.setAttribute('aria-expanded','true'); }
+  omniMuestra(); }
+// la lista llega hasta el borde de lo visible (en el celular, hasta el teclado) y avisa si hay más resultados abajo
+function omniAlto(){ if (omniList.hidden) return; const v = window.visualViewport, fondo = v? v.offsetTop + v.height : innerHeight;
+  document.documentElement.style.setProperty('--omni-max', Math.max(140, Math.floor(fondo - omniList.getBoundingClientRect().top - 8))+'px'); omniMas(); }
+function omniMas(){ omniList.classList.toggle('hay-mas', omniList.scrollTop + omniList.clientHeight < omniList.scrollHeight - 6); }
+function omniMuestra(){ omniList.hidden=false; omni.setAttribute('aria-expanded','true'); omniList.scrollTop=0; omniAlto(); }
+omniList.addEventListener('scroll', omniMas, {passive:true}); addEventListener('resize', omniAlto);
+if (window.visualViewport){ visualViewport.addEventListener('resize', omniAlto); visualViewport.addEventListener('scroll', omniAlto); }
 function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; if(!lis.length) return; omniActive=(i+lis.length)%lis.length;
   lis.forEach((l,k)=>{ l.classList.toggle('active',k===omniActive); l.setAttribute('aria-selected', String(k===omniActive)); }); lis[omniActive].scrollIntoView({block:'nearest'}); omni.setAttribute('aria-activedescendant', lis[omniActive].id); }
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }

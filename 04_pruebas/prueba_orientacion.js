@@ -86,7 +86,7 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     f = await orden(page, 'kmp'); const primera = f[0].nombre;
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await page.waitForTimeout(600);
     const col = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, orden: document.getElementById('ini-orden-box').hidden }));
-    ok('elegir una colonia la consulta y la pestaña pasa a sus calles', col.titulo === primera && col.ini.includes('Calles de ' + primera) && col.n > 0 && col.orden, JSON.stringify(col));
+    ok('elegir una colonia la consulta y la pestaña pasa a sus calles', col.titulo === 'Col. ' + primera && col.ini.includes('Calles de ' + primera) && col.n > 0 && col.orden, JSON.stringify(col));
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await page.waitForTimeout(500);
     ok('elegir una calle la deja como calle consultada', await page.evaluate(() => /Quitar la calle/.test(document.getElementById('cr-rest').innerHTML)));
     ok('sin NaN, undefined ni negativos en la pestaña', !L.MALOS.test(await page.$eval('#tp-ini', x => x.innerText)) && L.negativos(await page.$eval('#tp-ini', x => x.innerText)).length === 0);

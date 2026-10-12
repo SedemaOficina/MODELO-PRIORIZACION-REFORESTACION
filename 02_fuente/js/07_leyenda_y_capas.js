@@ -8,9 +8,9 @@ META.prio.slice().reverse().forEach((p, ri)=>{
   row.onclick = toggle; row.onkeydown = e=>{ if(e.key===' '||e.key==='Enter'){ e.preventDefault(); toggle(); } };
   lg.appendChild(row);
 });
-// el filtro por prioridad solo cambia el mapa: se dice siempre, y se avisa si no queda ninguna prioridad visible
-function notaFiltro(){ const n=$('lg-filter-note'); if(!n) return; const ninguna = !visible.some(Boolean); n.classList.toggle('warn', ninguna);
-  n.textContent = ninguna? 'Ninguna prioridad está visible: el mapa no muestra calles. Activa al menos una casilla.' : 'Estas casillas solo cambian lo que se ve en el mapa. Las cifras, los listados y las descargas incluyen todas las prioridades.'; }
+// aviso solo cuando no queda ninguna prioridad visible
+function notaFiltro(){ const n=$('lg-filter-note'); if(!n) return; n.hidden = visible.some(Boolean);
+  n.textContent = n.hidden? '' : 'Ninguna prioridad está visible: el mapa no muestra calles. Activa al menos una casilla.'; }
 function renderLegendNote(){
   $('legend-vp').innerHTML = resp==='alc'
     ? `<i class="sw ctx"></i><span>Vialidades primarias (Gobierno Central)</span>`
@@ -67,8 +67,7 @@ function setFondo(k){ fondoUI(k); rerender(); }
 function fondoUI(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
   document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
   $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con); document.body.classList.toggle('fondo-propio', !!(f && f.propio));
-  // el crédito del fondo propio también va en el panel de capas: en el celular no cabe sobre el mapa
-  const n = $('fondo-note'), nota = con? (f.propio? 'Fuentes: '+f.atrib : f.nota) : ''; n.hidden = !nota; n.textContent = nota;
+  const n = $('fondo-note'), nota = con? f.nota : ''; n.hidden = !nota; n.textContent = nota;
   ajustaEscala(); }
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
 function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }

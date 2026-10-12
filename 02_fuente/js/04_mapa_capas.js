@@ -88,8 +88,7 @@ const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services
 const ESRI_AGOL = 'https://services.arcgisonline.com/ArcGIS/rest/services/';
 const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener noreferrer">${t}</a>`;
 const FONDOS = {
-  calles: { propio:true, nota:'',
-    atrib:'Manzanas: Catastro de la Ciudad de México · Parques, jardines y cuerpos de agua: SEDEMA · ANP y AVA: SEDEMA y CONANP' },
+  calles: { propio:true, nota:'', atrib:'' },   // fondo propio: sin crédito sobre el mapa
   sat: ESRI_KEY
     ? { url: ESRI_TILES+'arcgis/imagery/static/tile/{z}/{y}/{x}?token='+encodeURIComponent(ESRI_KEY), size:512, max:19, op:.9, nota:'',
         atrib:`Powered by ${enlace('https://www.esri.com','Esri')} · Imagen: Esri, Vantor, Earthstar Geographics y GIS User Community · Vías y lugares: Esri, HERE, Garmin, © OpenStreetMap contributors` }

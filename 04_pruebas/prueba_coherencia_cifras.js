@@ -265,8 +265,8 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   { const sc = D.F.filter(f => !f.gc && !f.col); ok('el resumen de la ciudad reporta los frentes sin colonia = recálculo', (e.nota || '').includes(`${L.fN.format(sc.length)} frentes`) && /no tienen colonia asignada/.test(e.nota || ''), (e.nota || '').slice(-230));
     ok('la página declara su cobertura (ámbito urbano)', /Cobertura: frentes de manzana del ámbito urbano/.test(e.panelTxt)); }
   // filtro de la leyenda
-  { const n0 = await page.$eval('#lg-filter-note', n => n.textContent); await L.ponPrio(page, [0, 0, 0, 0, 0]); const n1 = await page.$eval('#lg-filter-note', n => n.textContent); await L.ponPrio(page, [1, 1, 1, 1, 1]);
-    ok('la leyenda declara que solo afecta al mapa y avisa si no queda prioridad visible', /solo cambian lo que se ve en el mapa/.test(n0) && /Ninguna prioridad está visible/.test(n1), n1); }
+  { const n0 = await page.$eval('#lg-filter-note', n => n.hidden); await L.ponPrio(page, [0, 0, 0, 0, 0]); const n1 = await page.$eval('#lg-filter-note', n => n.textContent); await L.ponPrio(page, [1, 1, 1, 1, 1]);
+    ok('la leyenda solo avisa cuando no queda ninguna prioridad visible', n0 === true && /Ninguna prioridad está visible/.test(n1), n1); }
   // colonia sin frentes a cargo de la alcaldía
   { const conFr = new Set(D.F.filter(f => !f.gc).map(f => f.col)); const cid = M.colonias.findIndex((c, i) => i > 0 && c && c.n && !conFr.has(i) && M.colonias.filter(q => q && q.n === c.n).length === 1);
     const cn = M.colonias[cid]; const hecho2 = await L.elegirTipo(page, cn.n, 'Col'); await page.waitForTimeout(600); e = await L.estado(page);

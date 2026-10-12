@@ -91,11 +91,11 @@ function omniRender(){
     else { const w = whereAmI(co.lon, co.lat); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-0';
       li.innerHTML = `<span class="ty">Punto</span><span class="nm">Ir a ${crd(co.lat)}, ${crd(co.lon)}</span><span class="m">${w.alc===null? 'Fuera de la Ciudad de México' : (w.col!==null? META.colonias[w.col].n+' · ' : '')+META.munNames[w.alc]}</span>`;
       omniItems.push({t:'pto', ...co}); li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[0]); }; }
-    omniList.appendChild(li); omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
+    omniList.appendChild(li); omniMuestra(); return; }
   const R = omniSearch(omni.value);
   if (!R){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); return; }
   const groups = [['alc','Alcaldías'],['col','Colonias'],['av','Avenidas · Gobierno Central'],['st','Calles · alcaldías']].filter(([k])=>R[k].length).sort((a,b)=> R[b[0]][0].s - R[a[0]][0].s);
-  if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
+  if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniMuestra(); return; }
   const I = omniIndex();
   for (const [k,title] of groups){ const g=document.createElement('li'); g.className='grp'; g.setAttribute('role','presentation'); g.textContent=title; omniList.appendChild(g);
     for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-'+omniItems.length; let html='';
@@ -108,7 +108,14 @@ function omniRender(){
       li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[n]); }; omniList.appendChild(li); } }
   if (R.nCol>R.col.length){ const v=document.createElement('li'); v.className='mas'; v.setAttribute('role','option'); v.textContent=`Ver las ${fmt.format(Math.min(R.nCol,40))} colonias que coinciden`; v.onmousedown=e=>{ e.preventDefault(); omniTodas=true; omniRender(); }; omniList.appendChild(v); }
   if (R.why){ const w=document.createElement('li'); w.className='why'; w.setAttribute('role','presentation'); w.textContent=R.why; omniList.appendChild(w); }
-  omniList.hidden=false; omni.setAttribute('aria-expanded','true'); }
+  omniMuestra(); }
+// la lista llega hasta el borde de lo visible (en el celular, hasta el teclado) y avisa si hay más resultados abajo
+function omniAlto(){ if (omniList.hidden) return; const v = window.visualViewport, fondo = v? v.offsetTop + v.height : innerHeight;
+  document.documentElement.style.setProperty('--omni-max', Math.max(140, Math.floor(fondo - omniList.getBoundingClientRect().top - 8))+'px'); omniMas(); }
+function omniMas(){ omniList.classList.toggle('hay-mas', omniList.scrollTop + omniList.clientHeight < omniList.scrollHeight - 6); }
+function omniMuestra(){ omniList.hidden=false; omni.setAttribute('aria-expanded','true'); omniList.scrollTop=0; omniAlto(); }
+omniList.addEventListener('scroll', omniMas, {passive:true}); addEventListener('resize', omniAlto);
+if (window.visualViewport){ visualViewport.addEventListener('resize', omniAlto); visualViewport.addEventListener('scroll', omniAlto); }
 function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; if(!lis.length) return; omniActive=(i+lis.length)%lis.length;
   lis.forEach((l,k)=>{ l.classList.toggle('active',k===omniActive); l.setAttribute('aria-selected', String(k===omniActive)); }); lis[omniActive].scrollIntoView({block:'nearest'}); omni.setAttribute('aria-activedescendant', lis[omniActive].id); }
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }

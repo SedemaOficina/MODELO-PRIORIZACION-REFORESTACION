@@ -36,17 +36,17 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
     ok(t + 'el foco pasa al botón de regreso y Tab no entra al panel', await page.evaluate(() => document.activeElement.id === 'ver-info') && (await focoEn(page, '.panel')) === 0);
     const enc = await encimados(page);
     ok(t + 'nada queda encimado con el botón de abajo', enc.length === 0, enc.join(' | '));
-    ok(t + 'el botón de abajo mide 44 px o más y dice qué se verá', await page.evaluate(() => document.getElementById('ver-info').getBoundingClientRect().height >= 44) && b.rotulo === 'Ver la ciudad', b.rotulo);
+    ok(t + 'el botón de abajo mide 44 px o más, dice «Volver a la información» y el lugar consultado', await page.evaluate(() => document.getElementById('ver-info').getBoundingClientRect().height >= 44 && /^Volver a la información/.test(document.getElementById('ver-info').textContent)) && b.rotulo === 'Ciudad de México', b.rotulo);
     await L.clic(page, '#ver-info'); await page.waitForTimeout(400);
     ok(t + 'el botón de abajo regresa a la información, con el foco en «Ver el mapa»', (await estado(page)).info && await page.evaluate(() => document.activeElement.id === 'ver-mapa'));
     if (ancho === 390) {
       // qué acción lleva a qué pantalla
       await L.elegirTipo(page, 'Iztapalapa', 'Alc'); await page.waitForTimeout(500);
-      let e = await estado(page); ok(t + 'elegir una alcaldía se queda en la información; el botón dirá «Ver la alcaldía»', e.info && e.rotulo === 'Ver la alcaldía', JSON.stringify(e));
+      let e = await estado(page); ok(t + 'elegir una alcaldía se queda en la información; el botón dirá «Iztapalapa»', e.info && e.rotulo === 'Iztapalapa', JSON.stringify(e));
       await L.elegirTipo(page, 'Progreso Tizapan', 'Col'); await page.waitForTimeout(500);
-      e = await estado(page); ok(t + 'elegir una colonia se queda en la información; «Ver la colonia»', e.info && e.rotulo === 'Ver la colonia', JSON.stringify(e));
+      e = await estado(page); ok(t + 'elegir una colonia se queda en la información; «Col. …»', e.info && /^Col\. Progreso Tizap/.test(e.rotulo), JSON.stringify(e));
       await L.clic(page, '#tab-list'); const fila = await page.$('#results li[tabindex]'); if (fila) { await fila.click(); await page.waitForTimeout(800); }
-      e = await estado(page); ok(t + 'elegir una calle de la lista lleva al mapa; «Ver la calle»', !!fila && e.mapa && e.rotulo === 'Ver la calle', JSON.stringify(e));
+      e = await estado(page); ok(t + 'elegir una calle de la lista lleva al mapa; el botón dice su nombre', !!fila && e.mapa && !!e.rotulo && !/^Col\./.test(e.rotulo), JSON.stringify(e));
       await page.goBack(); await page.waitForTimeout(600);
       e = await estado(page); ok(t + '«atrás» del navegador desde el mapa regresa a la información', e.info, JSON.stringify(e));
       await page.fill('#omni', '19.300011294985545, -99.10193871074827'); await page.waitForTimeout(400); await page.keyboard.press('Enter'); await page.waitForTimeout(1200);
@@ -54,6 +54,21 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
       const enc2 = await encimados(page); ok(t + 'con la ficha abierta, nada queda encimado con el botón de abajo', enc2.length === 0, enc2.join(' | '));
       await L.clic(page, '#ver-info'); await page.waitForTimeout(400);
       ok(t + 'con la información a la vista, la ficha del mapa se esconde', await page.evaluate(() => getComputedStyle(document.getElementById('card')).visibility === 'hidden'));
+      // sugerencias del buscador: llegan hasta el borde visible y avisan que hay más abajo; el aviso se quita al llegar al final
+      await page.fill('#omni', 'Real de los'); await page.waitForTimeout(500);
+      const sug = await page.evaluate(async () => { const l = document.getElementById('omni-list'), a = l.classList.contains('hay-mas'), b = Math.round(innerHeight - l.getBoundingClientRect().bottom);
+        l.scrollTop = l.scrollHeight; await new Promise(r => setTimeout(r, 150)); return { aviso: a, margen: b, alFinal: l.classList.contains('hay-mas') }; });
+      ok(t + 'las sugerencias llegan al borde visible y avisan «Desliza para ver más»; al final ya no', sug.aviso && sug.margen >= 0 && sug.margen <= 12 && !sug.alFinal, JSON.stringify(sug));
+      await page.fill('#omni', '');
+      // satélite con la simbología abierta: el crédito de Esri no tapa su encabezado ni la × para cerrarla
+      await L.clic(page, '#ver-mapa'); await page.waitForTimeout(400);
+      const sat = await page.evaluate(async () => { const lg = document.getElementById('legend'); if (!lg.classList.contains('open')) document.getElementById('zcapas').click();
+        await new Promise(r => setTimeout(r, 300)); const b = document.querySelector('.seg.fondo button[data-fondo="sat"]'); if (b) b.click(); await new Promise(r => setTimeout(r, 300));
+        const h = document.getElementById('legend-toggle').getBoundingClientRect(), x = h.left + h.width / 2, y = h.top + h.height / 2, el = document.elementFromPoint(x, y);
+        const r = { abierta: lg.classList.contains('open'), sat: document.body.classList.contains('fondo-sat'), arriba: el && lg.contains(el) };
+        document.querySelector('.seg.fondo button[data-fondo="calles"]')?.click(); return r; });
+      ok(t + 'con satélite y la simbología abierta, el crédito no tapa su encabezado ni la ×', sat.abierta && sat.sat && sat.arriba, JSON.stringify(sat));
+      await L.clic(page, '#ver-info'); await page.waitForTimeout(400);
     }
     await ctx.close();
   }

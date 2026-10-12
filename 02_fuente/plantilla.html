@@ -1,5 +1,6 @@
 <title>Modelo de priorización de reforestación urbana</title>
 <meta name="color-scheme" content="light only">
+<meta name="format-detection" content="telephone=no, address=no, email=no, date=no">
 <!-- ESTILOS -->
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. Lo que va antes de ESTILOS pasa al <head>. -->
 <a class="salto" href="#scope-title">Saltar a la respuesta</a>
@@ -132,7 +133,7 @@
       <button class="panel-toggle" id="panel-toggle" type="button" title="Ocultar el panel de consulta" aria-label="Ocultar el panel de consulta" aria-expanded="true"><svg viewBox="0 0 24 24"><rect x="3.5" y="4.5" width="17" height="15" rx="2"/><path d="M9.5 4.5v15"/></svg></button>
       <div class="mapsum" id="mapsum"></div>
     </div>
-    <button class="btn-vista btn-info" id="ver-info" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span id="ver-info-t">Ver la ciudad</span></button>
+    <button class="btn-vista btn-info" id="ver-info" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 12H5M11 18l-6-6 6-6"/></svg><span class="vi-txt"><b>Volver a la información</b><span id="ver-info-t">Ciudad de México</span></span></button>
     <div class="toolbar">
       <button class="tool" id="zin" title="Acercar" aria-label="Acercar">+</button>
       <button class="tool" id="zout" title="Alejar" aria-label="Alejar">−</button>
@@ -160,7 +161,7 @@
           <div class="op-row"><input type="range" id="op-prio" min="20" max="100" step="5" value="100" aria-describedby="op-val"><output id="op-val" for="op-prio">100 %</output></div></div>
       <span class="lg-cap" id="lg-scope">Prioridad · km de frente de la ciudad</span>
       <div id="legend-rows"></div>
-      <p class="lg-note" id="lg-filter-note">Estas casillas solo cambian lo que se ve en el mapa. Las cifras, los listados y las descargas incluyen todas las prioridades.</p>
+      <p class="lg-note warn" id="lg-filter-note" hidden></p>
       <div class="row static" id="legend-vp"></div>
       
       </div>

@@ -64,11 +64,12 @@ const bin = n => fs.readFileSync(path.join(L.DOCS, 'datos', n));
     const fin = await page.$eval('#act-status', a => a.hidden ? '' : a.textContent); page.off('download', cuenta);
     ok('tres clics seguidos entregan un solo archivo', n === 1, `${n} archivos`);
     ok('el estado de la descarga se ve en el pie fijo, desde cualquier pestaña', /Preparando/.test(durante) && /Descargado/.test(fin), `${durante} → ${fin}`); }
-  // la atribución del fondo sigue visible con una tarjeta abierta
-  { await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await page.waitForTimeout(500);
+  // el crédito del satélite (Esri, obligatorio) sigue visible con una tarjeta abierta; el fondo propio no lleva crédito
+  { await page.route(u => u.hostname.endsWith('arcgisonline.com') || u.hostname.endsWith('arcgis.com'), r => r.fulfill({ status: 204, body: '' }));
+    await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await page.waitForTimeout(500);
     await L.clic(page, '#zcity'); await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(600);
     const r = await page.evaluate(() => ({ tarjeta: !document.getElementById('card').hidden, disp: getComputedStyle(document.getElementById('attrib')).display, txt: document.getElementById('attrib').textContent }));
-    ok('con tarjeta abierta, la atribución del mapa de fondo sigue visible', r.tarjeta && r.disp !== 'none' && /Catastro/.test(r.txt), JSON.stringify(r).slice(0, 160));
+    ok('con tarjeta abierta, el crédito del satélite sigue visible', r.tarjeta && r.disp !== 'none' && /Esri/.test(r.txt), JSON.stringify(r).slice(0, 160));
     await page.$eval('.seg.fondo button[data-fondo="no"]', b => b.click()); await page.waitForTimeout(300); }
   // buscador
   await L.clic(page, '#zcity'); await page.waitForTimeout(300);

@@ -164,6 +164,7 @@ button,input,select{font:inherit;color:inherit}
 .mapwrap{position:relative;min-width:0;min-height:0;background:var(--ground)}
 /* fondo propio «Calles»: suelo blanco, así la calle (el hueco entre manzanas) se distingue de la manzana */
 body.fondo-propio .mapwrap{background:var(--fondo-calle)}
+body.fondo-propio .attrib{display:none}   /* el fondo propio no lleva crédito sobre el mapa; el del satélite (Esri) sí */
 #map{position:absolute;inset:0}
 .legend{position:absolute;left:16px;bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow);font-size:.75rem;max-width:230px}
 .legend .lg-tit{display:block;margin:0 0 6px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
@@ -450,7 +451,10 @@ body.tab-dl .panel-actions{display:none}
 .query{display:flex;flex-direction:column;gap:10px;padding:14px 16px 12px;background:var(--panel-2);border-bottom:1px solid var(--line)}
 .omni input{font-size:1rem}
 .omni>svg.ic-s{position:absolute;left:11px;top:21px;transform:translateY(-50%);width:16px;height:16px;stroke:var(--ink-3);fill:none;stroke-width:2;pointer-events:none}
-.omni-list{max-height:min(62vh,460px)}
+.omni-list{max-height:min(460px,var(--omni-max,62vh))}
+#omni::-webkit-search-cancel-button{-webkit-appearance:none;appearance:none}   /* ya hay un botón propio para borrar */
+/* aviso de que hay más resultados abajo (se quita al llegar al final) */
+.omni-list.hay-mas::after{content:"Desliza para ver más resultados";content:"Desliza para ver más resultados" / "";position:sticky;bottom:-4px;display:block;margin-bottom:-4px;padding:22px 10px 7px;text-align:center;font-size:.75rem;font-weight:600;color:var(--guinda);background:linear-gradient(to bottom,transparent,var(--panel) 55%);pointer-events:none}
 .omni-list .grp{padding:8px 9px 3px;font:600 .75rem/1.2 Cabin,sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);cursor:default;display:block}
 .omni-list .grp:hover{background:transparent}
 .omni-list li.opt{grid-template-columns:30px minmax(0,1fr) auto}
@@ -504,7 +508,7 @@ body.tab-dl .panel-actions{display:none}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   .query{padding:10px 16px 10px}
   .panel-actions{padding:8px 16px calc(8px + env(safe-area-inset-bottom,0px))}
-  .omni-list{max-height:40dvh}
+  .omni-list{max-height:var(--omni-max,40dvh)}
 }
 /* ayuda de uso */
 .howto{margin:0 0 26px;padding:0 0 22px;border-bottom:1px solid var(--line)}
@@ -870,7 +874,7 @@ body.con-sesion .panel-head .logo{grid-column:1}
    pantalla() en 13_interfaz.js. En la computadora no cambia nada: los botones de cambio no se ven. */
 .btn-vista{display:none}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
-  :root{--pie:calc(68px + env(safe-area-inset-bottom, 0px))}   /* lo que ocupa abajo el botón de regreso a la información */
+  :root{--pie:calc(76px + env(safe-area-inset-bottom, 0px))}   /* lo que ocupa abajo el botón de regreso a la información */
   .app{display:block;position:relative;height:var(--alto, 100dvh)}
   .mapwrap{position:absolute;inset:0;order:0}
   .panel{position:absolute;inset:0;z-index:7;max-height:none;border:0;border-radius:0;box-shadow:none;transition:transform .25s ease}
@@ -887,13 +891,18 @@ body.con-sesion .panel-head .logo{grid-column:1}
   .panel-head h1{grid-column:1}
   #ver-mapa{grid-column:2;justify-self:end;align-self:center;padding:0 14px}
   .panel-head #open-info{grid-column:1/-1;justify-self:start}
-  .tabs button{padding-left:6px;padding-right:6px}   /* el panel a pantalla completa lleva barra de desplazamiento: las cuatro pestañas caben igual */
-  .btn-info{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom, 0px));z-index:6;min-height:48px}
+  /* las cuatro pestañas ocupan el ancho sin sobrar: en iPhone la letra sale un poco más ancha y la barra se deslizaba de lado al bajar con el dedo */
+  .tabs{overscroll-behavior-x:none}
+  .tabs button{flex:1 1 auto;padding-left:2px;padding-right:2px;font-size:clamp(.8rem,3.6vw,.875rem)}
+  .btn-info{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom, 0px));z-index:6;min-height:56px;padding:6px 20px;gap:12px}
+  /* dos renglones: qué hace (siempre igual) y el lugar consultado; la flecha a la izquierda es por donde entra la información */
+  .btn-info .vi-txt{display:flex;flex-direction:column;align-items:flex-start;min-width:0;line-height:1.2}
+  #ver-info-t{max-width:100%;overflow:hidden;text-overflow:ellipsis;font:400 .8125rem/1.25 Roboto,sans-serif;opacity:.92}
   /* nada encimado con el botón de abajo: leyenda compacta, escala, panel de capas, ficha y avisos quedan encima de él */
   .leymini{bottom:var(--pie)}
   .scalebar{display:none}   /* en el celular la escala estorbaba con la leyenda compacta */
-  body.fondo-propio .attrib{display:none}   /* el crédito del fondo propio va en el panel de capas; el del satélite (Esri) se queda en el mapa */
   .legend{bottom:var(--pie)}
+  .legend.open ~ .attrib{display:none}   /* con la simbología abierta, el crédito del satélite tapaba su encabezado y la × para cerrarla */
   .legend.open{max-height:calc(100% - var(--pie) - 70px);overflow-y:auto;overscroll-behavior:contain}
   .card{left:8px;right:8px;bottom:var(--pie);border-radius:12px;max-height:calc(var(--vvh, 100dvh) - var(--pie) - 70px)}
   .aviso-ligero{bottom:calc(var(--pie) + 48px)}

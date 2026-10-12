@@ -82,7 +82,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   const hastaTeselas = async () => { for (let i = 0; i < 120 && !teselas; i++) await page.waitForTimeout(500); await page.waitForTimeout(500); };   // espera por condición, no por tiempo fijo
   const fondoAbre = await page.evaluate(() => (document.querySelector('.seg.fondo button[aria-pressed="true"]') || {}).dataset.fondo);
   const fondoPropio = await page.evaluate(() => performance.getEntriesByType('resource').map(e => e.name).filter(n => n.startsWith(location.origin) && /\/datos\/fondo\//.test(n)));
-  ok('al abrir, el fondo es «Calles» (propio): sus datos vienen del propio sitio, sin teselas de terceros, con su atribución', fondoAbre === 'calles' && fondoPropio.some(u => /fondo_base\.bin\?v=/.test(u)) && teselas === 0 && (await texto(page, '#attrib')).includes('Catastro'), `${fondoAbre} · ${fondoPropio.length} archivos · ${teselas} teselas`);
+  ok('al abrir, el fondo es «Calles» (propio): sus datos vienen del propio sitio, sin teselas de terceros ni crédito sobre el mapa', fondoAbre === 'calles' && fondoPropio.some(u => /fondo_base\.bin\?v=/.test(u)) && teselas === 0 && await page.$eval('#attrib', a => getComputedStyle(a).display === 'none'), `${fondoAbre} · ${fondoPropio.length} archivos · ${teselas} teselas`);
   teselas = 0;
   await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await hastaTeselas();
   ok('mapa de fondo satelital con su atribución', teselas > 0 && /Sentinel-2|Esri/.test(await texto(page, '#attrib')), `${teselas} teselas`);
