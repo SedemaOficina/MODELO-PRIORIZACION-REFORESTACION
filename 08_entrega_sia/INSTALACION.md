@@ -4,13 +4,13 @@ Para el equipo del SIA. Supone acceso al servidor web por la vía habitual y per
 
 ## 1. Qué se recibe
 
-Un archivo `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, que se entrega por enlace de descarga junto con `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip.sha256`, que trae su suma SHA-256 (cómo comprobarla: `LEEME.md` del paquete). El ZIP contiene:
+Un archivo `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, que se entrega por enlace de descarga siempre junto con `modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip.sha256`, que trae su suma SHA-256 (cómo comprobarla: `LEEME.md` del paquete). El ZIP contiene:
 
 ```
 modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/
 ├── LEEME.md               qué trae el paquete y en qué orden se instala
 ├── sitio/                 la carpeta que se publica (index.html, app.js, estilos.css, config.js, sw.js, datos/, libs/, fuentes/, img/)
-├── MANIFIESTO.sha256      suma SHA-256 de cada archivo de sitio/
+├── MANIFIESTO.sha256      suma SHA-256 de cada archivo del paquete
 ├── VERSION.txt            versión, fecha, corte de los datos y parámetros con que se armó
 ├── login/                 inicio de sesión y registro de usos: pantalla de acceso, módulo del backend y esquema de base de datos
 ├── capas_geoserver/       tres capas en GeoPackage con sus estilos, para el GeoServer
@@ -27,7 +27,7 @@ Se usa una carpeta por versión y un enlace simbólico a la vigente, igual que e
 # 1. copiar el paquete al servidor y verificarlo (si el servidor no tiene unzip, descomprimir en un equipo
 #    y copiar la carpeta completa)
 cd /tmp && unzip -q modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip
-cd modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/sitio && sha256sum -c ../MANIFIESTO.sha256        # todo debe decir «OK»
+cd modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD && sha256sum -c --quiet MANIFIESTO.sha256 && cd ..   # sin mensajes = todo coincide
 
 # 2. colocarlo como una versión
 mkdir -p VOL/priorizacion-reforestacion_versiones
@@ -57,7 +57,7 @@ Notas para este servidor:
 Cada versión nueva llega como un paquete nuevo. No se sobrescribe la anterior.
 
 ```
-cd /tmp && unzip -q modelo-priorizacion-reforestacion_vNUEVA.zip && cd modelo-priorizacion-reforestacion_vNUEVA/sitio && sha256sum -c ../MANIFIESTO.sha256
+cd /tmp && unzip -q modelo-priorizacion-reforestacion_vNUEVA.zip && cd modelo-priorizacion-reforestacion_vNUEVA && sha256sum -c --quiet MANIFIESTO.sha256
 cp -r /tmp/modelo-priorizacion-reforestacion_vNUEVA/sitio VOL/priorizacion-reforestacion_versiones/vNUEVA
 ln -sfn VOL/priorizacion-reforestacion_versiones/vNUEVA VOL/priorizacion-reforestacion          # el cambio es instantáneo
 ```
@@ -106,7 +106,7 @@ Se fijan al armar el paquete, no en el servidor. Quedan escritos en `sitio/confi
 |---|---|
 | Fondo «Calles» | Propio, en `sitio/datos/fondo/` (no pide nada a terceros ni lleva clave) |
 | Clave de Esri (fondo «Satélite») | No hace falta por ahora: el satélite funciona sin clave |
-| Inicio de sesión | Encendido: acceso en `/acceso/priorizacion-reforestacion/`, cierre en `/api/priorizacion-reforestacion/salir`, registro de usos en `/api/priorizacion-reforestacion/uso` (ver `login/LEEME.md`) |
+| Inicio de sesión | Encendido: acceso en `/priorizacion-reforestacion/acceso/`, cierre en `/priorizacion-reforestacion/api/salir`, registro de usos en `/priorizacion-reforestacion/api/uso` (ver `login/LEEME.md`) |
 
 Con inicio de sesión, la herramienta **no guarda copia para uso sin conexión**: una copia local se abriría sin sesión.
 

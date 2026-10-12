@@ -81,7 +81,14 @@ location ^~ /priorizacion-reforestacion/ {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # FASE 2 CON INICIO DE SESIÓN (controla el acceso y registra los usos). Ver login/LEEME.md.
-# Sustituye al bloque 2 cuando estén instalados el módulo /api/priorizacion-reforestacion/ en el backend y la pantalla /acceso/priorizacion-reforestacion/.
+# Sustituye al bloque 2 cuando estén instalados el módulo «priorizacion-reforestacion» en el backend y la pantalla de acceso.
+# Todo queda bajo /priorizacion-reforestacion/, porque la cookie de sesión lleva Path=/priorizacion-reforestacion/:
+#   /priorizacion-reforestacion/          la herramienta, con auth_request                                  (2-bis)
+#   /priorizacion-reforestacion/acceso/   pantalla de acceso, panel de administración y aviso de privacidad,
+#                                         SIN auth_request                                                  (2-ter)
+#   /priorizacion-reforestacion/api/      el módulo del backend, SIN auth_request: él mismo revisa la sesión (2-cuater)
+# nginx elige el prefijo más largo, así que 2-ter y 2-cuater ganan a 2-bis aunque empiecen igual; con ^~, tampoco
+# las atiende una regla general del servidor por expresión regular.
 # ---------------------------------------------------------------------------------------------------------------------
 # 2-bis) La herramienta, protegida: cada archivo se entrega solo con sesión válida.
 # location ^~ /priorizacion-reforestacion/ {
@@ -97,7 +104,7 @@ location ^~ /priorizacion-reforestacion/ {
 #     location = /priorizacion-reforestacion/ {
 #         root /RUTA/DEL/VOLUMEN;
 #         auth_request /_priorizacion_reforestacion_sesion;
-#         error_page 401 = @calles_acceso;
+#         error_page 401 = @priorizacion_reforestacion_acceso;
 #         try_files /priorizacion-reforestacion/index.html =404;
 #     }
 # }
@@ -110,23 +117,49 @@ location ^~ /priorizacion-reforestacion/ {
 #     proxy_set_header X-Original-URI $request_uri;
 #     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
 # }
-# location @calles_acceso {
-#     return 302 /acceso/priorizacion-reforestacion/?volver=$request_uri;   # la pantalla de acceso toma todo lo que sigue a «volver=», aunque lleve «&»
+# location @priorizacion_reforestacion_acceso {
+#     absolute_redirect off;
+#     return 302 /priorizacion-reforestacion/acceso/?volver=$request_uri;   # la pantalla de acceso toma todo lo que sigue a «volver=», aunque lleve «&»
 # }
 
-# 2-ter) Pantalla de acceso y panel de administración: archivos estáticos, SIN auth_request (si no, nadie podría entrar).
-#        /RUTA/DEL/VOLUMEN/acceso-priorizacion-reforestacion es la carpeta login/acceso del paquete.
-# location ^~ /acceso/priorizacion-reforestacion/ {
+# 2-ter) Pantalla de acceso, panel de administración y aviso de privacidad: archivos estáticos, SIN auth_request
+#        (si no, nadie podría entrar). /RUTA/DEL/VOLUMEN/acceso-priorizacion-reforestacion es la carpeta login/acceso del paquete.
+# location = /priorizacion-reforestacion/acceso {
+#     absolute_redirect off;
+#     return 301 /priorizacion-reforestacion/acceso/$is_args$args;
+# }
+# location ^~ /priorizacion-reforestacion/acceso/ {
 #     alias /RUTA/DEL/VOLUMEN/acceso-priorizacion-reforestacion/;
 #     index index.html;
-#     absolute_redirect off;
+#     absolute_redirect off;                                             # …/acceso/admin redirige a …/acceso/admin/ con ruta relativa
 #     add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'" always;
 #     add_header X-Content-Type-Options "nosniff" always;
 #     add_header Referrer-Policy "same-origin" always;
 #     add_header Cache-Control "no-cache" always;
 # }
 
-# 2-cuater) La API del módulo (/api/priorizacion-reforestacion/) va al backend como las demás rutas /api/ del sitio. Si /api/ ya está enrutado,
-#           no hace falta nada más. Debe llegar la IP real de la persona (X-Forwarded-For; con ADIP delante, configurar
-#           set_real_ip_from para la capa intermedia). El módulo toma la ÚLTIMA entrada de X-Forwarded-For, la que agrega
-#           este nginx con $proxy_add_x_forwarded_for, igual que los módulos caec: no hace falta trust proxy en el backend.
+# 2-cuater) La API del módulo. En sia-backend el módulo sigue montado en /api/priorizacion-reforestacion (src/index.ts):
+#           nginx traduce la ruta pública a esa. SIN auth_request: el módulo responde 401 por sí mismo.
+#           La IP de cada petición la calcula ipDeOrigen(req) de src/comun/procedencia.ts de sia-backend a partir de
+#           X-Forwarded-For, descartando los saltos conocidos (proxy de ADIP y este nginx). No hace falta trust proxy.
+# location ^~ /priorizacion-reforestacion/api/ {
+#     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/priorizacion-reforestacion/;
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#     proxy_set_header X-Forwarded-Proto $scheme;
+#     client_max_body_size 1m;                                           # el módulo acepta hasta 100 KB por petición (alta masiva)
+#     proxy_connect_timeout 5s;
+#     proxy_read_timeout 60s;                                            # un envío del alta masiva (50 cuentas) tarda unos segundos
+#     absolute_redirect off;
+# }
+# Opcional, si el SIA aplica su zona de límite «auth» al inicio de sesión (POST /priorizacion-reforestacion/api/entrar).
+# El módulo ya limita los intentos fallidos por IP y detiene la cuenta tras 5. limit_req cuenta todas las peticiones.
+# location = /priorizacion-reforestacion/api/entrar {
+#     # limit_req zone=auth burst=5 nodelay;
+#     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/priorizacion-reforestacion/entrar;
+#     proxy_set_header Host $host;
+#     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+#     proxy_set_header X-Forwarded-Proto $scheme;
+#     proxy_connect_timeout 5s;
+#     proxy_read_timeout 60s;
+# }

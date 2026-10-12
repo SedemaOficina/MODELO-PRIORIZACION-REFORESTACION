@@ -8,7 +8,7 @@ La sesión no puede resolverse dentro de la página: todo lo que la página cont
 
 ```
 Navegador ── pide /priorizacion-reforestacion/datos/data.bin ──▶ nginx
-                                                          │ auth_request ──▶ backend  /api/priorizacion-reforestacion/sesion
+                                                          │ auth_request ──▶ backend  …/sesion del módulo
                                                           │◀── 204 (sesión válida)  o  401
                                                           ▼
                                               entrega el archivo  o  responde 401
@@ -30,7 +30,7 @@ Las direcciones se fijan al armar el paquete; las de este paquete están en `INS
 
 1. **Datos y programas responden 401 sin sesión**, no 200 ni 302. Una redirección a otra ruta del mismo dominio también se reconoce (llega una página HTML), pero una redirección a otro dominio se ve como falla de red.
 2. **Solo la página (`/priorizacion-reforestacion/`) redirige a la pantalla de acceso**, con la dirección de regreso.
-3. La cookie de sesión: `Secure`, `HttpOnly`, `SameSite=Lax`, con ruta `/`.
+3. La cookie de sesión: `Secure`, `HttpOnly`, `SameSite=Lax`, con ruta `/priorizacion-reforestacion/`. Por eso la pantalla de acceso y la API también quedan bajo esa ruta.
 4. El cierre de sesión es una dirección que invalida la cookie y lleva a la pantalla de acceso.
 
 El bloque comentado «Fase 2 con inicio de sesión» del ejemplo de nginx implementa los puntos 1 y 2.
@@ -38,23 +38,29 @@ El bloque comentado «Fase 2 con inicio de sesión» del ejemplo de nginx implem
 ## 4. Lo que se entrega construido
 
 El login tiene dos finalidades: **controlar quién entra** y **saber los usos**. Está construido y probado en `login/`:
-- **Módulo `priorizacion-reforestacion` para `sia-backend`** (TypeScript, Express 5), con su propio pool y su propia cuenta de base de datos (`priorizacion_reforestacion_api`), con la misma forma que los demás módulos. Direcciones:
-  - `POST /api/priorizacion-reforestacion/entrar`
-  - `GET /api/priorizacion-reforestacion/sesion` (204 o 401, para `auth_request`)
-  - `GET|POST /api/priorizacion-reforestacion/salir`
-  - `POST /api/priorizacion-reforestacion/uso`
-  - `POST /api/priorizacion-reforestacion/contrasena`
-  - `/api/priorizacion-reforestacion/admin/…`
+- **Módulo `priorizacion-reforestacion` para `sia-backend`** (TypeScript, Express 5), con su propio pool y su propia cuenta de base de datos (`priorizacion_reforestacion_api`), con la misma forma que los demás módulos. En el backend se monta en `/api/priorizacion-reforestacion`; el navegador lo ve en `/priorizacion-reforestacion/api/`, que nginx le pasa. Direcciones públicas:
+  - `POST /priorizacion-reforestacion/api/entrar`
+  - `GET /priorizacion-reforestacion/api/sesion` (204 o 401; `auth_request` la consulta por una ubicación interna)
+  - `GET|POST /priorizacion-reforestacion/api/salir`
+  - `POST /priorizacion-reforestacion/api/uso`
+  - `POST /priorizacion-reforestacion/api/contrasena`
+  - `/priorizacion-reforestacion/api/admin/…`
 - **Esquema `priorizacion_reforestacion`**: usuarios (contraseñas con huella scrypt), sesiones y bitácora, con depuración automática según los plazos del aviso de privacidad.
-- **Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad**, en `/acceso/priorizacion-reforestacion/`, fuera de la herramienta. Cumplen los criterios de la sección 6.
+- **Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad**, en `/priorizacion-reforestacion/acceso/`, sin `auth_request`. Cumplen los criterios de la sección 6.
 - **Registro de usos en la herramienta:** consultas y descargas, solo cuando está instalada con sesión.
 
-Al SIA le corresponde instalarlo (`login/LEEME.md`) y operar las altas y bajas desde el panel. Tamaño esperado: decenas de usuarios; el módulo no añade carga apreciable ni ocupa disco, salvo la bitácora.
+Al SIA le corresponde instalarlo (`login/LEEME.md`). Tamaño esperado: decenas de usuarios; el módulo no añade carga apreciable ni ocupa disco, salvo la bitácora.
+
+### Quién opera las cuentas
+
+- **La Oficina de la Secretaría** opera las cuentas desde el panel de administración: altas (una por una o en bloque desde CSV), bajas, reactivaciones y restablecimientos de contraseña.
+- **El SIA** solo mantiene el servidor, la base de datos y sus respaldos.
+- Las cuentas viven en el esquema propio del módulo (`priorizacion_reforestacion`), no en las de otros sistemas del SIA.
 
 ## 5. Qué se registra y qué no
 
 - **Accesos y visitas:** los registra el servidor y no se pueden evitar.
-- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. La herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/api/priorizacion-reforestacion/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
+- **Consultas y descargas:** los Excel, las fichas y los mapas se generan en el navegador con datos ya descargados, así que el servidor no ve qué se descarga. La herramienta lo **avisa** al servidor (`navigator.sendBeacon` a `/priorizacion-reforestacion/api/uso`) desde `deliver` y `deliverBlob` (`11_descargas.js`) y al detenerse en un ámbito (`usoConsulta`, `10_seleccion.js`).
 - Ese aviso es **informativo**: una persona con conocimientos técnicos podría evitarlo. El control de acceso, en cambio, lo hace el servidor.
 - El detalle de lo que se registra está en `login/LEEME.md` y en el aviso de privacidad (`login/acceso/aviso-de-privacidad.html`).
 

@@ -18,7 +18,7 @@
    - Las demás cuentas se dan de alta desde el panel, una por una o en bloque
      con «Alta masiva desde CSV».
    ============================================================ */
-import { huella, temporal } from "../../src/modulos/priorizacion-reforestacion/contrasenas.ts";
+import { huellaTemporal, temporal } from "../../src/modulos/priorizacion-reforestacion/contrasenas.ts";
 
 const [correoArg, nombreArg] = process.argv.slice(2);
 const correo = (correoArg ?? "").trim().toLowerCase(), nombre = (nombreArg ?? "").trim();
@@ -28,7 +28,7 @@ if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo) || !nombre) {
 }
 const lit = (s: string) => "'" + s.replace(/'/g, "''") + "'";
 const clave = temporal();
-const h = await huella(clave);
+const h = await huellaTemporal(clave);
 
 process.stdout.write(`-- Primera cuenta de administración · Modelo de priorización de reforestación urbana
 -- Generado el ${new Date().toISOString()}. Trae la huella de una contraseña temporal: aplicar y BORRAR; no va al repositorio.

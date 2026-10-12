@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.11 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.12 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -118,7 +118,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 **Estilos calculados sin atributo `style` (política de seguridad de contenido):** una política estricta rechaza `style="…"` escrito en el HTML. Las plantillas escriben `data-st="propiedad:valor"` y `aplicaSt` (`01_utilidades.js`), con un observador de cambios, lo aplica por programa, que sí está permitido. **No escribir `style="` en plantillas ni en la página**: la prueba del servidor lo detecta. Asignar `elemento.style.x = …` desde el código sí es válido.
 
-**Registro de usos:** con la sesión configurada (`SESION.inicio`), `avisaUso` (`01_utilidades.js`) envía con `navigator.sendBeacon` a `/api/priorizacion-reforestacion/uso` (o `SESION.uso`) cada descarga (`usoDescarga`, llamada desde `deliver` y `deliverBlob`, con el tipo de archivo deducido del nombre) y cada consulta (`usoConsulta` al final de `refresh()`, tras 1.5 s en el mismo ámbito; no anota toda la ciudad ni los cambios de «Seguirme»). El ámbito lo arma `ambitoUso` (`11_descargas.js`). Sin sesión no envía nada. El servidor y el panel están en `08_entrega_sia/login/`.
+**Registro de usos:** con la sesión configurada (`SESION.inicio`), `avisaUso` (`01_utilidades.js`) envía con `navigator.sendBeacon` a `/priorizacion-reforestacion/api/uso` (o `SESION.uso`) cada descarga (`usoDescarga`, llamada desde `deliver` y `deliverBlob`, con el tipo de archivo deducido del nombre) y cada consulta (`usoConsulta` al final de `refresh()`, tras 1.5 s en el mismo ámbito; no anota toda la ciudad ni los cambios de «Seguirme»). El ámbito lo arma `ambitoUso` (`11_descargas.js`). Sin sesión no envía nada. El servidor y el panel están en `08_entrega_sia/login/`.
 
 **Sesión (Fase 2):** `esSesion` reconoce una respuesta 401 o 403, o una página HTML donde se esperaba un archivo; `causaFalla(url)` distingue sesión, red y servidor cuando una librería no llega; `avisoSesion` escribe el mensaje con el enlace de `SESION.inicio`. Con `SESION.inicio` definido no se registra `sw.js`. Ver `08_entrega_sia/SESION_Y_LOGIN.md`.
 

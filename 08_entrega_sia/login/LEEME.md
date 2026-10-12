@@ -5,10 +5,19 @@ La herramienta se instala con **acceso restringido a cuentas autorizadas** y **r
 Esta carpeta trae todo lo necesario. Encaja en la infraestructura actual del SIA: nginx como entrada, el backend de Node.js + Express con un módulo por sistema y PostgreSQL con un esquema por sistema.
 
 ```
-Persona ─▶ nginx ─▶ /priorizacion-reforestacion/   (auth_request ─▶ /api/priorizacion-reforestacion/sesion: 204 entra · 401 a la pantalla de acceso)
-                 ├▶ /acceso/priorizacion-reforestacion/        pantalla de acceso, cambio de contraseña, panel de administración, aviso de privacidad (estáticos)
-                 └▶ /api/priorizacion-reforestacion/           módulo «priorizacion-reforestacion» del backend ─▶ PostgreSQL, esquema priorizacion_reforestacion
+Persona ─▶ nginx ─▶ /priorizacion-reforestacion/          la herramienta (auth_request ─▶ backend /sesion: 204 entra · 401 a la pantalla de acceso)
+                 ├▶ /priorizacion-reforestacion/acceso/   pantalla de acceso, cambio de contraseña, panel de administración, aviso de privacidad (estáticos, sin auth_request)
+                 └▶ /priorizacion-reforestacion/api/      proxy al módulo «priorizacion-reforestacion» del backend (montado en /api/priorizacion-reforestacion)
+                                                          ─▶ PostgreSQL, esquema priorizacion_reforestacion
 ```
+
+Todo queda bajo `/priorizacion-reforestacion/`: la cookie de sesión lleva `Path=/priorizacion-reforestacion/` y no viaja al resto del dominio.
+
+## Quién opera las cuentas
+
+- **La Oficina de la Secretaría** opera las cuentas desde el panel de administración: altas (una por una o en bloque), bajas, reactivaciones, restablecimientos de contraseña y permisos.
+- **El SIA** mantiene el servidor, la base de datos y sus respaldos. No da de alta ni de baja cuentas.
+- Las cuentas viven en el esquema propio del módulo (`priorizacion_reforestacion`), separadas de las de otros sistemas del SIA.
 
 ## Contenido
 
@@ -16,7 +25,7 @@ Persona ─▶ nginx ─▶ /priorizacion-reforestacion/   (auth_request ─▶ 
 
 | Carpeta | Qué es |
 |---|---|
-| `backend/src/modulos/priorizacion-reforestacion/` | El módulo, en TypeScript y con la misma forma que los demás: `rutas.ts` exporta `crearRutasPriorizacionReforestacion(pool)`. Además `contrasenas.ts` (huellas scrypt), `masiva.ts` (alta masiva desde CSV), `procedencia.ts` (IP de origen, mismo criterio que caec) y `alcaldias.ts`. No agrega dependencias: usa `express` y `pg`, que el backend ya tiene |
+| `backend/src/modulos/priorizacion-reforestacion/` | El módulo, en TypeScript y con la misma forma que los demás: `rutas.ts` exporta `crearRutasPriorizacionReforestacion(pool)`. Además `contrasenas.ts` (huellas scrypt), `masiva.ts` (alta masiva desde CSV) y `alcaldias.ts`. La IP de origen la toma de `ipDeOrigen(req)` de `src/comun/procedencia.ts` de `sia-backend` (no viene en el paquete). No agrega dependencias: usa `express` y `pg`, que el backend ya tiene |
 | `backend/db/priorizacion_reforestacion/` | `01-…-esquema.sql` (tablas, restricciones y depuración por plazos) y `02-…-rol-y-grants.sql` (rol `priorizacion_reforestacion_api` con mínimo privilegio, controles negativos y línea de `pg_hba`) |
 | `backend/herramientas/priorizacion-reforestacion/primera-cuenta.ts` | Genera el SQL de la primera cuenta de administración. No se conecta a nada |
 | `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`) y sus recursos (estáticos, los sirve nginx) |
@@ -27,6 +36,7 @@ Solo en el repositorio (no van en el paquete del SIA):
 | Carpeta | Qué es |
 |---|---|
 | `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales, sin trust proxy), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración y los controles negativos del rol |
+| `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración (salta las IP de `SIA_SALTOS_CONOCIDOS`). En `sia-backend` se usa el archivo propio del SIA |
 | `backend/scripts/servidor_demo.mjs`, `datos_demo.mjs` | Demostración en una sola máquina y datos simulados para ver el panel lleno |
 | `backend/package.json`, `tsconfig.check.json` | Para correr las pruebas y la revisión de tipos (la misma configuración que `sia-backend`) |
 | `privacidad/`, `generar_aviso_html.py` | Textos de los avisos y generador de `acceso/aviso-de-privacidad.html` |
@@ -75,8 +85,8 @@ En `src/index.ts`, junto a los demás módulos:
 import { crearRutasPriorizacionReforestacion } from "./modulos/priorizacion-reforestacion/rutas";
 app.use("/api/priorizacion-reforestacion", crearRutasPriorizacionReforestacion(poolPriorizacionReforestacion));
 ```
-- No hace falta `trust proxy`: la IP se toma de la última entrada de `X-Forwarded-For`, como en caec.
-- Requiere Express 5: las rutas son asíncronas y Express 5 pasa sus errores al manejador. El `express.json()` general (100 KB) alcanza: la alta masiva admite 500 cuentas por archivo.
+- **IP de origen:** el módulo importa `ipDeOrigen(req)` de `src/comun/procedencia.ts` (`import { ipDeOrigen } from "../../comun/procedencia";`). No hace falta `trust proxy`. La columna `ip` de la bitácora y el límite de intentos fallidos por IP solo tienen sentido cuando esa función descarta los saltos conocidos (el proxy de ADIP y nginx); mientras no lo haga, todas las peticiones parecerían venir de la misma dirección.
+- Requiere Express 5: las rutas son asíncronas y Express 5 pasa sus errores al manejador. El `express.json()` general (100 KB) alcanza: la alta masiva admite hasta 100 cuentas por petición y el panel envía el archivo en partes de 50.
 - `npm run typecheck`, `npm run build` y `deploy.fish`, **solo después** de los pasos 1 y 2. En el arranque, el journal debe decir `🔑 [PRIORIZACION_REFORESTACION] conectado como priorizacion_reforestacion_api`, sin «SUPERUSUARIO».
 - El módulo pide la depuración por plazos cada 24 horas. Si se prefiere, puede programarse en la base: `SELECT priorizacion_reforestacion.depurar();` una vez al día.
 
@@ -86,38 +96,38 @@ node herramientas/priorizacion-reforestacion/primera-cuenta.ts correo@sedema.cdm
 ```
 La contraseña temporal sale en pantalla una sola vez. Aplicar `/tmp/primera-cuenta.sql` con el mismo comando ssh + psql de `db/aplicar.sh` y **borrar el archivo**: trae la huella de una contraseña y no va al repositorio. Al entrar, la herramienta pide cambiarla. Las demás cuentas se dan de alta desde el panel.
 
-**5. Archivos estáticos.** Copiar `acceso/` al volumen del servidor web, como `acceso-priorizacion-reforestacion/`.
+**5. Archivos estáticos.** Copiar `acceso/` al volumen del servidor web, como `acceso-priorizacion-reforestacion/`. Se publica en `/priorizacion-reforestacion/acceso/`.
 
-**6. nginx.** En `../nginx_priorizacion_reforestacion.conf.ejemplo`, el bloque «FASE 2 CON INICIO DE SESIÓN» sustituye al bloque 2. Tiene tres partes:
-- **2-bis:** la herramienta protegida con `auth_request`.
-- **2-ter:** la pantalla de acceso, sin protección.
-- **2-cuater:** la API, que va por la ruta `/api/` existente.
+**6. nginx.** En `../nginx_priorizacion_reforestacion.conf.ejemplo`, el bloque «FASE 2 CON INICIO DE SESIÓN» sustituye al bloque 2. Tiene tres partes, todas bajo `/priorizacion-reforestacion/`:
+- **2-bis:** la herramienta (`/priorizacion-reforestacion/`), protegida con `auth_request`.
+- **2-ter:** la pantalla de acceso (`/priorizacion-reforestacion/acceso/`), sin protección. Su prefijo es más largo, así que gana a 2-bis.
+- **2-cuater:** la API (`/priorizacion-reforestacion/api/`), que nginx pasa al backend en `/api/priorizacion-reforestacion/`. Sin `auth_request`: el módulo revisa la sesión. Trae, comentada, la línea opcional `limit_req zone=auth` para `POST /priorizacion-reforestacion/api/entrar`.
 
 Validar con `nginx -t`.
 
-En `deploy/verificar.sh` conviene agregar una comprobación: `GET /api/priorizacion-reforestacion/sesion` sin cookie debe responder `401` (la puerta funciona y el módulo está montado).
+En `deploy/verificar.sh` conviene agregar una comprobación: `GET /priorizacion-reforestacion/api/sesion` sin cookie debe responder `401` (la puerta funciona, nginx llega al módulo y el módulo está montado).
 
-**7. La herramienta.** La carpeta `sitio/` del paquete ya viene construida con la sesión: acceso en `/acceso/priorizacion-reforestacion/`, cierre en `/api/priorizacion-reforestacion/salir` y registro de usos en `/api/priorizacion-reforestacion/uso`. Con eso la herramienta:
+**7. La herramienta.** La carpeta `sitio/` del paquete ya viene construida con la sesión: acceso en `/priorizacion-reforestacion/acceso/`, cierre en `/priorizacion-reforestacion/api/salir` y registro de usos en `/priorizacion-reforestacion/api/uso`. Con eso la herramienta:
 - muestra «Salir» junto a los logotipos;
 - reconoce la sesión vencida;
 - no guarda copia sin conexión;
 - registra consultas y descargas.
 <!-- solo-repositorio -->
 
-En el repositorio, el paquete se arma con `SIA_SESION_INICIO=/acceso/priorizacion-reforestacion/ SIA_SESION_CIERRE=/api/priorizacion-reforestacion/salir python 08_entrega_sia/empaquetar.py`. Sin esas variables, por ejemplo en GitHub Pages, la herramienta no registra nada.
+En el repositorio, `python 08_entrega_sia/empaquetar.py` arma el paquete con esas direcciones por omisión (`SIA_SESION_INICIO=/priorizacion-reforestacion/acceso/`, `SIA_SESION_CIERRE=/priorizacion-reforestacion/api/salir`, `SIA_SESION_USO=/priorizacion-reforestacion/api/uso`). Sin esas variables, por ejemplo en GitHub Pages, la herramienta no registra nada.
 <!-- /solo-repositorio -->
 
 ## Comprobación después de instalar
 
 | # | Prueba | Resultado esperado |
 |---|---|---|
-| 1 | Abrir `/priorizacion-reforestacion/` sin sesión | Lleva a `/acceso/priorizacion-reforestacion/?volver=/priorizacion-reforestacion/` |
+| 1 | Abrir `/priorizacion-reforestacion/` sin sesión | Lleva a `/priorizacion-reforestacion/acceso/?volver=/priorizacion-reforestacion/` |
 | 2 | `curl -sI .../priorizacion-reforestacion/datos/data.bin` sin sesión | `401` |
 | 3 | Entrar con la cuenta de administración (contraseña temporal) | Pide crear una contraseña propia y después abre la herramienta |
 | 4 | Abrir un enlace con consulta (`?a=007&b=con`) sin sesión, entrar | Vuelve a esa misma consulta |
 | 5 | En la herramienta, elegir una alcaldía y descargar un Excel | En el panel, pestaña «Usos», aparecen la consulta y la descarga |
 | 6 | Dar de baja una cuenta con la sesión abierta en otro navegador | Esa sesión deja de funcionar al instante |
-| 7 | Cinco contraseñas equivocadas seguidas | La cuenta se detiene 15 minutos |
+| 7 | Cinco contraseñas equivocadas seguidas | La cuenta se detiene 15 minutos: aun con la contraseña correcta responde «El correo o la contraseña no son correctos…», igual que con una equivocada |
 | 8 | «Salir» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión» |
 
 <!-- solo-repositorio -->
@@ -154,8 +164,10 @@ Cuando las alcaldías designen a sus enlaces por oficio, las cuentas se dan de a
 **Desde el panel** (pestaña «Personas» → «Alta masiva desde CSV»), sin terminal:
 1. «Descargar plantilla» da las columnas correctas.
 2. «Revisar el archivo» señala los errores por renglón y no da de alta a nadie.
-3. «Dar de alta N cuentas» crea las cuentas nuevas; las que ya existen no se tocan. Máximo 500 por archivo.
+3. «Dar de alta N cuentas» crea las cuentas nuevas; las que ya existen no se tocan. El panel envía el archivo en partes de 50 personas y muestra el avance («Dando de alta… 50 de 230»). El servidor admite hasta 100 por petición.
 4. «Descargar contraseñas (CSV)»: el archivo se arma en el navegador, el servidor no lo guarda. Repártelas y bórralo.
+
+Si un envío falla a la mitad (red, sesión vencida), el panel se detiene, dice qué cuentas sí se crearon y ofrece el CSV con sus contraseñas. Para las que faltan, se revisa y aplica de nuevo el mismo archivo: las ya creadas no se tocan.
 
 El archivo lleva una persona por renglón:
 ```
@@ -167,7 +179,7 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 ## Operación
 
 - **Altas** (una por una, o muchas con «Alta masiva desde CSV»):
-  - Desde el panel (`/acceso/priorizacion-reforestacion/admin/`, solo cuentas con permiso de administración).
+  - Desde el panel (`/priorizacion-reforestacion/acceso/admin/`, solo cuentas con permiso de administración).
   - Se elige institución y alcaldía; el panel muestra una contraseña temporal **una sola vez**.
   - Compártela por un medio institucional y por separado del correo.
 - **Bajas:** «Dar de baja» cierra las sesiones de la persona al instante; la cuenta puede reactivarse.
@@ -181,13 +193,14 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 
   «Descargar bitácora (CSV)» exporta el detalle, sin direcciones IP.
 - **Seguridad:**
-  - Contraseñas de 12 caracteres o más, guardadas con huella scrypt.
-  - La cuenta se detiene tras 5 intentos fallidos.
+  - Contraseñas de 12 caracteres o más, guardadas con huella scrypt: las definitivas con N = 2^14, r = 8, p = 5 (costo equivalente a la recomendación de OWASP, con 16 MiB por cálculo); las temporales, con p = 1. Cada huella guarda sus parámetros, así que las anteriores siguen sirviendo.
+  - La cuenta se detiene 15 minutos tras 5 intentos fallidos.
+  - Hasta 30 intentos fallidos por IP cada 15 minutos; los accesos correctos no cuentan.
   - La sesión dura 12 h sin actividad, con un máximo de 7 días.
-  - Cookie `HttpOnly`, `Secure` y `SameSite=Lax`.
+  - Cookie `HttpOnly`, `Secure`, `SameSite=Lax` y `Path=/priorizacion-reforestacion/`.
   - Solo se aceptan peticiones de la propia procedencia.
   - La dirección de regreso nunca sale de la herramienta.
-  - Un mismo mensaje de error, exista o no el correo.
+  - La misma respuesta (401 y el mismo mensaje) si el correo no existe, si la contraseña es equivocada o si la cuenta está detenida; el motivo queda en la bitácora.
 
 ## Qué registra y qué no
 

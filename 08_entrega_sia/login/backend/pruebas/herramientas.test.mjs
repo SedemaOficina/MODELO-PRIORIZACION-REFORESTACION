@@ -8,7 +8,9 @@ import { fileURLToPath } from 'node:url';
 import request from 'supertest';
 import { baseEnMemoria, appComoSia } from './base.mjs';
 const { leeCsv, revisa, aplica } = await import('../src/modulos/priorizacion-reforestacion/masiva.ts');
-const { huella, verifica } = await import('../src/modulos/priorizacion-reforestacion/contrasenas.ts');
+const { huella, huellaTemporal, verifica, PARAMETROS } = await import('../src/modulos/priorizacion-reforestacion/contrasenas.ts');
+const { scryptSync, randomBytes } = await import('node:crypto');
+const parametros = h => h.split('$').slice(1, 4).map(Number);
 const { crearRutasPriorizacionReforestacion } = await import('../src/modulos/priorizacion-reforestacion/rutas.ts');
 const datos = await import('../scripts/datos_demo.mjs');
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -31,7 +33,25 @@ test('alta masiva: lee el CSV de Excel (punto y coma, BOM, comillas), revisa cad
   const r = await aplica(pool, ok); assert.equal(r.hechas.length, 3); assert.equal(r.existentes.length, 0);
   const u = (await pool.query("SELECT * FROM priorizacion_reforestacion.usuarios WHERE correo = 'enlace@azcapotzalco.cdmx.gob.mx'")).rows[0];
   assert.equal(u.debe_cambiar, true); assert.ok(await verifica(r.hechas[0].contrasena_temporal, u.huella), 'la contraseña temporal entregada es la que quedó');
+  assert.deepEqual(parametros(u.huella), [1024, 8, 1], 'la temporal del alta masiva va con p = 1');
   const r2 = await aplica(pool, ok); assert.equal(r2.hechas.length, 0); assert.equal(r2.existentes.length, 3, 'correr dos veces no duplica ni cambia contraseñas');
+});
+
+test('huellas: definitiva con p = 5, temporal con p = 1; las guardadas se verifican con sus propios parámetros, dentro de límites', async () => {
+  assert.deepEqual([PARAMETROS.definitiva.r, PARAMETROS.definitiva.p, PARAMETROS.temporal.r, PARAMETROS.temporal.p], [8, 5, 8, 1]);
+  const d = await huella('una frase larga y segura'), t = await huellaTemporal('cedro-pirul-hoja-monte-42');
+  assert.deepEqual(parametros(d), [1024, 8, 5]); assert.deepEqual(parametros(t), [1024, 8, 1]);
+  assert.ok(await verifica('una frase larga y segura', d)); assert.ok(await verifica('cedro-pirul-hoja-monte-42', t));
+  assert.ok(!(await verifica('otra', d)));
+  // una huella guardada con N = 2^17, r = 8, p = 1 sigue sirviendo
+  const sal = randomBytes(16), h17 = scryptSync('contraseña de antes', sal, 64, { N: 2 ** 17, r: 8, p: 1, maxmem: 256 * 2 ** 17 * 8 });
+  assert.ok(await verifica('contraseña de antes', ['scrypt', 2 ** 17, 8, 1, sal.toString('base64'), h17.toString('base64')].join('$')));
+  // una huella alterada en la base no puede pedir memoria ni tiempo desmedidos: se rechaza sin calcular
+  const s = sal.toString('base64'), x = h17.toString('base64');
+  for (const [n, r, p] of [[2 ** 20, 8, 1], [2 ** 17, 8, 2], [2 ** 14, 8, 6], [2 ** 14, 64, 1], [1000, 8, 1], [2 ** 8, 8, 1], [2 ** 14, 0, 1]])
+    assert.equal(await verifica('x', ['scrypt', n, r, p, s, x].join('$')), false, `N=${n} r=${r} p=${p}`);
+  for (const mala of ['', 'scrypt$x', 'scrypt$1024$8$1$$', 'bcrypt$1024$8$1$' + s + '$' + x, `scrypt$1024$8$1$${s}$AAAA`, `scrypt$1024$8$1$${s}$${x}$extra`])
+    assert.equal(await verifica('x', mala), false, mala.slice(0, 30));
 });
 
 test('datos simulados: cuentas ficticias y 90 días de uso; se niegan en una base con cuentas reales', async () => {
@@ -63,6 +83,10 @@ test('alta masiva desde el panel: revisa sin escribir, no aplica con errores, ap
   r = await envia(ca, bueno + 'mal@,X,Alcaldía,Gotham,usuario\n', true); assert.equal(r.body.aplicado, false, 'con errores no se aplica aunque se pida'); assert.equal(r.body.errores.length, 1);
   r = await envia(ca, bueno, true); assert.equal(r.body.aplicado, true); assert.equal(r.body.hechas.length, 1); assert.deepEqual(r.body.existentes, ['usu@x.mx']);
   assert.ok(r.body.hechas[0].contrasena_temporal);
+  const lote = n => 'correo,nombre,institucion,alcaldia,rol\n' + Array.from({ length: n }, (_, i) => `p${i}@tlalpan.cdmx.gob.mx,Persona ${i},Alcaldía,Tlalpan,usuario`).join('\n');
+  r = await envia(ca, lote(101), true); assert.equal(r.status, 400, 'más de 100 cuentas por envío se rechaza');
+  assert.equal(+(await pool.query("SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo LIKE 'p%@tlalpan.cdmx.gob.mx'")).rows[0].n, 0, 'y no da de alta a nadie');
+  r = await envia(ca, lote(50), true); assert.equal(r.body.aplicado, true); assert.equal(r.body.hechas.length, 50, 'un envío de 50 (el tamaño de los del panel) se aplica');
   assert.equal((await envia(ca, 'nombre,otra\nx,y\n', false)).status, 400, 'sin columna correo');
 });
 
@@ -86,4 +110,5 @@ test('primera cuenta: la herramienta genera el SQL (sin conectarse) y la contras
   const u = (await pool.query('SELECT * FROM priorizacion_reforestacion.usuarios')).rows[0];
   assert.equal(u.rol, 'admin'); assert.equal(u.debe_cambiar, true); assert.equal(u.nombre, "Ana O'Neill");
   assert.ok(await verifica(clave, u.huella), 'la contraseña mostrada corresponde a la huella del SQL');
+  assert.deepEqual(parametros(u.huella), [1024, 8, 1], 'la primera cuenta lleva huella de contraseña temporal');
 });

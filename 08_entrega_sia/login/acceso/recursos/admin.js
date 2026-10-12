@@ -1,8 +1,8 @@
-// Panel de administración: cuentas (alta, baja, restablecer, permiso) y reporte de usos. Habla con /api/priorizacion-reforestacion/admin/.
+// Panel de administración: cuentas (alta, baja, restablecer, permiso) y reporte de usos. Habla con /priorizacion-reforestacion/api/admin/.
 // Todo el texto que viene del servidor se inserta como texto (textContent), nunca como HTML.
 'use strict';
 (function () {
-  const API = '/api/priorizacion-reforestacion/';
+  const API = '/priorizacion-reforestacion/api/';
   const $ = id => document.getElementById(id);
   const ALC = { '002': 'Azcapotzalco', '003': 'Coyoacán', '004': 'Cuajimalpa de Morelos', '005': 'Gustavo A. Madero', '006': 'Iztacalco', '007': 'Iztapalapa',
     '008': 'La Magdalena Contreras', '009': 'Milpa Alta', '010': 'Álvaro Obregón', '011': 'Tláhuac', '012': 'Tlalpan', '013': 'Xochimilco', '014': 'Benito Juárez',
@@ -14,10 +14,11 @@
   const fmt = new Intl.NumberFormat('es-MX'), fecha = d => d ? new Date(d).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
   const el = (tag, txt, cls) => { const e = document.createElement(tag); if (txt !== undefined && txt !== null) e.textContent = txt; if (cls) e.className = cls; return e; };
   const celda = (tr, txt, cls) => { const td = el('td', txt, cls); tr.appendChild(td); return td; };
-  async function llama(ruta, metodo, cuerpo) {
+  // sin sesión lleva a la pantalla de acceso, salvo con «quedarse» (alta masiva: primero se descargan las contraseñas recibidas)
+  async function llama(ruta, metodo, cuerpo, quedarse) {
     const r = await fetch(API + ruta, { method: metodo || 'GET', credentials: 'same-origin', headers: cuerpo ? { 'Content-Type': 'application/json' } : {}, body: cuerpo ? JSON.stringify(cuerpo) : undefined });
     let d = {}; try { d = await r.json(); } catch (e) {}
-    if (r.status === 401) { location.assign('../?vencida=1'); throw new Error('sin sesión'); }
+    if (r.status === 401 && !quedarse) { location.assign('../?vencida=1'); throw new Error('sin sesión'); }
     return { ok: r.ok, status: r.status, d };
   }
 
@@ -78,43 +79,114 @@
   $('buscar').addEventListener('input', pintaPersonas); $('filtro').addEventListener('change', pintaPersonas);
 
   // ---------- alta masiva desde CSV ----------
+  // El servidor admite hasta 100 cuentas por petición: el archivo se parte aquí en envíos de LOTE renglones, cada uno con
+  // su encabezado. Primero se revisan todos (no se da de alta a nadie); después se aplican uno por uno.
+  const LOTE = 50;
   // Excel en español puede guardar el CSV en Windows-1252 en lugar de UTF-8: se intenta UTF-8 y, si no es válido, Windows-1252
   const leeArchivo = async f => { const b = await f.arrayBuffer(); try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { return new TextDecoder('windows-1252').decode(b); } };
-  const descarga = (nombre, texto) => { const a = el('a'); a.href = URL.createObjectURL(new Blob(['﻿' + texto], { type: 'text/csv;charset=utf-8' })); a.download = nombre;
+  const descarga = (nombre, texto) => { const a = el('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF' + texto], { type: 'text/csv;charset=utf-8' })); a.download = nombre;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
   const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+  // Lee el CSV como el servidor: coma o punto y coma, con o sin BOM, campos entre comillas; descarta renglones vacíos
+  function partesCsv(entrada) {
+    const texto = entrada.replace(/^\uFEFF/, ''), primera = texto.split(/\r?\n/)[0];
+    const sep = (primera.match(/;/g) || []).length > (primera.match(/,/g) || []).length ? ';' : ',';
+    const filas = []; let f = [], c = '', dentro = false;
+    for (let i = 0; i < texto.length; i++) { const ch = texto[i];
+      if (dentro) { if (ch === '"' && texto[i + 1] === '"') { c += '"'; i++; } else if (ch === '"') dentro = false; else c += ch; }
+      else if (ch === '"') dentro = true;
+      else if (ch === sep) { f.push(c); c = ''; }
+      else if (ch === '\n' || ch === '\r') { if (ch === '\r' && texto[i + 1] === '\n') i++; f.push(c); filas.push(f); f = []; c = ''; }
+      else c += ch; }
+    if (c !== '' || f.length) { f.push(c); filas.push(f); }
+    const enc = filas.shift() || [];
+    return { enc, filas: filas.filter(r => r.some(x => x.trim())) };
+  }
+  const aCsv = filas => filas.map(r => r.map(q).join(',')).join('\r\n');
+  const numRenglon = t => +((t.match(/^Renglón (\d+)/) || [])[1] || 0);
   $('m-plantilla').addEventListener('click', e => { e.preventDefault();
     descarga('plantilla_alta_masiva.csv', 'correo,nombre,institucion,alcaldia,rol\r\nana.garcia@correo.com,Ana García López,Alcaldía,Tlalpan,usuario\r\nluis.perez@cdmx.gob.mx,Luis Pérez Ruiz,Gobierno Central,,usuario\r\n'); });
-  let CSV = '';
-  async function masiva(aplicar) {
-    const err = $('m-err'), out = $('m-resultado'); err.hidden = true;
-    if (!aplicar) { const f = $('m-archivo').files[0]; if (!f) { err.textContent = 'Elige un archivo CSV.'; err.hidden = false; $('m-archivo').focus(); return; }
-      if (f.size > 300 * 1024) { err.textContent = 'El archivo es demasiado grande: divídelo en partes de hasta 500 personas.'; err.hidden = false; return; }
-      CSV = await leeArchivo(f); out.textContent = 'Revisando…'; }
-    const r = await llama('admin/usuarios/masiva', 'POST', { csv: CSV, aplicar });
+  // contraseñas recibidas que aún no se descargan: el navegador avisa antes de cerrar la página
+  let PENDIENTES = false;
+  window.addEventListener('beforeunload', e => { if (PENDIENTES) { e.preventDefault(); e.returnValue = ''; } });
+  const sinRed = 'No hubo respuesta del servidor. Revisa tu conexión e inténtalo de nuevo.';
+  const falla = t => { const err = $('m-err'); err.textContent = t; err.hidden = false; };
+
+  let LOTES = [];
+  async function revisar() {
+    const out = $('m-resultado'); $('m-err').hidden = true; out.textContent = '';
+    const f = $('m-archivo').files[0]; if (!f) { falla('Elige un archivo CSV.'); $('m-archivo').focus(); return; }
+    if (f.size > 300 * 1024) { falla('El archivo es demasiado grande (más de 300 KB): divídelo en partes.'); return; }
+    const { enc, filas } = partesCsv(await leeArchivo(f));
+    if (!filas.length) { falla('El archivo no tiene renglones después del encabezado.'); return; }
+    LOTES = [];
+    for (let k = 0; k < filas.length; k += LOTE) LOTES.push({ desde: k, filas: filas.slice(k, k + LOTE), csv: aCsv([enc].concat(filas.slice(k, k + LOTE))) });
+    const validas = [], errores = [], vistos = new Map(), ic = enc.map(norm).indexOf('correo');
+    for (let i = 0; i < LOTES.length; i++) { const l = LOTES[i];
+      out.textContent = `Revisando… ${fmt.format(Math.min(l.desde + LOTE, filas.length))} de ${fmt.format(filas.length)} renglones`;
+      let r; try { r = await llama('admin/usuarios/masiva', 'POST', { csv: l.csv, aplicar: false }); } catch (e) { out.textContent = ''; falla(sinRed); return; }
+      if (!r.ok) { out.textContent = ''; falla(r.d.error || 'No fue posible leer el archivo.'); return; }
+      // el servidor numera los renglones dentro de cada envío: se pasan al número del archivo completo
+      r.d.errores.forEach(x => errores.push(x.replace(/^Renglón (\d+)/, (m, n) => 'Renglón ' + (+n + l.desde))));
+      // un correo repetido en envíos distintos (dentro de un mismo envío ya lo señala el servidor)
+      const repetidos = new Set();
+      if (ic >= 0) l.filas.forEach((fila, j) => { const c = (fila[ic] || '').trim().toLowerCase(), n = l.desde + j + 2; if (!c) return;
+        const antes = vistos.get(c);
+        if (antes === undefined) vistos.set(c, i);
+        else if (antes !== i) { repetidos.add(c); if (!errores.some(x => numRenglon(x) === n)) errores.push(`Renglón ${n} (${c}): correo repetido en el archivo`); } });
+      r.d.validas.forEach(v => { if (!repetidos.has(v.correo)) validas.push(Object.assign({ lote: i }, v)); });
+    }
+    errores.sort((a, b) => numRenglon(a) - numRenglon(b));
     out.textContent = '';
-    if (!r.ok) { err.textContent = r.d.error || 'No fue posible leer el archivo.'; err.hidden = false; return; }
-    if (!r.d.aplicado) {
-      const nuevas = r.d.validas.filter(v => !v.existe), ya = r.d.validas.filter(v => v.existe);
-      out.appendChild(el('p', `${fmt.format(r.d.validas.length)} renglones válidos (${fmt.format(nuevas.length)} cuentas nuevas, ${fmt.format(ya.length)} ya existen y no se tocarán) · ${fmt.format(r.d.errores.length)} con errores.`, 'aviso ' + (r.d.errores.length ? 'alerta' : 'ok')));
-      if (r.d.errores.length) { const ul = el('ul'); r.d.errores.forEach(x => ul.appendChild(el('li', x))); out.appendChild(ul);
-        out.appendChild(el('p', 'Corrige esos renglones en el archivo y vuelve a revisarlo. No se dio de alta a nadie.', 'nota')); return; }
-      const tw = el('div', null, 'tabla-envoltura'), t = el('table'), th = el('thead'), tb = el('tbody'); t.append(th, tb); tw.appendChild(t);
-      const h = el('tr'); ['Correo', 'Nombre', 'Institución', 'Permiso', ''].forEach(x => { const c = el('th', x); c.scope = 'col'; h.appendChild(c); }); th.appendChild(h);
-      r.d.validas.forEach(v => { const tr = el('tr', null, v.existe ? 'inactiva' : ''); [v.correo, v.nombre, v.institucion + (v.alcaldia ? ' · ' + v.alcaldia : ''), v.rol === 'admin' ? 'Administración' : 'Consulta', v.existe ? 'Ya existe' : 'Nueva'].forEach(x => celda(tr, x)); tb.appendChild(tr); });
-      out.appendChild(tw);
-      if (nuevas.length) { const b = el('button', `Dar de alta ${fmt.format(nuevas.length)} cuenta${nuevas.length === 1 ? '' : 's'}`, 'btn'); b.type = 'button';
-        b.addEventListener('click', () => { if (confirm(`¿Dar de alta ${nuevas.length} cuenta(s)? Se generará una contraseña temporal para cada una.`)) masiva(true); }); out.appendChild(b); }
-      return; }
-    // aplicado: contraseñas temporales una sola vez, en un CSV que se arma aquí
-    const filas = ['correo,nombre,institucion,alcaldia,contrasena_temporal'].concat(r.d.hechas.map(c => [c.correo, c.nombre, c.institucion, c.alcaldia || '', c.contrasena_temporal].map(q).join(',')));
-    const nombre = `cuentas_con_contrasenas_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
-    out.appendChild(el('p', `Listo: ${fmt.format(r.d.hechas.length)} cuentas creadas${r.d.existentes.length ? `; ${fmt.format(r.d.existentes.length)} ya existían y no se tocaron` : ''}.`, 'aviso ok'));
-    const caja = el('div', null, 'clave'); caja.appendChild(el('b', 'Contraseñas temporales (se muestran una sola vez). '));
-    caja.appendChild(el('span', 'Descarga el archivo, repártelas por un medio seguro y por separado del correo de cada cuenta, y bórralo después. Al entrar, cada persona creará su propia contraseña.'));
-    const b = el('button', 'Descargar contraseñas (CSV)', 'btn'); b.type = 'button'; b.addEventListener('click', () => descarga(nombre, filas.join('\r\n'))); caja.appendChild(b);
-    out.appendChild(caja); $('m-archivo').value = ''; CSV = ''; cargaPersonas(); }
-  $('m-revisar').addEventListener('click', () => masiva(false));
+    const nuevas = validas.filter(v => !v.existe), ya = validas.filter(v => v.existe);
+    out.appendChild(el('p', `${fmt.format(validas.length)} renglones válidos (${fmt.format(nuevas.length)} cuentas nuevas, ${fmt.format(ya.length)} ya existen y no se tocarán) · ${fmt.format(errores.length)} con errores.`, 'aviso ' + (errores.length ? 'alerta' : 'ok')));
+    if (errores.length) { const ul = el('ul'); errores.forEach(x => ul.appendChild(el('li', x))); out.appendChild(ul);
+      out.appendChild(el('p', 'Corrige esos renglones en el archivo y vuelve a revisarlo. No se dio de alta a nadie.', 'nota')); return; }
+    const tw = el('div', null, 'tabla-envoltura'), t = el('table'), th = el('thead'), tb = el('tbody'); t.append(th, tb); tw.appendChild(t);
+    const h = el('tr'); ['Correo', 'Nombre', 'Institución', 'Permiso', ''].forEach(x => { const c = el('th', x); c.scope = 'col'; h.appendChild(c); }); th.appendChild(h);
+    validas.forEach(v => { const tr = el('tr', null, v.existe ? 'inactiva' : ''); [v.correo, v.nombre, v.institucion + (v.alcaldia ? ' · ' + v.alcaldia : ''), v.rol === 'admin' ? 'Administración' : 'Consulta', v.existe ? 'Ya existe' : 'Nueva'].forEach(x => celda(tr, x)); tb.appendChild(tr); });
+    out.appendChild(tw);
+    if (nuevas.length) { const b = el('button', `Dar de alta ${fmt.format(nuevas.length)} cuenta${nuevas.length === 1 ? '' : 's'}`, 'btn'); b.type = 'button';
+      b.addEventListener('click', () => { if (confirm(`¿Dar de alta ${nuevas.length} cuenta(s)? Se generará una contraseña temporal para cada una.`)) aplicar(nuevas); }); out.appendChild(b); }
+  }
+
+  async function aplicar(nuevas) {
+    const out = $('m-resultado'); $('m-err').hidden = true; out.textContent = '';
+    $('m-revisar').disabled = true;
+    const total = nuevas.length, porLote = LOTES.map((l, i) => nuevas.filter(v => v.lote === i).length);
+    const estado = el('p', `Dando de alta… 0 de ${fmt.format(total)}`), barra = el('progress');
+    barra.max = total; barra.value = 0; barra.setAttribute('aria-hidden', 'true'); out.append(estado, barra);
+    const hechas = [], existentes = []; let hechos = 0, error = '', enviados = 0, sinSesion = false;
+    for (let i = 0; i < LOTES.length; i++) {
+      if (!porLote[i]) continue;   // en ese envío no hay cuentas nuevas
+      let r; try { r = await llama('admin/usuarios/masiva', 'POST', { csv: LOTES[i].csv, aplicar: true }, true); } catch (e) { error = sinRed; break; }
+      if (r.status === 401) { error = 'Tu sesión terminó. Descarga primero las contraseñas y después vuelve a iniciar sesión.'; sinSesion = true; break; }
+      if (!r.ok || !r.d.aplicado) { error = r.d.error || 'El servidor encontró errores en ese envío; vuelve a revisar el archivo.'; break; }
+      enviados++;
+      hechas.push(...r.d.hechas); existentes.push(...r.d.existentes); hechos += porLote[i];
+      if (hechas.length) PENDIENTES = true;
+      barra.value = hechos; estado.textContent = `Dando de alta… ${fmt.format(hechos)} de ${fmt.format(total)}`;
+    }
+    out.textContent = ''; $('m-revisar').disabled = false;
+    const conEnvios = porLote.filter(Boolean).length;
+    if (error) {
+      out.appendChild(el('p', `Se detuvo en el envío ${fmt.format(enviados + 1)} de ${fmt.format(conEnvios)}: ${error} ` +
+        (hechas.length ? `Antes se crearon ${fmt.format(hechas.length)} cuentas; descarga abajo sus contraseñas.` : 'No se creó ninguna cuenta.'), 'aviso alerta'));
+      if (hechas.length) { const ul = el('ul'); hechas.forEach(c => ul.appendChild(el('li', `${c.correo} · ${c.nombre}`))); out.appendChild(ul); }
+      out.appendChild(el('p', 'Para las que faltan, vuelve a revisar y aplicar el mismo archivo: las cuentas ya creadas no se tocan ni cambian de contraseña.', 'nota'));
+    } else out.appendChild(el('p', `Listo: ${fmt.format(hechas.length)} cuentas creadas${existentes.length ? `; ${fmt.format(existentes.length)} ya existían y no se tocaron` : ''}.`, 'aviso ok'));
+    if (hechas.length) {   // contraseñas temporales una sola vez, en un CSV que se arma aquí
+      const filas = ['correo,nombre,institucion,alcaldia,contrasena_temporal'].concat(hechas.map(c => [c.correo, c.nombre, c.institucion, c.alcaldia || '', c.contrasena_temporal].map(q).join(',')));
+      const nombre = `cuentas_con_contrasenas_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
+      const caja = el('div', null, 'clave'); caja.appendChild(el('b', 'Contraseñas temporales (se muestran una sola vez). '));
+      caja.appendChild(el('span', 'Descarga el archivo, repártelas por un medio seguro y por separado del correo de cada cuenta, y bórralo después. Al entrar, cada persona creará su propia contraseña.'));
+      const b = el('button', 'Descargar contraseñas (CSV)', 'btn'); b.type = 'button'; b.addEventListener('click', () => { descarga(nombre, filas.join('\r\n')); PENDIENTES = false; }); caja.appendChild(b);
+      out.appendChild(caja);
+    }
+    if (!error) { $('m-archivo').value = ''; LOTES = []; }
+    if (!sinSesion) cargaPersonas(); }
+  $('m-revisar').addEventListener('click', () => revisar());
 
   // ---------- usos ----------
   const hoy = new Date(), iso = d => d.toISOString().slice(0, 10);

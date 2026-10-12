@@ -1,15 +1,15 @@
-// Pantalla de acceso de «Modelo de priorización de reforestación urbana». Habla con el módulo de sesión (/api/priorizacion-reforestacion/).
+// Pantalla de acceso de «Modelo de priorización de reforestación urbana». Habla con el módulo de sesión (/priorizacion-reforestacion/api/).
 // Sin programas en línea: funciona con la política de seguridad de contenido estricta del sitio.
 'use strict';
 (function () {
-  const API = '/api/priorizacion-reforestacion/', HERRAMIENTA = '/priorizacion-reforestacion/';
+  const HERRAMIENTA = '/priorizacion-reforestacion/', API = HERRAMIENTA + 'api/', ACCESO = HERRAMIENTA + 'acceso/';
   const $ = id => document.getElementById(id);
   const p = new URLSearchParams(location.search);
-  // a dónde volver tras entrar: solo dentro de la herramienta (el servidor lo vuelve a revisar)
+  // a dónde volver tras entrar: solo páginas de la herramienta, no su acceso ni su API (el servidor lo vuelve a revisar)
   // nginx la manda sin codificar (?volver=/priorizacion-reforestacion/?a=007&b=con): todo lo que sigue a «volver=» es la dirección de regreso
   const crudo = (location.search.match(/[?&]volver=(.*)$/) || [])[1] || '';
   const decodifica = t => { try { return /%2F/i.test(t) ? decodeURIComponent(t) : t; } catch (e) { return ''; } };
-  const volver = (v => (v && v.startsWith(HERRAMIENTA) && !v.startsWith('//')) ? v : HERRAMIENTA)(decodifica(crudo));
+  const volver = (v => (v && v.startsWith(HERRAMIENTA) && !v.startsWith(ACCESO) && !v.startsWith(API) && !v.startsWith('//')) ? v : HERRAMIENTA)(decodifica(crudo));
 
   const aviso = (t, tipo) => { const a = $('aviso'); a.textContent = t; a.className = 'aviso ' + (tipo || 'ok'); a.hidden = !t; };
   const error = (id, t) => { const e = $(id); if (!e) return; e.textContent = t || ''; e.hidden = !t;

@@ -9,7 +9,7 @@ Se corre desde cualquier equipo con `curl`, contra la dirección pública. Susti
 | 3 | Política de seguridad de contenido | `curl -sI SITIO/priorizacion-reforestacion/ \| grep -i content-security` | La política del ejemplo, **una sola vez** | Si aparece dos veces, la general del sitio se suma a la de la ruta y gana la más estricta: dejar una |
 | 4 | Geolocalización permitida | `curl -sI SITIO/priorizacion-reforestacion/ \| grep -i permissions-policy` | `geolocation=(self)` o sin cabecera | Con `geolocation=()` el botón «Mi ubicación» no funciona |
 | 5 | Datos sin doble compresión | `curl -sI -H 'Accept-Encoding: gzip' SITIO/priorizacion-reforestacion/datos/data.bin` | `200`, `application/octet-stream`, **sin** `Content-Encoding`, `Content-Length` igual al tamaño de `sitio/datos/data.bin` del paquete (`ls -l`) | `gzip_types` incluye `application/octet-stream` o falta el bloque 3 |
-| 6 | Datos íntegros | `curl -s SITIO/priorizacion-reforestacion/datos/data.bin \| sha256sum` | La suma de `MANIFIESTO.sha256` | Transferencia incompleta o un intermediario altera el archivo |
+| 6 | Datos íntegros | `curl -s SITIO/priorizacion-reforestacion/datos/data.bin \| sha256sum` | La suma de `sitio/datos/data.bin` en `MANIFIESTO.sha256` | Transferencia incompleta o un intermediario altera el archivo |
 | 7 | Texto comprimido | `curl -sI -H 'Accept-Encoding: gzip' SITIO/priorizacion-reforestacion/app.js` | `Content-Encoding: gzip` | Compresión de texto apagada: la primera visita pesa 1.7 MB más |
 | 8 | Caché de archivos con huella | `curl -sI 'SITIO/priorizacion-reforestacion/app.js?v=x'` | `Cache-Control: public, max-age=31536000, immutable` | Falta el `map` del fragmento A |
 | 9 | La página no se guarda en caché, tampoco la de un enlace de avenida | `curl -sI SITIO/priorizacion-reforestacion/` y `curl -sI 'SITIO/priorizacion-reforestacion/?a=09&v=123'` | `Cache-Control: no-cache` en las dos | Igual que 8. Si solo la segunda trae `immutable`, el `map` instalado decide solo por `$arg_v` (que en la página es la avenida) y no por la ruta: un enlace compartido de avenida dejaría la página guardada un año |
@@ -28,3 +28,6 @@ Con inicio de sesión, además:
 | 17 | Sin sesión, los datos responden 401 | `curl -sI SITIO/priorizacion-reforestacion/datos/data.bin` | `401` (no `200` ni `302`) |
 | 18 | Sin sesión, los programas responden 401 | `curl -sI SITIO/priorizacion-reforestacion/libs/xlsx.js` | `401` |
 | 19 | Sesión vencida a media consulta | Borrar la cookie con la página abierta y pedir una ficha | «Tu sesión terminó…» con el enlace «Iniciar sesión» |
+| 20 | La pantalla de acceso no está protegida | `curl -sI SITIO/priorizacion-reforestacion/acceso/` | `200`, `text/html` (no `302` ni `401`) |
+| 21 | La API llega al módulo | `curl -sI SITIO/priorizacion-reforestacion/api/sesion` | `401` del módulo (no `404` ni `302`) |
+| 22 | Cookie limitada a la herramienta | Entrar y revisar la cookie `priorizacion_reforestacion_sesion` en el navegador | Ruta `/priorizacion-reforestacion/`, `HttpOnly`, `Secure`, `SameSite=Lax` |

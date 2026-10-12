@@ -1,10 +1,10 @@
 import express, { type ErrorRequestHandler, type NextFunction, type Request, type RequestHandler, type Response, type Router } from "express";
 import { createHash, randomBytes } from "node:crypto";
 import type pg from "pg";
-import { huella, revisaNueva, temporal, verifica } from "./contrasenas";
+import { huella, huellaTemporal, revisaNueva, temporal, verifica, verificaFicticia } from "./contrasenas";
 import { ALCALDIAS, nombreAlcaldia } from "./alcaldias";
 import { aplica, INSTITUCIONES, leeCsv, revisa, type CuentaNueva } from "./masiva";
-import { ipDeOrigen } from "./procedencia";
+import { ipDeOrigen } from "../../comun/procedencia";
 
 /* ============================================================
    Módulo Modelo de priorización de reforestación urbana · acceso y usos
@@ -17,16 +17,25 @@ import { ipDeOrigen } from "./procedencia";
    - Controla quién entra a la herramienta: cuentas dadas de alta por
      administración, contraseñas con huella scrypt y bloqueo por intentos.
    - Es la puerta de nginx: `GET /sesion` responde 204 o 401 a `auth_request`
-     antes de entregar cualquier archivo de /priorizacion-reforestacion/.
+     antes de entregar cualquier archivo de la herramienta.
    - Registra los usos (accesos, visitas, consultas y descargas) para saber qué
      instituciones y alcaldías usan la herramienta.
 
-   El aviso de privacidad se publica en
-   /acceso/priorizacion-reforestacion/aviso-de-privacidad.html. El registro es parte
-   del acceso: este módulo NO trae interruptor de captura, porque apagado nadie
-   podría entrar a la herramienta.
+   Direcciones públicas, todas bajo /priorizacion-reforestacion/ (la cookie
+   lleva Path=/priorizacion-reforestacion/ y no viaja al resto del dominio):
+     /priorizacion-reforestacion/          la herramienta (nginx, con auth_request)
+     /priorizacion-reforestacion/acceso/   pantalla de acceso, panel y aviso de
+                                           privacidad (estáticos, sin auth_request)
+     /priorizacion-reforestacion/api/      este módulo: nginx lo pasa al backend
+                                           en /api/priorizacion-reforestacion/
 
-   Montaje (src/index.ts):
+   El registro es parte del acceso: este módulo NO trae interruptor de captura,
+   porque apagado nadie podría entrar a la herramienta.
+
+   La IP de cada petición sale de ipDeOrigen(req), de src/comun/procedencia.ts
+   de sia-backend.
+
+   Montaje (src/index.ts), con la ruta interna del backend:
      app.use("/api/priorizacion-reforestacion", crearRutasPriorizacionReforestacion(poolPriorizacionReforestacion));
    ============================================================ */
 
@@ -37,6 +46,8 @@ export interface Opciones {
   cookieSegura: boolean;
   rutaHerramienta: string;
   rutaAcceso: string;
+  /** Dirección pública de este módulo (la que ve el navegador). */
+  rutaApi: string;
   /** La sesión se cierra tras este tiempo sin actividad… */
   inactividadMin: number;
   /** …y, en todo caso, a los N días. */
@@ -53,7 +64,8 @@ const OPCIONES: Opciones = {
   origen: process.env.PRIORIZACION_REFORESTACION_ORIGEN || "https://sedema.sia.cdmx.gob.mx",
   cookieSegura: true,
   rutaHerramienta: "/priorizacion-reforestacion/",
-  rutaAcceso: "/acceso/priorizacion-reforestacion/",
+  rutaAcceso: "/priorizacion-reforestacion/acceso/",
+  rutaApi: "/priorizacion-reforestacion/api/",
   inactividadMin: 12 * 60,
   maximoDias: 7,
   intentosMax: 5,
@@ -63,6 +75,8 @@ const OPCIONES: Opciones = {
 };
 
 const COOKIE = "priorizacion_reforestacion_sesion";
+/** Cuentas por petición de alta masiva. */
+export const MASIVA_MAX = 100;
 const EVENTOS_USO = ["consulta", "descarga"] as const;
 const CAMPOS_USO = ["red", "alcaldia", "colonia", "avenida", "calle", "banqueta", "archivo", "tipo"] as const;
 const LIMPIO = /^[\p{L}\p{N} .,;:()«»'_\-·/]{0,160}$/u;
@@ -95,11 +109,13 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     const m = (req.get("cookie") ?? "").split(/;\s*/).find((x) => x.startsWith(COOKIE + "="));
     return m ? decodeURIComponent(m.slice(COOKIE.length + 1)) : null;
   };
+  /** La cookie solo viaja a la herramienta, a su acceso y a su API: su Path es la ruta de la herramienta. */
   const ponCookie = (res: Response, valor: string, maxSeg: number) => res.append("Set-Cookie",
-    `${COOKIE}=${valor}; Path=/; HttpOnly;${o.cookieSegura ? " Secure;" : ""} SameSite=Lax; Max-Age=${maxSeg}`);
-  /** Dirección de regreso tras entrar: solo dentro de la herramienta, nunca a otro sitio. */
+    `${COOKIE}=${valor}; Path=${o.rutaHerramienta}; HttpOnly;${o.cookieSegura ? " Secure;" : ""} SameSite=Lax; Max-Age=${maxSeg}`);
+  /** Dirección de regreso tras entrar: solo páginas de la herramienta (no su acceso ni su API), nunca otro sitio. */
   const volverSeguro = (v: unknown) =>
-    typeof v === "string" && v.startsWith(o.rutaHerramienta) && !v.startsWith("//") && !/[\r\n\\]/.test(v) ? v : o.rutaHerramienta;
+    typeof v === "string" && v.startsWith(o.rutaHerramienta) && !v.startsWith(o.rutaAcceso) && !v.startsWith(o.rutaApi)
+      && !v.startsWith("//") && !/[\r\n\\]/.test(v) ? v : o.rutaHerramienta;
 
   async function sesion(req: Request): Promise<Sesion | null> {
     const t = leeCookie(req);
@@ -128,35 +144,44 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     next();
   };
 
-  /* Límite por IP para los intentos de acceso, además del bloqueo por cuenta en la base. La IP sale de ipDeOrigen. */
-  const intentos = new Map<string, number[]>();
+  /* Límite por IP de los intentos FALLIDOS de acceso (30 en 15 minutos), además del bloqueo por cuenta en la base.
+     Los accesos correctos no cuentan: muchas personas de una oficina pueden salir por la misma IP. */
+  const fallidos = new Map<string, number[]>();
+  const IP_MAX = 30, IP_VENTANA = 15 * 60000;
+  const recientes = (k: string, ahora: number) => (fallidos.get(k) ?? []).filter((t) => ahora - t < IP_VENTANA);
   const limiteIp: RequestHandler = (req, res, next) => {
-    const k = ipDeOrigen(req) ?? "?", ahora = Date.now();
-    const a = (intentos.get(k) ?? []).filter((t) => ahora - t < 15 * 60000);
-    if (a.length >= 30) { res.status(429).json({ error: "Demasiados intentos desde esta red. Espera unos minutos." }); return; }
-    a.push(ahora); intentos.set(k, a);
-    if (intentos.size > 5000) intentos.clear();
+    if (recientes(ipDeOrigen(req) ?? "?", Date.now()).length >= IP_MAX) { res.status(429).json({ error: "Demasiados intentos desde esta red. Espera unos minutos." }); return; }
     next();
+  };
+  const anotaFallido = (req: Request) => {
+    const k = ipDeOrigen(req) ?? "?", ahora = Date.now(), a = recientes(k, ahora);
+    a.push(ahora); fallidos.set(k, a);
+    if (fallidos.size > 5000) fallidos.clear();
   };
 
   // ---------- entrar ----------
   r.post("/entrar", mismaProcedencia, limiteIp, json, async (req, res) => {
     const b = cuerpo(req);
     const correo = texto(b.correo).trim().toLowerCase(), contrasena = texto(b.contrasena);
-    const NO = () => res.status(401).json({ error: "El correo o la contraseña no son correctos." });   // mismo mensaje exista o no el correo
+    /* Correo desconocido, cuenta de baja, cuenta detenida o contraseña equivocada: la MISMA respuesta (401 y mensaje) y el
+       mismo trabajo de verificación, para no revelar si la cuenta existe ni si está detenida. El motivo queda en la bitácora. */
+    const NO = async (usuario_id: number | null, detalle: object) => {
+      anotaFallido(req);
+      await anota(usuario_id, "acceso_fallido", detalle, req);
+      res.status(401).json({ error: `El correo o la contraseña no son correctos. Tras ${o.intentosMax} intentos fallidos, el acceso se detiene ${o.bloqueoMin} minutos.` });
+    };
     const { rows } = await pool.query<Usuario>("SELECT * FROM priorizacion_reforestacion.usuarios WHERE correo = $1", [correo]);
     const u = rows[0];
-    if (!u || !u.activo) { await huella("x".repeat(12)); await anota(null, "acceso_fallido", { motivo: "correo" }, req); NO(); return; }   // mismo tiempo de respuesta
+    if (!u || !u.activo) { await verificaFicticia(contrasena); await NO(null, { motivo: u ? "baja" : "correo" }); return; }
     if (u.bloqueado_hasta && new Date(u.bloqueado_hasta).getTime() > Date.now()) {
-      res.status(423).json({ error: `Por seguridad, el acceso con esta cuenta está detenido unos minutos tras ${o.intentosMax} intentos fallidos. Inténtalo más tarde.` });
-      return;
+      await verifica(contrasena, u.huella);   // se calcula y se descarta: aun con la contraseña correcta, no entra
+      await NO(u.id, { motivo: "detenida" }); return;
     }
     if (!(await verifica(contrasena, u.huella))) {
       const n = u.intentos_fallidos + 1, bloquea = n >= o.intentosMax;
       await pool.query("UPDATE priorizacion_reforestacion.usuarios SET intentos_fallidos = $1, bloqueado_hasta = $2 WHERE id = $3",
         [bloquea ? 0 : n, bloquea ? new Date(Date.now() + o.bloqueoMin * 60000) : null, u.id]);
-      await anota(u.id, "acceso_fallido", { bloqueo: bloquea }, req);
-      NO(); return;
+      await NO(u.id, { motivo: "contrasena", bloqueo: bloquea }); return;
     }
     const token = randomBytes(32).toString("base64url");
     await pool.query("INSERT INTO priorizacion_reforestacion.sesiones (token_huella, usuario_id, expira) VALUES ($1, $2, $3)",
@@ -258,7 +283,7 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     const { rows } = await pool.query<Usuario>(
       `INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar)
        VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
-      [correo, texto(b.nombre).trim(), b.institucion ?? "Alcaldía", b.alcaldia_cve || null, b.rol ?? "usuario", await huella(clave)]);
+      [correo, texto(b.nombre).trim(), b.institucion ?? "Alcaldía", b.alcaldia_cve || null, b.rol ?? "usuario", await huellaTemporal(clave)]);
     await anota(usuarioDe(res).id, "admin", { accion: "alta", usuario: rows[0].id }, req);
     res.status(201).json({ usuario: vistaUsuario(rows[0]), contrasena_temporal: clave });   // se muestra una sola vez
   });
@@ -286,7 +311,7 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     const clave = temporal(), id = Number(req.params.id);
     const { rows } = await pool.query<Usuario>(
       "UPDATE priorizacion_reforestacion.usuarios SET huella = $1, debe_cambiar = true, intentos_fallidos = 0, bloqueado_hasta = NULL, actualizado = now() WHERE id = $2 RETURNING *",
-      [await huella(clave), id]);
+      [await huellaTemporal(clave), id]);
     if (!rows[0]) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
     await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1", [id]);
     await anota(usuarioDe(res).id, "admin", { accion: "restablecer", usuario: id }, req);
@@ -295,7 +320,8 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
 
   /* Alta masiva desde el panel: primero se revisa (no escribe nada); con aplicar: true da de alta las válidas nuevas.
      Las contraseñas temporales vuelven una sola vez y el panel arma con ellas el CSV en el navegador: el servidor no lo guarda.
-     Límite de 100 KB, igual que el express.json() general de sia-backend (unas 500 cuentas). */
+     Hasta MASIVA_MAX cuentas por petición, para que cada una termine en pocos segundos: el panel parte el archivo en envíos
+     de 50 renglones. Límite de 100 KB, igual que el express.json() general de sia-backend. */
   r.post("/admin/usuarios/masiva", mismaProcedencia, express.json({ limit: "100kb" }), admin, async (req, res) => {
     const b = cuerpo(req), csv = texto(b.csv);
     if (!csv.trim()) { res.status(400).json({ error: "El archivo está vacío." }); return; }
@@ -303,7 +329,7 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     try { renglones = leeCsv(csv); } catch { res.status(400).json({ error: "No se pudo leer el archivo como CSV." }); return; }
     if (!renglones.length) { res.status(400).json({ error: "El archivo no tiene renglones después del encabezado." }); return; }
     if (!("correo" in renglones[0]) || !("nombre" in renglones[0])) { res.status(400).json({ error: "Faltan columnas: el encabezado debe decir correo, nombre, institucion, alcaldia, rol." }); return; }
-    if (renglones.length > 500) { res.status(400).json({ error: "Máximo 500 cuentas por archivo: divídelo en partes." }); return; }
+    if (renglones.length > MASIVA_MAX) { res.status(400).json({ error: `Máximo ${MASIVA_MAX} cuentas por envío: divide el archivo en partes.` }); return; }
     const { ok, errores } = revisa(renglones);
     const existe = new Set<string>();
     for (const c of ok) if ((await pool.query("SELECT 1 FROM priorizacion_reforestacion.usuarios WHERE correo = $1", [c.correo])).rows.length) existe.add(c.correo);

@@ -40,6 +40,6 @@ Puede ejercer sus derechos de acceso, rectificación, cancelación y oposición 
 
 ### Cambios
 
-Se publicarán en la pantalla de acceso de la herramienta (`sedema.sia.cdmx.gob.mx/acceso/priorizacion-reforestacion/`).
+Se publicarán en la pantalla de acceso de la herramienta (`sedema.sia.cdmx.gob.mx/priorizacion-reforestacion/acceso/`).
 
 Última actualización: 5 de octubre de 2026.

@@ -30,7 +30,7 @@ Para cada una de las tres capas:
 1. **Almacén:** Almacenes de datos → Agregar → **GeoPackage**. Espacio de trabajo `sia`, nombre igual al del archivo (p. ej. `frentes_reforestacion`). Ruta: el `.gpkg` copiado al directorio de datos del servidor.
 2. **Capa:** Publicar la tabla. SRS declarado `EPSG:4326`; calcular los límites desde los datos.
 3. **Estilo:** Estilos → Agregar → subir el `.sld` correspondiente y asignarlo como estilo por omisión de la capa.
-4. **Caché de teselas:** en la pestaña *Tile Caching* de la capa, activar GeoWebCache con `EPSG:900913` (o `EPSG:3857`) y `image/png`, y **precargar (seed)** los niveles 10 a 16. Sin precarga, cada tesela tarda alrededor de 1 s la primera vez; precargada, alrededor de 0.1 s. **Atención:** según el inventario del SIA, el cacheo de GeoWebCache está apagado por falta de disco y el volumen de datos de GeoServer va al 54 % de 10 GB. Las tres capas ocupan unos 150 MB. Precargar los niveles 10 a 16 de toda la ciudad puede ocupar del orden de 1 a 2 GB. Conviene precargar solo los niveles 13 a 16 (los de calle), o solicitar espacio antes.
+4. **Caché de teselas:** GeoWebCache está encendido en el GeoServer del SIA desde el 1 de octubre de 2026, con una cuota de disco de 2 GiB compartida por todas las capas. En la pestaña *Tile Caching* de la capa, activarla con `EPSG:900913` (o `EPSG:3857`) y `image/png`, **sin precarga (seed)**: las teselas se guardan solas la primera vez que alguien las pide (alrededor de 1 s esa vez; después, alrededor de 0.1 s). **No precargar los niveles 10 a 16 de toda la ciudad:** ocuparían del orden de 1 a 2 GB, llenarían la cuota y GeoWebCache borraría las teselas de las demás capas. Si se quiere precargar algo, solo los niveles 13 a 16 (los de calle) de las zonas de trabajo, con un recuadro (*bounding box*) acotado. Las tres capas ocupan unos 150 MB en disco.
 
 ## Para actualizar
 
@@ -92,7 +92,7 @@ La geometría es la **original** del modelo de priorización (nov. 2025), no la 
 **Atención:**
 - Los polígonos de colonias están **simplificados**: sirven para ver y ubicar, no para medir superficies.
 - Su origen primario no está identificado. Si el SIA tiene una capa oficial de colonias, conviene usarla y unirle estos campos.
-- La suma de `km_prioritarios` (16,368.2 km) es menor que el total de las alcaldías (16,409.3 km), porque algunos frentes no tienen colonia asignada.
+- La suma de `km_prioritarios` (16,396.9 km) es menor que el total de las alcaldías (16,409.3 km), porque algunos frentes (12.4 km prioritarios) no tienen colonia asignada.
 
 ## Cifras de control
 
@@ -109,11 +109,14 @@ Para comprobar que la capa publicada es la correcta:
 | Tramos de vialidad primaria | 13,335 |
 | Colonias | 2,243 |
 
-Son las mismas cifras que muestra la herramienta, versión 1.0.
+Son las mismas cifras que muestra la herramienta. «Prioritario» es Muy Alta, Alta y Media.
 
 ## Cargar las capas en PostGIS (opcional)
 
-Si el SIA prefiere publicar desde su base PostGIS en lugar de los GeoPackage, o para ensayarlo antes, las tres capas se cargan con `ogr2ogr` (viene con la instalación de PostGIS) en un esquema propio. Se probó el 5 oct 2026 en PostgreSQL 17 + PostGIS 3.5 con resultados idénticos a la herramienta: 372,534 frentes, 9,226.9 km prioritarios a cargo de las alcaldías, 19,411 frentes del Gobierno Central.
+Si el SIA prefiere publicar desde su base PostGIS en lugar de los GeoPackage, o para ensayarlo antes, las tres capas se cargan con `ogr2ogr` (viene con la instalación de PostGIS) en un esquema propio. La carga se probó en PostgreSQL 17 + PostGIS 3.5. Con las capas de este paquete, la consulta de control debe dar las cifras de la herramienta: 372,534 frentes, 16,409.3 km prioritarios (Muy Alta, Alta y Media) a cargo de las alcaldías y 19,411 frentes del Gobierno Central:
+```
+psql -c "SELECT count(*) AS frentes, round(sum(longitud_m) FILTER (WHERE prioritario = 1 AND quien_atiende = 'Alcaldía') / 1000.0, 1) AS km_prioritarios_alcaldias, count(*) FILTER (WHERE quien_atiende = 'Gobierno Central') AS frentes_gobierno_central FROM reforestacion.frentes_reforestacion"
+```
 
 ```
 psql -c "CREATE SCHEMA IF NOT EXISTS reforestacion"

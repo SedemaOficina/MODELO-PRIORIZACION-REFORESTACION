@@ -5,11 +5,14 @@ de trabajo.
 
 Construye en una carpeta temporal, con los parámetros de la instalación (claves de los mapas de fondo y direcciones de la
 sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; así docs/ y el repositorio no cambian.
-La sesión va encendida por omisión (/acceso/priorizacion-reforestacion/ y /api/priorizacion-reforestacion/salir); --sin-sesion arma la herramienta sin login.
+La sesión va encendida por omisión (acceso en /priorizacion-reforestacion/acceso/, cierre en /priorizacion-reforestacion/api/salir
+y registro de usos en /priorizacion-reforestacion/api/uso); --sin-sesion arma la herramienta sin login.
 
 Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion]
-Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; se entregan juntos)
-      LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/, capas_geoserver/ y documentos/
+Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; viajan SIEMPRE juntos)
+      Dentro: LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/, capas_geoserver/ y documentos/.
+      MANIFIESTO.sha256 trae la suma de CADA archivo del paquete (salvo él mismo), con rutas relativas a la raíz del
+      paquete: se comprueba con «sha256sum -c MANIFIESTO.sha256» desde esa carpeta.
 
 Los documentos Markdown pierden, al empaquetarse, lo que va entre <!-- solo-repositorio --> y <!-- /solo-repositorio -->
 (instrucciones para quien mantiene el repositorio). Requiere únicamente Python 3.
@@ -32,8 +35,9 @@ CAPAS = ['frentes_reforestacion', 'vialidades_primarias_reforestacion', 'colonia
 SOLO_REPO = re.compile(r'<!-- solo-repositorio -->.*?<!-- /solo-repositorio -->\n?', re.S)
 
 if '--sin-sesion' not in sys.argv:
-    os.environ.setdefault('SIA_SESION_INICIO', '/acceso/priorizacion-reforestacion/')
-    os.environ.setdefault('SIA_SESION_CIERRE', '/api/priorizacion-reforestacion/salir')
+    os.environ.setdefault('SIA_SESION_INICIO', '/priorizacion-reforestacion/acceso/')
+    os.environ.setdefault('SIA_SESION_CIERRE', '/priorizacion-reforestacion/api/salir')
+    os.environ.setdefault('SIA_SESION_USO', '/priorizacion-reforestacion/api/uso')
 
 suma = lambda ruta: hashlib.sha256(open(ruta, 'rb').read()).hexdigest()
 
@@ -72,17 +76,16 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     nombre = 'modelo-priorizacion-reforestacion_v%s_%s' % (version, time.strftime('%Y%m%d'))
     base = os.path.join(t, nombre)
 
-    # 1. la herramienta y su manifiesto
+    # 1. la herramienta, solo con los archivos que le corresponden
     shutil.copytree(os.path.join(t, 'docs'), os.path.join(base, 'sitio'))
     lineas = manifiesto(os.path.join(base, 'sitio'))
     ajenos = [l.split('  ')[1] for l in lineas if not re.match(r'^(index\.html|app\.js|estilos\.css|config\.js|sw\.js|\.nojekyll|datos/|libs/|fuentes/|img/)', l.split('  ')[1])]
     if ajenos:
         sys.exit('ERROR: el sitio trae archivos que no se esperaban: ' + ', '.join(ajenos))
-    open(os.path.join(base, 'MANIFIESTO.sha256'), 'w', encoding='utf-8', newline='\n').write('\n'.join(lineas) + '\n')
 
     # 2. inicio de sesión: pantalla de acceso y, con la estructura del repositorio sia-backend, el módulo (src/modulos/),
     #    su SQL (db/) y la herramienta de la primera cuenta (herramientas/). Sin pruebas, demostraciones ni package.json:
-    #    el módulo vive dentro de sia-backend y usa sus dependencias.
+    #    el módulo vive dentro de sia-backend y usa sus dependencias. src/comun/ NO va: en sia-backend se usa el del SIA.
     L = os.path.join(AQUI, 'login')
     shutil.copytree(os.path.join(L, 'acceso'), os.path.join(base, 'login', 'acceso'))
     for parte in (('src', 'modulos', 'priorizacion-reforestacion'), ('db', 'priorizacion_reforestacion'), ('herramientas', 'priorizacion-reforestacion')):
@@ -115,13 +118,20 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
         'Modelo de priorización de reforestación urbana\nVersión: %s\nÚltima actualización: %s\nPaquete armado: %s\nCorte de los datos: %s\n'
         'Archivos del sitio: %d\nClave de Esri incluida: %s\nInicio de sesión: %s\n'
         % (version, fecha, time.strftime('%Y-%m-%d %H:%M'), corte, len(lineas), con('SIA_ESRI_KEY'),
-           ('acceso en %s, cierre en %s' % (sesion['inicio'], sesion['cierre'])) if sesion.get('inicio') else 'no'))
+           ('acceso en %s, cierre en %s, registro de usos en %s' % (sesion['inicio'], sesion['cierre'], sesion.get('uso') or '(por omisión)'))
+           if sesion.get('inicio') else 'no'))
 
-    # 5. comprobación final: nada de trabajo ni de pruebas en el paquete
+    # 5. comprobación: nada de trabajo, pruebas, demostraciones ni src/comun/ en el paquete
     todo = [os.path.relpath(os.path.join(d, a), base).replace(os.sep, '/') for d, _, aa in os.walk(base) for a in aa]
-    prohibidos = [r for r in todo if re.search(r'(pruebas|demo|borrador|privacidad/|\.test\.js|node_modules|_local|\.py$|\.docx$|claves\.local)', r)]
+    prohibidos = [r for r in todo if re.search(r'(pruebas|demo|borrador|privacidad/|\.test\.js|node_modules|_local|\.py$|\.docx$|claves\.local'
+                                               r'|^login/backend/src/(?!modulos/priorizacion-reforestacion/))', r)]
     if prohibidos:
         sys.exit('ERROR: se colaron archivos de trabajo: ' + ', '.join(prohibidos))
+
+    # 6. manifiesto de TODO el paquete (salvo él mismo), con rutas relativas a su raíz: «sha256sum -c MANIFIESTO.sha256»
+    general = manifiesto(base)
+    open(os.path.join(base, 'MANIFIESTO.sha256'), 'w', encoding='utf-8', newline='\n').write('\n'.join(general) + '\n')
+    todo.append('MANIFIESTO.sha256')
     salida = os.path.join(RAIZ, '_local', 'entrega')
     os.makedirs(salida, exist_ok=True)
     destino = os.path.join(salida, nombre + '.zip')
@@ -132,6 +142,8 @@ finally:
     shutil.rmtree(t, ignore_errors=True)
 # la suma del ZIP va en un archivo aparte, junto a él (dentro cambiaría el ZIP); formato de sha256sum -c
 open(destino + '.sha256', 'w', encoding='utf-8', newline='\n').write('%s  %s\n' % (suma(destino), os.path.basename(destino)))
-print('paquete: %s (%.1f MB, %d archivos; %d del sitio)' % (os.path.relpath(destino, RAIZ), os.path.getsize(destino) / 1048576, len(todo), len(lineas)))
+print('paquete: %s (%.1f MB, %d archivos; %d del sitio; MANIFIESTO.sha256 con %d sumas)'
+      % (os.path.relpath(destino, RAIZ), os.path.getsize(destino) / 1048576, len(todo), len(lineas), len(general)))
 print('suma del paquete: %s (también en %s.sha256)' % (suma(destino), os.path.basename(destino)))
+print('Entregar SIEMPRE juntos, en el mismo enlace: %s y %s.sha256' % (os.path.basename(destino), os.path.basename(destino)))
 print('versión %s · clave Esri: %s · sesión: %s' % (version, con('SIA_ESRI_KEY'), sesion.get('inicio') or 'no'))

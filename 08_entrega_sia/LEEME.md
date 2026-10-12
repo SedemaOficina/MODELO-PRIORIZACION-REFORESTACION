@@ -2,13 +2,13 @@
 
 Todo lo que el equipo del Sistema de Información Ambiental necesita para instalar, verificar, actualizar y operar la herramienta en `sedema.sia.cdmx.gob.mx/priorizacion-reforestacion/` sin depender de quien la elaboró.
 
-**Cómo se entrega:** `python 08_entrega_sia/empaquetar.py` arma `_local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, que se entrega por enlace de descarga (pesa unos 46 MB, más de lo que admite un adjunto de correo), junto con su archivo `.sha256`. Trae solo lo que se instala: `LEEME.md` (portada, desde `LEEME_PAQUETE.md`), `sitio/` con la sesión configurada, `login/` sin pruebas ni demostraciones, `capas_geoserver/` y `documentos/`. Las instrucciones para quien mantiene el repositorio van entre `<!-- solo-repositorio -->` y no llegan al paquete.
+**Cómo se entrega:** `python 08_entrega_sia/empaquetar.py` arma `_local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, que se entrega por enlace de descarga (pesa unos 46 MB, más de lo que admite un adjunto de correo), siempre junto con su archivo `.sha256`, en el mismo enlace. Dentro, `MANIFIESTO.sha256` trae la suma de cada archivo del paquete. Trae solo lo que se instala: `LEEME.md` (portada, desde `LEEME_PAQUETE.md`), `sitio/` con la sesión configurada, `login/` sin pruebas ni demostraciones, `capas_geoserver/` y `documentos/`. Las instrucciones para quien mantiene el repositorio van entre `<!-- solo-repositorio -->` y no llegan al paquete.
 
 | Documento | Para qué |
 |---|---|
 | [`INSTALACION.md`](INSTALACION.md) | Instalar, actualizar y revertir, paso a paso |
 | [`nginx_priorizacion_reforestacion.conf.ejemplo`](nginx_priorizacion_reforestacion.conf.ejemplo) | Los dos fragmentos de configuración de nginx |
-| [`LISTA_DE_VERIFICACION.md`](LISTA_DE_VERIFICACION.md) | 19 comprobaciones con `curl` y navegador, y qué revisar si alguna falla |
+| [`LISTA_DE_VERIFICACION.md`](LISTA_DE_VERIFICACION.md) | 22 comprobaciones con `curl` y navegador, y qué revisar si alguna falla |
 | [`SESION_Y_LOGIN.md`](SESION_Y_LOGIN.md) | Cómo se integra un inicio de sesión: qué hace ya la herramienta y qué construye el SIA |
 | [`CIERRE_FASE_1.md`](CIERRE_FASE_1.md) | Orden para apagar la página de GitHub y lo demás del piloto (interno; no va en el paquete) |
 | [`CONTRATO_DE_DATOS.md`](CONTRATO_DE_DATOS.md) | Formato de los archivos de datos (interno; no va en el paquete) |
@@ -25,7 +25,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 - **Qué pide a terceros:** nada para funcionar. Solo si la persona enciende el satélite, las teselas de Esri (el fondo «Calles» es propio y viaja con el sitio); y los enlaces a Google Maps de las fichas, que se abren en otra pestaña.
 - **Datos personales:** los del inicio de sesión y el registro de usos (ver `login/LEEME.md`). «Mi ubicación» se calcula en el teléfono y no se envía.
 - **Política de seguridad de contenido:** funciona con una política estricta, sin `'unsafe-inline'` ni `'unsafe-eval'`. Probado: 12 de 12 funciones, cero violaciones.
-- **Inicio de sesión:** acceso solo con cuenta y registro de usos (accesos, consultas y descargas por institución y alcaldía). Se entrega construido y probado en `login/`; el SIA lo instala.
+- **Inicio de sesión:** acceso solo con cuenta y registro de usos (accesos, consultas y descargas por institución y alcaldía). Se entrega construido y probado en `login/`; el SIA lo instala y mantiene el servidor, la base y sus respaldos; las cuentas las opera la Oficina de la Secretaría desde el panel.
 - **Navegadores:** Chrome o Edge 80, Firefox 79, Safari 15, o posteriores, con WebGL 2.
 - **Soporte:** Oficina de la Secretaría, Sistema de Información Ambiental. El código y la documentación de mantenimiento están en `ARQUITECTURA.md`, en la raíz del repositorio.
 
@@ -48,4 +48,4 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Guía de instalación, actualización y reversión | Escrita; **sin ensayar por una persona distinta de quien la escribió** |
 | Claves de los mapas de fondo | «Calles» no necesita clave (fondo propio). Esri: pendiente (el satélite funciona sin clave por ahora) |
 | Insumos originales (modelo de priorización y vialidades primarias) | Localizados y comprobados; en la copia local, con sus huellas en `03_procesamiento_datos/SUMAS_INSUMOS.md` |
-| Capas para GeoServer | Listas en `capas_geoserver/`, revisadas en QGIS. Nota: la caché de teselas de GeoServer está apagada por falta de disco; precargarla requiere espacio en el volumen de datos |
+| Capas para GeoServer | Listas en `capas_geoserver/`, revisadas en QGIS. GeoWebCache está encendido (cuota de 2 GiB): no se recomienda precargar toda la ciudad (ver `capas_geoserver/LEEME.md`) |

@@ -6,7 +6,7 @@
    coma o punto y coma, con o sin BOM, campos entre comillas.
    ============================================================ */
 import type pg from "pg";
-import { huella, temporal } from "./contrasenas";
+import { huellaTemporal, temporal } from "./contrasenas";
 import { ALCALDIAS } from "./alcaldias";
 
 export type Institucion = "Alcaldía" | "Gobierno Central" | "SEDEMA" | "Otra";
@@ -70,7 +70,7 @@ export async function aplica(pool: pg.Pool, cuentas: CuentaNueva[], autor: numbe
     const { rows } = await pool.query<{ id: number }>(
       `INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar)
        VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING id`,
-      [c.correo, c.nombre, c.institucion, c.alcaldia_cve, c.rol, await huella(clave)]);
+      [c.correo, c.nombre, c.institucion, c.alcaldia_cve, c.rol, await huellaTemporal(clave)]);
     await pool.query(`INSERT INTO priorizacion_reforestacion.bitacora (usuario_id, evento, detalle) VALUES ($1, 'admin', $2)`,
       [autor, JSON.stringify({ accion: "alta_masiva", usuario: rows[0].id })]);
     hechas.push({ ...c, contrasena_temporal: clave });

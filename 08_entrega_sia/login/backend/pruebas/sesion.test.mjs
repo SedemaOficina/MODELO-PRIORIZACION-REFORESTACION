@@ -46,7 +46,9 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
   // ---- entra con la temporal: debe cambiarla; mientras tanto nginx no deja pasar ----
   let r = await entrar(app, 'ADMIN@sedema.cdmx.gob.mx', 'temporal-admin-1', 'https://malicioso.com/'); const ck = galleta(r);
   assert.equal(r.status, 200); assert.equal(r.body.debe_cambiar, true); assert.equal(r.body.volver, '/priorizacion-reforestacion/', 'la dirección de regreso solo puede ser la herramienta');
-  assert.match(r.headers['set-cookie'].join(';'), /HttpOnly; Secure; SameSite=Lax/);
+  assert.match(r.headers['set-cookie'].join(';'), /; Path=\/priorizacion-reforestacion\/; HttpOnly; Secure; SameSite=Lax/, 'la cookie solo viaja bajo /priorizacion-reforestacion/');
+  for (const v of ['/priorizacion-reforestacion/acceso/admin/', '/priorizacion-reforestacion/api/salir'])
+    assert.equal((await entrar(app, 'admin@sedema.cdmx.gob.mx', 'temporal-admin-1', v)).body.volver, '/priorizacion-reforestacion/', `no se regresa a ${v}`);
   assert.equal((await request(app).get(API + '/sesion').set('Cookie', ck)).status, 401, 'con contraseña temporal no se entra a la herramienta');
   assert.equal((await request(app).post(API + '/contrasena').set('Origin', ORIGEN).set('Cookie', ck).send({ actual: 'temporal-admin-1', nueva: 'corta' })).status, 400);
   r = await request(app).post(API + '/contrasena').set('Origin', ORIGEN).set('Cookie', ck).send({ actual: 'temporal-admin-1', nueva: 'una frase larga y segura', volver: '/priorizacion-reforestacion/?a=007' });
@@ -102,23 +104,34 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
   assert.equal((await entrar(app, 'tecnica@iztapalapa.gob.mx', r.body.contrasena_temporal)).body.debe_cambiar, true);
 
   // ---- salir ----
-  r = await request(app).get(API + '/salir').set('Cookie', ck); assert.equal(r.status, 303); assert.equal(r.headers.location, '/acceso/priorizacion-reforestacion/?salida=1');
-  assert.match(r.headers['set-cookie'].join(';'), /Max-Age=0/);
+  r = await request(app).get(API + '/salir').set('Cookie', ck); assert.equal(r.status, 303); assert.equal(r.headers.location, '/priorizacion-reforestacion/acceso/?salida=1');
+  assert.match(r.headers['set-cookie'].join(';'), /; Path=\/priorizacion-reforestacion\/;.*Max-Age=0/, 'se borra la misma cookie (misma ruta)');
   assert.equal((await request(app).get(API + '/sesion').set('Cookie', ck)).status, 401);
 });
 
-test('bloqueo de la cuenta tras 5 intentos fallidos', async () => {
-  const { app } = await montar();
-  for (let i = 0; i < 5; i++) await entrar(app, 'admin@sedema.cdmx.gob.mx', 'equivocada-' + i);
+test('bloqueo de la cuenta tras 5 intentos fallidos: responde igual que una contraseña equivocada', async () => {
+  const { app, pool } = await montar();
+  const mal = await entrar(app, 'admin@sedema.cdmx.gob.mx', 'equivocada-0'), nadie = await entrar(app, 'nadie@x.mx', 'equivocada-0');
+  for (let i = 1; i < 5; i++) await entrar(app, 'admin@sedema.cdmx.gob.mx', 'equivocada-' + i);
   const r = await entrar(app, 'admin@sedema.cdmx.gob.mx', 'temporal-admin-1');
-  assert.equal(r.status, 423, 'aun con la contraseña correcta, la cuenta queda detenida unos minutos'); assert.match(r.body.error, /intentos/);
+  assert.equal(r.status, 401, 'aun con la contraseña correcta, la cuenta queda detenida unos minutos');
+  assert.equal(r.body.error, mal.body.error, 'mismo mensaje que una contraseña equivocada'); assert.equal(r.body.error, nadie.body.error, 'y que un correo que no existe');
+  assert.deepEqual(Object.keys(r.body), Object.keys(mal.body), 'mismo cuerpo de respuesta');
+  assert.match(r.body.error, /Tras 5 intentos fallidos, el acceso se detiene 15 minutos/);
+  const motivos = (await pool.query("SELECT detalle FROM priorizacion_reforestacion.bitacora WHERE evento = 'acceso_fallido' ORDER BY id")).rows
+    .map(x => (typeof x.detalle === 'string' ? JSON.parse(x.detalle) : x.detalle).motivo);
+  assert.deepEqual(motivos, ['contrasena', 'correo', 'contrasena', 'contrasena', 'contrasena', 'contrasena', 'detenida'], 'la bitácora sí distingue el motivo');
 });
 
 test('IP de origen detrás de nginx: el límite por red es de cada persona, no de todas', async () => {
   // sia-backend no fija trust proxy: sin leer X-Forwarded-For, todas las peticiones parecerían venir de nginx y 30 intentos
   // de cualquiera bloquearían a todo el mundo. Con ipDeOrigen (última entrada, la que escribe nginx) cada red cuenta aparte.
   const { app, pool } = await montar();
-  for (let i = 0; i < 30; i++) await entrar(app, `nadie${i}@x.mx`, 'x-incorrecta-1', undefined, '203.0.113.7');
+  // solo cuentan los intentos fallidos: muchas personas de una oficina entran desde la misma IP
+  for (let i = 0; i < 35; i++) assert.equal((await entrar(app, 'admin@sedema.cdmx.gob.mx', 'temporal-admin-1', undefined, '203.0.113.7')).status, 200, `acceso correcto ${i + 1}`);
+  for (let i = 0; i < 29; i++) await entrar(app, `nadie${i}@x.mx`, 'x-incorrecta-1', undefined, '203.0.113.7');
+  assert.equal((await entrar(app, 'admin@sedema.cdmx.gob.mx', 'temporal-admin-1', undefined, '203.0.113.7')).status, 200, 'con 29 fallidos aún se entra');
+  await entrar(app, 'nadie29@x.mx', 'x-incorrecta-1', undefined, '203.0.113.7');
   assert.equal((await entrar(app, 'nadie@x.mx', 'x-incorrecta-1', undefined, '203.0.113.7')).status, 429, 'la red que insiste se detiene');
   const otra = await entrar(app, 'ADMIN@sedema.cdmx.gob.mx', 'temporal-admin-1', undefined, '198.51.100.20');
   assert.equal(otra.status, 200, 'otra red sigue entrando');
@@ -126,6 +139,19 @@ test('IP de origen detrás de nginx: el límite por red es de cada persona, no d
   assert.equal((await entrar(app, 'nadie@x.mx', 'x-incorrecta-1', undefined, '198.51.100.99, 203.0.113.7')).status, 429);
   const ip = (await pool.query("SELECT ip FROM priorizacion_reforestacion.bitacora WHERE evento = 'acceso' ORDER BY id DESC LIMIT 1")).rows[0].ip;
   assert.equal(ip, '198.51.100.20', 'la bitácora guarda la IP de la persona, no la de nginx');
+});
+
+test('IP de origen con saltos conocidos (SIA_SALTOS_CONOCIDOS): se descartan el proxy intermedio y nginx', async () => {
+  const { ipDeOrigen } = await import('../src/comun/procedencia.ts');
+  const pide = xff => ({ header: () => xff, socket: { remoteAddress: '127.0.0.1' } });
+  process.env.SIA_SALTOS_CONOCIDOS = '10.0.0.5, 10.0.0.9';
+  try {
+    assert.equal(ipDeOrigen(pide('203.0.113.50, 10.0.0.5, 10.0.0.9')), '203.0.113.50');
+    assert.equal(ipDeOrigen(pide('198.51.100.1, 203.0.113.50, 10.0.0.9')), '203.0.113.50', 'lo anterior a la persona lo puede escribir quien llama: no cuenta');
+    assert.equal(ipDeOrigen(pide('10.0.0.5')), '127.0.0.1', 'solo saltos conocidos: la dirección directa');
+  } finally { delete process.env.SIA_SALTOS_CONOCIDOS; }
+  assert.equal(ipDeOrigen(pide('203.0.113.50, 10.0.0.5')), '10.0.0.5', 'sin la lista, la última entrada');
+  assert.equal(ipDeOrigen(pide('no-es-ip')), '127.0.0.1');
 });
 
 test('montado como en sia-backend: helmet, cors y express.json() globales no lo afectan; errores en JSON', async () => {
@@ -139,11 +165,13 @@ test('montado como en sia-backend: helmet, cors y express.json() globales no lo 
   // un JSON mal formado lo rechaza el json() general antes del módulo (400 de Express)
   const mal = await request(app).post(API + '/entrar').set('Origin', ORIGEN).set('Content-Type', 'application/json').send('{"correo":');
   assert.equal(mal.status, 400);
-  // la alta masiva cabe en el límite general de 100 KB: 500 cuentas
-  const csv = 'correo,nombre,institucion,alcaldia,rol\n' + Array.from({ length: 500 }, (_, i) => `enlace${i}@tlalpan.cdmx.gob.mx,Enlace Número ${i} de la Alcaldía,Alcaldía,Tlalpan,usuario`).join('\n');
-  assert.ok(JSON.stringify({ csv }).length < 100 * 1024, `500 cuentas = ${JSON.stringify({ csv }).length} bytes`);
-  const m = await request(app).post(API + '/admin/usuarios/masiva').set('Origin', ORIGEN).set('Cookie', ck).send({ csv, aplicar: false });
-  assert.equal(m.status, 200); assert.equal(m.body.validas.length, 500);
+  // la alta masiva: hasta 100 cuentas por envío, que caben de sobra en el límite general de 100 KB
+  const csv = n => 'correo,nombre,institucion,alcaldia,rol\n' + Array.from({ length: n }, (_, i) => `enlace${i}@tlalpan.cdmx.gob.mx,Enlace Número ${i} de la Alcaldía,Alcaldía,Tlalpan,usuario`).join('\n');
+  assert.ok(JSON.stringify({ csv: csv(100) }).length < 100 * 1024, `100 cuentas = ${JSON.stringify({ csv: csv(100) }).length} bytes`);
+  const m = await request(app).post(API + '/admin/usuarios/masiva').set('Origin', ORIGEN).set('Cookie', ck).send({ csv: csv(100), aplicar: false });
+  assert.equal(m.status, 200); assert.equal(m.body.validas.length, 100);
+  const m2 = await request(app).post(API + '/admin/usuarios/masiva').set('Origin', ORIGEN).set('Cookie', ck).send({ csv: csv(101), aplicar: false });
+  assert.equal(m2.status, 400, 'más de 100 cuentas por envío se rechaza'); assert.match(m2.body.error, /Máximo 100 cuentas/);
 });
 
 test('depuración: plazos de conservación y privilegio mínimo (solo con PostgreSQL real)', { skip: !REAL && 'pg-mem no ejecuta funciones SQL ni roles' }, async () => {

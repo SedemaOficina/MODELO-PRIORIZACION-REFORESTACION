@@ -1,8 +1,9 @@
 // Servidor de demostración: reproduce en una sola máquina lo que hará el servidor del SIA (nginx + backend + base), con una base en memoria o un PostgreSQL de pruebas.
-//   /acceso/priorizacion-reforestacion/        pantalla de acceso y panel (archivos de ../acceso)
-//   /api/priorizacion-reforestacion/           módulo de sesión, con una base en memoria (pg-mem)
-//   /priorizacion-reforestacion/  la herramienta (carpeta docs/ del repositorio), protegida como con auth_request de nginx:
-//                          la página sin sesión va a la pantalla de acceso; datos y programas responden 401
+//   /priorizacion-reforestacion/acceso/   pantalla de acceso y panel (archivos de ../acceso), sin protección
+//   /priorizacion-reforestacion/api/      módulo de sesión, con una base en memoria (pg-mem); como el proxy de nginx,
+//                                         llega al módulo montado en /api/priorizacion-reforestacion (igual que en sia-backend)
+//   /priorizacion-reforestacion/          la herramienta (carpeta docs/ del repositorio), protegida como con auth_request de nginx:
+//                                         la página sin sesión va a la pantalla de acceso; datos y programas responden 401
 // Uso: npm install && node --import ./pruebas/cargador.mjs scripts/servidor_demo.mjs   → http://localhost:8090/priorizacion-reforestacion/
 // Solo para desarrollo y ensayo: no va al backend del SIA. Monta el módulo igual que src/index.ts de sia-backend.
 // Cuenta inicial: admin@ejemplo.gob.mx con la contraseña temporal que se muestra al arrancar. Nada se guarda al cerrar.
@@ -36,18 +37,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
   const red = process.env.DEMO_RED, origen = `http://localhost:${PUERTO}` + (red ? `,http://${red}:${PUERTO}` : '');
   // la API, como en sia-backend (helmet, cors y express.json() globales); las páginas estáticas las sirve nginx en el SIA, sin pasar por Express
   const app = express();
+  // como «location /priorizacion-reforestacion/api/ { proxy_pass …/api/priorizacion-reforestacion/; }» del ejemplo de nginx
+  const PUBLICA = '/priorizacion-reforestacion/api/';
+  app.use((req, _res, next) => { if (req.url.startsWith(PUBLICA)) req.url = '/api/priorizacion-reforestacion/' + req.url.slice(PUBLICA.length); next(); });
   app.use('/api', helmet(), cors(), express.json());
   app.use('/api/priorizacion-reforestacion', crearRutasPriorizacionReforestacion(pool, { origen, depurarCadaHoras: 0, cookieSegura: !red }));
-  app.use('/acceso/priorizacion-reforestacion', express.static(path.join(__dirname, '..', '..', 'acceso')));
+  app.use('/priorizacion-reforestacion/acceso', express.static(path.join(__dirname, '..', '..', 'acceso')), (_req, res) => { res.status(404).end(); });
   // equivalente a auth_request de nginx (ver ../LEEME.md, sección nginx)
   const sitio = process.env.SITIO || path.join(__dirname, '..', '..', '..', '..', 'docs');
   app.use('/priorizacion-reforestacion', async (req, res, next) => {
     const r = await fetch(`http://127.0.0.1:${PUERTO}/api/priorizacion-reforestacion/sesion`, { headers: { cookie: req.get('cookie') || '', 'x-original-uri': req.originalUrl } });
     if (r.status === 204) return next();
     const esPagina = req.path === '/' || req.path === '/index.html';
-    if (esPagina) return res.redirect(302, '/acceso/priorizacion-reforestacion/?volver=' + encodeURIComponent(req.originalUrl));
+    if (esPagina) return res.redirect(302, '/priorizacion-reforestacion/acceso/?volver=' + encodeURIComponent(req.originalUrl));
     res.status(401).type('html').send('<html><body>No autorizado</body></html>');
   }, express.static(sitio));
   app.listen(PUERTO, () => console.log(`${red ? `En el celular (misma red Wi-Fi): http://${red}:${PUERTO}/priorizacion-reforestacion/
-` : ''}Demostración en http://localhost:${PUERTO}/priorizacion-reforestacion/\nCuenta: admin@ejemplo.gob.mx · contraseña temporal: ${clave}\nPanel: http://localhost:${PUERTO}/acceso/priorizacion-reforestacion/admin/`));
+` : ''}Demostración en http://localhost:${PUERTO}/priorizacion-reforestacion/\nCuenta: admin@ejemplo.gob.mx · contraseña temporal: ${clave}\nPanel: http://localhost:${PUERTO}/priorizacion-reforestacion/acceso/admin/`));
 })();

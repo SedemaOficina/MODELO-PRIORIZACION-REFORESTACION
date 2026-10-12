@@ -1,7 +1,9 @@
 // Instalación en el SIA: la herramienta instalada en la subruta /priorizacion-reforestacion/, detrás de un servidor que
 // aplica una política de seguridad de contenido (CSP) estricta y las cabeceras de caché de 08_entrega_sia/. Comprueba que
 // todo funcione sin ninguna violación de la política, que la dirección sin barra final redirija bien, que una sesión vencida
-// se reconozca y que los archivos de datos lleguen aunque un proxy los haya descomprimido.
+// se reconozca y que los archivos de datos lleguen aunque un proxy los haya descomprimido. Revisa también las rutas de la
+// fase 2 del ejemplo de nginx: herramienta con auth_request; acceso (/priorizacion-reforestacion/acceso/) y API
+// (/priorizacion-reforestacion/api/ → /api/priorizacion-reforestacion/ del backend) sin él, bajo la ruta de la cookie.
 // Uso: node 04_pruebas/prueba_servidor_sia.js   · termina con código ≠ 0 si algo falla.
 const http = require('http'), fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib');
 const L = require('./lib_pruebas.js');
@@ -31,10 +33,57 @@ function servidor(modo) { const pedidas = [];
     if (modo === 'descomprime' && rel.endsWith('.bin')) { res.writeHead(200, cab); return res.end(zlib.gunzipSync(fs.readFileSync(ruta))); }
     res.writeHead(200, cab); fs.createReadStream(ruta).pipe(res); });
   return new Promise(r => s.listen(0, () => { s.url = `http://localhost:${s.address().port}`; s.pedidas = pedidas; r(s); })); }
+// Fase 2 (inicio de sesión): los bloques location del ejemplo de nginx (van comentados) y cuál atiende cada dirección,
+// con la regla de nginx: primero la coincidencia exacta (=), después el prefijo más largo.
+const FASE2 = (() => { const i = conf.indexOf('# FASE 2'); if (i < 0) return [];
+  const lineas = conf.slice(i).split('\n').map(l => l.replace(/^#( |$)/, '').replace(/^\s*#.*$/, '').replace(/\s#.*$/, '')).filter(l => /[{};]\s*$/.test(l));
+  const bloques = []; let prof = 0, actual = null;
+  for (const l of lineas) { const m = l.match(/^\s*location\s+(=|\^~|~\*?)?\s*(\S+)\s*\{\s*$/);
+    if (m && prof === 0) { actual = { mod: m[1] || '', ruta: m[2], cuerpo: [] }; bloques.push(actual); prof = 1; continue; }
+    if (/\{\s*$/.test(l)) prof++;
+    if (/^\s*\}\s*$/.test(l) && --prof === 0) { actual = null; continue; }
+    if (actual) actual.cuerpo.push(l.trim()); }
+  return bloques; })();
+const atiende = uri => FASE2.find(b => b.mod === '=' && b.ruta === uri)
+  || FASE2.filter(b => (b.mod === '' || b.mod === '^~') && uri.startsWith(b.ruta)).sort((a, b) => b.ruta.length - a.ruta.length)[0] || null;
+const directiva = (b, nombre) => ((b && b.cuerpo.find(l => l.startsWith(nombre + ' '))) || '').replace(/^\S+\s+/, '').replace(/;$/, '');
+// la ruta a la que nginx pasa la petición en el backend (proxy_pass con ruta: sustituye el prefijo de la location)
+const rutaBackend = (b, uri) => { const d = directiva(b, 'proxy_pass'); if (!d) return null; const r = d.replace(/^https?:\/\/[^/]+/, '');
+  return b.mod === '=' ? r : r + uri.slice(b.ruta.length); };
 const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
 
 (async () => {
   ok('el ejemplo de nginx declara una política de seguridad de contenido sin estilos ni programas en línea', !!CSP && !/unsafe-inline|unsafe-eval'/.test(CSP.replace(/'wasm-unsafe-eval'/g, '')), (CSP || '').slice(0, 90));
+
+  // ---------- Fase 2: todo bajo /priorizacion-reforestacion/ (la cookie lleva esa ruta), acceso y API sin auth_request ----------
+  { const RAIZ = path.join(__dirname, '..'), lee = r => fs.readFileSync(path.join(RAIZ, ...r.split('/')), 'utf8');
+    const rutas = lee('08_entrega_sia/login/backend/src/modulos/priorizacion-reforestacion/rutas.ts');
+    const op = k => (rutas.match(new RegExp(`^\\s*${k}: "([^"]+)"`, 'm')) || [])[1];
+    const HERR = op('rutaHerramienta'), ACCESO = op('rutaAcceso'), API = op('rutaApi');
+    ok('el módulo pone la pantalla de acceso y su API bajo la ruta de la herramienta, que es la ruta de la cookie',
+      HERR === PRE && ACCESO === PRE + 'acceso/' && API === PRE + 'api/' && /Path=\$\{o\.rutaHerramienta\}/.test(rutas), `${HERR} · ${ACCESO} · ${API}`);
+    const herr = atiende(PRE), sesion = FASE2.find(b => b.mod === '=' && b.ruta === directiva(herr, 'auth_request'));
+    const malHerr = [PRE, PRE + 'index.html', PRE + 'datos/data.bin', PRE + 'libs/xlsx.js', PRE + 'accesorios.js'].filter(u => atiende(u) !== herr || !directiva(atiende(u), 'auth_request'));
+    ok('nginx (fase 2): la herramienta, con auth_request a una consulta interna del módulo', !!herr && !malHerr.length && !!sesion && sesion.cuerpo.includes('internal;')
+      && rutaBackend(sesion, sesion.ruta) === '/api/priorizacion-reforestacion/sesion', malHerr.join(', ') || directiva(sesion, 'proxy_pass'));
+    const acc = ['acceso/', 'acceso/admin/', 'acceso/aviso-de-privacidad.html', 'acceso/recursos/acceso.js'].map(u => atiende(PRE + u));
+    ok('nginx (fase 2): la pantalla de acceso, el panel y el aviso, públicos (sin auth_request) y ganan a la herramienta',
+      acc.every(b => b && b.ruta === ACCESO && b.mod === '^~' && !directiva(b, 'auth_request') && /acceso-priorizacion-reforestacion\/$/.test(directiva(b, 'alias'))),
+      acc.map(b => b ? `${b.mod} ${b.ruta}` : 'ninguna').join(' | '));
+    const api = ['api/entrar', 'api/sesion', 'api/salir', 'api/uso', 'api/admin/usuarios/masiva'].map(u => [u, atiende(PRE + u)]);
+    const malApi = api.filter(([u, b]) => !b || directiva(b, 'auth_request') || rutaBackend(b, PRE + u) !== '/api/priorizacion-reforestacion/' + u.slice(4));
+    ok('nginx (fase 2): /priorizacion-reforestacion/api/… llega al módulo montado en /api/priorizacion-reforestacion/, sin auth_request',
+      !malApi.length && !!atiende(PRE + 'api/sesion').cuerpo.includes('absolute_redirect off;'), malApi.map(([u, b]) => `${u} → ${b ? rutaBackend(b, PRE + u) : 'ninguna'}`).join(', ') || 'las 5 direcciones');
+    ok('nginx (fase 2): trae comentada la línea opcional limit_req zone=auth para el inicio de sesión', /#\s*limit_req zone=auth\b/.test(conf.slice(conf.indexOf('# FASE 2'))) && atiende(PRE + 'api/entrar').ruta === PRE + 'api/entrar');
+    const nombrada = FASE2.find(b => b.ruta.startsWith('@')), ret = directiva(nombrada, 'return');
+    ok('nginx (fase 2): la página sin sesión va a la pantalla de acceso con dirección relativa', ret.startsWith('302 ' + ACCESO + '?volver=') && nombrada.cuerpo.includes('absolute_redirect off;'), ret);
+    const emp = lee('08_entrega_sia/empaquetar.py'), def = k => (emp.match(new RegExp(`setdefault\\('${k}', '([^']+)'\\)`)) || [])[1];
+    const uti = lee('02_fuente/js/01_utilidades.js'), usoJs = (uti.match(/SESION\.inicio \? '([^']+)'/) || [])[1];
+    const pags = lee('08_entrega_sia/login/acceso/recursos/acceso.js') + lee('08_entrega_sia/login/acceso/recursos/admin.js') + lee('08_entrega_sia/login/acceso/admin/index.html');
+    ok('paquete, herramienta y páginas de acceso usan las mismas direcciones que el módulo',
+      def('SIA_SESION_INICIO') === ACCESO && def('SIA_SESION_CIERRE') === API + 'salir' && def('SIA_SESION_USO') === API + 'uso' && usoJs === API + 'uso'
+      && pags.includes(`'${API}'`) && pags.includes(`href="${API}salir"`) && !/\/api\/priorizacion-reforestacion|\/acceso\/priorizacion-reforestacion/.test(pags),
+      `inicio ${def('SIA_SESION_INICIO')} · cierre ${def('SIA_SESION_CIERRE')} · uso ${def('SIA_SESION_USO')} · herramienta ${usoJs}`); }
   // ---------- 0) caché: la página nunca queda guardada; los archivos con huella, un año ----------
   { const srv = await servidor('normal'); const cc = async u => (await fetch(srv.url + PRE + u)).headers.get('cache-control');
     const lib = (fs.readFileSync(path.join(L.DOCS, 'index.html'), 'utf8').match(/app\.js\?v=([0-9a-f]+)/) || [])[1] || 'x';
