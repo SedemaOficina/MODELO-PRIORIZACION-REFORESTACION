@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.2 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.3 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -74,7 +74,8 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `01_utilidades.js` | `$`, formatos de número, km y porcentaje; **reglas de negocio** («prioritario»); errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `PRIO_MIN`, `esPrio`, `sumPrio`, `errAmable`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
 | `02_datos.js` | Descarga, descompresión y decodificación de los datos; `puntoMedio` es la única regla de punto medio (a media longitud sobre la línea) | `fetchBytes`, `gunzip`, `reader`, `puntoMedio` |
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, punto de cada nombre de área (el más interior de su figura; el de las colonias se calcula en ratos libres después de abrir), rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP`, `puntoInterior` |
-| `04_mapa_capas.js` | Vista del mapa, nombres de calle (sobre la línea media entre un frente y el de enfrente, con la regla `trEnfrente` de los tramos), barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData`, `lineaMedia` |
+| `04_mapa_capas.js` | Vista del mapa, línea media de cada calle para su nombre (entre un frente y el de enfrente, con la regla `trEnfrente` de los tramos), barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData`, `lineaMedia` |
+| `04_nombres_mapa.js` | Acomodo propio de los nombres del mapa (alcaldías, colonias, vialidades primarias y calles), sin el filtro de choques de deck.gl: en píxeles del mundo a un zoom redondeado (no brincan al mover el mapa), sin encimarse ni quedar bajo los paneles, solo donde el nombre cabe en un tramo recto, repartidos sobre una cuadrícula fija. Los tramos de calle se calculan por colonia en ratos libres | `colocarNombres`, `tramosColonia`, `tramosVP`, `etqDesfasado` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, dedos «fantasma» en teléfono, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero. Con `window.SIA_PRUEBA` expone `window.__MAPA` para las pruebas | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento`, `soltarDedos` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, fila «Atiende» (alcaldías / Gobierno Central; junto al buscador, con su explicación en el panel de capas), fila «Banqueta», casillas de capas, mapa de fondo | `setResp`, `setBanq`, `setLayer`, `setFondo` |

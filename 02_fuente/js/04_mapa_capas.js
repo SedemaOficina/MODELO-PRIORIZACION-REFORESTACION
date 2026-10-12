@@ -1,6 +1,6 @@
 // Mapa: vista, nombres de calle, barra de escala y capas de deck.gl (layers()).
 // ---------- mapa: vista y datos para deck.gl ----------
-const {DeckGL, PathLayer, PolygonLayer, TextLayer, DataFilterExtension, CollisionFilterExtension, WebMercatorViewport, FlyToInterpolator, MapView} = deck;
+const {DeckGL, PathLayer, PolygonLayer, TextLayer, DataFilterExtension, WebMercatorViewport, FlyToInterpolator, MapView} = deck;
 const mapEl = $('map');
 function fitTo(bounds, pad=40){
   const w = mapEl.clientWidth, h = mapEl.clientHeight;
@@ -20,7 +20,7 @@ function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; 
   // haya movido el mapa con el ratón o los dedos (sin _n, "toda la ciudad" podría no hacer nada)
   dk.setProps({initialViewState:{...vs, _n: ++nVista, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
   // sin animación deck.gl no avisa del cambio de vista: se actualizan aquí capas y escala
-  if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev) || lblDesfasado(viewState)) rerender(); updateScale(); } }
+  if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev)) rerender(); else if (etqDesfasado(viewState)) rerenderNombres(); updateScale(); } }
 
 // Rendimiento: deck.gl vuelve a procesar ~1 millón de vértices cada vez que recibe un objeto de datos nuevo.
 // Por eso se reutiliza el mismo objeto mientras no cambien colores ni filtros (solo cambian al cambiar la
@@ -50,7 +50,6 @@ function vpData(){
 // aunque el de enfrente sea de otra colonia: las avenidas suelen ser límite). Así queda en medio de la calle y no encima de
 // la línea de prioridad. Se prueba con los frentes más largos de la calle; si ninguno tiene frente enfrente (calle de un solo
 // lado, avenida con camellón), el nombre va a la mitad del más largo.
-const ETQ_INTENTOS = 6;
 function lineaMedia(i){
   const c = Math.cos(midLat(i)*Math.PI/180), A = trFrente(i, c), G = trGrid(), nid = F.name[i], vistos = new Set(); let mejor = null;
   // celdas del índice espacial a lo largo del frente (los extremos de un frente de enfrente quedan a ≤ 45 m de ellas)
@@ -66,25 +65,11 @@ function lineaMedia(i){
   const x = A.a[0]+A.d[0]*t+n[0]*s/2, y = A.a[1]+A.d[1]*t+n[1]*s/2;
   const k = A.d[0]*B.d[0]+A.d[1]*B.d[1] < 0? -1 : 1; const dx = A.d[0]+k*B.d[0], dy = A.d[1]+k*B.d[1];
   return {pos:[x/(111320*c), y/110540], ang:Math.atan2(dy, dx)*180/Math.PI, largo:e.hi-e.lo}; }
-const derecho = a => a>90? a-180 : a<-90? a+180 : a;   // el nombre nunca se lee de cabeza
-let COL_FR = null; const STL = new Map(); const COL_BB = new Map(); let lblCenter = null;
+let COL_FR = null; const COL_BB = new Map(); let lblCenter = null;
 function colFrentes(){ if (COL_FR) return COL_FR; COL_FR = new Map(); for(let i=0;i<N;i++){ const c=F.col[i]; let a=COL_FR.get(c); if(!a){ a=[]; COL_FR.set(c,a); } a.push(i); } return COL_FR; }
 function colBB(c){ let b=COL_BB.get(c); if(!b){ b=colBounds(c); COL_BB.set(c,b); } return b; }
-function colStreetLabels(c){ let L=STL.get(c); if(L) return L; const porNombre=new Map();
-  for(const i of (colFrentes().get(c)||[])){ if(F.gc[i]) continue; const nid=F.name[i]; if(PLACEHOLDER.has(nid)) continue; let a=porNombre.get(nid); if(!a){ a=[]; porNombre.set(nid,a); } a.push(i); }
-  L=[...porNombre.entries()].map(([nid,fs])=>{ fs.sort((a,b)=>F.len[b]-F.len[a]);
-    for(const i of fs.slice(0, ETQ_INTENTOS)){ const m=lineaMedia(i); if (m) return {pos:m.pos, text:META.names[nid], ang:derecho(m.ang), len:F.len[fs[0]], media:true}; }
-    const i=fs[0], a=start[i], e=start[i+1]-1; const dx=(POS[2*e]-POS[2*a])*Math.cos(midLat(i)*Math.PI/180), dy=POS[2*e+1]-POS[2*a+1];
-    return {pos:[midLon(i),midLat(i)], text:META.names[nid], ang:derecho(Math.atan2(dy,dx)*180/Math.PI), len:F.len[i], media:false}; });
-  STL.set(c,L); return L; }
-function streetLabelData(){
-  if (viewState.zoom<15 || isGC() || !showFrB) return [];
-  const w=mapEl.clientWidth||800, h=mapEl.clientHeight||600; const vp=new WebMercatorViewport({...viewState, width:w, height:h});
-  const b=vp.getBounds(); const out=[]; lblCenter=[viewState.longitude, viewState.latitude];
-  for(const c of COLS){ if(sel!==null && munIndex[c.mun]!==sel) continue; const bb=colBB(c.i); if(bb[2]<b[0]||bb[0]>b[2]||bb[3]<b[1]||bb[1]>b[3]) continue; for(const l of colStreetLabels(c.i)) out.push(l); }
-  return out; }
-// ¿la vista se alejó más de 0.35 del ancho del lugar donde se calcularon los nombres de calle? (solo a zoom ≥ 15)
-function lblDesfasado(vs){ if (vs.zoom<15 || !lblCenter) return false; const w=mapEl.clientWidth||800;
+// ¿la vista se alejó más de 0.35 del ancho del lugar donde se acomodaron los nombres? (desde el zoom 13.6)
+function lblDesfasado(vs){ if (vs.zoom<13.6 || !lblCenter) return false; const w=mapEl.clientWidth||800;
   const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540;
   return Math.hypot(dx,dy)/mpp > w*0.35; }
 // ---------- barra de escala ----------
@@ -137,7 +122,7 @@ function layers(){
   // frentes de manzana (responsabilidad de las alcaldías)
   // los frentes solo responden al cursor desde el zoom 12: más lejos son demasiado finos y revisar 372 mil tramos
   // en cada movimiento del ratón vuelve lento el mapa (se consultan las colonias)
-  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', opacity:opPrio, data: frParcial()? frontsSub().data : frontsData(), _pathType:'open', widthUnits:'meters', getWidth:6, widthMinPixels:1, widthMaxPixels:9,
+  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', opacity:opPrio, data: frParcial()? frontsSub().data : frontsData(), _pathType:'open', widthUnits:'meters', getWidth:4, widthMinPixels:1, widthMaxPixels:6,
     pickable: z>=12, autoHighlight: z>=12, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[COLORS, frParcial()? sel+'|'+selCol : ''], getFilterValue:[FILTER, frParcial()? sel+'|'+selCol : '']}}));
@@ -173,13 +158,13 @@ function layers(){
       for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=src.st[i];k<src.st[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
       L.push(new PathLayer({id:'hl-prio', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false})); }
   }
-  L.push(new TextLayer({id:'alc-labels', data:ALC_LABELS, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:charset,
-    fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:{sdf:true}, outlineWidth:5, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> d.text.length, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
-  if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data: colLabelsFor(sel), getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:T.label, characterSet:charset,
-    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:4, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> -d.text.length, updateTriggers:{getColor:[T.label], getPosition:[colPosListas], data:[sel]}}));
-  if (!isGC() && showFrB && z>=15){ const sd=streetLabelData(); if (sd.length) L.push(new TextLayer({id:'st-labels', data:sd, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:12, getColor:[34,38,42,235], characterSet:'auto',
-    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:6, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center',
-    extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority:d=>d.len })); }
+  const E = NOMAP? {alc:[], col:[], st:[]} : colocarNombres();
+  L.push(new TextLayer({id:'alc-labels', data:E.alc, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:ETQ_LETRAS,
+    fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:{sdf:true}, outlineWidth:5, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
+  if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data:E.col, getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:T.label, characterSet:ETQ_LETRAS,
+    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:4, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.label]}}));
+  if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[34,38,42,235], characterSet:ETQ_LETRAS,
+    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:6, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center'}));
   if (myPos){ const P=[myPos];
     L.push(new deck.ScatterplotLayer({id:'loc-acc', data:P, getPosition:d=>[d.lon,d.lat], getRadius:d=>Math.max(d.acc,4), radiusUnits:'meters', filled:true, stroked:true, getFillColor:[...LOC_BLUE,38], getLineColor:[...LOC_BLUE,120], lineWidthMinPixels:1, pickable:false, updateTriggers:{getPosition:[myPos.t], getRadius:[myPos.t]}}));
     L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }

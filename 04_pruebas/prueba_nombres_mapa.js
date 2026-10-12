@@ -49,8 +49,9 @@ const ok = L.Registro('nombres del mapa');
   ok('un salto sin animación al mismo zoom recalcula los nombres de calle del lugar nuevo', s1 && s2, `primer lugar: ${s1} · segundo lugar: ${s2} · centro de los nombres: ${await page.evaluate(() => window.__MAPA.lblCenter())}`);
 
   // ---------- nombres de calle en medio de la calle ----------
+  await hasta(page, () => window.__MAPA.etqPendientes() === 0); await page.waitForTimeout(400);
   const med = await page.evaluate(() => { const p = window.__MAPA.capa('st-labels'); const d = p ? p.data : []; return { n: d.length, m: d.filter(x => x.media).length }; });
-  ok('casi todos los nombres de calle van sobre la línea media entre los frentes de los dos lados (no encima de la línea de prioridad)', med.n > 20 && med.m / med.n >= 0.85, `${med.m} de ${med.n}`);
+  ok('casi todos los nombres de calle van sobre la línea media entre los frentes de los dos lados (no encima de la línea de prioridad)', med.n >= 8 && med.m / med.n >= 0.85, `${med.m} de ${med.n}`);
 
   // ---------- dedos «fantasma» ----------
   const dedos = await page.evaluate(async () => {

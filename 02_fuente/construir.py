@@ -76,7 +76,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.2'
+VERSION = '1.3'
 ACTUALIZACION = '12 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -104,7 +104,7 @@ def falla(mensaje):
 
 
 # ---------- piezas esperadas: si falta o sobra una, la construcción se detiene antes de escribir ----------
-JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
+JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '04_nombres_mapa.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
                 '07_leyenda_y_capas.js', '08_resumenes.js', '09_listados.js', '09_tramos.js', '10_seleccion.js', '11_descargas.js',
                 '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js', '17_recorrido.js']
 CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_pantalla_y_leyenda.css', '05_panel_y_hoja_inferior.css',
