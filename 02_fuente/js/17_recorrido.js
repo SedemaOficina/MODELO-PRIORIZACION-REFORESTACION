@@ -54,7 +54,7 @@ function recColoca(){ if (!REC) return; const p = REC.lista[REC.k], g = REC.glob
 
 function recPaso(k){ const L = REC.lista; REC.k = k = Math.max(0, Math.min(k, L.length-1)); const p = L[k];
   if (REC.ficha && !p.prep){ hideCard(); REC.ficha = false; }
-  if (isPhone()) setSheetState(p.mapa? 'peek' : p.panel? 'full' : sheetState);
+  if (isPhone() && (p.mapa || p.panel)) pantalla(p.mapa? 'mapa' : 'info');
   if (p.panel && document.body.classList.contains('panel-off')) $('panel-toggle').click();
   if (p.prep) p.prep();
   const g = REC.globo; g.querySelector('.rec-paso').textContent = `Paso ${k+1} de ${L.length}`;
@@ -79,7 +79,7 @@ function recorrido(){ if (REC) return; if (!entradaEl.hidden || !infoModal.hidde
   recPaso(0); }
 function recFin(){ if (!REC) return; const R = REC; REC = null; recMarca();
   R.velo.remove(); R.foco.remove(); R.globo.remove(); appEl.inert = false; document.body.classList.remove('recorrido');
-  if (R.ficha) hideCard(); if (isPhone()) setSheetState('half');
+  if (R.ficha) hideCard(); if (isPhone()) verInfo();
   const o = R.origen; if (o && o.isConnected && o!==document.body) o.focus(); else $('scope-title').focus(); }
 // teclado: Esc sale, flechas avanzan y retroceden, Tab no sale del globo. En captura, antes que el Esc general de 13_interfaz.js.
 document.addEventListener('keydown', e=>{ if (!REC) return;

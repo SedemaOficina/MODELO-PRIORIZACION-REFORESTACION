@@ -1,0 +1,44 @@
+/* Celular: información y mapa en dos pantallas completas, una encima de la otra (como «Guardianes de árboles» v29 y el mapa de árboles de
+   Nueva York). La información entra deslizándose desde la izquierda y el mapa nunca cambia de tamaño: siempre está dibujado debajo (sin
+   display:none ni cambio de alto, que obligarían a deck.gl a redibujar o lo dejarían en tamaño 0). Las clases ver-info y ver-mapa las pone
+   pantalla() en 13_interfaz.js. En la computadora no cambia nada: los botones de cambio no se ven. */
+.btn-vista{display:none}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
+  :root{--pie:calc(68px + env(safe-area-inset-bottom, 0px))}   /* lo que ocupa abajo el botón de regreso a la información */
+  .app{display:block;position:relative;height:var(--alto, 100dvh)}
+  .mapwrap{position:absolute;inset:0;order:0}
+  .panel{position:absolute;inset:0;z-index:7;max-height:none;border:0;border-radius:0;box-shadow:none;transition:transform .25s ease}
+  body.ver-mapa .panel{transform:translateX(-100%);visibility:hidden;transition:transform .25s ease,visibility 0s .25s}
+  /* lo que flota sobre el mapa es del mapa: se ve al volver a él */
+  body.ver-info:not(.sin-mapa) .card,body.ver-info .mapwrap .aviso-ligero:not(.aviso-error){visibility:hidden}
+  /* botones de cambio de pantalla: color de la marca, 44 px o más, ícono de línea de 20 px */
+  .btn-vista{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:999px;
+    background:var(--guinda);color:#fff;font:600 .9375rem/1.1 Cabin,sans-serif;cursor:pointer;white-space:nowrap;box-shadow:0 6px 18px rgba(157,33,72,.25)}
+  .btn-vista:hover{background:var(--guinda-ink)}
+  .btn-vista svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btn-vista:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+  .panel-head{grid-template-columns:minmax(0,1fr) auto}
+  .panel-head h1{grid-column:1}
+  #ver-mapa{grid-column:2;justify-self:end;align-self:center;padding:0 14px}
+  .panel-head #open-info{grid-column:1/-1;justify-self:start}
+  .tabs button{padding-left:6px;padding-right:6px}   /* el panel a pantalla completa lleva barra de desplazamiento: las cuatro pestañas caben igual */
+  .btn-info{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom, 0px));z-index:6;min-height:48px}
+  /* nada encimado con el botón de abajo: leyenda compacta, escala, panel de capas, ficha y avisos quedan encima de él */
+  .leymini{bottom:var(--pie)}
+  .scalebar{display:none}   /* en el celular la escala estorbaba con la leyenda compacta */
+  body.fondo-propio .attrib{display:none}   /* el crédito del fondo propio va en el panel de capas; el del satélite (Esri) se queda en el mapa */
+  .legend{bottom:var(--pie)}
+  .legend.open{max-height:calc(100% - var(--pie) - 70px);overflow-y:auto;overscroll-behavior:contain}
+  .card{left:8px;right:8px;bottom:var(--pie);border-radius:12px;max-height:calc(var(--vvh, 100dvh) - var(--pie) - 70px)}
+  .aviso-ligero{bottom:calc(var(--pie) + 48px)}
+  /* sin mapa (sin WebGL o la librería no cargó): arriba el aviso y abajo la información, sin botones de cambio */
+  body.sin-mapa .app{display:flex;flex-direction:column}
+  body.sin-mapa .mapwrap{position:relative;inset:auto;flex:none;min-height:0}
+  body.sin-mapa .mapwrap > :not(.aviso-error){display:none}
+  body.sin-mapa .aviso-error{position:relative;inset:auto;transform:none;margin:10px 12px}
+  body.sin-mapa .panel{position:relative;inset:auto;flex:1;min-height:0;transform:none;visibility:visible}
+  body.sin-mapa .btn-vista{display:none}
+}
+/* la página mide lo que de verdad se ve: en iOS 26, con 100dvh o height:100%, Safari dejaba una franja vacía abajo.
+   --alto es window.innerHeight (lo pone 13_interfaz.js); mientras carga, 100% */
+html,body{height:var(--alto, 100%)}

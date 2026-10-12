@@ -67,7 +67,8 @@ function setFondo(k){ fondoUI(k); rerender(); }
 function fondoUI(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
   document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
   $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con); document.body.classList.toggle('fondo-propio', !!(f && f.propio));
-  const n = $('fondo-note'); n.hidden = !(con && f.nota); n.textContent = con? f.nota : '';
+  // el crédito del fondo propio también va en el panel de capas: en el celular no cabe sobre el mapa
+  const n = $('fondo-note'), nota = con? (f.propio? 'Fuentes: '+f.atrib : f.nota) : ''; n.hidden = !nota; n.textContent = nota;
   ajustaEscala(); }
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
 function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }

@@ -5,7 +5,7 @@ document.body.dataset.resp = resp;
 fondoUI(fondo);   // botones y atribución del fondo con que abre (FONDO_INICIAL)
 setSel('');
 setTab('ini');
-if (isPhone()) setSheetState('peek');
+pantalla('info');   // la página se abre en la información
 // consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
 aplicarURL();
 // sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio

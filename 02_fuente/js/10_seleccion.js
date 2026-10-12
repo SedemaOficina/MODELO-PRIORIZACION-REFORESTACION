@@ -28,7 +28,7 @@ function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ co
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
   buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
-  anunciaAmbito();
+  anunciaAmbito(); rotuloInfo();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
   // sin registros que entregar: el botón se deshabilita y se dice por qué, en lugar de entregar un archivo vacío
@@ -78,7 +78,7 @@ function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $
   const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista para descargar su Excel o su ficha.`; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
-  collapseSheet(); refresh();
+  alaRespuesta(); refresh();
 }
 // ---------- selección de colonia y avenida (la búsqueda está en el buscador único, más abajo) ----------
 // el catálogo de colonias trae abreviaturas (Pgal, Sto, Ampl…); el buscador las expande
@@ -87,7 +87,7 @@ function pickColonia(id){
   if (isGC()) setResp('alc', true);
   const c = META.colonias[id]; const m = munIndex[c.m];
   if (sel!==m){ sel=m; selEl.value=String(m); }
-  selCol=id; selAv=null; highlight=null; hideCard(); $('q').value=''; if (isPhone() && !showFrB) setLayer('fr', true); collapseSheet(); refresh(); showCard('col', id);
+  selCol=id; selAv=null; highlight=null; hideCard(); $('q').value=''; if (isPhone() && !showFrB) setLayer('fr', true); alaRespuesta(); refresh(); showCard('col', id);
 }
 function clearColonia(){ if(selCol!==null){ selCol=null; highlight=null; hideCard(); refresh(); } }
 function pickAvenida(a){
@@ -95,7 +95,7 @@ function pickAvenida(a){
   // si la avenida no cruza la alcaldía elegida (tarjeta, buscador o dirección), se consulta en toda la ciudad
   if (sel!==null && !avStat(a).muns.has(sel)){ sel=null; selEl.value=''; }
   selAv=a; selCol=null; hideCard(); $('q').value='';
-  const s=avStat(a); highlight={avId:a, idx:s.idx}; collapseSheet(); refresh();
+  const s=avStat(a); highlight={avId:a, idx:s.idx}; if (!restaurando) verMapa({desdeLista:PANTALLA==='info'}); refresh();
 }
 function clearAvenida(){ if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } }
 selEl.onchange = e=> setSel(e.target.value);

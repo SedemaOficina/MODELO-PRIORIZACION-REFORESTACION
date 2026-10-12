@@ -54,7 +54,7 @@
   .panel-head{display:block!important;position:static!important}
   .panel-body{overflow:visible!important;height:auto!important;max-height:none!important}
   .tabpanel[hidden]{display:block!important}
-  .tabpanel#tp-dl,.tabs,.panel-actions,.sheet-grip,.query .omni,#reset-all,#open-info,.search,.toolbar,.legend-head,.legend .lg-sec,.legend .lg-note,.mapbar,.card .close,.card .field-acts,.modal,.salto,.dibujando,.loader,#locchips,.etq-ligero{display:none!important}
+  .tabpanel#tp-dl,.tabs,.panel-actions,.btn-vista,.query .omni,#reset-all,#open-info,.search,.toolbar,.legend-head,.legend .lg-sec,.legend .lg-note,.mapbar,.card .close,.card .field-acts,.modal,.salto,.dibujando,.loader,#locchips,.etq-ligero{display:none!important}
   .mapwrap{position:static!important;height:auto!important;break-before:page;margin-top:12px}
   #map{position:relative!important;height:15cm!important;border:1px solid #999}
   .legend{position:static!important;display:block!important;width:auto!important;max-width:none!important;box-shadow:none!important;border:1px solid #999!important;margin-top:8px;transform:none!important}

@@ -112,8 +112,7 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
       return { tool: Math.min(...al('.tool'), ...an('.tool')), pills: Math.min(...al('.legend .pills button')), filas: Math.min(...al('#legend-rows .row')) }; });
     ok('en teléfono los botones de la barra de herramientas miden 44 px o más', t.tool >= 44, String(t.tool));
     ok('en teléfono las casillas de capas y las filas de prioridad miden 38 px o más', t.pills >= 38 && t.filas >= 38, JSON.stringify(t));
-    await L.clic(page, '#zcapas'); await L.elegir(page, 'iztapalapa'); await page.evaluate(() => { if (!document.body.classList.contains('sheet-open')) document.getElementById('sheet').click(); }); await page.waitForTimeout(300);
-    await page.evaluate(() => { if (!document.body.classList.contains('sheet-open')) document.getElementById('sheet').click(); }); await page.waitForTimeout(400);
+    await L.clic(page, '#zcapas'); await L.elegir(page, 'iztapalapa'); await page.waitForTimeout(400);
     const t2 = await page.evaluate(() => ({ tabs: Math.min(...[...document.querySelectorAll('.tabs button')].map(e => Math.round(e.getBoundingClientRect().height))), sel: Math.round(document.getElementById('alc').getBoundingClientRect().height), desborde: document.documentElement.scrollWidth - innerWidth }));
     ok('en teléfono las pestañas y el selector de alcaldía miden 44 px o más, sin desborde horizontal', t2.tabs >= 44 && t2.sel >= 44 && t2.desborde <= 0, JSON.stringify(t2));
     // ayuda en teléfono: la tabla se apila y la lámina se desplaza dentro de su marco
@@ -122,12 +121,11 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     ok('en teléfono las tablas de la ayuda se apilan y la lámina cabe completa a lo ancho', ay.desborde <= 0 && ay.celda === 'block' && ay.lamina && ay.laminaAncho <= ay.ancho + 1, JSON.stringify(ay));
     ok('en teléfono solo la tabla de criterios lleva las etiquetas «Fuente» y «Clase»; la del fundamento no', ay.etiquetasCriterios === 9 && ay.etiquetasFundamento === 0, JSON.stringify(ay));
     await page.keyboard.press('Escape'); await page.waitForTimeout(700);
-    // foco no tapado: con una ficha abierta, enfocar un control tapado la cierra
-    await page.evaluate(() => { if (document.body.classList.contains('sheet-open')) document.getElementById('sheet').click(); }); await page.waitForTimeout(300);
+    // foco no tapado: la ficha es de la pantalla del mapa; mientras se ve, el panel está inerte y ningún control suyo queda debajo
     await L.elegir(page, 'vicente guerrero iztapalapa'); await L.clic(page, '#tab-list'); await page.evaluate(() => document.querySelector('#results li[tabindex]').click()); await page.waitForTimeout(600);
     const abre = await page.evaluate(() => { const t = document.querySelector('#tramos li[tabindex]'); if (!t) return 'sin tramos'; t.click(); return document.getElementById('card').hidden ? 'cerrada' : 'abierta'; }); await page.waitForTimeout(300);
-    const tapado = await page.evaluate(() => { const c = document.getElementById('card').getBoundingClientRect(); const e = [...document.querySelectorAll('.panel button, .panel input, .panel [tabindex="0"]')].find(x => { if (!x.offsetParent) return false; const r = x.getBoundingClientRect(); return r.top > c.top + 6 && r.bottom < c.bottom - 6; }); if (!e) return 'ninguno tapado'; e.focus(); return document.getElementById('card').hidden ? 'cerrada' : 'sigue abierta'; });
-    ok('en teléfono, al enfocar un control tapado por la ficha, la ficha se cierra', abre === 'abierta' && (tapado === 'cerrada' || tapado === 'ninguno tapado'), `${abre} · ${tapado}`);
+    const tapado = await page.evaluate(() => ({ mapa: document.body.classList.contains('ver-mapa'), panelInerte: document.querySelector('.panel').inert }));
+    ok('en teléfono, con la ficha abierta en el mapa, el panel está inerte: ningún control queda tapado por la ficha', abre === 'abierta' && tapado.mapa && tapado.panelInerte, `${abre} · ${JSON.stringify(tapado)}`);
     await ctx.close(); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));

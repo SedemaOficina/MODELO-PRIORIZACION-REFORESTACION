@@ -127,11 +127,11 @@ function omniPick(it){
       // varias calles con el mismo nombre: se resaltan todas y el mapa se acerca a ellas
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
-  collapseSheet();
+  if (it.t==='st') verMapa({desdeLista:true}); else alaRespuesta();
   // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí
   setTimeout(()=>{ try { $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }, 0); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
-omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
+omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));
 omni.addEventListener('keydown', e=>{
   if (e.key==='ArrowDown'){ e.preventDefault(); if (omniList.hidden) omniRender(); omniSetActive(omniActive+1); }

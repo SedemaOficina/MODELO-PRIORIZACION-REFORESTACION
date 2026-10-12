@@ -110,7 +110,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   const m = await abrir({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
   const ancho = await m.page.evaluate(() => document.documentElement.scrollWidth);
   ok('teléfono sin desborde horizontal', ancho <= 390, `${ancho} px`);
-  ok('teléfono abre con la hoja mínima', await m.page.evaluate(() => document.body.classList.contains('sheet-peek')));
+  ok('teléfono abre en la información (dos pantallas: información y mapa)', await m.page.evaluate(() => document.body.classList.contains('ver-info') && document.querySelector('.mapwrap').inert));
   await m.page.tap('#omni'); await m.page.fill('#omni', 'coyoacan'); await m.page.waitForTimeout(900); await m.page.keyboard.press('Enter'); await m.page.waitForTimeout(5000);
   ok('teléfono: elegir alcaldía', (await texto(m.page, '#scope-title')).includes('Coyoacán'));
   await m.page.screenshot({ path: path.join(SALIDA, 'telefono.png') }); await m.ctx.close();

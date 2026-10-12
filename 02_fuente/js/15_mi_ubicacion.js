@@ -153,4 +153,4 @@ function irAPunto(lon, lat){
     flyTo({...viewState, longitude:lon, latitude:lat, zoom:Math.max(viewState.zoom, 17), bearing:0, pitch:0}, 900); }
   rerender();
   const c=$('card'); pinned={kind:'pto', i:0}; c.innerHTML = puntoHtml(); c.hidden=false;
-  c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); enfocaFicha(); }
+  c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); verMapa({desdeLista:true}); enfocaFicha(); }

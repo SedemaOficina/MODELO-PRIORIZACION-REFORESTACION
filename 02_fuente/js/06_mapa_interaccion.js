@@ -77,7 +77,8 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
 }
 function hideCard(devuelve){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
   if (devuelve===true || dentro){ const o = cardOrigen && cardOrigen.isConnected && cardOrigen.offsetParent!==null? cardOrigen : $('scope-title'); cardOrigen=null; try { o.focus({preventScroll:true}); } catch(e){} } }
-// En teléfono la ficha tapa parte del panel: si el foco llega a un control tapado, la ficha se cierra para que se vea (WCAG 2.4.11)
+// En el celular sin mapa, la ficha se abre sobre la información: si el foco llega a un control tapado, la ficha se cierra (WCAG 2.4.11).
+// Con mapa no pasa: la ficha es de la pantalla del mapa y mientras se ve, el panel está inerte.
 document.addEventListener('focusin', e=>{ const c=$('card'); if (c.hidden || !isPhone() || c.contains(e.target) || !e.target.closest || !e.target.closest('.panel')) return;
   const a=e.target.getBoundingClientRect(), b=c.getBoundingClientRect(); if (a.bottom>b.top+4 && a.top<b.bottom-4) hideCard(); });
 $('zin').onclick = ()=> flyTo({...viewState, zoom:Math.min(18.5, viewState.zoom+1)}, 0);   // acercar y alejar son inmediatos

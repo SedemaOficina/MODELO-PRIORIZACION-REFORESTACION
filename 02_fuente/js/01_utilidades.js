@@ -44,7 +44,10 @@ function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
 const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›') : s;
 // aviso no bloqueante sobre el mapa (errores de dibujo, contexto gráfico perdido, errores inesperados)
-function avisoMapa(html, conRecarga){ const p = document.querySelector('.mapwrap'); if (!p || p.querySelector('.aviso-error')) return;
+// sin mapa (el contexto gráfico se perdió o deck.gl falló al dibujar): en el celular queda solo la información (pantalla() en 13_interfaz.js)
+let HAY_MAPA = true;
+function sinMapa(){ HAY_MAPA = false; document.body.classList.add('sin-mapa'); try { pantalla('info'); } catch(e){ /* todavía no hay pantallas: al crearse ya ven HAY_MAPA */ } }
+function avisoMapa(html, conRecarga){ if (conRecarga) sinMapa(); const p = document.querySelector('.mapwrap'); if (!p || p.querySelector('.aviso-error')) return;
   const n = document.createElement('div'); n.className = 'aviso-ligero aviso-error'; n.setAttribute('role','alert');
   n.innerHTML = html + (conRecarga? ' <button type="button" class="recarga">Recargar la página</button>' : '') + '<button type="button" class="cierra" aria-label="Cerrar aviso">×</button>';
   n.querySelector('.cierra').onclick = ()=> n.remove(); const r = n.querySelector('.recarga'); if (r) r.onclick = ()=> location.reload(); p.appendChild(n); }

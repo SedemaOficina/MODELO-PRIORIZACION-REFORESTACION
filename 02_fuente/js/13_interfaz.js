@@ -24,21 +24,45 @@ $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = $('m-n-alc2'
 $('m-alc-km').textContent = fmt0.format(cityTotKm); $('m-alc-prio').textContent = fmt0.format(cityPrioKm); $('m-alc-pct').textContent = pct(cityPrioKm, cityTotKm);   // red de las alcaldías
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
-// ---------- móvil: hoja inferior y leyenda plegable ----------
+// ---------- celular: información y mapa en dos pantallas ----------
 const isPhone = ()=> matchMedia(MQ_TEL).matches;
-const sheetBtn = $('sheet'), sheetLbl = $('sheet-label');
-// hoja inferior con tres alturas: mínima (buscador), media (respuesta) y completa
-let sheetState = 'half';
-function setSheetState(st){ sheetState = st; document.body.classList.toggle('sheet-open', st==='full'); document.body.classList.toggle('sheet-peek', st==='peek');
-  sheetBtn.setAttribute('aria-expanded', String(st!=='peek')); sheetLbl.textContent = st==='peek'? 'Ver la consulta' : st==='half'? 'Ver más' : 'Ver el mapa';
-  setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 260); }
-sheetBtn.onclick = ()=> setSheetState(sheetState==='peek'? 'half' : sheetState==='half'? 'full' : 'peek');
+// En el celular la información y el mapa son dos pantallas completas que se cambian con un botón («Ver el mapa» en el encabezado del
+// panel; en el mapa, abajo, el que dice qué se verá al regresar). La que no se ve queda inerte: sin foco, toques ni lector de pantalla.
+// Qué lleva a qué pantalla: buscar o elegir alcaldía o colonia, filtros, pestañas y descargas se quedan en la información; elegir una
+// calle, una avenida o un tramo de una lista, o un punto por coordenadas, va al mapa con lo elegido; tocar el mapa se queda en el mapa;
+// «atrás» del navegador desde el mapa regresa a la información. En la computadora no cambia nada.
+let PANTALLA = 'info';
+const panelEl = document.querySelector('.panel'), mapaEl = document.querySelector('.mapwrap');
+function pantalla(p, op={}){
+  if (!HAY_MAPA) p = 'info';
+  const antes = PANTALLA, tel = isPhone(), b = document.body; PANTALLA = p;
+  b.classList.toggle('ver-mapa', p==='mapa'); b.classList.toggle('ver-info', p==='info');
+  panelEl.inert = tel && p==='mapa'; mapaEl.inert = tel && p==='info' && HAY_MAPA;
+  rotuloInfo();
+  if (tel && antes!==p){ const f = document.activeElement;
+    if (op.foco || (f && f!==document.body && (p==='mapa'? panelEl : mapaEl).contains(f))) $(p==='mapa'? 'ver-info' : 'ver-mapa').focus({preventScroll:true});
+    // lo elegido desde una lista: «atrás» regresa a la lista
+    if (p==='mapa' && op.desdeLista) history.pushState({...(history.state || {}), pantalla:'mapa'}, ''); } }
+const verMapa = op=> pantalla('mapa', op), verInfo = op=> pantalla('info', op);
+// el botón del mapa dice lo que se verá al volver a la información
+function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
+  const s = highlight && highlight.avId!==undefined? 'Ver la avenida' : highlight? 'Ver la calle' : selAv!==null? 'Ver la avenida' : selCol!==null? 'Ver la colonia' : sel!==null? 'Ver la alcaldía' : 'Ver la ciudad';
+  if (t.textContent!==s) t.textContent = s; }
+// al elegir desde el panel en el celular, la respuesta queda a la vista (sin cambiar de pantalla: desde el mapa, se sigue en el mapa)
+const alaRespuesta = ()=>{ if (!isPhone() || PANTALLA!=='info') return; const k=$('answer'); if (k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
+$('ver-mapa').onclick = ()=> verMapa({foco:true});
+$('ver-info').onclick = ()=> verInfo({foco:true});
+matchMedia(MQ_TEL).addEventListener('change', ()=> pantalla(PANTALLA));
+addEventListener('popstate', e=>{ if (isPhone() && PANTALLA==='mapa' && !(e.state && e.state.pantalla==='mapa')) verInfo(); });
+// alto real de la pantalla: en iOS 26, con 100dvh o height:100%, Safari dejaba una franja vacía abajo (--alto, en 10_dos_pantallas.css);
+// --vvh es el alto visible, que se reduce con el teclado abierto
+{ const vv = ()=>{ const r = document.documentElement.style; r.setProperty('--alto', innerHeight+'px'); if (window.visualViewport) r.setProperty('--vvh', visualViewport.height+'px'); };
+  vv(); addEventListener('resize', vv); if (window.visualViewport) visualViewport.addEventListener('resize', vv); }
 const panelBtn = $('panel-toggle');
 panelBtn.onclick = ()=>{ const off = document.body.classList.toggle('panel-off');
   panelBtn.setAttribute('aria-expanded', String(!off));
   panelBtn.title = panelBtn.ariaLabel = off? 'Mostrar el panel de consulta' : 'Ocultar el panel de consulta';
   setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 120); };
-const collapseSheet = ()=>{ if(!isPhone()) return; if(sheetState!=='half') setSheetState('half'); const k=$('answer'); if(k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
 const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle');
 // el panel de capas se abre y se cierra con el botón de capas de la barra de herramientas; su × lo cierra
 const capasBtn = $('zcapas');
@@ -47,7 +71,6 @@ legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(false);   // el panel de capas empieza cerrado: la leyenda compacta dice los colores y lo abre
 $('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
-addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas ----------
 function setTab(t){ document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones

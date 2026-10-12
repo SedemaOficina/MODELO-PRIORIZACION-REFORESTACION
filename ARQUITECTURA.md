@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.10 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.11 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -85,7 +85,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
 | `11_descargas.js` | Exportación geográfica de las calles prioritarias (`geoDescarga`: KML y GeoJSON, mismos registros que los Excel de frentes y tramos). CSV y Excel con diccionario de datos; carga de librerías bajo demanda (de `libs/` en el sitio, de la copia incrustada en el archivo único) | `deliverTable`, `dictAoa`, `loadLib`, `libIncrustada`, `excelAparte` |
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |
-| `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación, entrada por territorio (`abreEntrada`) y leyenda compacta | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
+| `13_interfaz.js` | Celular en dos pantallas: `pantalla`, `verMapa`, `verInfo`, `rotuloInfo` (texto del botón de abajo) e `inert` de la pantalla que no se ve. Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación, entrada por territorio (`abreEntrada`) y leyenda compacta | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
 | `14_buscador.js` | Lee también coordenadas pegadas (decimales, grados-minutos-segundos y enlaces largos de Google Maps; `leeCoordenadas`) y las manda a `irAPunto` (15_mi_ubicacion.js). Buscador único con abreviaturas y tolerancia a errores; nombre que distingue a las colonias homónimas de una alcaldía («parte k de n» o su CP), usado en archivos, fichas y «Ámbito consultado» | `omniIndex`, `omniSearch`, `omniPick`, `colNombre` |
 | `15_mi_ubicacion.js` | La ficha de la zona (`zonaHtml`: colonia, lo que está junto y calles prioritarias cercanas) la comparten «Mi ubicación» y el punto buscado por coordenadas (`irAPunto`, marcador `pto-buscado`). GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
 | `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
@@ -147,6 +147,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `07_accesibilidad.css` | Texto solo para lector de pantalla, enlace de salto, indicador de foco, bordes de controles, objetivos táctiles en teléfono, tabla y lámina de la ayuda, movimiento reducido e impresión |
 | `08_orientacion.css` | Entrada por territorio, pestaña «Dónde empezar», leyenda compacta, «Quién atiende» dentro del panel de capas y acciones junto al título de la consulta |
 | `09_recorrido.css` | Velo, foco y globo del recorrido guiado y su botón en «Cómo funciona» |
+| `10_dos_pantallas.css` | Celular: información y mapa en dos pantallas completas encimadas (el panel sale hacia la izquierda; el mapa nunca cambia de tamaño), botones «Ver el mapa» y el de abajo del mapa, controles por encima de ese botón, modo sin mapa y alto real de la pantalla (`--alto`, `--vvh`) |
 
 Los archivos 04, 05 y 07 ajustan reglas de los anteriores: **el orden importa**. Los tamaños de letra van en `rem` (16 px = 1 rem) para respetar el tamaño configurado en el navegador; el mínimo es 0.75 rem. Para cambiar un componente, buscar su clase en todos los archivos de `css/`.
 

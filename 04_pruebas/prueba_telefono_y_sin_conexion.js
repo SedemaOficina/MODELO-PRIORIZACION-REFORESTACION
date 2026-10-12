@@ -72,13 +72,13 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
     const g = await page.evaluate(() => { const r = s => { const e = document.querySelector(s); const b = e.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height, vis: getComputedStyle(e).display !== 'none' }; };
       const cruza = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
       const p = r('.panel'), m = r('#map'), t = r('.toolbar');
-      return { panel: Math.round(p.w), mapa: [Math.round(m.w), Math.round(m.h)], desborde: document.documentElement.scrollWidth - innerWidth, tbPanel: cruza(t, p), hoja: getComputedStyle(document.getElementById('sheet')).display, leyenda: document.querySelector('.legend').classList.contains('open') }; });
-    ok('en 844 × 390 la herramienta usa panel lateral angosto y el mapa ocupa todo el alto', g.panel <= 310 && g.mapa[0] >= 520 && g.mapa[1] >= 380 && g.desborde <= 0 && !g.tbPanel && g.hoja === 'none' && !g.leyenda, JSON.stringify(g));
+      return { panel: Math.round(p.w), mapa: [Math.round(m.w), Math.round(m.h)], desborde: document.documentElement.scrollWidth - innerWidth, tbPanel: cruza(t, p), botones: [...document.querySelectorAll('.btn-vista')].filter(b => getComputedStyle(b).display !== 'none').length, leyenda: document.querySelector('.legend').classList.contains('open') }; });
+    ok('en 844 × 390 la herramienta usa panel lateral angosto y el mapa ocupa todo el alto', g.panel <= 310 && g.mapa[0] >= 520 && g.mapa[1] >= 380 && g.desborde <= 0 && !g.tbPanel && g.botones === 0 && !g.leyenda, JSON.stringify(g));
     await page.screenshot({ path: path.join(SAL, 'horizontal_844x390.png') }); await ctx.close(); }
   { const { page, ctx } = await L.abrir(browser, U, { viewport: { width: 390, height: 844 } }, errores);
     await page.focus('#omni'); await page.waitForTimeout(300);
-    const r = await page.evaluate(() => ({ cab: getComputedStyle(document.querySelector('.panel-head')).display, pie: getComputedStyle(document.getElementById('panel-actions')).display, hoja: getComputedStyle(document.getElementById('sheet')).display, desborde: document.documentElement.scrollWidth - innerWidth }));
-    ok('en teléfono vertical sigue la hoja inferior y, al enfocar el buscador, se libera espacio', r.hoja !== 'none' && r.cab === 'none' && r.pie === 'none' && r.desborde <= 0, JSON.stringify(r));
+    const r = await page.evaluate(() => ({ cab: getComputedStyle(document.querySelector('.panel-head')).display, pie: getComputedStyle(document.getElementById('panel-actions')).display, desborde: document.documentElement.scrollWidth - innerWidth }));
+    ok('en teléfono vertical, al enfocar el buscador se esconden el encabezado y el pie del panel para dejar espacio', r.cab === 'none' && r.pie === 'none' && r.desborde <= 0, JSON.stringify(r));
     await ctx.close(); }
 
   // ---------- sin conexión después de la primera visita ----------

@@ -3,7 +3,7 @@
 
 Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   plantilla.html   estructura de la página (sin estilos ni código)
-  css/*.css        estilos, en orden de aplicación (01_variables … 09_recorrido)
+  css/*.css        estilos, en orden de aplicación (01_variables … 10_dos_pantallas)
   js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 17_recorrido);
                    se unen en un solo app.js dentro de una función asíncrona
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
@@ -74,7 +74,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.10'
+VERSION = '1.11'
 ACTUALIZACION = '12 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -106,7 +106,7 @@ JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capa
                 '07_leyenda_y_capas.js', '08_resumenes.js', '09_listados.js', '09_tramos.js', '10_seleccion.js', '11_descargas.js',
                 '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js', '17_recorrido.js']
 CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_pantalla_y_leyenda.css', '05_panel_y_hoja_inferior.css',
-                 '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css', '09_recorrido.css']
+                 '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css', '09_recorrido.css', '10_dos_pantallas.css']
 # Lo único de libs/ y fuentes/ que se publica. Un archivo que no esté aquí no llega a docs/.
 LIBS_PUBLICADAS = ['deck.js', 'pako.js', 'jspdf.js', 'xlsx.js', 'excel_worker.js', 'LICENCIAS.md',
                    'LICENCIA_deck.gl.txt', 'LICENCIA_pako.txt', 'LICENCIA_jspdf.txt', 'LICENCIA_xlsx.txt']

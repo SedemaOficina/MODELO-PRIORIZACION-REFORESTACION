@@ -47,7 +47,10 @@ function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
 const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›') : s;
 // aviso no bloqueante sobre el mapa (errores de dibujo, contexto gráfico perdido, errores inesperados)
-function avisoMapa(html, conRecarga){ const p = document.querySelector('.mapwrap'); if (!p || p.querySelector('.aviso-error')) return;
+// sin mapa (el contexto gráfico se perdió o deck.gl falló al dibujar): en el celular queda solo la información (pantalla() en 13_interfaz.js)
+let HAY_MAPA = true;
+function sinMapa(){ HAY_MAPA = false; document.body.classList.add('sin-mapa'); try { pantalla('info'); } catch(e){ /* todavía no hay pantallas: al crearse ya ven HAY_MAPA */ } }
+function avisoMapa(html, conRecarga){ if (conRecarga) sinMapa(); const p = document.querySelector('.mapwrap'); if (!p || p.querySelector('.aviso-error')) return;
   const n = document.createElement('div'); n.className = 'aviso-ligero aviso-error'; n.setAttribute('role','alert');
   n.innerHTML = html + (conRecarga? ' <button type="button" class="recarga">Recargar la página</button>' : '') + '<button type="button" class="cierra" aria-label="Cerrar aviso">×</button>';
   n.querySelector('.cierra').onclick = ()=> n.remove(); const r = n.querySelector('.recarga'); if (r) r.onclick = ()=> location.reload(); p.appendChild(n); }
@@ -836,7 +839,8 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
 }
 function hideCard(devuelve){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
   if (devuelve===true || dentro){ const o = cardOrigen && cardOrigen.isConnected && cardOrigen.offsetParent!==null? cardOrigen : $('scope-title'); cardOrigen=null; try { o.focus({preventScroll:true}); } catch(e){} } }
-// En teléfono la ficha tapa parte del panel: si el foco llega a un control tapado, la ficha se cierra para que se vea (WCAG 2.4.11)
+// En el celular sin mapa, la ficha se abre sobre la información: si el foco llega a un control tapado, la ficha se cierra (WCAG 2.4.11).
+// Con mapa no pasa: la ficha es de la pantalla del mapa y mientras se ve, el panel está inerte.
 document.addEventListener('focusin', e=>{ const c=$('card'); if (c.hidden || !isPhone() || c.contains(e.target) || !e.target.closest || !e.target.closest('.panel')) return;
   const a=e.target.getBoundingClientRect(), b=c.getBoundingClientRect(); if (a.bottom>b.top+4 && a.top<b.bottom-4) hideCard(); });
 $('zin').onclick = ()=> flyTo({...viewState, zoom:Math.min(18.5, viewState.zoom+1)}, 0);   // acercar y alejar son inmediatos
@@ -947,7 +951,8 @@ function setFondo(k){ fondoUI(k); rerender(); }
 function fondoUI(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
   document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
   $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con); document.body.classList.toggle('fondo-propio', !!(f && f.propio));
-  const n = $('fondo-note'); n.hidden = !(con && f.nota); n.textContent = con? f.nota : '';
+  // el crédito del fondo propio también va en el panel de capas: en el celular no cabe sobre el mapa
+  const n = $('fondo-note'), nota = con? (f.propio? 'Fuentes: '+f.atrib : f.nota) : ''; n.hidden = !nota; n.textContent = nota;
   ajustaEscala(); }
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
 function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }
@@ -1318,7 +1323,7 @@ function highlightStreet(nid, s){
   highlight = {nameId:nid, idx:s.idx};
   let w=180,sN=90,e=-180,n=-90; for(const i of s.idx){ for(let k=start[i];k<start[i+1];k++){ const x=POS[2*k],y=POS[2*k+1]; if(x<w)w=x; if(x>e)e=x; if(y<sN)sN=y; if(y>n)n=y; } }
   const pad = 0.0015; const vs = fitTo([w-pad,sN-pad,e+pad,n+pad], 60); vs.zoom = Math.min(vs.zoom, 16.5);
-  hideCard(); collapseSheet(); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns();
+  hideCard(); if (!restaurando) verMapa({desdeLista:true}); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns(); rotuloInfo();
 }
 $('q').addEventListener('input', renderResults);
 // Renglones de los listados: se activan también con la barra espaciadora y, como el listado se vuelve a
@@ -1476,7 +1481,7 @@ function renderTramos(){
       return `<li tabindex="0" role="button" data-t="${t.n-1}"><b>${t.n}</b><div><div class="n">${tramoTxt(t)}</div><div class="desg">${partes.join('')}</div><div class="t">${fmt.format(t.largo)} m de calle · ${t.lados===2? 'dos lados' : 'un lado'} · ${t.idx.length} frente${t.idx.length===1?'':'s'}${partes.length>1? ' · predominante '+META.prio[pd] : ''}</div></div></li>`; }).join('')}</ol>
     <p class="note">Un tramo va de esquina a esquina y reúne los frentes de sus dos lados. Se arma con una regla geométrica a partir de los frentes de manzana; las vialidades que lo delimitan son las más cercanas a sus extremos y deben confirmarse en campo. Selecciona un tramo para ubicarlo en el mapa y abrir la ficha de su frente de mayor prioridad.</p>`;
   box.querySelectorAll('li').forEach(li=>{ const go=()=>{ const t=l[+li.dataset.t]; const pad=0.0008; const vs=fitTo([t.bounds[0]-pad,t.bounds[1]-pad,t.bounds[2]+pad,t.bounds[3]+pad], 60); vs.zoom=Math.min(vs.zoom, 17.5);
-      box.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); collapseSheet(); flyTo(vs, 800);
+      box.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); verMapa({desdeLista:true}); flyTo(vs, 800);
       // ficha del frente de mayor prioridad del tramo (el más largo si hay varios): así la ficha de un frente se alcanza sin el puntero
       const rep = t.idx.reduce((a,b)=> (F.prio[b]>F.prio[a] || (F.prio[b]===F.prio[a] && F.len[b]>F.len[a]))? b : a, t.idx[0]); showCard('fr', rep); };
     li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; });
@@ -1512,7 +1517,7 @@ function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ co
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
   buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
-  anunciaAmbito();
+  anunciaAmbito(); rotuloInfo();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
   // sin registros que entregar: el botón se deshabilita y se dice por qué, en lugar de entregar un archivo vacío
@@ -1562,7 +1567,7 @@ function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $
   const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista para descargar su Excel o su ficha.`; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
-  collapseSheet(); refresh();
+  alaRespuesta(); refresh();
 }
 // ---------- selección de colonia y avenida (la búsqueda está en el buscador único, más abajo) ----------
 // el catálogo de colonias trae abreviaturas (Pgal, Sto, Ampl…); el buscador las expande
@@ -1571,7 +1576,7 @@ function pickColonia(id){
   if (isGC()) setResp('alc', true);
   const c = META.colonias[id]; const m = munIndex[c.m];
   if (sel!==m){ sel=m; selEl.value=String(m); }
-  selCol=id; selAv=null; highlight=null; hideCard(); $('q').value=''; if (isPhone() && !showFrB) setLayer('fr', true); collapseSheet(); refresh(); showCard('col', id);
+  selCol=id; selAv=null; highlight=null; hideCard(); $('q').value=''; if (isPhone() && !showFrB) setLayer('fr', true); alaRespuesta(); refresh(); showCard('col', id);
 }
 function clearColonia(){ if(selCol!==null){ selCol=null; highlight=null; hideCard(); refresh(); } }
 function pickAvenida(a){
@@ -1579,7 +1584,7 @@ function pickAvenida(a){
   // si la avenida no cruza la alcaldía elegida (tarjeta, buscador o dirección), se consulta en toda la ciudad
   if (sel!==null && !avStat(a).muns.has(sel)){ sel=null; selEl.value=''; }
   selAv=a; selCol=null; hideCard(); $('q').value='';
-  const s=avStat(a); highlight={avId:a, idx:s.idx}; collapseSheet(); refresh();
+  const s=avStat(a); highlight={avId:a, idx:s.idx}; if (!restaurando) verMapa({desdeLista:PANTALLA==='info'}); refresh();
 }
 function clearAvenida(){ if(selAv!==null){ selAv=null; highlight=null; hideCard(); refresh(); } }
 selEl.onchange = e=> setSel(e.target.value);
@@ -2216,21 +2221,45 @@ $('m-n-fr').textContent = fmt.format(N); $('m-n-alc').textContent = $('m-n-alc2'
 $('m-alc-km').textContent = fmt0.format(cityTotKm); $('m-alc-prio').textContent = fmt0.format(cityPrioKm); $('m-alc-pct').textContent = pct(cityPrioKm, cityTotKm);   // red de las alcaldías
 $('m-gc-fr').textContent = fmt.format(META.cruce.frentes_gc); $('m-gc-km').textContent = fmt0.format(META.cruce.km_gc); $('m-cov').textContent = pct(VPC.cov.km_con_frente, VPC.cov.km_total); $('m-vp-tramos').textContent = fmt.format(VPC.cov.registros); $('m-vp-km2').textContent = fmt0.format(VPC.cov.km_total);
 
-// ---------- móvil: hoja inferior y leyenda plegable ----------
+// ---------- celular: información y mapa en dos pantallas ----------
 const isPhone = ()=> matchMedia(MQ_TEL).matches;
-const sheetBtn = $('sheet'), sheetLbl = $('sheet-label');
-// hoja inferior con tres alturas: mínima (buscador), media (respuesta) y completa
-let sheetState = 'half';
-function setSheetState(st){ sheetState = st; document.body.classList.toggle('sheet-open', st==='full'); document.body.classList.toggle('sheet-peek', st==='peek');
-  sheetBtn.setAttribute('aria-expanded', String(st!=='peek')); sheetLbl.textContent = st==='peek'? 'Ver la consulta' : st==='half'? 'Ver más' : 'Ver el mapa';
-  setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 260); }
-sheetBtn.onclick = ()=> setSheetState(sheetState==='peek'? 'half' : sheetState==='half'? 'full' : 'peek');
+// En el celular la información y el mapa son dos pantallas completas que se cambian con un botón («Ver el mapa» en el encabezado del
+// panel; en el mapa, abajo, el que dice qué se verá al regresar). La que no se ve queda inerte: sin foco, toques ni lector de pantalla.
+// Qué lleva a qué pantalla: buscar o elegir alcaldía o colonia, filtros, pestañas y descargas se quedan en la información; elegir una
+// calle, una avenida o un tramo de una lista, o un punto por coordenadas, va al mapa con lo elegido; tocar el mapa se queda en el mapa;
+// «atrás» del navegador desde el mapa regresa a la información. En la computadora no cambia nada.
+let PANTALLA = 'info';
+const panelEl = document.querySelector('.panel'), mapaEl = document.querySelector('.mapwrap');
+function pantalla(p, op={}){
+  if (!HAY_MAPA) p = 'info';
+  const antes = PANTALLA, tel = isPhone(), b = document.body; PANTALLA = p;
+  b.classList.toggle('ver-mapa', p==='mapa'); b.classList.toggle('ver-info', p==='info');
+  panelEl.inert = tel && p==='mapa'; mapaEl.inert = tel && p==='info' && HAY_MAPA;
+  rotuloInfo();
+  if (tel && antes!==p){ const f = document.activeElement;
+    if (op.foco || (f && f!==document.body && (p==='mapa'? panelEl : mapaEl).contains(f))) $(p==='mapa'? 'ver-info' : 'ver-mapa').focus({preventScroll:true});
+    // lo elegido desde una lista: «atrás» regresa a la lista
+    if (p==='mapa' && op.desdeLista) history.pushState({...(history.state || {}), pantalla:'mapa'}, ''); } }
+const verMapa = op=> pantalla('mapa', op), verInfo = op=> pantalla('info', op);
+// el botón del mapa dice lo que se verá al volver a la información
+function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
+  const s = highlight && highlight.avId!==undefined? 'Ver la avenida' : highlight? 'Ver la calle' : selAv!==null? 'Ver la avenida' : selCol!==null? 'Ver la colonia' : sel!==null? 'Ver la alcaldía' : 'Ver la ciudad';
+  if (t.textContent!==s) t.textContent = s; }
+// al elegir desde el panel en el celular, la respuesta queda a la vista (sin cambiar de pantalla: desde el mapa, se sigue en el mapa)
+const alaRespuesta = ()=>{ if (!isPhone() || PANTALLA!=='info') return; const k=$('answer'); if (k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
+$('ver-mapa').onclick = ()=> verMapa({foco:true});
+$('ver-info').onclick = ()=> verInfo({foco:true});
+matchMedia(MQ_TEL).addEventListener('change', ()=> pantalla(PANTALLA));
+addEventListener('popstate', e=>{ if (isPhone() && PANTALLA==='mapa' && !(e.state && e.state.pantalla==='mapa')) verInfo(); });
+// alto real de la pantalla: en iOS 26, con 100dvh o height:100%, Safari dejaba una franja vacía abajo (--alto, en 10_dos_pantallas.css);
+// --vvh es el alto visible, que se reduce con el teclado abierto
+{ const vv = ()=>{ const r = document.documentElement.style; r.setProperty('--alto', innerHeight+'px'); if (window.visualViewport) r.setProperty('--vvh', visualViewport.height+'px'); };
+  vv(); addEventListener('resize', vv); if (window.visualViewport) visualViewport.addEventListener('resize', vv); }
 const panelBtn = $('panel-toggle');
 panelBtn.onclick = ()=>{ const off = document.body.classList.toggle('panel-off');
   panelBtn.setAttribute('aria-expanded', String(!off));
   panelBtn.title = panelBtn.ariaLabel = off? 'Mostrar el panel de consulta' : 'Ocultar el panel de consulta';
   setTimeout(()=>{ if(!NOMAP) dk.redraw(true); }, 120); };
-const collapseSheet = ()=>{ if(!isPhone()) return; if(sheetState!=='half') setSheetState('half'); const k=$('answer'); if(k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
 const legendEl = document.querySelector('.legend'), legendBtn = $('legend-toggle');
 // el panel de capas se abre y se cierra con el botón de capas de la barra de herramientas; su × lo cierra
 const capasBtn = $('zcapas');
@@ -2239,7 +2268,6 @@ legendBtn.onclick = ()=>{ setLegend(false); capasBtn.focus(); };
 capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(false);   // el panel de capas empieza cerrado: la leyenda compacta dice los colores y lo abre
 $('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
-addEventListener('resize', ()=>{ if(!isPhone()) document.body.classList.remove('sheet-open','sheet-peek'); });
 
 // ---------- pestañas Resumen / Listado / Descargas ----------
 function setTab(t){ document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
@@ -2445,11 +2473,11 @@ function omniPick(it){
       // varias calles con el mismo nombre: se resaltan todas y el mapa se acerca a ellas
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
-  collapseSheet();
+  if (it.t==='st') verMapa({desdeLista:true}); else alaRespuesta();
   // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí
   setTimeout(()=>{ try { $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }, 0); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
-omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (isPhone() && sheetState==='peek') setSheetState('full'); if (omni.value.trim().length>=2) omniRender(); });
+omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));
 omni.addEventListener('keydown', e=>{
   if (e.key==='ArrowDown'){ e.preventDefault(); if (omniList.hidden) omniRender(); omniSetActive(omniActive+1); }
@@ -2613,7 +2641,7 @@ function irAPunto(lon, lat){
     flyTo({...viewState, longitude:lon, latitude:lat, zoom:Math.max(viewState.zoom, 17), bearing:0, pitch:0}, 900); }
   rerender();
   const c=$('card'); pinned={kind:'pto', i:0}; c.innerHTML = puntoHtml(); c.hidden=false;
-  c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); enfocaFicha(); }
+  c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); verMapa({desdeLista:true}); enfocaFicha(); }
 
 // Arranque: estado inicial de la herramienta.
 // ---------- arranque ----------
@@ -2622,7 +2650,7 @@ document.body.dataset.resp = resp;
 fondoUI(fondo);   // botones y atribución del fondo con que abre (FONDO_INICIAL)
 setSel('');
 setTab('ini');
-if (isPhone()) setSheetState('peek');
+pantalla('info');   // la página se abre en la información
 // consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
 aplicarURL();
 // sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio
@@ -2700,7 +2728,7 @@ function recColoca(){ if (!REC) return; const p = REC.lista[REC.k], g = REC.glob
 
 function recPaso(k){ const L = REC.lista; REC.k = k = Math.max(0, Math.min(k, L.length-1)); const p = L[k];
   if (REC.ficha && !p.prep){ hideCard(); REC.ficha = false; }
-  if (isPhone()) setSheetState(p.mapa? 'peek' : p.panel? 'full' : sheetState);
+  if (isPhone() && (p.mapa || p.panel)) pantalla(p.mapa? 'mapa' : 'info');
   if (p.panel && document.body.classList.contains('panel-off')) $('panel-toggle').click();
   if (p.prep) p.prep();
   const g = REC.globo; g.querySelector('.rec-paso').textContent = `Paso ${k+1} de ${L.length}`;
@@ -2725,7 +2753,7 @@ function recorrido(){ if (REC) return; if (!entradaEl.hidden || !infoModal.hidde
   recPaso(0); }
 function recFin(){ if (!REC) return; const R = REC; REC = null; recMarca();
   R.velo.remove(); R.foco.remove(); R.globo.remove(); appEl.inert = false; document.body.classList.remove('recorrido');
-  if (R.ficha) hideCard(); if (isPhone()) setSheetState('half');
+  if (R.ficha) hideCard(); if (isPhone()) verInfo();
   const o = R.origen; if (o && o.isConnected && o!==document.body) o.focus(); else $('scope-title').focus(); }
 // teclado: Esc sale, flechas avanzan y retroceden, Tab no sale del globo. En captura, antes que el Esc general de 13_interfaz.js.
 document.addEventListener('keydown', e=>{ if (!REC) return;
