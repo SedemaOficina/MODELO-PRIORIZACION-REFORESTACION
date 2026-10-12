@@ -197,6 +197,8 @@ function layers(){
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.label]}}));
   if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[34,38,42,235], characterSet:ETQ_LETRAS,
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center'}));
+  if (ptoBuscado) L.push(new deck.ScatterplotLayer({id:'pto-buscado', data:[ptoBuscado], getPosition:d=>[d.lon,d.lat], getRadius:8, radiusUnits:'pixels', filled:true, stroked:true,
+    getFillColor:hex(css('--guinda')), getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:3, pickable:false, updateTriggers:{getPosition:[ptoBuscado.lon, ptoBuscado.lat]}}));
   if (myPos){ const P=[myPos];
     L.push(new deck.ScatterplotLayer({id:'loc-acc', data:P, getPosition:d=>[d.lon,d.lat], getRadius:d=>Math.max(d.acc,4), radiusUnits:'meters', filled:true, stroked:true, getFillColor:[...LOC_BLUE,38], getLineColor:[...LOC_BLUE,120], lineWidthMinPixels:1, pickable:false, updateTriggers:{getPosition:[myPos.t], getRadius:[myPos.t]}}));
     L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }

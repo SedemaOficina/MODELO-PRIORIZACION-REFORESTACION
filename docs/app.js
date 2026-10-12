@@ -183,6 +183,7 @@ let locSel = false;       // true mientras Mi ubicación cambia el ámbito por s
 let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
 const LOC_BLUE = hex(css('--loc')).slice(0,3);   // azul de Mi ubicación (variable --loc en 01_variables.css)
 let myPos = null;          // Mi ubicación: {lon, lat, acc, t}; nunca sale del teléfono
+let ptoBuscado = null;     // punto buscado por coordenadas: {lon, lat}; se marca en el mapa hasta otra búsqueda o al cerrar su ficha
 const munIndex = Object.fromEntries(META.muns.map((m,i)=>[m,i]));
 const isGC = ()=> resp==='gc';
 const showsFrontsMode = ()=> resp!=='gc';
@@ -510,6 +511,8 @@ function layers(){
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.label]}}));
   if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[34,38,42,235], characterSet:ETQ_LETRAS,
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center'}));
+  if (ptoBuscado) L.push(new deck.ScatterplotLayer({id:'pto-buscado', data:[ptoBuscado], getPosition:d=>[d.lon,d.lat], getRadius:8, radiusUnits:'pixels', filled:true, stroked:true,
+    getFillColor:hex(css('--guinda')), getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:3, pickable:false, updateTriggers:{getPosition:[ptoBuscado.lon, ptoBuscado.lat]}}));
   if (myPos){ const P=[myPos];
     L.push(new deck.ScatterplotLayer({id:'loc-acc', data:P, getPosition:d=>[d.lon,d.lat], getRadius:d=>Math.max(d.acc,4), radiusUnits:'meters', filled:true, stroked:true, getFillColor:[...LOC_BLUE,38], getLineColor:[...LOC_BLUE,120], lineWidthMinPixels:1, pickable:false, updateTriggers:{getPosition:[myPos.t], getRadius:[myPos.t]}}));
     L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }
@@ -2341,9 +2344,36 @@ function omniSearch(q){
   const expanded = norm(q).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(t=>OMNI_AB[t] && OMNI_AB[t]!==t).map(t=>`«${t}» como «${OMNI_AB[t]}»`);
   R.qt = qt; R.why = [expanded.length? 'Se reconoció '+expanded.join(', ')+'.' : '', omniTypo? 'Incluye coincidencias aproximadas (una letra de diferencia).' : ''].filter(Boolean).join(' ');
   return R; }
+// Coordenadas pegadas en el buscador: decimales («19.3000, -99.1019», también con ; o al revés), grados-minutos-segundos
+// («19°14'29.7"N 98°59'59.1"W»), enlaces largos de Google Maps (…?q=lat,lon · …/@lat,lon,17z · …!3dlat!4dlon · ll=) y «geo:lat,lon».
+// Devuelve {lat, lon}, {corto:true} (enlace corto: no trae las coordenadas) o null.
+function leeCoordenadas(q){
+  const s = q.trim(); if (s.length<5) return null;
+  const par = (a, b)=>{ a=+a; b=+b; if (!isFinite(a) || !isFinite(b)) return null;
+    if (Math.abs(a)>90 && Math.abs(b)<=90) [a, b] = [b, a];                                   // longitud primero
+    if (a<-97 && a>-100.5 && b>18 && b<21) [a, b] = [b, a];                                   // en México, -99 es longitud
+    return Math.abs(a)<=90 && Math.abs(b)<=180? {lat:a, lon:b} : null; };
+  const N = '(-?\\d+(?:\\.\\d+)?)';
+  if (/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(s)) return {corto:true};
+  let m = s.match(new RegExp('!3d'+N+'!4d'+N)) || s.match(new RegExp('@'+N+','+N)) || s.match(new RegExp('[?&](?:q|query|ll|destination|center)='+N+'(?:,|%2C)\\s*'+N, 'i')) || s.match(new RegExp('^geo:'+N+','+N, 'i'));
+  if (m) return par(m[1], m[2]);
+  const g = [...s.matchAll(/(\d+(?:\.\d+)?)\s*°\s*(?:(\d+(?:\.\d+)?)\s*['′’]\s*)?(?:(\d+(?:\.\d+)?)\s*(?:["″”]|'')\s*)?([NSEOW])/gi)];
+  if (g.length===2){ const v = x=> (+x[1] + (+x[2]||0)/60 + (+x[3]||0)/3600) * (/[SWO]/i.test(x[4])? -1 : 1), esLat = x=> /[NS]/i.test(x[4]);
+    if (esLat(g[0])!==esLat(g[1])) return esLat(g[0])? par(v(g[0]), v(g[1])) : par(v(g[1]), v(g[0])); }
+  const D = '(-?\\d+\\.\\d+)';   // sueltos, con punto decimal: «19 99» o «10 20» son parte de una dirección, no coordenadas
+  m = s.match(new RegExp('^\\(?\\s*'+D+'\\s*(?:[,;]\\s*|\\s+)'+D+'\\s*\\)?$'));
+  return m? par(m[1], m[2]) : null; }
 function omniMark(name, qt){ return name.split(/(\s+)/).map(w=>{ const n=toks(w)[0]||''; return (n && qt.some(q=>tokScore(q,n)>=1.5))? `<mark>${w}</mark>` : w; }).join(''); }
 function omniRender(){
-  const R = omniSearch(omni.value); omniList.innerHTML=''; omniItems=[]; omniActive=-1;
+  omniList.innerHTML=''; omniItems=[]; omniActive=-1;
+  const co = leeCoordenadas(omni.value);
+  if (co){ const li=document.createElement('li');
+    if (co.corto){ li.className='empty'; li.textContent='Ese enlace corto no trae las coordenadas: ábrelo en Google Maps, toca el punto y copia los números que aparecen (por ejemplo, 19.3000, -99.1019).'; }
+    else { const w = whereAmI(co.lon, co.lat); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-0';
+      li.innerHTML = `<span class="ty">Punto</span><span class="nm">Ir a ${crd(co.lat)}, ${crd(co.lon)}</span><span class="m">${w.alc===null? 'Fuera de la Ciudad de México' : (w.col!==null? META.colonias[w.col].n+' · ' : '')+META.munNames[w.alc]}</span>`;
+      omniItems.push({t:'pto', ...co}); li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[0]); }; }
+    omniList.appendChild(li); omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
+  const R = omniSearch(omni.value);
   if (!R){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); return; }
   const groups = [['alc','Alcaldías'],['col','Colonias'],['av','Avenidas · Gobierno Central'],['st','Calles · alcaldías']].filter(([k])=>R[k].length).sort((a,b)=> R[b[0]][0].s - R[a[0]][0].s);
   if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
@@ -2365,6 +2395,8 @@ function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; i
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }
 function omniPick(it){
   omniClose(); omni.value=''; omniClear.hidden=true; omni.blur();
+  if (it.t==='pto'){ irAPunto(it.lon, it.lat); return; }
+  if (ptoBuscado){ ptoBuscado = null; rerender(); }
   if (it.t==='alc'){ if (isGC() && selAv!==null){ selAv=null; highlight=null; } selEl.value=String(it.i); setSel(String(it.i)); }
   else if (it.t==='col'){ pickColonia(it.i); }
   else if (it.t==='av'){ pickAvenida(it.a); }
@@ -2444,28 +2476,34 @@ function tramoLine(o){
   const sub = o.k==='fr'? `${META.prio[pr]} · ${(META.colonias[F.col[o.i]]||{}).n || 'colonia no identificada'}` : `${META.prio[pr]} · vialidad primaria (Gobierno Central)`;
   return {c, nm, sub};
 }
-function locHtml(){
-  if (!myPos) return '';
-  const p = myPos, w = whereAmI(p.lon, p.lat);
-  const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
-  const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
-  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`;
-  if (w.alc===null) return head + `<h3>Estás fuera de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> Acércate a la ciudad o busca un territorio con el buscador.</div>` + privacy;
+// Colonia, «junto a» y calles prioritarias cercanas de un punto: el de la persona (Mi ubicación, yo = true) o uno buscado por
+// coordenadas. Devuelve {fuera, html}; quien llama pone el encabezado, sus avisos y sus botones.
+function zonaHtml(lon, lat, yo, aviso=''){
+  const w = whereAmI(lon, lat);
+  if (w.alc===null) return {fuera:true, html:`<h3>${yo? 'Estás fuera' : 'El punto está fuera'} de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> ${yo? 'Acércate a la ciudad o busca un territorio con el buscador.' : 'Revisa las coordenadas: primero va la latitud (19.xx) y después la longitud (−99.xx).'}</div>`};
   const col = w.col!==null? META.colonias[w.col] : null;
-  const nb = nearby(p.lon, p.lat);
-  const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">Junto a ti: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
-  const tit = respOn.alc && respOn.gc? 'Tramos prioritarios cerca de ti' : respOn.gc? 'Vialidades primarias prioritarias cerca de ti' : 'Calles prioritarias cerca de ti';
+  const nb = nearby(lon, lat);
+  const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">${yo? 'Junto a ti' : 'Junto al punto'}: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
+  const cerca = yo? 'cerca de ti' : 'cerca del punto'; const tit = respOn.alc && respOn.gc? 'Tramos prioritarios '+cerca : respOn.gc? 'Vialidades primarias prioritarias '+cerca : 'Calles prioritarias '+cerca;
   const items = nb.list.map(o=>{ const t = tramoLine(o); return `<li><button type="button" data-k="${o.k}" data-i="${o.i}"><span class="pr" data-st="background:rgb(${t.c[0]},${t.c[1]},${t.c[2]})"></span><span class="t"><b>${t.nm}</b><span class="m">${t.sub}</span></span><span class="d">${distTxt(o.d)}<br><span class="m">${rumbo(o.dx, o.dy)}</span></span></button></li>`; }).join('');
   const lista = nb.list.length? `${nb.R>300? `<div class="cardnote">No hay tramos prioritarios a menos de 300 m; estos son los más cercanos.</div>`:''}<ol class="loc-list">${items}</ol>`
-    : `<div class="empty-note"><b>No hay tramos prioritarios a menos de 1.5 km.</b> La zona donde estás no tiene frentes de prioridad Muy Alta, Alta o Media${respOn.gc && !respOn.alc? ' en vialidades primarias' : ''}.</div>`;
+    : `<div class="empty-note"><b>No hay tramos prioritarios a menos de 1.5 km.</b> La zona ${yo? 'donde estás' : 'del punto'} no tiene frentes de prioridad Muy Alta, Alta o Media${respOn.gc && !respOn.alc? ' en vialidades primarias' : ''}.</div>`;
+  return {fuera:false, html:`<h3>${yo? 'Estás en' : 'El punto está en'} ${col? col.n : 'una zona sin colonia identificada'}</h3><div class="sub">${META.munNames[w.alc]}${col && col.cp? ' · CP '+col.cp.padStart(5,'0') : ''}</div>`
+    + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista};
+}
+function locHtml(){
+  if (!myPos) return '';
+  const p = myPos;
+  const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
+  const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
+  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`;
   // con cualquier precisión se responde colonia y calles cercanas (en computadora la ubicación viene de la red y puede errar cientos de metros); el aviso dice cuánto confiar
   const aviso = p.acc > LOC_PRECISO? `<div class="empty-note"><b>Ubicación aproximada (±${fmt0.format(Math.round(p.acc))} m).</b> En computadora la ubicación se calcula por la red y puede no ser exacta: la colonia y las calles son las del punto que indica el navegador. Si no es tu zona, busca la colonia por su nombre.</div>`
     : p.acc>50? `<div class="empty-note"><b>Ubicación aproximada.</b> El GPS indica ±${fmt0.format(Math.round(p.acc))} m; al aire libre la precisión mejora. Confirma el tramo en la calle.</div>` : '';
-  return head + `<h3>Estás en ${col? col.n : 'una zona sin colonia identificada'}</h3><div class="sub">${META.munNames[w.alc]}${col && col.cp? ' · CP '+col.cp.padStart(5,'0') : ''}</div>`
-    + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista
-    + `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>` + privacy;
+  const z = zonaHtml(p.lon, p.lat, true, aviso);
+  return head + z.html + (z.fuera? '' : `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>`) + privacy;
 }
-function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
+function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
 function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
@@ -2521,6 +2559,24 @@ function stopFollow(redraw){ locFollow = false; locBtn.classList.remove('follow'
 locBtn.onclick = ()=>{ if (locBtn.classList.contains('busy')) return; if (!myPos) locate(); else if (!locFollow) { locLastSel = null; locAuto = true; startFollow(); if (!(pinned && pinned.kind==='loc')) showLoc(); } else stopFollow(true); };
 // arrastrar el mapa suspende el seguimiento, como en las apps de mapas
 mapEl.addEventListener('pointermove', e=>{ if (locFollow && e.buttons && pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>12) stopFollow(true); });
+// ---------- punto buscado por coordenadas (buscador) ----------
+// La gente comparte ubicaciones por WhatsApp desde Google Maps: el buscador acepta esas coordenadas (leeCoordenadas en 14_buscador.js)
+// y responde como «Mi ubicación»: colonia, lo que hay junto al punto y las calles prioritarias cercanas. Las coordenadas no salen del navegador.
+const crd = (v, n=5)=> v.toFixed(n).replace('-', '−');
+function puntoHtml(){ const p = ptoBuscado; if (!p) return '';
+  const z = zonaHtml(p.lon, p.lat, false);
+  return `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:var(--guinda)"></i>Punto buscado · ${crd(p.lat)}, ${crd(p.lon)}</span>` + z.html
+    + `<div class="cardnote">Las coordenadas se buscan en este navegador; la herramienta no las envía ni las guarda.</div>`; }
+function irAPunto(lon, lat){
+  stopFollow(); ptoBuscado = {lon, lat}; const w = whereAmI(lon, lat);
+  if (w.alc!==null){ keepView = true;
+    if (!isGC() && w.col!==null){ if (selCol!==w.col) pickColonia(w.col); }
+    else if (sel!==w.alc || selCol!==null || selAv!==null){ selEl.value=String(w.alc); setSel(String(w.alc)); }
+    keepView = false;
+    flyTo({...viewState, longitude:lon, latitude:lat, zoom:Math.max(viewState.zoom, 17), bearing:0, pitch:0}, 900); }
+  rerender();
+  const c=$('card'); pinned={kind:'pto', i:0}; c.innerHTML = puntoHtml(); c.hidden=false;
+  c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); enfocaFicha(); }
 
 // Arranque: estado inicial de la herramienta.
 // ---------- arranque ----------

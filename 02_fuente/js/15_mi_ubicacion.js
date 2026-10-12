@@ -53,28 +53,34 @@ function tramoLine(o){
   const sub = o.k==='fr'? `${META.prio[pr]} · ${(META.colonias[F.col[o.i]]||{}).n || 'colonia no identificada'}` : `${META.prio[pr]} · vialidad primaria (Gobierno Central)`;
   return {c, nm, sub};
 }
-function locHtml(){
-  if (!myPos) return '';
-  const p = myPos, w = whereAmI(p.lon, p.lat);
-  const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
-  const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
-  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`;
-  if (w.alc===null) return head + `<h3>Estás fuera de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> Acércate a la ciudad o busca un territorio con el buscador.</div>` + privacy;
+// Colonia, «junto a» y calles prioritarias cercanas de un punto: el de la persona (Mi ubicación, yo = true) o uno buscado por
+// coordenadas. Devuelve {fuera, html}; quien llama pone el encabezado, sus avisos y sus botones.
+function zonaHtml(lon, lat, yo, aviso=''){
+  const w = whereAmI(lon, lat);
+  if (w.alc===null) return {fuera:true, html:`<h3>${yo? 'Estás fuera' : 'El punto está fuera'} de la Ciudad de México</h3><div class="empty-note"><b>La herramienta solo cubre las 16 alcaldías.</b> ${yo? 'Acércate a la ciudad o busca un territorio con el buscador.' : 'Revisa las coordenadas: primero va la latitud (19.xx) y después la longitud (−99.xx).'}</div>`};
   const col = w.col!==null? META.colonias[w.col] : null;
-  const nb = nearby(p.lon, p.lat);
-  const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">Junto a ti: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
-  const tit = respOn.alc && respOn.gc? 'Tramos prioritarios cerca de ti' : respOn.gc? 'Vialidades primarias prioritarias cerca de ti' : 'Calles prioritarias cerca de ti';
+  const nb = nearby(lon, lat);
+  const aqui = nb.any? (()=>{ const t = tramoLine(nb.any); return `<div class="loc-here">${yo? 'Junto a ti' : 'Junto al punto'}: <b>${t.nm}</b> · prioridad ${t.sub.split(' · ')[0]} · a ${distTxt(nb.any.d)}</div>`; })() : '';
+  const cerca = yo? 'cerca de ti' : 'cerca del punto'; const tit = respOn.alc && respOn.gc? 'Tramos prioritarios '+cerca : respOn.gc? 'Vialidades primarias prioritarias '+cerca : 'Calles prioritarias '+cerca;
   const items = nb.list.map(o=>{ const t = tramoLine(o); return `<li><button type="button" data-k="${o.k}" data-i="${o.i}"><span class="pr" data-st="background:rgb(${t.c[0]},${t.c[1]},${t.c[2]})"></span><span class="t"><b>${t.nm}</b><span class="m">${t.sub}</span></span><span class="d">${distTxt(o.d)}<br><span class="m">${rumbo(o.dx, o.dy)}</span></span></button></li>`; }).join('');
   const lista = nb.list.length? `${nb.R>300? `<div class="cardnote">No hay tramos prioritarios a menos de 300 m; estos son los más cercanos.</div>`:''}<ol class="loc-list">${items}</ol>`
-    : `<div class="empty-note"><b>No hay tramos prioritarios a menos de 1.5 km.</b> La zona donde estás no tiene frentes de prioridad Muy Alta, Alta o Media${respOn.gc && !respOn.alc? ' en vialidades primarias' : ''}.</div>`;
+    : `<div class="empty-note"><b>No hay tramos prioritarios a menos de 1.5 km.</b> La zona ${yo? 'donde estás' : 'del punto'} no tiene frentes de prioridad Muy Alta, Alta o Media${respOn.gc && !respOn.alc? ' en vialidades primarias' : ''}.</div>`;
+  return {fuera:false, html:`<h3>${yo? 'Estás en' : 'El punto está en'} ${col? col.n : 'una zona sin colonia identificada'}</h3><div class="sub">${META.munNames[w.alc]}${col && col.cp? ' · CP '+col.cp.padStart(5,'0') : ''}</div>`
+    + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista};
+}
+function locHtml(){
+  if (!myPos) return '';
+  const p = myPos;
+  const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
+  const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
+  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`;
   // con cualquier precisión se responde colonia y calles cercanas (en computadora la ubicación viene de la red y puede errar cientos de metros); el aviso dice cuánto confiar
   const aviso = p.acc > LOC_PRECISO? `<div class="empty-note"><b>Ubicación aproximada (±${fmt0.format(Math.round(p.acc))} m).</b> En computadora la ubicación se calcula por la red y puede no ser exacta: la colonia y las calles son las del punto que indica el navegador. Si no es tu zona, busca la colonia por su nombre.</div>`
     : p.acc>50? `<div class="empty-note"><b>Ubicación aproximada.</b> El GPS indica ±${fmt0.format(Math.round(p.acc))} m; al aire libre la precisión mejora. Confirma el tramo en la calle.</div>` : '';
-  return head + `<h3>Estás en ${col? col.n : 'una zona sin colonia identificada'}</h3><div class="sub">${META.munNames[w.alc]}${col && col.cp? ' · CP '+col.cp.padStart(5,'0') : ''}</div>`
-    + aviso + aqui + `<h4 class="loc-h">${tit}</h4>` + lista
-    + `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>` + privacy;
+  const z = zonaHtml(p.lon, p.lat, true, aviso);
+  return head + z.html + (z.fuera? '' : `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>`) + privacy;
 }
-function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes un mapa de fondo, su proveedor recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
+function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
 function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
@@ -130,3 +136,21 @@ function stopFollow(redraw){ locFollow = false; locBtn.classList.remove('follow'
 locBtn.onclick = ()=>{ if (locBtn.classList.contains('busy')) return; if (!myPos) locate(); else if (!locFollow) { locLastSel = null; locAuto = true; startFollow(); if (!(pinned && pinned.kind==='loc')) showLoc(); } else stopFollow(true); };
 // arrastrar el mapa suspende el seguimiento, como en las apps de mapas
 mapEl.addEventListener('pointermove', e=>{ if (locFollow && e.buttons && pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>12) stopFollow(true); });
+// ---------- punto buscado por coordenadas (buscador) ----------
+// La gente comparte ubicaciones por WhatsApp desde Google Maps: el buscador acepta esas coordenadas (leeCoordenadas en 14_buscador.js)
+// y responde como «Mi ubicación»: colonia, lo que hay junto al punto y las calles prioritarias cercanas. Las coordenadas no salen del navegador.
+const crd = (v, n=5)=> v.toFixed(n).replace('-', '−');
+function puntoHtml(){ const p = ptoBuscado; if (!p) return '';
+  const z = zonaHtml(p.lon, p.lat, false);
+  return `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:var(--guinda)"></i>Punto buscado · ${crd(p.lat)}, ${crd(p.lon)}</span>` + z.html
+    + `<div class="cardnote">Las coordenadas se buscan en este navegador; la herramienta no las envía ni las guarda.</div>`; }
+function irAPunto(lon, lat){
+  stopFollow(); ptoBuscado = {lon, lat}; const w = whereAmI(lon, lat);
+  if (w.alc!==null){ keepView = true;
+    if (!isGC() && w.col!==null){ if (selCol!==w.col) pickColonia(w.col); }
+    else if (sel!==w.alc || selCol!==null || selAv!==null){ selEl.value=String(w.alc); setSel(String(w.alc)); }
+    keepView = false;
+    flyTo({...viewState, longitude:lon, latitude:lat, zoom:Math.max(viewState.zoom, 17), bearing:0, pitch:0}, 900); }
+  rerender();
+  const c=$('card'); pinned={kind:'pto', i:0}; c.innerHTML = puntoHtml(); c.hidden=false;
+  c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); enfocaFicha(); }

@@ -63,9 +63,36 @@ function omniSearch(q){
   const expanded = norm(q).replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(t=>OMNI_AB[t] && OMNI_AB[t]!==t).map(t=>`«${t}» como «${OMNI_AB[t]}»`);
   R.qt = qt; R.why = [expanded.length? 'Se reconoció '+expanded.join(', ')+'.' : '', omniTypo? 'Incluye coincidencias aproximadas (una letra de diferencia).' : ''].filter(Boolean).join(' ');
   return R; }
+// Coordenadas pegadas en el buscador: decimales («19.3000, -99.1019», también con ; o al revés), grados-minutos-segundos
+// («19°14'29.7"N 98°59'59.1"W»), enlaces largos de Google Maps (…?q=lat,lon · …/@lat,lon,17z · …!3dlat!4dlon · ll=) y «geo:lat,lon».
+// Devuelve {lat, lon}, {corto:true} (enlace corto: no trae las coordenadas) o null.
+function leeCoordenadas(q){
+  const s = q.trim(); if (s.length<5) return null;
+  const par = (a, b)=>{ a=+a; b=+b; if (!isFinite(a) || !isFinite(b)) return null;
+    if (Math.abs(a)>90 && Math.abs(b)<=90) [a, b] = [b, a];                                   // longitud primero
+    if (a<-97 && a>-100.5 && b>18 && b<21) [a, b] = [b, a];                                   // en México, -99 es longitud
+    return Math.abs(a)<=90 && Math.abs(b)<=180? {lat:a, lon:b} : null; };
+  const N = '(-?\\d+(?:\\.\\d+)?)';
+  if (/(maps\.app\.goo\.gl|goo\.gl\/maps)\//i.test(s)) return {corto:true};
+  let m = s.match(new RegExp('!3d'+N+'!4d'+N)) || s.match(new RegExp('@'+N+','+N)) || s.match(new RegExp('[?&](?:q|query|ll|destination|center)='+N+'(?:,|%2C)\\s*'+N, 'i')) || s.match(new RegExp('^geo:'+N+','+N, 'i'));
+  if (m) return par(m[1], m[2]);
+  const g = [...s.matchAll(/(\d+(?:\.\d+)?)\s*°\s*(?:(\d+(?:\.\d+)?)\s*['′’]\s*)?(?:(\d+(?:\.\d+)?)\s*(?:["″”]|'')\s*)?([NSEOW])/gi)];
+  if (g.length===2){ const v = x=> (+x[1] + (+x[2]||0)/60 + (+x[3]||0)/3600) * (/[SWO]/i.test(x[4])? -1 : 1), esLat = x=> /[NS]/i.test(x[4]);
+    if (esLat(g[0])!==esLat(g[1])) return esLat(g[0])? par(v(g[0]), v(g[1])) : par(v(g[1]), v(g[0])); }
+  const D = '(-?\\d+\\.\\d+)';   // sueltos, con punto decimal: «19 99» o «10 20» son parte de una dirección, no coordenadas
+  m = s.match(new RegExp('^\\(?\\s*'+D+'\\s*(?:[,;]\\s*|\\s+)'+D+'\\s*\\)?$'));
+  return m? par(m[1], m[2]) : null; }
 function omniMark(name, qt){ return name.split(/(\s+)/).map(w=>{ const n=toks(w)[0]||''; return (n && qt.some(q=>tokScore(q,n)>=1.5))? `<mark>${w}</mark>` : w; }).join(''); }
 function omniRender(){
-  const R = omniSearch(omni.value); omniList.innerHTML=''; omniItems=[]; omniActive=-1;
+  omniList.innerHTML=''; omniItems=[]; omniActive=-1;
+  const co = leeCoordenadas(omni.value);
+  if (co){ const li=document.createElement('li');
+    if (co.corto){ li.className='empty'; li.textContent='Ese enlace corto no trae las coordenadas: ábrelo en Google Maps, toca el punto y copia los números que aparecen (por ejemplo, 19.3000, -99.1019).'; }
+    else { const w = whereAmI(co.lon, co.lat); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-0';
+      li.innerHTML = `<span class="ty">Punto</span><span class="nm">Ir a ${crd(co.lat)}, ${crd(co.lon)}</span><span class="m">${w.alc===null? 'Fuera de la Ciudad de México' : (w.col!==null? META.colonias[w.col].n+' · ' : '')+META.munNames[w.alc]}</span>`;
+      omniItems.push({t:'pto', ...co}); li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[0]); }; }
+    omniList.appendChild(li); omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
+  const R = omniSearch(omni.value);
   if (!R){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); return; }
   const groups = [['alc','Alcaldías'],['col','Colonias'],['av','Avenidas · Gobierno Central'],['st','Calles · alcaldías']].filter(([k])=>R[k].length).sort((a,b)=> R[b[0]][0].s - R[a[0]][0].s);
   if (!groups.length){ omniList.innerHTML = `<li class="empty">Sin coincidencias. Prueba con menos palabras o con otra forma del nombre.</li>`; omniList.hidden=false; omni.setAttribute('aria-expanded','true'); return; }
@@ -87,6 +114,8 @@ function omniSetActive(i){ const lis=[...omniList.querySelectorAll('li.opt')]; i
 function omniClose(){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); omni.removeAttribute('aria-activedescendant'); }
 function omniPick(it){
   omniClose(); omni.value=''; omniClear.hidden=true; omni.blur();
+  if (it.t==='pto'){ irAPunto(it.lon, it.lat); return; }
+  if (ptoBuscado){ ptoBuscado = null; rerender(); }
   if (it.t==='alc'){ if (isGC() && selAv!==null){ selAv=null; highlight=null; } selEl.value=String(it.i); setSel(String(it.i)); }
   else if (it.t==='col'){ pickColonia(it.i); }
   else if (it.t==='av'){ pickAvenida(it.a); }

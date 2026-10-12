@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.6 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.7 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -86,8 +86,8 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `11_descargas.js` | Exportación geográfica de las calles prioritarias (`geoDescarga`: KML y GeoJSON, mismos registros que los Excel de frentes y tramos). CSV y Excel con diccionario de datos; carga de librerías bajo demanda (de `libs/` en el sitio, de la copia incrustada en el archivo único) | `deliverTable`, `dictAoa`, `loadLib`, `libIncrustada`, `excelAparte` |
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |
 | `13_interfaz.js` | Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), hoja inferior en teléfono, pestañas, acciones fijas, ruta de navegación, entrada por territorio (`abreEntrada`) y leyenda compacta | `openInfo`, `closeInfo`, `setSheetState`, `setTab`, `renderActions`, `renderCrumb` |
-| `14_buscador.js` | Buscador único con abreviaturas y tolerancia a errores; nombre que distingue a las colonias homónimas de una alcaldía («parte k de n» o su CP), usado en archivos, fichas y «Ámbito consultado» | `omniIndex`, `omniSearch`, `omniPick`, `colNombre` |
-| `15_mi_ubicacion.js` | GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
+| `14_buscador.js` | Lee también coordenadas pegadas (decimales, grados-minutos-segundos y enlaces largos de Google Maps; `leeCoordenadas`) y las manda a `irAPunto` (15_mi_ubicacion.js). Buscador único con abreviaturas y tolerancia a errores; nombre que distingue a las colonias homónimas de una alcaldía («parte k de n» o su CP), usado en archivos, fichas y «Ámbito consultado» | `omniIndex`, `omniSearch`, `omniPick`, `colNombre` |
+| `15_mi_ubicacion.js` | La ficha de la zona (`zonaHtml`: colonia, lo que está junto y calles prioritarias cercanas) la comparten «Mi ubicación» y el punto buscado por coordenadas (`irAPunto`, marcador `pto-buscado`). GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
 | `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
 | `17_recorrido.js` | Recorrido guiado: velo, foco sobre cada control y globo con el texto; arranca solo la primera vez (después de la entrada, mediante `trasEntrada` de `13_interfaz.js`) y desde el botón de «Cómo funciona». El paso de Street View abre la ficha de un frente prioritario con nombre del ámbito. No arranca solo en las pruebas automáticas salvo que se pida (`window.SIA_RECORRIDO`) | `recorrido`, `recPaso`, `recColoca`, `recFin` |
 

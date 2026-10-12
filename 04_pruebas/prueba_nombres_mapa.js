@@ -1,6 +1,7 @@
 // Nombres del mapa y gestos: nombres de alcaldía y de colonia dentro de su figura, nombres de calle en medio de la calle,
 // juego de letras completo (con «Ñ» en mayúsculas), contraste de los nombres de colonia, nombres de calle al día después de un salto sin animación y
-// dedos «fantasma» que el mapa suelta. Lee el estado del mapa con window.__MAPA, que solo existe con window.SIA_PRUEBA.
+// dedos «fantasma» que el mapa suelta, y búsqueda por coordenadas (decimales, grados-minutos-segundos y enlaces de Google Maps).
+// Lee el estado del mapa con window.__MAPA, que solo existe con window.SIA_PRUEBA.
 // Uso: node 04_pruebas/prueba_nombres_mapa.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
 const ok = L.Registro('nombres del mapa');
@@ -57,6 +58,27 @@ const ok = L.Registro('nombres del mapa');
   const cont = await page.evaluate(() => { const p = window.__MAPA.capa('st-labels'); if (!p) return null; const f = p.fontSettings || {}, r = f.radius || 12, t = typeof p.getSize === 'number' ? p.getSize : 12;
     return { px: Math.min(1, p.outlineWidth / r) * r * 0.75 * t / (f.fontSize || 64), ancho: p.outlineWidth, radio: r }; });
   ok('los nombres de calle llevan contorno de 2 px o más, que tapa las líneas que los cruzan', cont && cont.px >= 2, JSON.stringify(cont));
+
+  // ---------- búsqueda por coordenadas ----------
+  const opcion = async q => { await page.fill('#omni', ''); await page.fill('#omni', q); await page.waitForTimeout(300);
+    return page.evaluate(() => [...document.querySelectorAll('#omni-list li')].map(l => l.className + ': ' + l.textContent.trim())); };
+  const deci = await opcion('19.300011294985545, -99.10193871074827');
+  ok('coordenadas decimales (como las de Google Maps): una sola opción «Ir a» con su colonia y alcaldía', deci.length === 1 && /^opt: Punto\s*Ir a 19\.30001, −99\.10194/.test(deci[0]) && !/Fuera/.test(deci[0]), deci.join(' | '));
+  await page.keyboard.press('Enter');
+  const punto = await hasta(page, () => { const c = document.getElementById('card'); return !c.hidden && /El punto está en/.test(c.textContent) && !!window.__MAPA.capa('pto-buscado'); });
+  const ficha = await page.evaluate(() => ({ h: (document.querySelector('#card h3') || {}).textContent, lista: document.querySelectorAll('#card .loc-list li').length, colonia: document.getElementById('scope-title').textContent }));
+  ok('al elegirla: marcador en el mapa, la colonia del punto queda consultada y la ficha dice las calles prioritarias cercanas', punto && ficha.lista > 0 && ficha.h.includes(ficha.colonia), JSON.stringify(ficha));
+  const gms = await opcion('19°14\'29.7"N 98°59\'59.1"W');
+  ok('grados, minutos y segundos (19°14\'29.7"N 98°59\'59.1"W)', gms.length === 1 && /Ir a 19\.24158, −98\.99975/.test(gms[0]), gms.join(' | '));
+  const liga = await opcion('https://www.google.com/maps/place/Z%C3%B3calo/@19.4326,-99.1332,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0x0!8m2!3d19.4326077!4d-99.133208');
+  ok('enlace largo de Google Maps: toma el punto marcado (!3d…!4d…)', liga.length === 1 && /Ir a 19\.43261, −99\.13321/.test(liga[0]) && /Cuauhtémoc/.test(liga[0]), liga.join(' | '));
+  const corto = await opcion('https://maps.app.goo.gl/AbCdEf123');
+  ok('enlace corto: explica cómo sacar las coordenadas, sin consultar a Google', corto.length === 1 && /^empty: Ese enlace corto no trae las coordenadas/.test(corto[0]), corto.join(' | '));
+  const fuera = await opcion('20.5881, -100.3899');
+  ok('un punto fuera de la Ciudad de México lo dice en la opción', fuera.length === 1 && /Fuera de la Ciudad de México/.test(fuera[0]), fuera.join(' | '));
+  const nombre = await opcion('5 de mayo');
+  ok('un nombre con números («5 de mayo») se sigue buscando como nombre', nombre.length > 0 && !nombre.some(t => /Ir a/.test(t)), nombre.slice(0, 2).join(' | '));
+  await page.fill('#omni', ''); await page.keyboard.press('Escape');
 
   // ---------- dedos «fantasma» ----------
   const dedos = await page.evaluate(async () => {

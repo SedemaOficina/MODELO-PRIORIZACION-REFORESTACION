@@ -23,6 +23,7 @@ let locSel = false;       // true mientras Mi ubicación cambia el ámbito por s
 let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
 const LOC_BLUE = hex(css('--loc')).slice(0,3);   // azul de Mi ubicación (variable --loc en 01_variables.css)
 let myPos = null;          // Mi ubicación: {lon, lat, acc, t}; nunca sale del teléfono
+let ptoBuscado = null;     // punto buscado por coordenadas: {lon, lat}; se marca en el mapa hasta otra búsqueda o al cerrar su ficha
 const munIndex = Object.fromEntries(META.muns.map((m,i)=>[m,i]));
 const isGC = ()=> resp==='gc';
 const showsFrontsMode = ()=> resp!=='gc';
