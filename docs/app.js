@@ -711,14 +711,14 @@ function vpHtml(i, compact){
   const c = T.prio[VP.prio[i]]; const rgb=`rgb(${c[0]},${c[1]},${c[2]})`;
   const nom = VPC.nomenclat[VP.nom[i]], nombre = VPC.nombres[VP.nombre[i]];
   if (compact){
-    if (resp==='alc') return `<b>${nom}</b><br><span class="m">Vialidad primaria · a cargo de Gobierno Central · ${nombre}</span>`;
-    return `<span class="pr" data-st="background:${rgb}"></span><b>${nom}</b><br><span class="m">${nombre} · ${VPC.tipos[VP.tipo[i]]} · ${fmt.format(VP.len[i])} m · Prioridad ${META.prio[VP.prio[i]]}</span>`;
+    if (resp==='alc') return `<b>${nom}</b><br><span class="m">Vialidad primaria · a cargo de Gobierno Central${redVisible(nombre)? ' · '+nombre : ''}</span>`;
+    return `<span class="pr" data-st="background:${rgb}"></span><b>${nom}</b><br><span class="m">${redVisible(nombre)? nombre+' · ' : ''}${VPC.tipos[VP.tipo[i]]} · ${fmt.format(VP.len[i])} m · Prioridad ${META.prio[VP.prio[i]]}</span>`;
   }
   const s = avStat(VP.nom[i]);
   return `<button class="close" aria-label="Cerrar">×</button>
     <span class="pill"><i data-st="background:${rgb}"></i>Prioridad ${META.prio[VP.prio[i]]}</span>
     <h3>${nom}</h3>
-    <div class="sub">${nombre} · ${META.munNames[VP.mun[i]]}</div>
+    <div class="sub">${redVisible(nombre)? nombre+' · ' : ''}${META.munNames[VP.mun[i]]}</div>
     <dl><dt>Quién atiende</dt><dd>Gobierno Central</dd>
     <dt>Tipo</dt><dd>${VPC.tipos[VP.tipo[i]]}</dd>
     <dt>Carriles</dt><dd>${VP.car[i]} · ${VPC.circula[VP.circ[i]].toLowerCase()}</dd>
@@ -791,7 +791,8 @@ for (const t of ['touchend', 'touchcancel']) addEventListener(t, e=>{ if (!e.tou
 addEventListener('blur', ()=>soltarDedos()); document.addEventListener('visibilitychange', ()=>{ if (document.hidden) soltarDedos(); });
 // Solo para las pruebas automáticas (04_pruebas/prueba_nombres_mapa.js): con window.SIA_PRUEBA se puede leer el estado del mapa.
 if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMapa(); return st? st.length : -1; }, etiquetas: ()=>({ALC, ALC_LABELS, COLS, COL_LABELS, charset}),
-  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0) };
+  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0),
+  clavesCalles: ()=>[...streetIdx.keys()], kmCalle: k=>{ const s=streetIdx.get(k); return s? s.km : null; }, tramosDe: k=>{ const s=streetIdx.get(k); return s? tramosDeCalle(s.idx).map(t=>({n:t.n, largo:t.largo, lados:t.lados, lado:t.lado||'', entre:entreTxt(t), texto:tramoTxt(t), m:t.m})) : null; } };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
   const r = mapEl.getBoundingClientRect(); const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});
@@ -1158,6 +1159,10 @@ function buildStreets(){
     const col=F.col[i]; const key = nid*4096 + col; let s=streetIdx.get(key); if(!s){ s={nid, col, idx:[],km:0,kmp:0,np:0,kp:[0,0,0,0,0],tipos:new Set(),cols:new Set()}; streetIdx.set(key,s); }
     s.idx.push(i); s.km+=F.len[i]/1000; s.kp[F.prio[i]]+=F.len[i]/1000; if(esPrio(F.prio[i])){ s.kmp+=F.len[i]/1000; s.np++; } s.tipos.add(META.tipos[F.tipo[i]]); if(col) s.cols.add(META.colonias[col].n); }
 }
+// Corredor de la red vial de una avenida, para mostrar: los «Ruta N» de la capa de vialidades primarias son una numeración interna
+// que no le dice nada a quien consulta. Se omiten en pantalla y en las fichas; en las descargas van completos, para cruzar con la capa.
+const redVisible = n => !!n && !/^ruta\s/i.test(String(n).trim());
+const redesTxt = (ns, max=2)=>{ const v=[...ns].filter(redVisible); return v.slice(0,max).join(', ') + (v.length>max? ' +'+(v.length-max) : ''); };
 let avIdx = null; // Map nomId -> {idx:[], km, kmp, recs:Set, recsp:Set, nombres:Set, muns:Set, tipos:Set}
 function buildAvenues(){
   avIdx = new Map();
@@ -1264,8 +1269,8 @@ function renderResults(){
     const total=items.length; items = items.slice(0, q.length>=2? 40 : 10);
     $('search-count').textContent = `${fmt.format(total)} avenida${total===1?'':'s'}${q.length>=2?'':' con km prioritarios'}`;
     if(!items.length){ ul.innerHTML = q.length>=2? `<li class="empty">Sin coincidencias${sel!==null?' en '+META.munNames[sel]:''}.</li>` : '<li class="empty">Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta, Alta o Media).</li>'; return; }
-    for(const [a,s] of items){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button'); const nb=[...s.nombres]; const ms=[...s.muns];
-      li.innerHTML = `<div><div class="n">${VPC.nomenclat[a]}</div><div class="t">${nb.slice(0,2).join(', ')}${nb.length>2?' +'+(nb.length-2):''}${sel===null? ' · '+ms.slice(0,2).map(m=>META.munNames[m]).join(', ')+(ms.length>2?' +'+(ms.length-2):''):''}</div></div>
+    for(const [a,s] of items){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button'); const ms=[...s.muns];
+      li.innerHTML = `<div><div class="n">${VPC.nomenclat[a]}</div><div class="t">${[redesTxt(s.nombres), sel===null? ms.slice(0,2).map(m=>META.munNames[m]).join(', ')+(ms.length>2?' +'+(ms.length-2):'') : ''].filter(Boolean).join(' · ')}</div></div>
         <div class="k">${kmFull(s.kmp)}<small>${s.recsp.size} de ${s.recs.size} tramos de la avenida son prioritarios</small></div>`;
       if (selAv===a) li.classList.add('active');
       const go=()=>pickAvenida(a); li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
@@ -1342,7 +1347,7 @@ function renderInicio(){
     const items=[...avIdx].filter(x=>x[1].kmp>0).sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km); total=items.length;
     cnt.textContent = `${fmt.format(total)} avenida${total===1?'':'s'} con km prioritarios`;
     if(!total) return vacio('Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta, Alta o Media).');
-    items.slice(0,iniN).forEach(([a,s],i)=> ul.appendChild(iniFila(i+1, VPC.nomenclat[a], [...s.nombres].slice(0,2).join(', '), kmFull(s.kmp), `${s.recsp.size} de ${s.recs.size} tramos son prioritarios`, ()=>pickAvenida(a))));
+    items.slice(0,iniN).forEach(([a,s],i)=> ul.appendChild(iniFila(i+1, VPC.nomenclat[a], redesTxt(s.nombres), kmFull(s.kmp), `${s.recsp.size} de ${s.recs.size} tramos son prioritarios`, ()=>pickAvenida(a))));
   } else if (selCol!==null){
     tit.textContent = `Calles de ${META.colonias[selCol].n} por atender primero`; nota.textContent = 'Calles de la colonia ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media). Selecciona una calle para ubicarla en el mapa.';
     const items=[...streetIdx].filter(x=>x[1].kmp>0 && META.names[x[1].nid]).sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km); total=items.length;
@@ -1374,7 +1379,7 @@ $('ini-list').addEventListener('keydown', e=>{ const li=e.target; if (li.matches
 // a partir de la geometría de los frentes; no cambia los datos ni el catálogo.
 // Regla: dos frentes de la misma calle forman un tramo cuando son casi paralelos (≤ 30°), están en lados opuestos
 // a no más de TR_ANCHO metros y se traslapan a lo largo de la calle. Es una aproximación geométrica: se verifica en campo.
-const TR_ANCHO = 45, TR_COS = Math.cos(30*Math.PI/180), TR_ESQ = 28;
+const TR_ANCHO = 45, TR_COS = Math.cos(30*Math.PI/180), TR_ESQ = 28, TR_JUNTA = 60;
 const trXY = (k, c) => [POS[2*k]*111320*c, POS[2*k+1]*110540];   // grados → metros (proyección local)
 function trFrente(i, c){ const a = trXY(start[i], c), b = trXY(start[i+1]-1, c); let dx=b[0]-a[0], dy=b[1]-a[1]; const L=Math.hypot(dx,dy)||1; dx/=L; dy/=L;
   return {i, a, b, m:[(a[0]+b[0])/2,(a[1]+b[1])/2], d:[dx,dy], L}; }
@@ -1421,12 +1426,39 @@ function tramosDeCalle(idx){
     const cm = g.reduce((a,f)=>[a[0]+f.m[0]/g.length, a[1]+f.m[1]/g.length],[0,0]);
     let ca = trCruce(pmin, c, nid, ref.d), cb = trCruce(pmax, c, nid, ref.d);
     const pos = cm[0]*ex+cm[1]*ey; if ((pmax[0]-pmin[0])*ex+(pmax[1]-pmin[1])*ey < 0){ const t=ca; ca=cb; cb=t; }
-    out.push({idx:g.map(f=>f.i), m, largo:Math.round(tmax-tmin), lados, km, entre:[ca,cb], bounds:[w,s,e,nn], pos}); }
-  out.sort((a,b)=>a.pos-b.pos); out.forEach((t,k)=>{ t.n=k+1; }); return out;
+    // a lo largo de la calle y de lado: sobre el eje general (pos, a0–a1) y su perpendicular (off)
+    let a0=Infinity, a1=-Infinity, off=0; for(const f of g){ for(const p of [f.a,f.b]){ const t=(p[0]-e0[0])*ex+(p[1]-e0[1])*ey; if(t<a0) a0=t; if(t>a1) a1=t; } off += ((f.m[0]-e0[0])*-ey + (f.m[1]-e0[1])*ex)/g.length; }
+    out.push({idx:g.map(f=>f.i), m, largo:Math.round(tmax-tmin), lados, km, entre:[ca,cb], bounds:[w,s,e,nn], pos, a0, a1, off}); }
+  out.sort((a,b)=>a.pos-b.pos);
+  // lado de cada tramo de un solo lado, respecto del centro local de la calle (promedio de los frentes a ±80 m): poniente u oriente, norte o sur
+  const offs = fr.map(f=>[(f.m[0]-e0[0])*ex+(f.m[1]-e0[1])*ey, (f.m[0]-e0[0])*-ey+(f.m[1]-e0[1])*ex]);
+  for(const t of out){ t.ladoS = 0; if (t.lados!==1) continue; let sm=0, nm=0; for(const [al, o] of offs) if (Math.abs(al-t.pos)<=80){ sm+=o; nm++; }
+    const d = t.off - (nm? sm/nm : t.off); if (Math.abs(d) >= 3) t.ladoS = Math.sign(d); }
+  const cardinal = sg=>{ const vx=-ey*sg, vy=ex*sg; return Math.abs(vy)>=Math.abs(vx)? (vy>0? 'norte' : 'sur') : (vx>0? 'oriente' : 'poniente'); };
+  const junta = (a, b)=>{ a.idx.push(...b.idx); a.km = a.km.map((v,k)=>v+b.km[k]); a.pos = (a.pos*a.m + b.pos*b.m)/(a.m+b.m); a.m += b.m;
+    a.bounds = [Math.min(a.bounds[0],b.bounds[0]), Math.min(a.bounds[1],b.bounds[1]), Math.max(a.bounds[2],b.bounds[2]), Math.max(a.bounds[3],b.bounds[3])];
+    a.a0 = Math.min(a.a0, b.a0); a.a1 = Math.max(a.a1, b.a1); a.largo = Math.round(Math.max(a.largo, b.largo, a.a1-a.a0)); };
+  // 1. pedazo de esquina: un tramo de menos de TR_JUNTA m con la misma calle en sus dos extremos («a la altura de X») se junta con
+  //    el tramo vecino que también llega a X
+  for(let k=0;k<out.length;k++){ const t=out[k], x=t.entre[0]; if (x===null || x!==t.entre[1] || t.largo>=TR_JUNTA) continue;
+    const v = [out[k-1], out[k+1]].filter(u=>u && u.entre.includes(x)).sort((u,w)=>Math.abs(u.pos-t.pos)-Math.abs(w.pos-t.pos))[0];
+    if (v){ if (t.lados===2 || (v.ladoS && t.ladoS && v.ladoS!==t.ladoS)){ v.lados=2; v.ladoS=0; } junta(v, t); out.splice(k,1); k--; } }
+  // 2. los dos lados de una misma cuadra que no se emparejaron (frentes desfasados): tramos seguidos, de un lado cada uno, en lados
+  //    opuestos, con el mismo «entre» y a menos de TR_JUNTA m, se juntan en uno de dos lados
+  for(let k=0;k+1<out.length;k++){ const a=out[k], b=out[k+1];
+    if (a.lados===1 && b.lados===1 && a.ladoS && b.ladoS && a.ladoS!==b.ladoS && a.entre[0]===b.entre[0] && a.entre[1]===b.entre[1] && Math.abs(a.pos-b.pos)<TR_JUNTA){
+      junta(a, b); a.lados=2; a.ladoS=0; out.splice(k+1,1); k--; } }
+  // 3. si dos tramos todavía dicen lo mismo, se distinguen por su lado y, si no basta, con un número
+  const cuenta = f=>{ const c=new Map(); for(const t of out) c.set(f(t), (c.get(f(t))||0)+1); return c; };
+  let c1 = cuenta(entreTxt); for(const t of out) t.lado = c1.get(entreTxt(t))>1 && t.ladoS? cardinal(t.ladoS) : '';
+  const c2 = cuenta(tramoTxt), vistos = new Map(); for(const t of out){ const x=tramoTxt(t); if (c2.get(x)>1){ const j=(vistos.get(x)||0)+1; vistos.set(x,j); t.orden=`${j} de ${c2.get(x)}`; } }
+  out.forEach((t,k)=>{ t.n=k+1; }); return out;
 }
 // texto «entre A y B» de un tramo
 function entreTxt(t){ const a = t.entre[0]!==null? META.names[t.entre[0]] : null, b = t.entre[1]!==null? META.names[t.entre[1]] : null;
   return a && b? (a===b? `a la altura de ${a}` : `entre ${a} y ${b}`) : (a||b)? `desde ${a||b}` : 'sin cruce identificado'; }
+// texto de un tramo: «entre A y B» y, si hace falta distinguirlo de otro, su lado o su número entre los que dicen lo mismo
+function tramoTxt(t){ return entreTxt(t) + (t.lado? ' · lado '+t.lado : '') + (t.orden? ' · '+t.orden : ''); }
 let TR_SEL = null;   // tramos de la calle consultada: {key, idx, lista}. La misma calle trae otros frentes en otro ámbito: se compara también el arreglo
 function tramosSel(){ const c = calleSel(); if (!c){ TR_SEL=null; return null; } const key = highlight.nameId; if (!TR_SEL || TR_SEL.key!==key || TR_SEL.idx!==c.idx) TR_SEL = {key, idx:c.idx, lista:tramosDeCalle(c.idx)}; return TR_SEL.lista; }
 // número de tramo de cada frente de la calle consultada (para el Excel)
@@ -1438,7 +1470,7 @@ function renderTramos(){
   box.hidden = false;
   box.innerHTML = `<div class="section-title"><h2>Tramos de ${c.nombre}</h2><span>${l.length} tramo${l.length===1?'':'s'} · predominante ${META.prio[d]}</span></div>
     <ol class="tramos">${l.map(t=>{ const pd = dom({km:t.km}); const partes=[]; for(let p=4;p>=0;p--) if(t.km[p]>0) partes.push(`<span><i data-st="background:var(--p${p})"></i>${META.prio[p]} ${kmFull(t.km[p])}</span>`);
-      return `<li tabindex="0" role="button" data-t="${t.n-1}"><b>${t.n}</b><div><div class="n">${entreTxt(t)}</div><div class="desg">${partes.join('')}</div><div class="t">${fmt.format(t.largo)} m de calle · ${t.lados===2? 'dos lados' : 'un lado'} · ${t.idx.length} frente${t.idx.length===1?'':'s'}${partes.length>1? ' · predominante '+META.prio[pd] : ''}</div></div></li>`; }).join('')}</ol>
+      return `<li tabindex="0" role="button" data-t="${t.n-1}"><b>${t.n}</b><div><div class="n">${tramoTxt(t)}</div><div class="desg">${partes.join('')}</div><div class="t">${fmt.format(t.largo)} m de calle · ${t.lados===2? 'dos lados' : 'un lado'} · ${t.idx.length} frente${t.idx.length===1?'':'s'}${partes.length>1? ' · predominante '+META.prio[pd] : ''}</div></div></li>`; }).join('')}</ol>
     <p class="note">Un tramo va de esquina a esquina y reúne los frentes de sus dos lados. Se arma con una regla geométrica a partir de los frentes de manzana; las vialidades que lo delimitan son las más cercanas a sus extremos y deben confirmarse en campo. Selecciona un tramo para ubicarlo en el mapa y abrir la ficha de su frente de mayor prioridad.</p>`;
   box.querySelectorAll('li').forEach(li=>{ const go=()=>{ const t=l[+li.dataset.t]; const pad=0.0008; const vs=fitTo([t.bounds[0]-pad,t.bounds[1]-pad,t.bounds[2]+pad,t.bounds[3]+pad], 60); vs.zoom=Math.min(vs.zoom, 17.5);
       box.querySelectorAll('li').forEach(x=>x.classList.remove('active')); li.classList.add('active'); collapseSheet(); flyTo(vs, 800);
@@ -1468,7 +1500,7 @@ function renderAvInfo(){
   const box=$('avinfo'); if (selAv===null){ box.hidden=true; return; }
   const s=avStat(selAv); const d=dom({km:s.kmByP}); const pc=T.prio[d];
   const vsA = vpSumm(); const kmA = sum(vsA.km), kmpA = kmPrio(vsA);
-  box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b> (${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad)<br>Red vial: ${[...s.nombres].join(', ')} · ${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta, Alta o Media)':''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
+  box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b> (${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad)<br>${redesTxt(s.nombres, 9)? 'Red vial: '+redesTxt(s.nombres, 9)+' · ' : ''}${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta, Alta o Media)':''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
 }
 let keepView = false;
 // Anuncio para lectores de pantalla: al cambiar la consulta se dice el ámbito y su cifra principal.
@@ -1793,7 +1825,7 @@ $('dl-calle').onclick = ()=>{
   const rows=[['id_frente','prioridad','vialidad','tipo_vialidad','quien_atiende','colonia','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','tramo','tramo_entre','lat','lon']];
   const tr = tramoDeFrente(); const nt = i => tr.has(i)? tr.get(i).n : 0;
   const idx=[...c.idx].sort((a,b)=> nt(a)-nt(b) || F.prio[b]-F.prio[a]);
-  for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([i, META.prio[F.prio[i]], nomFrente(i), META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.n? (k.pob||0) : '', k.n? (k.nbi||0) : '', META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], nt(i)||'', tr.has(i)? entreTxt(tr.get(i)) : '', num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
+  for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([i, META.prio[F.prio[i]], nomFrente(i), META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.n? (k.pob||0) : '', k.n? (k.nbi||0) : '', META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], nt(i)||'', tr.has(i)? tramoTxt(tr.get(i)) : '', num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
   deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${banqSlug()}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]]);
 };
@@ -1918,7 +1950,7 @@ function fichaPDF(kind){
   const sub = isCol? `${META.munNames[munIndex[c.m]]}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${c.pob? ' · '+fmt.format(c.pob)+' habitantes (Censo 2020)':''}`
     : isAlc? `Ciudad de México · ${fmt.format(ntot)} frentes de manzana a cargo de la alcaldía · ${fmt0.format(tot)} km de frentes`
     : isVpAlc? `Ciudad de México · ${fmt.format(ntot)} tramos de vialidad primaria a cargo del Gobierno Central · ${fmt0.format(tot)} km`
-    : `${[...av.nombres].join(', ')} · ${[...av.muns].map(m=>META.munNames[m]).join(', ')} · ${fmt1.format(tot)} km · ${fmt.format(ntot)} tramos`;
+    : `${redesTxt(av.nombres, 9)? redesTxt(av.nombres, 9)+' · ' : ''}${[...av.muns].map(m=>META.munNames[m]).join(', ')} · ${fmt1.format(tot)} km · ${fmt.format(ntot)} tramos`;
   // con filtro de banqueta las cifras de la ficha son las filtradas: el subtítulo lo dice primero, para que no se corte
   const subB = (isCol||isAlc) && filtroBanq!=='todas'? (filtroBanq==='con'? 'Solo con banqueta (INEGI 2020) · ' : 'Solo sin banqueta o por verificar (INEGI 2020) · ') : '';
   doc.text(cortaTxt(doc, subB + sub, W-2*M), M, 44);
@@ -2016,7 +2048,7 @@ function fichaPDF(kind){
     const per=new Map(); for(let i=0;i<NV;i++){ if(VP.mun[i]!==sel) continue; const a=VP.nom[i]; let s=per.get(a); if(!s){ s={km:[0,0,0,0,0],recs:new Set(),recsp:new Set(),nombres:new Set(),tipos:new Set()}; per.set(a,s); } const k=VP.len[i]/1000; s.km[VP.prio[i]]+=k; s.recs.add(VP.rec[i]); if(esPrio(VP.prio[i])) s.recsp.add(VP.rec[i]); s.nombres.add(VPC.nombres[VP.nombre[i]]); s.tipos.add(VPC.tipos[VP.tipo[i]]); }
     const items=[...per.entries()].filter(([a,s])=>kmPrio(s)>0).sort((a,b)=>kmPrio(b[1])-kmPrio(a[1]));
     cols=[[M,'Vialidad'],[M+70,'Red vial'],[M+108,'Predominante'],[M+134,'Km prior.'],[M+158,'Tramos prior.']];
-    rows = items.slice(0,14).map(([a,s])=>[VPC.nomenclat[a], [...s.nombres].slice(0,2).join(', '), META.prio[dom(s)], f2.format(kmPrio(s)), `${s.recsp.size} de ${s.recs.size}`]);
+    rows = items.slice(0,14).map(([a,s])=>[VPC.nomenclat[a], redesTxt(s.nombres), META.prio[dom(s)], f2.format(kmPrio(s)), `${s.recsp.size} de ${s.recs.size}`]);
   } else {
     doc.text('TRAMOS DE LA AVENIDA POR ALCALDÍA QUE CRUZA', M, y);
     const per=new Map(); for(let i=0;i<NV;i++){ if(VP.nom[i]!==selAv) continue; const m=VP.mun[i]; let s=per.get(m); if(!s){ s={km:[0,0,0,0,0],recs:new Set(),recsp:new Set()}; per.set(m,s); } const k=VP.len[i]/1000; s.km[VP.prio[i]]+=k; s.recs.add(VP.rec[i]); if(esPrio(VP.prio[i])) s.recsp.add(VP.rec[i]); }
@@ -2111,7 +2143,7 @@ function fichaCallePDF(){
   let items, cols, rows;
   if (trs){ doc.text('TRAMOS DE LA CALLE, DE ESQUINA A ESQUINA', M, y); items = trs;
     cols=[[M,'Tramo'],[M+13,'Ubicación'],[M+104,'Metros de calle'],[M+130,'Lados'],[M+144,'Predominante'],[M+168,'Km prior.']];
-    rows = items.slice(0,14).map(t=>[t.n, entreTxt(t), fmt.format(t.largo), t.lados, META.prio[dom({km:t.km})], f2.format(sumPrio(t.km))]);
+    rows = items.slice(0,14).map(t=>[t.n, tramoTxt(t), fmt.format(t.largo), t.lados, META.prio[dom({km:t.km})], f2.format(sumPrio(t.km))]);
   } else { doc.text('LA CALLE POR COLONIA', M, y);
     items=[...porCol.entries()].sort((a,b2)=>b2[1].kmp-a[1].kmp || b2[1].km-a[1].km);
     cols=[[M,'Colonia'],[M+70,'Prioridad de la colonia'],[M+112,'Km de frente'],[M+138,'Km prior.'],[M+160,'Frentes prior.']];
@@ -2382,7 +2414,7 @@ function omniRender(){
     for (const it of R[k]){ const li=document.createElement('li'); li.className='opt'; li.setAttribute('role','option'); li.setAttribute('aria-selected','false'); li.id='om-'+omniItems.length; let html='';
       if (it.t==='alc'){ const d=domOf(it.i); html = `<span class="ty">Alc</span><span class="nm">${omniMark(META.munNames[it.i], R.qt)}</span><span class="k">${kmFull(kmPrio(summOf(it.i)))} prior.</span><span class="m">Prioridad predominante ${META.prio[d]}</span>`; }
       else if (it.t==='col'){ const c=META.colonias[it.i]; const pt=I.part.get(it.i); html = `<span class="ty">Col</span><span class="nm">${omniMark(c.n, R.qt)}${pt? ` <small>· parte ${pt[0]} de ${pt[1]}</small>`:''}</span><span class="k">${c.p>=0? META.prio[c.p] : '—'}</span><span class="m">${META.munNames[munIndex[c.m]]}${c.cp? ' · CP '+c.cp.padStart(5,'0'):''}${it.via? ` · coincide con su unidad territorial: ${it.via}`:''}</span>`; }
-      else if (it.t==='av'){ const s=avStat(it.a); html = `<span class="ty">Av</span><span class="nm">${omniMark(VPC.nomenclat[it.a], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${[...s.nombres].slice(0,2).join(', ')} · cruza ${s.muns.size} alcaldía${s.muns.size===1?'':'s'}${it.via? ` · coincide con la red vial ${it.via}`:''}</span>`; }
+      else if (it.t==='av'){ const s=avStat(it.a); html = `<span class="ty">Av</span><span class="nm">${omniMark(VPC.nomenclat[it.a], R.qt)}</span><span class="k">${kmFull(s.kmp)} prior.</span><span class="m">${redesTxt(s.nombres)? redesTxt(s.nombres)+' · ' : ''}cruza ${s.muns.size} alcaldía${s.muns.size===1?'':'s'}${it.via? ` · coincide con la red vial ${it.via}`:''}</span>`; }
       else { const s=I.stStat.get(it.nid); const cols = it.col? [it.col] : [...s.cols.keys()].filter(Boolean); const one = cols.length===1;
         html = `<span class="ty">Calle</span><span class="nm">${omniMark(META.names[it.nid], R.qt)}</span><span class="k">${kmFull(it.col? s.cols.get(it.col) : s.kmp)} prior.</span><span class="m">${one? META.colonias[cols[0]].n+' · '+META.munNames[it.col? munIndex[META.colonias[it.col].m] : [...s.muns][0]] : `${fmt.format(cols.length)} calles con este nombre en ${s.muns.size===1? 'distintas colonias' : fmt.format(s.muns.size)+' alcaldías'} · elige dónde en el listado`}</span>`; }
       li.innerHTML = html; const n=omniItems.length; omniItems.push(it);

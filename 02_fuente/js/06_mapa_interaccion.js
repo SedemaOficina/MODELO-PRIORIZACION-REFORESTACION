@@ -35,7 +35,8 @@ for (const t of ['touchend', 'touchcancel']) addEventListener(t, e=>{ if (!e.tou
 addEventListener('blur', ()=>soltarDedos()); document.addEventListener('visibilitychange', ()=>{ if (document.hidden) soltarDedos(); });
 // Solo para las pruebas automáticas (04_pruebas/prueba_nombres_mapa.js): con window.SIA_PRUEBA se puede leer el estado del mapa.
 if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMapa(); return st? st.length : -1; }, etiquetas: ()=>({ALC, ALC_LABELS, COLS, COL_LABELS, charset}),
-  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0) };
+  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0),
+  clavesCalles: ()=>[...streetIdx.keys()], kmCalle: k=>{ const s=streetIdx.get(k); return s? s.km : null; }, tramosDe: k=>{ const s=streetIdx.get(k); return s? tramosDeCalle(s.idx).map(t=>({n:t.n, largo:t.largo, lados:t.lados, lado:t.lado||'', entre:entreTxt(t), texto:tramoTxt(t), m:t.m})) : null; } };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
   const r = mapEl.getBoundingClientRect(); const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});

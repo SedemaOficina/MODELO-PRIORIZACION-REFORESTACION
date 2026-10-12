@@ -36,14 +36,14 @@ function vpHtml(i, compact){
   const c = T.prio[VP.prio[i]]; const rgb=`rgb(${c[0]},${c[1]},${c[2]})`;
   const nom = VPC.nomenclat[VP.nom[i]], nombre = VPC.nombres[VP.nombre[i]];
   if (compact){
-    if (resp==='alc') return `<b>${nom}</b><br><span class="m">Vialidad primaria · a cargo de Gobierno Central · ${nombre}</span>`;
-    return `<span class="pr" data-st="background:${rgb}"></span><b>${nom}</b><br><span class="m">${nombre} · ${VPC.tipos[VP.tipo[i]]} · ${fmt.format(VP.len[i])} m · Prioridad ${META.prio[VP.prio[i]]}</span>`;
+    if (resp==='alc') return `<b>${nom}</b><br><span class="m">Vialidad primaria · a cargo de Gobierno Central${redVisible(nombre)? ' · '+nombre : ''}</span>`;
+    return `<span class="pr" data-st="background:${rgb}"></span><b>${nom}</b><br><span class="m">${redVisible(nombre)? nombre+' · ' : ''}${VPC.tipos[VP.tipo[i]]} · ${fmt.format(VP.len[i])} m · Prioridad ${META.prio[VP.prio[i]]}</span>`;
   }
   const s = avStat(VP.nom[i]);
   return `<button class="close" aria-label="Cerrar">×</button>
     <span class="pill"><i data-st="background:${rgb}"></i>Prioridad ${META.prio[VP.prio[i]]}</span>
     <h3>${nom}</h3>
-    <div class="sub">${nombre} · ${META.munNames[VP.mun[i]]}</div>
+    <div class="sub">${redVisible(nombre)? nombre+' · ' : ''}${META.munNames[VP.mun[i]]}</div>
     <dl><dt>Quién atiende</dt><dd>Gobierno Central</dd>
     <dt>Tipo</dt><dd>${VPC.tipos[VP.tipo[i]]}</dd>
     <dt>Carriles</dt><dd>${VP.car[i]} · ${VPC.circula[VP.circ[i]].toLowerCase()}</dd>

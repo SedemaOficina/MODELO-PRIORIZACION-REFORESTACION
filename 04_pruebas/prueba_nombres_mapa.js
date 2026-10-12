@@ -59,6 +59,15 @@ const ok = L.Registro('nombres del mapa');
     return { px: Math.min(1, p.outlineWidth / r) * r * 0.75 * t / (f.fontSize || 64), ancho: p.outlineWidth, radio: r }; });
   ok('los nombres de calle llevan contorno de 2 px o más, que tapa las líneas que los cruzan', cont && cont.px >= 2, JSON.stringify(cont));
 
+  // ---------- tramos de las calles ----------
+  const tr = await page.evaluate(() => { const M = window.__MAPA, ks = M.clavesCalles(); let calles = 0, tramos = 0, dup = 0, kmMal = 0, esquinas = 0;
+    for (let j = 0; j < ks.length; j += 4) { const ts = M.tramosDe(ks[j]); if (!ts || !ts.length) continue; calles++; tramos += ts.length;
+      const vistos = new Set(); for (const t of ts){ if (vistos.has(t.texto)) dup++; vistos.add(t.texto); if (/^a la altura de/.test(t.entre) && t.largo < 60 && ts.length > 1) esquinas++; }
+      if (Math.abs(ts.reduce((a, t) => a + t.m, 0) / 1000 - M.kmCalle(ks[j])) > 1e-6) kmMal++; }
+    return { calles, tramos, dup, kmMal, esquinas }; });
+  ok('tramos: ninguna calle repite el texto de un tramo («entre A y B», su lado o su número)', tr.calles > 5000 && tr.dup === 0, JSON.stringify(tr));
+  ok('tramos: al juntar pedazos de esquina y lados sin emparejar, los km de cada calle no cambian', tr.kmMal === 0, JSON.stringify(tr));
+
   // ---------- búsqueda por coordenadas ----------
   const opcion = async q => { await page.fill('#omni', ''); await page.fill('#omni', q); await page.waitForTimeout(300);
     return page.evaluate(() => [...document.querySelectorAll('#omni-list li')].map(l => l.className + ': ' + l.textContent.trim())); };
@@ -78,6 +87,10 @@ const ok = L.Registro('nombres del mapa');
   ok('un punto fuera de la Ciudad de México lo dice en la opción', fuera.length === 1 && /Fuera de la Ciudad de México/.test(fuera[0]), fuera.join(' | '));
   const nombre = await opcion('5 de mayo');
   ok('un nombre con números («5 de mayo») se sigue buscando como nombre', nombre.length > 0 && !nombre.some(t => /Ir a/.test(t)), nombre.slice(0, 2).join(' | '));
+  const av = await opcion('Avenida Tlahuac');
+  ok('avenidas: el corredor «Ruta N» de la capa (numeración interna) no se muestra', av.some(t => /Avenida Tláhuac/.test(t)) && !av.some(t => /Ruta \d/.test(t)), av.slice(0, 3).join(' | '));
+  const ru = await opcion('Ruta 35');
+  ok('avenidas: escribir «Ruta 35» sigue encontrando sus avenidas', ru.some(t => /coincide con la red vial Ruta 35/.test(t)), ru.slice(0, 3).join(' | '));
   await page.fill('#omni', ''); await page.keyboard.press('Escape');
 
   // ---------- dedos «fantasma» ----------

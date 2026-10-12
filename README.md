@@ -72,13 +72,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla le corresponde a quien administra la cuenta.
 
-## Estado al 12 de octubre de 2026 (versión 1.7)
+## Estado al 12 de octubre de 2026 (versión 1.8)
 
-- Versión vigente: **v1.7**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.8**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.8 | Tramos de calle: los pedazos de esquina (menos de 60 m, «a la altura de» una calle) se juntan con el tramo vecino y los dos lados de una cuadra que no se emparejaron se juntan en uno de dos lados; lo que aún se repita se distingue por lado (poniente, oriente, norte o sur) o número. En toda la ciudad: de 144,534 a 138,218 tramos y ningún texto repetido dentro de una calle (antes, en 5,544 calles); los km de cada calle no cambian. Avenidas: el corredor «Ruta N» de la capa de vialidades primarias (numeración interna) ya no se muestra en pantalla ni en las fichas; sigue en las descargas y en el buscador. Texto del buscador: «Colonia, calle, coordenadas o enlace» (cabe en teléfonos de 360 px). |
 | 1.7 | Búsqueda por coordenadas: el buscador acepta coordenadas decimales (19.3000, -99.1019; también con punto y coma o al revés), grados-minutos-segundos (19°14'29.7"N 98°59'59.1"W) y enlaces largos de Google Maps (como los que se comparten por WhatsApp). Marca el punto y responde como «Mi ubicación»: colonia, lo que está junto al punto y las calles prioritarias cercanas. Los enlaces cortos (maps.app.goo.gl) no traen las coordenadas: se explica cómo obtenerlas, sin consultar a Google. El aviso de privacidad de «Mi ubicación» ahora nombra solo al satélite como proveedor externo. |
 | 1.6 | Contraste de los nombres del mapa de lejos: contorno blanco de unos 2.3 px (antes 0.8 px) alrededor de cada nombre de calle, colonia y alcaldía, que tapa las líneas de prioridad que lo cruzan. Bajo los nombres, el color de las líneas Alta y Muy Alta pasa de 3.0 % a 0.6 % de la caja (Iztapalapa, zoom 15.2). |
 | 1.5 | La herramienta abre con el fondo propio «Calles»: las calles se ven desde el principio. De lejos solo pide parques, ANP y agua (143 KB, que el navegador guarda para abrir sin conexión); las manzanas, al acercarse. «Reiniciar» vuelve a ese fondo. El archivo único, que no trae los datos del fondo, abre sin fondo. |
