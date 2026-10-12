@@ -20,18 +20,21 @@ function trCruce(pt, c, nid, d){ const G = trGrid(); const lon = pt[0]/(111320*c
       if (Math.abs(f.d[0]*d[0]+f.d[1]*d[1]) > TR_COS) continue;
       const dist = Math.min(Math.hypot(f.a[0]-pt[0], f.a[1]-pt[1]), Math.hypot(f.b[0]-pt[0], f.b[1]-pt[1])); if (dist<bd){ bd=dist; best=nj; } } }
   return best; }
+// ¿B está enfrente de A? Casi paralelos (≤ 30°), a 2–TR_ANCHO m en perpendicular y con traslape de al menos min(15 m, 30 % del
+// menor) sobre el eje de A. Devuelve las posiciones de los extremos de B sobre ese eje y el traslape [lo, hi], o null.
+// La usan los tramos y los nombres de calle (04_mapa_capas.js).
+function trEnfrente(A, B){
+  if (Math.abs(A.d[0]*B.d[0]+A.d[1]*B.d[1]) < TR_COS) return null;
+  const rx=B.m[0]-A.m[0], ry=B.m[1]-A.m[1]; const perp = Math.abs(rx*A.d[1]-ry*A.d[0]); if (perp > TR_ANCHO || perp < 2) return null;
+  const t1=(B.a[0]-A.a[0])*A.d[0]+(B.a[1]-A.a[1])*A.d[1], t2=(B.b[0]-A.a[0])*A.d[0]+(B.b[1]-A.a[1])*A.d[1];
+  const lo = Math.max(0, Math.min(t1,t2)), hi = Math.min(A.L, Math.max(t1,t2)); if (hi-lo < Math.min(15, 0.3*Math.min(A.L,B.L))) return null;
+  return {t1, t2, lo, hi}; }
 // tramos de una calle: recibe los índices de sus frentes y devuelve [{n, idx, m, lados, km:[5], entre:[a,b], bounds}] ordenados a lo largo de la calle
 function tramosDeCalle(idx){
   if (!idx.length) return [];
   const c = Math.cos(POS[2*start[idx[0]]+1]*Math.PI/180); const fr = idx.map(i=>trFrente(i, c)); const n = fr.length;
   const par = fr.map((_,k)=>k); const find = k => { while(par[k]!==k){ par[k]=par[par[k]]; k=par[k]; } return k; };
-  for(let p=0;p<n;p++) for(let q=p+1;q<n;q++){ const A=fr[p], B=fr[q];
-    if (Math.abs(A.d[0]*B.d[0]+A.d[1]*B.d[1]) < TR_COS) continue;
-    const rx=B.m[0]-A.m[0], ry=B.m[1]-A.m[1]; const perp = Math.abs(rx*A.d[1]-ry*A.d[0]); if (perp > TR_ANCHO || perp < 2) continue;
-    // traslape de B sobre el eje de A
-    const t1=(B.a[0]-A.a[0])*A.d[0]+(B.a[1]-A.a[1])*A.d[1], t2=(B.b[0]-A.a[0])*A.d[0]+(B.b[1]-A.a[1])*A.d[1];
-    const ov = Math.min(A.L, Math.max(t1,t2)) - Math.max(0, Math.min(t1,t2)); if (ov < Math.min(15, 0.3*Math.min(A.L,B.L))) continue;
-    par[find(p)] = find(q); }
+  for(let p=0;p<n;p++) for(let q=p+1;q<n;q++) if (trEnfrente(fr[p], fr[q])) par[find(p)] = find(q);
   const grupos = new Map(); fr.forEach((f,k)=>{ const r=find(k); let g=grupos.get(r); if(!g){ g=[]; grupos.set(r,g); } g.push(f); });
   // eje general de la calle: de los dos puntos medios más alejados entre sí
   let e0=fr[0].m, e1=fr[0].m, dm=-1; for(const A of fr) for(const B of fr){ const dd=Math.hypot(A.m[0]-B.m[0],A.m[1]-B.m[1]); if(dd>dm){ dm=dd; e0=A.m; e1=B.m; } }

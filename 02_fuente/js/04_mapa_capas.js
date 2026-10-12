@@ -46,12 +46,36 @@ function vpData(){
     VP_DATA = {length:NV, startIndices:vstart, attributes:{ getPath:{value:VPOS,size:2}, getColor:{value:VCOLORS,size:4,normalized:true}, getFilterValue:{value:VFILTER,size:2} }};
   return VP_DATA; }
 // ---------- nombres de calle desde los propios frentes (zoom ≥ 15) ----------
+// El nombre va sobre la línea media entre un frente y el de enfrente con el mismo nombre (regla trEnfrente de 09_tramos.js,
+// aunque el de enfrente sea de otra colonia: las avenidas suelen ser límite). Así queda en medio de la calle y no encima de
+// la línea de prioridad. Se prueba con los frentes más largos de la calle; si ninguno tiene frente enfrente (calle de un solo
+// lado, avenida con camellón), el nombre va a la mitad del más largo.
+const ETQ_INTENTOS = 6;
+function lineaMedia(i){
+  const c = Math.cos(midLat(i)*Math.PI/180), A = trFrente(i, c), G = trGrid(), nid = F.name[i], vistos = new Set(); let mejor = null;
+  // celdas del índice espacial a lo largo del frente (los extremos de un frente de enfrente quedan a ≤ 45 m de ellas)
+  const paso = Math.max(1, Math.ceil(A.L/40));
+  for(let s=0;s<=paso;s++){ const x=(A.a[0]+(A.b[0]-A.a[0])*s/paso)/(111320*c), y=(A.a[1]+(A.b[1]-A.a[1])*s/paso)/110540; const cx=Math.floor(x/TR_CELL), cy=Math.floor(y/TR_CELL);
+    for(let gx=cx-1;gx<=cx+1;gx++) for(let gy=cy-1;gy<=cy+1;gy++){ const a=G.get(gx*100000+gy); if(!a) continue;
+      for(const j of a){ if (j===i || vistos.has(j) || F.name[j]!==nid || F.gc[j]) continue; vistos.add(j);
+        const B = trFrente(j, c), e = trEnfrente(A, B); if (e && (!mejor || e.hi-e.lo > mejor.e.hi-mejor.e.lo)) mejor = {B, e}; } } }
+  if (!mejor) return null;
+  const {B, e} = mejor, n = [-A.d[1], A.d[0]];
+  const s1 = (B.a[0]-A.a[0])*n[0]+(B.a[1]-A.a[1])*n[1], s2 = (B.b[0]-A.a[0])*n[0]+(B.b[1]-A.a[1])*n[1];
+  const t = (e.lo+e.hi)/2, s = e.t2!==e.t1? s1+(s2-s1)*(t-e.t1)/(e.t2-e.t1) : (s1+s2)/2;
+  const x = A.a[0]+A.d[0]*t+n[0]*s/2, y = A.a[1]+A.d[1]*t+n[1]*s/2;
+  const k = A.d[0]*B.d[0]+A.d[1]*B.d[1] < 0? -1 : 1; const dx = A.d[0]+k*B.d[0], dy = A.d[1]+k*B.d[1];
+  return {pos:[x/(111320*c), y/110540], ang:Math.atan2(dy, dx)*180/Math.PI, largo:e.hi-e.lo}; }
+const derecho = a => a>90? a-180 : a<-90? a+180 : a;   // el nombre nunca se lee de cabeza
 let COL_FR = null; const STL = new Map(); const COL_BB = new Map(); let lblCenter = null;
 function colFrentes(){ if (COL_FR) return COL_FR; COL_FR = new Map(); for(let i=0;i<N;i++){ const c=F.col[i]; let a=COL_FR.get(c); if(!a){ a=[]; COL_FR.set(c,a); } a.push(i); } return COL_FR; }
 function colBB(c){ let b=COL_BB.get(c); if(!b){ b=colBounds(c); COL_BB.set(c,b); } return b; }
-function colStreetLabels(c){ let L=STL.get(c); if(L) return L; const best=new Map();
-  for(const i of (colFrentes().get(c)||[])){ if(F.gc[i]) continue; const nid=F.name[i]; if(PLACEHOLDER.has(nid)) continue; const b=best.get(nid); if(b===undefined || F.len[i]>F.len[b]) best.set(nid,i); }
-  L=[...best.entries()].map(([nid,i])=>{ const a=start[i], e=start[i+1]-1; const dx=(POS[2*e]-POS[2*a])*Math.cos(midLat(i)*Math.PI/180), dy=POS[2*e+1]-POS[2*a+1]; let ang=Math.atan2(dy,dx)*180/Math.PI; if(ang>90) ang-=180; if(ang<-90) ang+=180; return {pos:[midLon(i),midLat(i)], text:META.names[nid], ang, len:F.len[i]}; });
+function colStreetLabels(c){ let L=STL.get(c); if(L) return L; const porNombre=new Map();
+  for(const i of (colFrentes().get(c)||[])){ if(F.gc[i]) continue; const nid=F.name[i]; if(PLACEHOLDER.has(nid)) continue; let a=porNombre.get(nid); if(!a){ a=[]; porNombre.set(nid,a); } a.push(i); }
+  L=[...porNombre.entries()].map(([nid,fs])=>{ fs.sort((a,b)=>F.len[b]-F.len[a]);
+    for(const i of fs.slice(0, ETQ_INTENTOS)){ const m=lineaMedia(i); if (m) return {pos:m.pos, text:META.names[nid], ang:derecho(m.ang), len:F.len[fs[0]], media:true}; }
+    const i=fs[0], a=start[i], e=start[i+1]-1; const dx=(POS[2*e]-POS[2*a])*Math.cos(midLat(i)*Math.PI/180), dy=POS[2*e+1]-POS[2*a+1];
+    return {pos:[midLon(i),midLat(i)], text:META.names[nid], ang:derecho(Math.atan2(dy,dx)*180/Math.PI), len:F.len[i], media:false}; });
   STL.set(c,L); return L; }
 function streetLabelData(){
   if (viewState.zoom<15 || isGC() || !showFrB) return [];

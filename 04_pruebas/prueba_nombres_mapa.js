@@ -1,5 +1,5 @@
-// Nombres del mapa y gestos: nombres de alcaldía y de colonia dentro de su figura, juego de letras completo (con «Ñ» en
-// mayúsculas), contraste de los nombres de colonia, nombres de calle al día después de un salto sin animación y
+// Nombres del mapa y gestos: nombres de alcaldía y de colonia dentro de su figura, nombres de calle en medio de la calle,
+// juego de letras completo (con «Ñ» en mayúsculas), contraste de los nombres de colonia, nombres de calle al día después de un salto sin animación y
 // dedos «fantasma» que el mapa suelta. Lee el estado del mapa con window.__MAPA, que solo existe con window.SIA_PRUEBA.
 // Uso: node 04_pruebas/prueba_nombres_mapa.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
@@ -47,6 +47,10 @@ const ok = L.Registro('nombres del mapa');
   await page.evaluate(() => window.__MAPA.ir({ longitude: -99.1680, latitude: 19.3830, zoom: 15.6 }, 0));
   const s2 = await hasta(page, en, [-99.1680, 19.3830]);
   ok('un salto sin animación al mismo zoom recalcula los nombres de calle del lugar nuevo', s1 && s2, `primer lugar: ${s1} · segundo lugar: ${s2} · centro de los nombres: ${await page.evaluate(() => window.__MAPA.lblCenter())}`);
+
+  // ---------- nombres de calle en medio de la calle ----------
+  const med = await page.evaluate(() => { const p = window.__MAPA.capa('st-labels'); const d = p ? p.data : []; return { n: d.length, m: d.filter(x => x.media).length }; });
+  ok('casi todos los nombres de calle van sobre la línea media entre los frentes de los dos lados (no encima de la línea de prioridad)', med.n > 20 && med.m / med.n >= 0.85, `${med.m} de ${med.n}`);
 
   // ---------- dedos «fantasma» ----------
   const dedos = await page.evaluate(async () => {
