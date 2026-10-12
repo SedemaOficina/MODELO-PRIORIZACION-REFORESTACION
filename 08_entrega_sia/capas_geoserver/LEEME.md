@@ -49,7 +49,7 @@ Los nombres de las capas y de los campos no cambian.
 |---|---|
 | `clave_frente` | **Clave única**: `CVEGEO` + `_` + `CVEFT` con tres dígitos (p. ej. `0900200010025001_002`). Es la clave para enlazar con `sia:frentes_manzanas` (`CVEGEO` y `CVEFT`) |
 | `cveft`, `cvegeo`, `cve_mun` | Claves de INEGI. `CVEFT` es el número del frente **dentro de su manzana**: sola no es única |
-| `alcaldia`, `colonia_id`, `colonia`, `cp` | Ubicación. `colonia_id` es el número de la colonia en `colonias_reforestacion`; vacío si el frente no tiene colonia |
+| `alcaldia`, `colonia_id`, `colonia`, `colonia_catalogo`, `cp` | Ubicación. `colonia_id` es el número de la colonia en `colonias_reforestacion`; vacío si el frente no tiene colonia. `colonia` lleva acentos y abreviaturas desarrolladas; `colonia_catalogo`, el nombre tal como viene en el catálogo de origen |
 | `calle`, `tipo_vial` | Nombre y tipo de la vialidad (INEGI) |
 | `prioridad`, `clase_prioridad` | Muy Baja a Muy Alta; clase 0 a 4. El estilo usa `clase_prioridad` |
 | `prioritario` | 1 si es Muy Alta, Alta o Media |
@@ -79,7 +79,8 @@ La geometría es la **original** del modelo de priorización (nov. 2025), no la 
 | Campo | Contenido |
 |---|---|
 | `colonia_id` | Número de la colonia en la herramienta |
-| `colonia` | Nombre de la colonia |
+| `colonia` | Nombre de la colonia, con acentos y abreviaturas desarrolladas (como en la herramienta) |
+| `colonia_catalogo` | Nombre tal como viene en el catálogo de origen, para cruzar con otras capas |
 | `cp` | Código postal, con cinco dígitos |
 | `cve_mun`, `alcaldia` | Clave y nombre de la alcaldía |
 | `prioridad`, `clase_prioridad` | Prioridad de la colonia; vacía si no tiene |

@@ -53,6 +53,9 @@ def enteros(nombre):
 
 
 META = json.loads(gzip.decompress(open(os.path.join(DATOS, 'meta.bin'), 'rb').read()).decode('utf-8'))
+# nombre de colonia para mostrar (7_nombres_colonias.py), igual que en la herramienta; el del catálogo va en colonia_catalogo
+NOMBRES_COL = json.load(open(os.path.join(DATOS, 'nombres_colonias.json'), encoding='utf-8'))
+nom_col = lambda i: NOMBRES_COL.get(str(i), META['colonias'][i]['n'])
 Q = META['Q']
 
 
@@ -114,7 +117,7 @@ assert (prio_m[de_frente] == FR[:, 1]).all(), 'la prioridad no coincide en algú
 paso('los %d frentes empatan y tienen la misma prioridad' % N)
 
 GRUPO_B = {0: 'con banqueta', 1: 'sin banqueta'}
-fr = {k: [] for k in ['clave_frente', 'cveft', 'cvegeo', 'cve_mun', 'alcaldia', 'colonia_id', 'colonia', 'cp', 'calle', 'tipo_vial', 'prioridad', 'clase_prioridad',
+fr = {k: [] for k in ['clave_frente', 'cveft', 'cvegeo', 'cve_mun', 'alcaldia', 'colonia_id', 'colonia', 'colonia_catalogo', 'cp', 'calle', 'tipo_vial', 'prioridad', 'clase_prioridad',
                       'prioritario', 'banqueta_inegi', 'grupo_banqueta', 'arbolado_inegi', 'sin_arbolado', 'quien_atiende',
                       'vp_clave', 'longitud_m', 'id_herramienta']}
 geo_fr = []
@@ -123,7 +126,7 @@ for i in range(N):
     col = META['colonias'][int(a[4])] if a[4] else None
     # CVEFT es el número del frente dentro de su manzana (solo 346 valores distintos): la clave única es CVEGEO + CVEFT
     fr['clave_frente'].append('%s_%03d' % (r_['CVEGEO'], int(r_['CVEFT']))); fr['cveft'].append(int(r_['CVEFT'])); fr['cvegeo'].append(r_['CVEGEO']); fr['cve_mun'].append(r_['CVE_MUN']); fr['alcaldia'].append(META['munNames'][int(a[0])])
-    fr['colonia_id'].append(int(a[4]) if a[4] else None); fr['colonia'].append(col['n'] if col else None)
+    fr['colonia_id'].append(int(a[4]) if a[4] else None); fr['colonia'].append(nom_col(int(a[4])) if col else None); fr['colonia_catalogo'].append(col['n'] if col else None)
     fr['cp'].append(col['cp'].zfill(5) if col and col.get('cp') else None)
     fr['calle'].append(META['names'][int(a[2])] or None); fr['tipo_vial'].append(META['tipos'][int(a[3])] or None)
     fr['prioridad'].append(PRIO[int(a[1])]); fr['clase_prioridad'].append(int(a[1])); fr['prioritario'].append(int(a[1] >= PRIO_MIN))
@@ -182,7 +185,7 @@ for i in range(N):
     a = FR[i]
     if not a[4] or (int(a[6]) >> 6) & 1 or a[1] < PRIO_MIN: continue
     b = (int(a[6]) >> 3) & 7; s = km.setdefault(int(a[4]), [0.0, 0.0, 0.0]); s[0 if b == 0 else 1 if b == 1 else 2] += a[5] / 1000
-co = {k: [] for k in ['colonia_id', 'colonia', 'cp', 'cve_mun', 'alcaldia', 'prioridad', 'clase_prioridad', 'poblacion', 'desarrollo_social_ids',
+co = {k: [] for k in ['colonia_id', 'colonia', 'colonia_catalogo', 'cp', 'cve_mun', 'alcaldia', 'prioridad', 'clase_prioridad', 'poblacion', 'desarrollo_social_ids',
                       'unidad_territorial', 'poblacion_pobreza_ut', 'km_prioritarios', 'km_prio_con_banqueta', 'km_prio_sin_banqueta', 'km_prio_por_verificar']}
 geo_co = []
 mun_nom = dict(zip(META['muns'], META['munNames']))
@@ -193,7 +196,7 @@ for c in META['cols']:
     g = shapely.make_valid(shapely.multipolygons([shapely.polygons(r_) for r_ in anillos]))
     g = shapely.multipolygons(shapely.get_parts(g)[shapely.get_type_id(shapely.get_parts(g)) == 3]) if g.geom_type != 'MultiPolygon' else g
     s = km.get(i, [0.0, 0.0, 0.0]); p = m.get('p', -1)
-    co['colonia_id'].append(i); co['colonia'].append(m['n']); co['cp'].append(m['cp'].zfill(5) if m.get('cp') else None); co['cve_mun'].append(m['m'])
+    co['colonia_id'].append(i); co['colonia'].append(nom_col(i)); co['colonia_catalogo'].append(m['n']); co['cp'].append(m['cp'].zfill(5) if m.get('cp') else None); co['cve_mun'].append(m['m'])
     co['alcaldia'].append(mun_nom.get(m['m'])); co['prioridad'].append(PRIO[p] if p >= 0 else None); co['clase_prioridad'].append(p if p >= 0 else None)
     co['poblacion'].append(int(m.get('pob') or 0)); co['desarrollo_social_ids'].append(m.get('ids') or None); co['unidad_territorial'].append(m.get('ut') or None)
     co['poblacion_pobreza_ut'].append(int(m.get('nbi') or 0))

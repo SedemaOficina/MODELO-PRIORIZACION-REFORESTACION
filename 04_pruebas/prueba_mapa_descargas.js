@@ -24,7 +24,7 @@ const num = t => +String(t).replace(/,/g, '').match(/[\d.]+/)[0];
     ok('GeoJSON: tantas líneas como frentes prioritarios dice la pantalla', F.length === nPrio, `${F.length} vs ${nPrio}`);
     const km = F.reduce((t, f) => t + f.properties.longitud_m, 0) / 1000;
     ok('GeoJSON: sus longitudes suman los km prioritarios de la pantalla', Math.abs(km - kmPrio) < 0.06, `${km.toFixed(3)} vs ${kmPrio}`);
-    ok('GeoJSON: solo Muy Alta, Alta y Media, a cargo de la alcaldía, con vialidad y colonia', F.every(f => /^(Muy Alta|Alta|Media)$/.test(f.properties.prioridad) && f.properties.quien_atiende === 'Alcaldía' && f.properties.vialidad && f.properties.colonia === 'Progreso Tizapan' && Number.isInteger(f.properties.id_frente)));
+    ok('GeoJSON: solo Muy Alta, Alta y Media, a cargo de la alcaldía, con vialidad y colonia', F.every(f => /^(Muy Alta|Alta|Media)$/.test(f.properties.prioridad) && f.properties.quien_atiende === 'Alcaldía' && f.properties.vialidad && f.properties.colonia === 'Progreso Tizapán' && Number.isInteger(f.properties.id_frente)));
     ok('GeoJSON: declara fuentes y versión, sin aviso de asignación preliminar', /INEGI/.test(J.descripcion) && !/preliminar/.test(J.descripcion) && /Versión \d+\.\d+/.test(J.descripcion));
     const k = await L.descargar(page, '#dl-kml', SAL); const xml = fs.readFileSync(k.ruta, 'utf8');
     const K = await page.evaluate(x => { const d = new DOMParser().parseFromString(x, 'application/xml'); const pm = [...d.getElementsByTagName('Placemark')];

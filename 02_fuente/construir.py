@@ -7,6 +7,7 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 17_recorrido);
                    se unen en un solo app.js dentro de una función asíncrona
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
+  datos/nombres_colonias.json   nombre para mostrar de cada colonia que lo cambia (03_procesamiento_datos/7_nombres_colonias.py)
   datos/fondo/     fondo propio del mapa (opción «Calles»): manzanas por alcaldía, parques, agua, ANP y AVA
                    (de 03_procesamiento_datos/6_fondo.py); se piden solo al encender ese fondo
   img/             logotipo y lámina de la metodología
@@ -73,7 +74,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.8'
+VERSION = '1.9'
 ACTUALIZACION = '12 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -125,7 +126,7 @@ for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLIC
     faltan = [n for n in esperados if not os.path.isfile(os.path.join(FUENTE, carpeta, n))]
     if faltan:
         falla('%s/ no trae: %s.' % (carpeta, ', '.join(faltan)))
-    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo'))
+    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo', 'nombres_colonias.json'))
     if extra:
         print('AVISO: %s/ trae archivos que no se publican: %s.' % (carpeta, ', '.join(extra)))
 # Los datos deben ser los verificados: se compara el contenido descomprimido con datos/SUMAS.json,
@@ -141,6 +142,12 @@ for n in DATOS:
         falla('datos/%s.bin no se puede descomprimir (%s).' % (n, e))
     if h != sumas.get(n + '.bin'):
         falla('datos/%s.bin no coincide con datos/SUMAS.json. Si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.' % n)
+# Nombres de colonia para mostrar (03_procesamiento_datos/7_nombres_colonias.py): {id: nombre}; la app conserva el del catálogo
+try:
+    NOMBRES_COL = json.load(open(os.path.join(FUENTE, 'datos', 'nombres_colonias.json'), encoding='utf-8'))
+    assert isinstance(NOMBRES_COL, dict) and all(k.isdigit() and isinstance(v, str) and v.strip() for k, v in NOMBRES_COL.items())
+except (OSError, ValueError, AssertionError) as e:
+    falla('datos/nombres_colonias.json falta o no tiene la forma {"id": "nombre"} (%s). Regenerarlo con 03_procesamiento_datos/7_nombres_colonias.py.' % e)
 # Fondo propio: cada archivo debe ser el que escribió 6_fondo.py (se compara el archivo tal cual, con su SUMAS.json)
 ruta_fondo = os.path.join(FUENTE, 'datos', 'fondo')
 if not os.path.isfile(os.path.join(ruta_fondo, 'SUMAS.json')):
@@ -212,7 +219,7 @@ for k in LIBS_ARRANQUE:
     cuerpo += '<script>' + codigo + '</script>\n'
 cuerpo += ''.join('<script id="lib-%s-b64" type="text/plain">%s</script>\n' % (k, base64.b64encode(leer('libs/' + k, True)).decode()) for k in LIBS_DEMANDA)
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
-cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False))
+cuerpo += '<script>window.SIA_NOMBRES_COL = %s;window.SIA_ESRI_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(NOMBRES_COL, ensure_ascii=False), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
 unico = ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + ESTILOS_UNICO) + cuerpo + '</body></html>\n'
 
@@ -241,7 +248,7 @@ for arch in FUENTES_PUBLICADAS:
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(fondo_ver), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_NOMBRES_COL = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(fondo_ver), json.dumps(NOMBRES_COL, ensure_ascii=False, separators=(',', ':')), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)

@@ -43,6 +43,9 @@ catch(e){ throw e.amable? e : errAmable('El catálogo de la herramienta (meta.bi
 // catálogos: se neutraliza cualquier marcado antes de usarlos en la interfaz
 META.names = META.names.map(limpioCat); META.munNames = META.munNames.map(limpioCat);
 META.colonias.forEach(c=>{ c.n = limpioCat(c.n); c.ut = limpioCat(c.ut); c.ids = limpioCat(c.ids); c.cp = limpioCat(c.cp); });
+// nombre de colonia para mostrar (acentos, abreviaturas; 03_procesamiento_datos/7_nombres_colonias.py); el del catálogo queda en c.cat
+// para los Excel y la búsqueda
+for (const [k, n] of Object.entries(window.SIA_NOMBRES_COL || {})){ const c = META.colonias[+k]; if (c && c.n){ c.cat = c.n; c.n = n; } }
 ['nomenclat','nombres','alctxt','claves','tipos','circula'].forEach(k=>{ if (Array.isArray(META.vp[k])) META.vp[k] = META.vp[k].map(limpioCat); });
 ['prio','disp','tipos'].forEach(k=>{ META[k] = META[k].map(limpioCat); });
 const Q = META.Q;
