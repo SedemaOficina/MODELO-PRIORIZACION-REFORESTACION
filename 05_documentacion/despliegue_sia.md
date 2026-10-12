@@ -38,5 +38,5 @@ La guía de instalación, el ejemplo de nginx, la lista de verificación y la in
 
 - **Política de seguridad de contenido:** resuelto. El sitio no trae programas ni estilos en línea y funciona bajo una política estricta (la del ejemplo de nginx).
 - **Uso sin conexión (`sw.js`):** resuelto. Con las direcciones de sesión configuradas, la herramienta no guarda copia local y retira la que hubiera.
-- **Mapas de fondo:** las cabeceras del servidor deben permitir imágenes de `basemaps.cartocdn.com`, `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`, o bien usar un fondo propio del SIA.
+- **Mapas de fondo:** «Calles» es propio y viaja con el sitio; para el satélite, las cabeceras del servidor deben permitir imágenes de `services.arcgisonline.com` y `static-map-tiles-api.arcgis.com`.
 - **Servidor web:** redirección de la ruta sin barra final, `.bin` como `application/octet-stream` sin volver a comprimir, y caché larga para los archivos con `?v=`.

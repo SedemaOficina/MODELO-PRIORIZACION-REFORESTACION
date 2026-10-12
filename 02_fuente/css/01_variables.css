@@ -10,6 +10,7 @@ img{max-width:100%}
   --ground:#F4F2EE; --panel:#FFFFFF; --panel-2:#F8F6F2; --line:#E2DDD5; --line-strong:#C9C2B7;
   --ink:#24262A; --ink-2:#55585A; --ink-3:#666A6D;
   --p0:#F9E7BF; --p1:#F4C56E; --p2:#E88A2E; --p3:#C2421B; --p4:#7F1D12;
+  --fondo-calle:#FFFFFF; --fondo-manzana:#E2DED6; --fondo-verde:#D9EAD0; --fondo-agua:#BCD7E6;
   --map-alc:#8A8C8E; --map-col:#B9B3A8; --map-label:#55585A; --map-sel:#273A45; --map-vp:#6E7174;
   --focus:#B28E5C;
   --shadow: 0 8px 28px rgba(36,38,42,.14);

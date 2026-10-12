@@ -23,6 +23,7 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 | 3 | `3_cruzar_vialidades_primarias.py` | `intermedios/frentes.npz`, `intermedios/meta.json` e `insumos/VP_REFORESTACION/` | `intermedios/cruce.npz`: qué frentes quedan sobre una vialidad primaria (Gobierno Central) |
 | 4 | `4_generar_datos.py` | Los tres intermedios e `insumos/VP_REFORESTACION/` | `02_fuente/datos/meta.bin`, `data.bin` y `vp.bin` |
 | 5 | `5_exportar_geoserver.py` | `02_fuente/datos/*.bin`, `insumos/originales/shp_frentes_manzanasv.rar` (se extrae con `tar`) e `insumos/VP_REFORESTACION/` | `08_entrega_sia/capas_geoserver/*.gpkg`: frentes (geometría original del modelo + prioridad, banqueta, responsable, colonia, `clave_frente` = CVEGEO_CVEFT), vialidades primarias y colonias, para publicar en GeoServer como capas nuevas. Comprueba que los 372,534 frentes empaten con la misma prioridad. Requiere `pyogrio`. Ver `08_entrega_sia/capas_geoserver/LEEME.md` |
+| 6 | `6_fondo.py` | `insumos/fondo/` (manzanas del Catastro de la CDMX, Inventario de Áreas Verdes 2017, cuerpos de agua y ANP y AVA oficiales) y `intermedios/meta.json` (alcaldías) | `02_fuente/datos/fondo/`: fondo propio del mapa (opción «Calles»), con manzanas por alcaldía, parques y jardines, agua, ANP y AVA, y su `SUMAS.json`. Independiente de los pasos 1 a 5 |
 | — | `lamina_composicion.py` | `insumos/slide_orig.jpg` | `06_entregables/composicion_frentes_manzana*.png` |
 | — | `reporte_catalogos.py` | `02_fuente/datos/*.bin` (los datos publicados) | `06_entregables/Catalogos_para_homologacion_SIA.xlsx`: listas de colonias y calles para homologar en la fuente. No modifica ningún catálogo. Requiere `openpyxl` |
 
@@ -52,6 +53,7 @@ node 04_pruebas/correr_todas.js
 |---|---|---|
 | `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | Copia local. Falta entregarla al SIA |
 | `insumos/originales/shp_frentes_manzanasv.rar` | Origen del modelo (la v6 se armó a partir de él) | Copia local |
+| `insumos/fondo/` (Catastro, áreas verdes, agua, ANP y AVA) | Paso 6 (fondo «Calles») | Copia local, tomada de `adopta-un-arbol/00_insumos/` (12 oct 2026); sumas en `SUMAS_INSUMOS.md` |
 | `insumos/slide_orig.jpg` | Solo `lamina_composicion.py` | **No se encontró** en la copia local. No es crítico: sus resultados ya están en `06_entregables/composicion_frentes_manzana*.png` |
 | `07_versiones/calles_prioritarias_v6_original.html` | Paso 1 (origen de los frentes priorizados) | Solo en la copia local; su suma está en `SUMAS_INSUMOS.md` |
 | Modelo de priorización de frentes (SIA, nov. 2025) | Origen de la prioridad de cada frente | No se tiene; depende del SIA |

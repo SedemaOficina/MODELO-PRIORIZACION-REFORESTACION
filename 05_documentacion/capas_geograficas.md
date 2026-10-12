@@ -101,7 +101,7 @@ Lo que ya publica el GeoServer del SIA, comparado con la herramienta:
 
 ## Lo que no es capa del proyecto
 
-Los mapas de fondo (calles de CARTO sobre OpenStreetMap y satélite de Esri) son teselas de terceros que se piden solo si la persona los enciende. No forman parte de los datos ni deben estar en GeoServer.
+Los mapas de fondo no forman parte de los datos del modelo ni deben estar en GeoServer. «Calles» es propio (manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017, ANP y AVA oficiales y cuerpos de agua; `03_procesamiento_datos/6_fondo.py`) y se aloja con el sitio. El satélite son teselas de Esri que se piden solo si la persona lo enciende.
 
 ## Para tu comparación, en corto
 

@@ -22,7 +22,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 - **Qué es:** un sitio estático (HTML, CSS, JavaScript y tres archivos de datos). La herramienta no usa base de datos ni GeoServer. Pesa 8 MB. El inicio de sesión sí usa el backend y la base de datos (módulo `priorizacion-reforestacion`).
 - **Dónde va:** en el servidor web, junto a los demás sitios que no requieren backend, en la subruta `/priorizacion-reforestacion/`.
 - **Qué necesita del servidor:** servir archivos, la redirección de la dirección sin barra final, no recomprimir los `.bin` y las cabeceras del ejemplo. Nada más.
-- **Qué pide a terceros:** nada para funcionar. Solo si la persona enciende un mapa de fondo, las teselas de CARTO o de Esri; y los enlaces a Google Maps de las fichas, que se abren en otra pestaña.
+- **Qué pide a terceros:** nada para funcionar. Solo si la persona enciende el satélite, las teselas de Esri (el fondo «Calles» es propio y viaja con el sitio); y los enlaces a Google Maps de las fichas, que se abren en otra pestaña.
 - **Datos personales:** los del inicio de sesión y el registro de usos (ver `login/LEEME.md`). «Mi ubicación» se calcula en el teléfono y no se envía.
 - **Política de seguridad de contenido:** funciona con una política estricta, sin `'unsafe-inline'` ni `'unsafe-eval'`. Probado: 12 de 12 funciones, cero violaciones.
 - **Inicio de sesión:** acceso solo con cuenta y registro de usos (accesos, consultas y descargas por institución y alcaldía). Se entrega construido y probado en `login/`; el SIA lo instala.
@@ -46,6 +46,6 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Aviso de privacidad | Aprobado por la Unidad de Transparencia (oct. 2026); publicado en la pantalla de acceso. Textos en `login/privacidad/` |
 | Configuración de nginx (con y sin login) | Escrita; **sin validar con `nginx -t`** |
 | Guía de instalación, actualización y reversión | Escrita; **sin ensayar por una persona distinta de quien la escribió** |
-| Claves de los mapas de fondo | CARTO: lista (5 oct 2026), restringida a `sedema.sia.cdmx.gob.mx` y `sedemaoficina.github.io`; para el paquete se toma de `02_fuente/claves.local.json`. Esri: pendiente (el satélite funciona sin clave por ahora) |
+| Claves de los mapas de fondo | «Calles» no necesita clave (fondo propio). Esri: pendiente (el satélite funciona sin clave por ahora) |
 | Insumos originales (modelo de priorización y vialidades primarias) | Localizados y comprobados; en la copia local, con sus huellas en `03_procesamiento_datos/SUMAS_INSUMOS.md` |
 | Capas para GeoServer | Listas en `capas_geoserver/`, revisadas en QGIS. Nota: la caché de teselas de GeoServer está apagada por falta de disco; precargarla requiere espacio en el volumen de datos |

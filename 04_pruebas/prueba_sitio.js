@@ -77,11 +77,13 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   await page.mouse.move(1000, 450); for (let i = 0; i < 5; i++) { await page.mouse.wheel(0, -300); await page.waitForTimeout(400); } await page.waitForTimeout(2000);
   const escRueda = await texto(page, '#scalebar'); await page.$eval('#zcity', b => b.click()); await page.waitForTimeout(3000);
   ok('botón de la casa responde después de acercar con la rueda', escRueda !== escCiudad && (await texto(page, '#scalebar')) === escCiudad, `${escRueda} → ${await texto(page, '#scalebar')}`);
-  // mapa de fondo satelital: las teselas se simulan para no depender de internet
-  let teselas = 0; const servs = new Set(), u_esri = u => u.includes('arcgisonline.com'); await page.route(u => ['tiles.maps.eox.at', 'basemaps.cartocdn.com', 'static-map-tiles-api.arcgis.com', 'services.arcgisonline.com'].includes(u.hostname), r => { teselas++; if (u_esri(r.request().url())) servs.add(r.request().url().split('/tile/')[0].split('/services/')[1]); r.fulfill({ status: 200, body: TESELA, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' } }); });
+  // mapas de fondo: «Calles» es propio (datos/fondo/ del sitio); las teselas del satélite se simulan para no depender de internet
+  let teselas = 0; const servs = new Set(), u_esri = u => u.includes('arcgisonline.com'); await page.route(u => ['tiles.maps.eox.at', 'static-map-tiles-api.arcgis.com', 'services.arcgisonline.com'].includes(u.hostname), r => { teselas++; if (u_esri(r.request().url())) servs.add(r.request().url().split('/tile/')[0].split('/services/')[1]); r.fulfill({ status: 200, body: TESELA, contentType: 'image/jpeg', headers: { 'Access-Control-Allow-Origin': '*' } }); });
   const hastaTeselas = async () => { for (let i = 0; i < 120 && !teselas; i++) await page.waitForTimeout(500); await page.waitForTimeout(500); };   // espera por condición, no por tiempo fijo
-  await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await hastaTeselas();
-  ok('mapa de fondo de calles con su atribución', teselas > 0 && (await texto(page, '#attrib')).includes('OpenStreetMap'), `${teselas} teselas`); teselas = 0;
+  const fondoPropio = [], oyeFondo = r => { if (/\/datos\/fondo\//.test(r.url())) fondoPropio.push(r.url()); }; page.on('request', oyeFondo);
+  await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); for (let i = 0; i < 60 && !fondoPropio.length; i++) await page.waitForTimeout(250); await page.waitForTimeout(500);
+  ok('fondo «Calles» propio: sus datos vienen del propio sitio, sin teselas de terceros, con su atribución', fondoPropio.some(u => /fondo_base\.bin\?v=/.test(u)) && teselas === 0 && (await texto(page, '#attrib')).includes('Catastro'), `${fondoPropio.length} archivos · ${teselas} teselas`);
+  page.off('request', oyeFondo); teselas = 0;
   await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await hastaTeselas();
   ok('mapa de fondo satelital con su atribución', teselas > 0 && /Sentinel-2|Esri/.test(await texto(page, '#attrib')), `${teselas} teselas`);
   ok('el satélite trae la imagen y los nombres de vías de Esri', [...servs].some(x => x.includes('World_Imagery')) && [...servs].some(x => x.includes('World_Transportation')) && (await texto(page, '#attrib')).includes('Vías: Esri, HERE, Garmin'), [...servs].join(' | '));

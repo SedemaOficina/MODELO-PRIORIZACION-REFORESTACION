@@ -23,6 +23,21 @@ SHA-256 de los archivos con los que se generaron los datos de la herramienta, ca
 | `insumos/IDS_ut/IDS_ponderado.cpg` | Repositorio | `3ad3031f5503a4404af825262ee8232cc04d4ea6683d42c5dd0a2f2a27ac9824` |
 | `insumos/IDS_ut/diccionario_ut.xlsx` | Repositorio | `91cae0673dd594c5d0b522ca484ee7064925d00746a2604975318901315adb5e` |
 
+## Insumos del fondo «Calles» (paso 6)
+
+Copia local en `insumos/fondo/` (no se publica), tomada el 12 de octubre de 2026 de `adopta-un-arbol/00_insumos/`, donde se usan para el mismo fondo.
+
+| Archivo | Origen | SHA-256 |
+|---|---|---|
+| `insumos/fondo/Catastro_CDMX_Manzanas.zip` | manzanas del Catastro de la CDMX (53 MB), de la liga del anexo I del informe del CIGA-UNAM | `2d679201acfd2d3061441b526b8ddbbd027fe64d8889fd0b10f8ebf63f3f0bb1` |
+| `insumos/fondo/Inventario de Áreas Verdes 2017.shp` | SEDEMA | `609739e4c3e1ae2bfeec255b25dda522824555724f388026f2990b07e03afc87` |
+| `insumos/fondo/Inventario de Áreas Verdes 2017.dbf` | SEDEMA | `3068523f53ee86a5f5cf1d0d83cc91caeb0da04213b8a8d0617f21fe5eba2551` |
+| `insumos/fondo/Cuerpos de agua, canales, y tanque regulador.shp` | SEDEMA | `b20fb73b574751c076d0c9d8515ad83a5b9e4110fab33e279139cad8bb010e38` |
+| `insumos/fondo/Cuerpos de agua, canales, y tanque regulador.dbf` | SEDEMA | `99612b9f9b14de1dda111771e22da015cfe3c8a4452a748ac13ab14779842006` |
+| `insumos/fondo/anp_ava_geometrias.geojson` | las 66 ANP y AVA oficiales, del proyecto Categorías de protección ambiental (decretos, CONANP y SEDEMA) | `6470f89f494edae60102dc77cdfbdf4a218ddc1304e4b037ad63676f8cca49f4` |
+
+Las sumas de los archivos que genera el paso 6 están en `02_fuente/datos/fondo/SUMAS.json`; `construir.py` las comprueba.
+
 ## Intermedios
 
 | Archivo | SHA-256 |

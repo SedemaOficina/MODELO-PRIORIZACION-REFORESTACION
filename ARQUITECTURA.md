@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.3 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.4 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -49,7 +49,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 - `css/*.css` se concatenan en orden alfabético → `estilos.css`.
 - `js/*.js` se concatenan en orden alfabético dentro de una función asíncrona (`(async function(){ … })()`) → `app.js`. Por eso **todos los archivos comparten el mismo alcance**: una variable o función de `03_estado.js` se usa directamente en `10_seleccion.js`. Si al cargar ocurre un error, el cargador lo muestra en lugar del mapa.
-- `config.js` indica dónde están las librerías (`SIA_LIBS`) y su huella (`SIA_LIBS_V`), la huella y el tamaño de los datos (`SIA_DATOS`), las claves de los mapas de fondo y las direcciones de la sesión (`SIA_SESION`). Claves y sesión no se escriben en `construir.py`: se toman de variables de entorno (`SIA_CARTO_KEY`, `SIA_ESRI_KEY`, `SIA_SESION_INICIO`, `SIA_SESION_CIERRE`) o de `02_fuente/claves.local.json`, que no se publica. Si no existe (archivo único), la app lee los datos incrustados.
+- `config.js` indica dónde están las librerías (`SIA_LIBS`) y su huella (`SIA_LIBS_V`), la huella y el tamaño de los datos (`SIA_DATOS`), la huella de cada archivo del fondo propio (`SIA_FONDO`), la clave del satélite y las direcciones de la sesión (`SIA_SESION`). Clave y sesión no se escriben en `construir.py`: se toman de variables de entorno (`SIA_ESRI_KEY`, `SIA_SESION_INICIO`, `SIA_SESION_CIERRE`) o de `02_fuente/claves.local.json`, que no se publica. Si no existe (archivo único), la app lee los datos incrustados.
 - Solo se reescriben los archivos que cambiaron, así Git no ve cambios falsos.
 - **Valida antes de escribir:** las listas `JS_ESPERADOS` y `CSS_ESPERADOS` nombran cada módulo; si falta, sobra o está vacío uno, se detiene con código 1 y no escribe nada. Para agregar un módulo hay que añadirlo a la lista. De `libs/` y `fuentes/` solo se publica lo listado en `LIBS_PUBLICADAS` y `FUENTES_PUBLICADAS`.
 - **Datos verificados:** compara el contenido descomprimido de `datos/*.bin` con `datos/SUMAS.json` y se detiene si no coincide. Se compara el contenido porque la compresión gzip cambia de un equipo a otro. Tras regenerar los datos a propósito: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`.
@@ -74,7 +74,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `01_utilidades.js` | `$`, formatos de número, km y porcentaje; **reglas de negocio** («prioritario»); errores con mensaje para la persona; avisos sobre el mapa; regla única de teléfono | `kmTxt`, `kmFull`, `pct`, `PRIO_MIN`, `esPrio`, `sumPrio`, `errAmable`, `limpioCat`, `avisoMapa`, `MQ_TEL` |
 | `02_datos.js` | Descarga, descompresión y decodificación de los datos; `puntoMedio` es la única regla de punto medio (a media longitud sobre la línea) | `fetchBytes`, `gunzip`, `reader`, `puntoMedio` |
 | `03_estado.js` | Estado de la consulta, colores del tema, colores y filtros por vértice, geometría de alcaldías y colonias, punto de cada nombre de área (el más interior de su figura; el de las colonias se calcula en ratos libres después de abrir), rankings | `readTokens`, `buildColors`, `buildFilter`, `buildVP`, `puntoInterior` |
-| `04_mapa_capas.js` | Vista del mapa, línea media de cada calle para su nombre (entre un frente y el de enfrente, con la regla `trEnfrente` de los tramos), barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData`, `lineaMedia` |
+| `04_mapa_capas.js` | Vista del mapa, mapas de fondo (el propio «Calles» y el satélite de Esri), línea media de cada calle para su nombre (entre un frente y el de enfrente, con la regla `trEnfrente` de los tramos), barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData`, `lineaMedia` |
 | `04_nombres_mapa.js` | Acomodo propio de los nombres del mapa (alcaldías, colonias, vialidades primarias y calles), sin el filtro de choques de deck.gl: en píxeles del mundo a un zoom redondeado (no brincan al mover el mapa), sin encimarse ni quedar bajo los paneles, solo donde el nombre cabe en un tramo recto, repartidos sobre una cuadrícula fija. Los tramos de calle se calculan por colonia en ratos libres | `colocarNombres`, `tramosColonia`, `tramosVP`, `etqDesfasado` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, dedos «fantasma» en teléfono, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero. Con `window.SIA_PRUEBA` expone `window.__MAPA` para las pruebas | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento`, `soltarDedos` |
@@ -182,7 +182,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
-| Mapa de fondo de calles (opcional) | CARTO Positron sobre OpenStreetMap, `basemaps.cartocdn.com` | Desde el 29 de septiembre de 2026 CARTO exige una clave propia (gratuita hasta cierto volumen); sin ella las teselas llegan con la marca «API key required». La clave se da con `SIA_CARTO_KEY` o en `02_fuente/claves.local.json` (ver sección 9). Atribución obligatoria. Solo se pide si el usuario lo enciende |
+| Mapa de fondo de calles (opcional) | Propio, alojado con el sitio (`datos/fondo/`): manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017 de SEDEMA, ANP y AVA oficiales y cuerpos de agua de SEDEMA | Lo genera `03_procesamiento_datos/6_fondo.py` (1.6 MB en total). Se pide al encenderlo; las manzanas, por alcaldía, desde el zoom 13. No está en el archivo único |
 | Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave se da con `SIA_ESRI_KEY` o en `02_fuente/claves.local.json` (ver sección 9). El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 
 ## 9. Cambios comunes
@@ -198,7 +198,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Publicar una versión nueva o cambiar el corte de los datos | `VERSION` y `CORTE_DATOS` en `construir.py` (aparecen en el panel, las fichas y el diccionario de los Excel) |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
-| Poner la clave de un mapa de fondo | Variables de entorno `SIA_CARTO_KEY` y `SIA_ESRI_KEY`, o `02_fuente/claves.local.json`, y reconstruir. Las claves quedan visibles en la página: restringirlas al dominio del sitio |
+| Poner la clave del satélite | Variable de entorno `SIA_ESRI_KEY` o `02_fuente/claves.local.json`, y reconstruir. La clave queda visible en la página: restringirla al dominio del sitio |
+| Actualizar el fondo «Calles» | Poner los insumos nuevos en `03_procesamiento_datos/insumos/fondo/`, correr `python 03_procesamiento_datos/6_fondo.py` y reconstruir |
 | Armar el paquete para el SIA | `python3 08_entrega_sia/empaquetar.py` |
 | Generar las listas de catálogos para el SIA | `python3 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |

@@ -94,7 +94,7 @@ En el repositorio:
 | El mapa sale en blanco con un aviso de equipo sin aceleración | Navegador sin WebGL 2 | No es del servidor. La herramienta ofrece el modo ligero |
 | Colores de prioridad ausentes, barras sin relleno | Una política de seguridad más estricta que la del ejemplo, o duplicada | Puntos 3 y 12 |
 | «Mi ubicación» no responde | Geolocalización negada por cabecera | Punto 4 |
-| El fondo «Calles» muestra «API key required» | Falta la clave de CARTO, o la dirección no está autorizada en ella | `VERSION.txt` dice si el paquete trae la clave; la clave solo funciona en `sedema.sia.cdmx.gob.mx` |
+| El fondo «Calles» no aparece | No se copiaron `sitio/datos/fondo/` o el servidor no los entrega | Comprobar con `MANIFIESTO.sha256` y abrir `/priorizacion-reforestacion/datos/fondo/fondo_base.bin`; las manzanas aparecen desde el zoom 13 |
 | Errores 503 al recargar | Límite de velocidad | Punto 15 |
 | Excel o PDF no se descargan y la consola dice «Refused to…» | Política sin `worker-src 'self' blob:` o sin `'wasm-unsafe-eval'` | Punto 12 |
 
@@ -104,7 +104,7 @@ Se fijan al armar el paquete, no en el servidor. Quedan escritos en `sitio/confi
 
 | Parámetro | Valor |
 |---|---|
-| Clave de CARTO (fondo «Calles») | Incluida; restringida a `sedema.sia.cdmx.gob.mx` |
+| Fondo «Calles» | Propio, en `sitio/datos/fondo/` (no pide nada a terceros ni lleva clave) |
 | Clave de Esri (fondo «Satélite») | No hace falta por ahora: el satélite funciona sin clave |
 | Inicio de sesión | Encendido: acceso en `/acceso/priorizacion-reforestacion/`, cierre en `/api/priorizacion-reforestacion/salir`, registro de usos en `/api/priorizacion-reforestacion/uso` (ver `login/LEEME.md`) |
 
@@ -113,5 +113,5 @@ Con inicio de sesión, la herramienta **no guarda copia para uso sin conexión**
 Si alguno debe cambiar, la Oficina de la Secretaría entrega un paquete nuevo.
 <!-- solo-repositorio -->
 
-En el repositorio: `SIA_CARTO_KEY` y `SIA_ESRI_KEY` (o `02_fuente/claves.local.json`, que no se publica), y `SIA_SESION_INICIO`, `SIA_SESION_CIERRE` y `SIA_SESION_USO` como variables de entorno al correr `empaquetar.py`. Vacías = sin sesión.
+En el repositorio: `SIA_ESRI_KEY` (o `02_fuente/claves.local.json`, que no se publica), y `SIA_SESION_INICIO`, `SIA_SESION_CIERRE` y `SIA_SESION_USO` como variables de entorno al correr `empaquetar.py`. Vacías = sin sesión.
 <!-- /solo-repositorio -->

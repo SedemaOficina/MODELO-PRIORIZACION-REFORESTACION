@@ -140,6 +140,8 @@ button,input,select{font:inherit;color:inherit}
 .source{font-size:.75rem;color:var(--ink-3);line-height:1.45;border-top:1px solid var(--line);padding-top:12px}
 /* ---------- map ---------- */
 .mapwrap{position:relative;min-width:0;min-height:0;background:var(--ground)}
+/* fondo propio «Calles»: suelo blanco, así la calle (el hueco entre manzanas) se distingue de la manzana */
+body.fondo-propio .mapwrap{background:var(--fondo-calle)}
 #map{position:absolute;inset:0}
 .legend{position:absolute;left:16px;bottom:16px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 12px;box-shadow:var(--shadow);font-size:.75rem;max-width:230px}
 .legend .lg-tit{display:block;margin:0 0 6px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}

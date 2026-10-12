@@ -7,6 +7,8 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 17_recorrido);
                    se unen en un solo app.js dentro de una función asíncrona
   datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
+  datos/fondo/     fondo propio del mapa (opción «Calles»): manzanas por alcaldía, parques, agua, ANP y AVA
+                   (de 03_procesamiento_datos/6_fondo.py); se piden solo al encender ese fondo
   img/             logotipo y lámina de la metodología
   libs/            deck.gl, pako, jsPDF y SheetJS (copias locales sin modificar, con LICENCIAS.md y el texto de cada licencia)
   fuentes/         tipografías Cabin y Roboto (woff2 variables, subconjunto latino) con su licencia OFL;
@@ -50,13 +52,9 @@ FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 # vías (World_Transportation) desde services.arcgisonline.com, sin clave (pendiente de regularizar con cuenta de Esri).
 # La clave queda visible en la página (es normal en mapas web): restringirla al dominio del sitio en el panel de Esri.
 ESRI_KEY = ''
-# Clave de CARTO para el fondo «Calles». CARTO exige una clave propia; sin ella las
-# teselas llegan con la marca de agua «API key required». Se solicita sin costo en carto.com (sin cuenta) y va en la
-# dirección de cada tesela (?key=), así que también queda visible en la página.
-CARTO_KEY = ''
 # Las claves NO se escriben en este archivo, que es público. Se toman, en este orden, de las variables de
-# entorno SIA_ESRI_KEY y SIA_CARTO_KEY o del archivo 02_fuente/claves.local.json (no se publica; ver .gitignore):
-#   {"ESRI_KEY": "…", "CARTO_KEY": "…"}
+# entorno SIA_ESRI_KEY o del archivo 02_fuente/claves.local.json (no se publica; ver .gitignore):
+#   {"ESRI_KEY": "…"}
 # Al construir con claves, estas quedan en docs/config.js: son visibles para quien abra la página (es lo normal en mapas web),
 # así que deben restringirse al dominio del sitio en el panel de cada proveedor.
 _claves = {}
@@ -65,10 +63,9 @@ if os.path.isfile(os.path.join(FUENTE, 'claves.local.json')):
     try:
         _claves = json.load(open(os.path.join(FUENTE, 'claves.local.json'), encoding='utf-8-sig'))
     except ValueError as e:
-        print('ERROR: 02_fuente/claves.local.json no es un JSON válido (%s).\nDebe verse así: {"CARTO_KEY": "…", "ESRI_KEY": "…"}\nNo se escribió nada.' % e)
+        print('ERROR: 02_fuente/claves.local.json no es un JSON válido (%s).\nDebe verse así: {"ESRI_KEY": "…"}\nNo se escribió nada.' % e)
         sys.exit(1)
 ESRI_KEY = os.environ.get('SIA_ESRI_KEY') or _claves.get('ESRI_KEY') or ESRI_KEY
-CARTO_KEY = os.environ.get('SIA_CARTO_KEY') or _claves.get('CARTO_KEY') or CARTO_KEY
 # Sesión: direcciones del inicio y del cierre de sesión cuando la herramienta se instala detrás de un
 # login. Vacías = sin sesión (GitHub Pages). También se pueden dar con SIA_SESION_INICIO y SIA_SESION_CIERRE o en claves.local.json.
 SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_INICIO') or '',
@@ -76,7 +73,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.3'
+VERSION = '1.4'
 ACTUALIZACION = '12 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -128,7 +125,7 @@ for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLIC
     faltan = [n for n in esperados if not os.path.isfile(os.path.join(FUENTE, carpeta, n))]
     if faltan:
         falla('%s/ no trae: %s.' % (carpeta, ', '.join(faltan)))
-    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n != 'SUMAS.json')
+    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo'))
     if extra:
         print('AVISO: %s/ trae archivos que no se publican: %s.' % (carpeta, ', '.join(extra)))
 # Los datos deben ser los verificados: se compara el contenido descomprimido con datos/SUMAS.json,
@@ -144,6 +141,14 @@ for n in DATOS:
         falla('datos/%s.bin no se puede descomprimir (%s).' % (n, e))
     if h != sumas.get(n + '.bin'):
         falla('datos/%s.bin no coincide con datos/SUMAS.json. Si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.' % n)
+# Fondo propio: cada archivo debe ser el que escribió 6_fondo.py (se compara el archivo tal cual, con su SUMAS.json)
+ruta_fondo = os.path.join(FUENTE, 'datos', 'fondo')
+if not os.path.isfile(os.path.join(ruta_fondo, 'SUMAS.json')):
+    falla('falta datos/fondo/SUMAS.json: regenerar el fondo con 03_procesamiento_datos/6_fondo.py o recuperarlo de Git.')
+FONDO_SUMAS = json.load(open(os.path.join(ruta_fondo, 'SUMAS.json'), encoding='utf-8'))
+for n, h in FONDO_SUMAS.items():
+    if not os.path.isfile(os.path.join(ruta_fondo, n)) or hashlib.sha256(open(os.path.join(ruta_fondo, n), 'rb').read()).hexdigest() != h:
+        falla('datos/fondo/%s falta o no coincide con datos/fondo/SUMAS.json. Regenerar con 03_procesamiento_datos/6_fondo.py.' % n)
 
 
 AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar aquí.'
@@ -207,7 +212,7 @@ for k in LIBS_ARRANQUE:
     cuerpo += '<script>' + codigo + '</script>\n'
 cuerpo += ''.join('<script id="lib-%s-b64" type="text/plain">%s</script>\n' % (k, base64.b64encode(leer('libs/' + k, True)).decode()) for k in LIBS_DEMANDA)
 cuerpo += ''.join('<script id="%s-b64" type="text/plain">%s</script>\n' % (n, base64.b64encode(leer('datos/%s.bin' % n, True)).decode()) for n in DATOS)
-cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_CARTO_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False))
+cuerpo += '<script>window.SIA_ESRI_KEY = %s;window.SIA_VERSION = %s;</script>\n' % (json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False))
 cuerpo += '<script>\n' + app + '</script>\n'
 unico = ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + ESTILOS_UNICO) + cuerpo + '</body></html>\n'
 
@@ -218,6 +223,11 @@ for n in DATOS:
     poner('datos/%s.bin' % n, b)
     ver[n + '.bin'] = huella(b)
 total = sum(len(leer('datos/%s.bin' % n, True)) for n in DATOS)
+fondo_ver = {}
+for n in sorted(FONDO_SUMAS):
+    b = leer('datos/fondo/' + n, True)
+    poner('datos/fondo/' + n, b)
+    fondo_ver[n] = huella(b)
 lver = {}
 for lib in LIBS_PUBLICADAS:
     b = leer('libs/' + lib, True)
@@ -231,7 +241,7 @@ for arch in FUENTES_PUBLICADAS:
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_CARTO_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(ESRI_KEY), json.dumps(CARTO_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(fondo_ver), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)
@@ -297,9 +307,9 @@ os.makedirs(os.path.join(RAIZ, '_local'), exist_ok=True)
 open(os.path.join(RAIZ, '_local', 'priorizacion_reforestacion.html'), 'w', encoding='utf-8').write(unico)
 print('sitio en docs/ (index.html %d KB; datos %.1f MB aparte)' % (len(pagina.encode()) // 1024, total / 1048576))
 # docs/ se publica tal cual en GitHub Pages: si lleva claves o sesión, se dice
-if CARTO_KEY or ESRI_KEY:
-    print('AVISO: docs/config.js lleva la clave de %s. Al hacer commit queda pública en GitHub y en su historial: '
-          'confirmar que está restringida al dominio del sitio en el panel del proveedor.' % ' y de '.join(n for n, k in (('CARTO', CARTO_KEY), ('Esri', ESRI_KEY)) if k))
+if ESRI_KEY:
+    print('AVISO: docs/config.js lleva la clave de Esri. Al hacer commit queda pública en GitHub y en su historial: '
+          'confirmar que está restringida al dominio del sitio en el panel del proveedor.')
 if SESION['inicio'] or SESION['cierre'] or SESION['uso']:
     print('AVISO: docs/ se construyó con direcciones de sesión (%s). Sirven para el SIA, no para GitHub Pages: '
           'para el SIA usar 08_entrega_sia/empaquetar.py y no hacer commit de este docs/.' % (SESION['inicio'] or SESION['cierre']))
@@ -324,7 +334,8 @@ filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_D
          ('Sitio completo (`docs/`)', tam(peso_sitio)), ('Archivos que se piden al abrir, sin comprimir', tam(sum(pesa(a) for a in arranque))),
          ('Archivo único (`_local/priorizacion_reforestacion.html`)', tam(len(unico.encode('utf-8')))),
          ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
-         ('Mapas de fondo', 'Calles (CARTO): %s · Satélite (Esri): %s' % ('con clave' if CARTO_KEY else 'sin clave', 'con clave' if ESRI_KEY else 'sin clave'))]
+         ('Fondo propio «Calles» (`docs/datos/fondo/`, se pide al encenderlo)', tam(sum(len(SALIDA['datos/fondo/' + n]) for n in fondo_ver))),
+         ('Satélite (Esri)', 'con clave' if ESRI_KEY else 'sin clave')]
 cifras = ('# Cifras de la construcción\n\nGenerado por 02_fuente/construir.py en cada construcción. No editar aquí.' + '\n\nMedidas al construir la versión %s. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.\n\n' % VERSION
           + '| Concepto | Valor |\n|---|---|\n' + ''.join('| %s | %s |\n' % f for f in filas))
 ruta_cifras = os.path.join(RAIZ, '05_documentacion', 'cifras_de_la_construccion.md')

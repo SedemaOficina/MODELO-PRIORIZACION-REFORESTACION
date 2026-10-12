@@ -167,6 +167,7 @@ function readTokens(){
   T.prio = PRIO_VARS.map(v=>hex(css(v)));
   T.alc = hex(css('--map-alc')); T.col = hex(css('--map-col')); T.label = hex(css('--map-label')); T.sel = hex(css('--map-sel')); T.gold = hex(css('--dorado')); T.vpctx = hex(css('--map-vp'));
   T.ground = css('--ground');
+  T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
 }
 readTokens();
 
@@ -387,20 +388,18 @@ function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 4007
   el.querySelector('i').style.width = Math.round(m/mpp)+'px'; el.querySelector('span').textContent = m>=1000? (m/1000)+' km' : m+' m'; }
 let COL_LBL_SEL, COL_LBL = null;
 function colLabelsFor(k){ if (COL_LBL===null || COL_LBL_SEL!==k){ COL_LBL_SEL = k; COL_LBL = k===null? COL_LABELS : COL_LABELS.filter(c=>munIndex[c.mun]===k); } return COL_LBL; }
-// Mapas de fondo (opcionales; solo se piden a su servidor cuando el usuario los enciende).
-//  · calles: CARTO Positron sobre OpenStreetMap. CARTO exige una clave propia
-//    (window.SIA_CARTO_KEY: construir.py la toma de SIA_CARTO_KEY o de claves.local.json); sin ella las teselas llegan con la marca «API key required».
+// Mapas de fondo (opcionales; solo se piden cuando el usuario los enciende).
+//  · calles: fondo propio, alojado con el sitio (ver fondoPropio): manzanas del Catastro, parques, agua, ANP y AVA. Sin terceros ni claves.
 //  · sat: imagen de satélite de Esri (World Imagery) con la capa de referencia de nombres de vías encima
 //    (Reference/World_Transportation). Con clave de ArcGIS Location Platform (window.SIA_ESRI_KEY: construir.py la toma
 //    de SIA_ESRI_KEY o de claves.local.json) se usa el servicio con clave, que ya trae los nombres; sin clave, los servicios de services.arcgisonline.com.
 const ESRI_KEY = String(window.SIA_ESRI_KEY || '').trim();
-const CARTO_KEY = String(window.SIA_CARTO_KEY || '').trim();
 const ESRI_TILES = 'https://static-map-tiles-api.arcgis.com/arcgis/rest/services/static-basemap-tiles-service/v1/';
 const ESRI_AGOL = 'https://services.arcgisonline.com/ArcGIS/rest/services/';
 const enlace = (url, t)=> `<a href="${url}" target="_blank" rel="noopener noreferrer">${t}</a>`;
 const FONDOS = {
-  calles: { url:'https://basemaps.cartocdn.com/rastertiles/light_all/{z}/{x}/{y}.png' + (CARTO_KEY? '?key='+encodeURIComponent(CARTO_KEY) : ''), size:256, max:19, op:1, nota:'',
-    atrib:`Mapa: © ${enlace('https://www.openstreetmap.org/copyright','OpenStreetMap')} · © ${enlace('https://carto.com/attributions','CARTO')}` },
+  calles: { propio:true, nota:'',
+    atrib:'Manzanas: Catastro de la Ciudad de México · Parques, jardines y cuerpos de agua: SEDEMA · ANP y AVA: SEDEMA y CONANP' },
   sat: ESRI_KEY
     ? { url: ESRI_TILES+'arcgis/imagery/static/tile/{z}/{y}/{x}?token='+encodeURIComponent(ESRI_KEY), size:512, max:19, op:.9, nota:'',
         atrib:`Powered by ${enlace('https://www.esri.com','Esri')} · Imagen: Esri, Vantor, Earthstar Geographics y GIS User Community · Vías y lugares: Esri, HERE, Garmin, © OpenStreetMap contributors` }
@@ -416,7 +415,40 @@ function capaTeselas(id, url, f, op, avisa){
     renderSubLayers: p=>{ const b = p.tile.boundingBox;
       return new deck.BitmapLayer(p, {data:null, image:p.data, bounds:[b[0][0], b[0][1], b[1][0], b[1][1]]}); }});
 }
-function capasFondo(){ const f = FONDOS[fondo], L = [capaTeselas('fondo-'+fondo, f.url, f, f.op, true)];
+// ---------- fondo propio («Calles») ----------
+// Manzanas del Catastro en gris claro sobre suelo blanco (la calle es el hueco entre manzanas), y encima parques, jardines, ANP y AVA
+// en verde claro (Catastro trae muchos parques como manzana) y agua. Datos en datos/fondo/ (03_procesamiento_datos/6_fondo.py):
+// fondo_base.bin al encender el fondo; las manzanas de cada alcaldía, desde el zoom FONDO_Z y solo de las alcaldías a la vista.
+// El archivo único no los trae (window.SIA_FONDO no existe): allí el fondo «Calles» lo dice en la nota del panel de capas.
+const FONDO_ESCALA = 200000, FONDO_Z = 13;   // coordenadas en 1/200,000 de grado (ESCALA en 6_fondo.py)
+const FONDO = {base:null, pidiendo:false, intentos:0, mz:new Map(), pend:new Set(), fallo:new Set()};
+async function fondoLeer(n){ const v = (window.SIA_FONDO || {})[n]; if (!v) throw new Error('sin ' + n);
+  const r = await fetch('datos/fondo/' + n + '?v=' + v); if (!r.ok) throw new Error(n + ': ' + r.status);
+  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); let q=0, x=0, y=0;
+  const val = ()=>{ let res=0, sh=0, c; do { c=b[q++]; res += (c & 0x7f)*Math.pow(2, sh); sh += 7; } while (c & 0x80); return res%2? -((res+1)/2) : res/2; };
+  // cada llamada lee la siguiente lista de polígonos (las coordenadas van en diferencias a lo largo de todo el archivo)
+  return ()=>{ const n=val(), out=new Array(n);
+    for(let i=0;i<n;i++){ const nr=val(), p=new Array(nr);
+      for(let j=0;j<nr;j++){ const k=val(), a=new Array(k); for(let m=0;m<k;m++){ x+=val(); y+=val(); a[m]=[x/FONDO_ESCALA, y/FONDO_ESCALA]; } p[j]=a; }
+      out[i]=p; }
+    return out; }; }
+const ALC_BB = ALC.map(a=>{ let w=180,s=90,e=-180,n=-90; for(const p of a.polys) for(const q of p){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } return [w,s,e,n]; });
+function fondoPropio(){ const L = [];
+  if (!window.SIA_FONDO){ const n=$('fondo-note'); n.hidden=false; n.textContent='El fondo «Calles» no viene en el archivo único: ábrelo desde el sitio.'; return L; }
+  if (!FONDO.base && !FONDO.pidiendo && FONDO.intentos<3){ FONDO.pidiendo = true; FONDO.intentos++;
+    fondoLeer('fondo_base.bin').then(lee=>{ FONDO.base = {verde:lee(), agua:lee(), protegida:lee()}; FONDO.pidiendo = false; if (fondo==='calles') rerender(); })
+      .catch(()=>{ FONDO.pidiendo = false; if (FONDO.intentos>=3) avisoFondo(); }); }
+  if (viewState.zoom >= FONDO_Z){ const b = new WebMercatorViewport({...viewState, width:mapEl.clientWidth||800, height:mapEl.clientHeight||600}).getBounds();
+    ALC.forEach((a,k)=>{ const bb=ALC_BB[k]; if (bb[2]<b[0] || bb[0]>b[2] || bb[3]<b[1] || bb[1]>b[3]) return;
+      const n = 'fondo_mz_' + a.cve + '.bin', d = FONDO.mz.get(n);
+      if (d) L.push(new PolygonLayer({id:'fondo-mz-'+a.cve, data:d, getPolygon:p=>p, getFillColor:T.manzana, stroked:false, filled:true, pickable:false, updateTriggers:{getFillColor:[T.manzana]}}));
+      else if (!FONDO.pend.has(n) && !FONDO.fallo.has(n)){ FONDO.pend.add(n);
+        fondoLeer(n).then(lee=>{ FONDO.mz.set(n, lee()); FONDO.pend.delete(n); if (fondo==='calles') rerender(); })
+          .catch(()=>{ FONDO.pend.delete(n); FONDO.fallo.add(n); avisoFondo(); }); } }); }
+  if (FONDO.base) for(const [id, dat, col] of [['fondo-protegida', FONDO.base.protegida, T.fverde], ['fondo-verde', FONDO.base.verde, T.fverde], ['fondo-agua', FONDO.base.agua, T.fagua]])
+    L.push(new PolygonLayer({id, data:dat, getPolygon:p=>p, getFillColor:col, stroked:false, filled:true, pickable:false, updateTriggers:{getFillColor:[col]}}));
+  return L; }
+function capasFondo(){ const f = FONDOS[fondo]; if (f.propio) return fondoPropio(); const L = [capaTeselas('fondo-'+fondo, f.url, f, f.op, true)];
   if (f.ref) L.push(capaTeselas('fondo-'+fondo+'-vias', f.ref, f, 1, false));
   return L; }
 
@@ -425,7 +457,8 @@ function layers(){
   const L = [];
   if (fondo!=='no') L.push(...capasFondo());
   if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', opacity:opPrio, data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
-  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
+  // con el fondo propio, el tinte de prioridad de las colonias va más tenue: si no, cubre el hueco blanco de las calles
+  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : fondo==='calles'? 35 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol, fondo]}}));
   L.push(new PolygonLayer({id:'alc', data:ALC_PARTS, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.alc, lineWidthMinPixels:1, lineWidthMaxPixels:1.5, updateTriggers:{getLineColor:[T.alc]}}));
   if ((z>=12.2 && !isGC()) || colOnly()) L.push(new PathLayer({id:'cols', data:COL_PATHS, getPath:d=>d.path, getColor:T.col, widthMinPixels:0.7, widthMaxPixels:1, opacity:.7, updateTriggers:{getColor:[T.col]}}));
   // frentes de manzana (responsabilidad de las alcaldías)
@@ -897,7 +930,7 @@ $('op-prio').oninput = e=>{ opPrio = Math.min(1, Math.max(0.2, (+e.target.value|
 const ATRIB_BASE = $('attrib').innerHTML;
 function setFondo(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!=='no';
   document.querySelectorAll('.seg.fondo button').forEach(b=> b.setAttribute('aria-pressed', String(b.dataset.fondo===k)));
-  $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con);
+  $('attrib').innerHTML = con? f.atrib : ATRIB_BASE; $('attrib').classList.toggle('sat', con); document.body.classList.toggle('fondo-sat', con); document.body.classList.toggle('fondo-propio', !!(f && f.propio));
   const n = $('fondo-note'); n.hidden = !(con && f.nota); n.textContent = con? f.nota : '';
   ajustaEscala(); rerender(); }
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima

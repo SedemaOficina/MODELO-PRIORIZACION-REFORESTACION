@@ -113,8 +113,8 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     sesion = json.loads(re.search(r'window\.SIA_SESION = (\{[^}]*\})', config).group(1))
     open(os.path.join(base, 'VERSION.txt'), 'w', encoding='utf-8', newline='\n').write(
         'Modelo de priorización de reforestación urbana\nVersión: %s\nÚltima actualización: %s\nPaquete armado: %s\nCorte de los datos: %s\n'
-        'Archivos del sitio: %d\nClave de CARTO incluida: %s\nClave de Esri incluida: %s\nInicio de sesión: %s\n'
-        % (version, fecha, time.strftime('%Y-%m-%d %H:%M'), corte, len(lineas), con('SIA_CARTO_KEY'), con('SIA_ESRI_KEY'),
+        'Archivos del sitio: %d\nClave de Esri incluida: %s\nInicio de sesión: %s\n'
+        % (version, fecha, time.strftime('%Y-%m-%d %H:%M'), corte, len(lineas), con('SIA_ESRI_KEY'),
            ('acceso en %s, cierre en %s' % (sesion['inicio'], sesion['cierre'])) if sesion.get('inicio') else 'no'))
 
     # 5. comprobación final: nada de trabajo ni de pruebas en el paquete
@@ -134,4 +134,4 @@ finally:
 open(destino + '.sha256', 'w', encoding='utf-8', newline='\n').write('%s  %s\n' % (suma(destino), os.path.basename(destino)))
 print('paquete: %s (%.1f MB, %d archivos; %d del sitio)' % (os.path.relpath(destino, RAIZ), os.path.getsize(destino) / 1048576, len(todo), len(lineas)))
 print('suma del paquete: %s (también en %s.sha256)' % (suma(destino), os.path.basename(destino)))
-print('versión %s · clave CARTO: %s · clave Esri: %s · sesión: %s' % (version, con('SIA_CARTO_KEY'), con('SIA_ESRI_KEY'), sesion.get('inicio') or 'no'))
+print('versión %s · clave Esri: %s · sesión: %s' % (version, con('SIA_ESRI_KEY'), sesion.get('inicio') or 'no'))

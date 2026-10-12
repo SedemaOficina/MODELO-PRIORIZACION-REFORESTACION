@@ -7,6 +7,7 @@ function readTokens(){
   T.prio = PRIO_VARS.map(v=>hex(css(v)));
   T.alc = hex(css('--map-alc')); T.col = hex(css('--map-col')); T.label = hex(css('--map-label')); T.sel = hex(css('--map-sel')); T.gold = hex(css('--dorado')); T.vpctx = hex(css('--map-vp'));
   T.ground = css('--ground');
+  T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
 }
 readTokens();
 
