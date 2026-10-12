@@ -232,9 +232,33 @@ buildVP();
 const ring = r => r.map(p=>[p[0]/Q, p[1]/Q]);
 const ALC = META.alc.map(a=>({cve:a.cve, nom:a.nom, polys:a.rings.map(ring)}));
 const COLS = META.cols.map(c=>({i:c.i, nom:META.colonias[c.i].n, mun:META.colonias[c.i].m, prio:META.colonias[c.i].p, paths:c.rings.map(ring)}));
-function centroid(paths){ let sx=0,sy=0,n=0; for(const p of paths) for(const q of p){ sx+=q[0]; sy+=q[1]; n++; } return [sx/n, sy/n]; }
+// Punto donde va el nombre de un área: el más alejado de sus bordes dentro de su anillo mayor (polo de inaccesibilidad,
+// como polylabel). El promedio de vértices cae fuera en figuras irregulares. x se escala por cos(lat) para medir parejo.
+const areaAnillo = r => { let a=0; for(let i=0,j=r.length-1;i<r.length;j=i++) a += (r[j][0]-r[i][0])*(r[j][1]+r[i][1]); return Math.abs(a/2); };
+const mayorAnillo = rs => rs.reduce((m,r)=> areaAnillo(r)>areaAnillo(m)? r : m, rs[0]);
+function puntoInterior(r){
+  const k = Math.cos(r[0][1]*Math.PI/180), P = r.map(p=>[p[0]*k, p[1]]);
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity; for(const [x,y] of P){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
+  const lado = Math.min(x1-x0, y1-y0); if (!(lado>0)) return [r[0][0], r[0][1]];
+  // distancia con signo al borde: positiva dentro del anillo
+  const dist = (x,y)=>{ let dentro=false, d=Infinity;
+    for(let i=0,j=P.length-1;i<P.length;j=i++){ const ax=P[i][0], ay=P[i][1], bx=P[j][0], by=P[j][1];
+      if ((ay>y)!==(by>y) && x < (bx-ax)*(y-ay)/(by-ay)+ax) dentro=!dentro;
+      const dx=bx-ax, dy=by-ay, t=Math.max(0, Math.min(1, ((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy || 1))); d=Math.min(d, Math.hypot(x-ax-t*dx, y-ay-t*dy)); }
+    return dentro? d : -d; };
+  const celda = (x,y,h)=>{ const d=dist(x,y); return {x, y, h, d, max:d+h*Math.SQRT2}; };
+  // cola de prioridad por la mejor distancia posible de cada celda
+  const cola = [], sube = c=>{ cola.push(c); let i=cola.length-1; while(i>0){ const p=(i-1)>>1; if(cola[p].max>=cola[i].max) break; [cola[p],cola[i]]=[cola[i],cola[p]]; i=p; } },
+    saca = ()=>{ const top=cola[0], u=cola.pop(); if(cola.length){ cola[0]=u; let i=0; for(;;){ const a=2*i+1, b=a+1; let m=i; if(a<cola.length && cola[a].max>cola[m].max) m=a; if(b<cola.length && cola[b].max>cola[m].max) m=b; if(m===i) break; [cola[m],cola[i]]=[cola[i],cola[m]]; i=m; } } return top; };
+  for(let x=x0; x<x1; x+=lado) for(let y=y0; y<y1; y+=lado) sube(celda(x+lado/2, y+lado/2, lado/2));
+  let mejor = celda((x0+x1)/2, (y0+y1)/2, 0); const prec = Math.max(x1-x0, y1-y0)/100;
+  // tope de celdas: una figura degenerada no puede trabar la página
+  for(let vuelta=0; cola.length && vuelta<4000; vuelta++){ const c=saca(); if (c.d>mejor.d) mejor=c; if (!(c.max-mejor.d>prec)) continue; const h=c.h/2;
+    sube(celda(c.x-h,c.y-h,h)); sube(celda(c.x+h,c.y-h,h)); sube(celda(c.x-h,c.y+h,h)); sube(celda(c.x+h,c.y+h,h)); }
+  return [mejor.x/k, mejor.y];
+}
 const ALC_PARTS = ALC.flatMap((a,i)=>a.polys.map(poly=>({i, poly})));
-const ALC_LABELS = ALC.map(a=>({pos:centroid([a.polys.reduce((m,p)=>p.length>m.length?p:m, a.polys[0])]), text:a.nom}));
+const ALC_LABELS = ALC.map(a=>({pos:puntoInterior(mayorAnillo(a.polys)), text:a.nom}));
 const COL_PATHS = COLS.flatMap(c=>c.paths.map(p=>({path:p})));
 const COL_PARTS = COLS.flatMap(c=>c.paths.map(poly=>({poly, prio:c.prio, i:c.i})));
 function colBounds(id){ let w=180,s=90,e=-180,n=-90; for(const c of COLS){ if(c.i!==id) continue; for(const p of c.paths) for(const q of p){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } return [w,s,e,n]; }
@@ -267,8 +291,21 @@ const VP_RECS = META.muns.map(()=>({r:new Set(), rp:new Set()})); for(let i=0;i<
 const domOf = i => isGC()? VP_DOM[i] : ALC_DOM[i];
 const rankOf = i => isGC()? rankVP[i] : rank[i];
 const summOf = i => isGC()? VPC.summ[META.muns[i]] : META.summ[META.muns[i]];
-const COL_LABELS = COLS.map(c=>({pos:centroid(c.paths), text:c.nom, mun:c.mun}));
-const charset = [...new Set((ALC_LABELS.concat(COL_LABELS)).map(l=>l.text).join('') + '0123456789')];
+// El punto interior de las 2,243 colonias toma unos 0.2 s (más en teléfono) y sus nombres solo se ven desde el zoom 13.6:
+// se calcula en ratos libres después de abrir. Mientras tanto, cada nombre queda en el promedio de los vértices de su colonia.
+const promedioVertices = rs=>{ let x=0, y=0, n=0; for(const r of rs) for(const p of r){ x+=p[0]; y+=p[1]; n++; } return [x/n, y/n]; };
+const COL_LABELS = COLS.map(c=>({pos:promedioVertices(c.paths), text:c.nom, mun:c.mun, i:c.i}));
+let colPosListas = false;
+const enRatos = f=> window.requestIdleCallback? requestIdleCallback(f, {timeout:3000}) : setTimeout(()=>f(null), 60);
+(()=>{ let k=0;
+  const paso = dl=>{ const fin = performance.now()+10;
+    while(k<COL_LABELS.length && (dl? dl.timeRemaining()>1 : performance.now()<fin)){ COL_LABELS[k].pos = puntoInterior(mayorAnillo(COLS[k].paths)); k++; }
+    if (k<COL_LABELS.length){ enRatos(paso); return; }
+    colPosListas = true; if (window.SIA_LISTO && viewState.zoom>=13.6) rerender(); };
+  enRatos(paso); })();
+// los nombres de colonia se dibujan en mayúsculas: el juego de letras lleva las dos formas (sin «Ñ» saldría un hueco)
+const textosEtq = (ALC_LABELS.concat(COL_LABELS)).map(l=>l.text).join('');
+const charset = [...new Set(textosEtq + textosEtq.toUpperCase() + '0123456789')];
 
 // Mapa: vista, nombres de calle, barra de escala y capas de deck.gl (layers()).
 // ---------- mapa: vista y datos para deck.gl ----------
@@ -292,7 +329,7 @@ function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; 
   // haya movido el mapa con el ratón o los dedos (sin _n, "toda la ciudad" podría no hacer nada)
   dk.setProps({initialViewState:{...vs, _n: ++nVista, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
   // sin animación deck.gl no avisa del cambio de vista: se actualizan aquí capas y escala
-  if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev)) rerender(); updateScale(); } }
+  if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev) || lblDesfasado(viewState)) rerender(); updateScale(); } }
 
 // Rendimiento: deck.gl vuelve a procesar ~1 millón de vértices cada vez que recibe un objeto de datos nuevo.
 // Por eso se reutiliza el mismo objeto mientras no cambien colores ni filtros (solo cambian al cambiar la
@@ -331,6 +368,10 @@ function streetLabelData(){
   const b=vp.getBounds(); const out=[]; lblCenter=[viewState.longitude, viewState.latitude];
   for(const c of COLS){ if(sel!==null && munIndex[c.mun]!==sel) continue; const bb=colBB(c.i); if(bb[2]<b[0]||bb[0]>b[2]||bb[3]<b[1]||bb[1]>b[3]) continue; for(const l of colStreetLabels(c.i)) out.push(l); }
   return out; }
+// ¿la vista se alejó más de 0.35 del ancho del lugar donde se calcularon los nombres de calle? (solo a zoom ≥ 15)
+function lblDesfasado(vs){ if (vs.zoom<15 || !lblCenter) return false; const w=mapEl.clientWidth||800;
+  const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540;
+  return Math.hypot(dx,dy)/mpp > w*0.35; }
 // ---------- barra de escala ----------
 function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 40075016.686*Math.cos(viewState.latitude*Math.PI/180)/(512*Math.pow(2,viewState.zoom));
   const steps=[10,20,50,100,200,500,1000,2000,5000,10000,20000]; let m=steps[0]; for(const st of steps){ if(st/mpp<=110) m=st; }
@@ -419,8 +460,8 @@ function layers(){
   }
   L.push(new TextLayer({id:'alc-labels', data:ALC_LABELS, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:charset,
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:{sdf:true}, outlineWidth:5, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> d.text.length, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
-  if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data: colLabelsFor(sel), getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:[T.label[0],T.label[1],T.label[2],200], characterSet:charset,
-    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:4, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> -d.text.length, updateTriggers:{getColor:[T.label], data:[sel]}}));
+  if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data: colLabelsFor(sel), getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:T.label, characterSet:charset,
+    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:4, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> -d.text.length, updateTriggers:{getColor:[T.label], getPosition:[colPosListas], data:[sel]}}));
   if (!isGC() && showFrB && z>=15){ const sd=streetLabelData(); if (sd.length) L.push(new TextLayer({id:'st-labels', data:sd, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:12, getColor:[34,38,42,235], characterSet:'auto',
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:6, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center',
     extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority:d=>d.len })); }
@@ -523,7 +564,7 @@ const dk = new DeckGL({
   onLoad: ()=> revisarRendimiento(),
   // un error al dibujar no deja el mapa en blanco sin explicación
   onError: e=>{ console.error(e); avisoMapa('<b>El mapa tuvo un problema al dibujarse.</b> Las cifras, los listados y las descargas siguen disponibles.', true); },
-  onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; let moved=false; if (vs.zoom>=15 && lblCenter){ const w=mapEl.clientWidth||800; const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540; moved = Math.hypot(dx,dy)/mpp > w*0.35; } if (zc!==prev || moved) rerender(); updateScale(); return vs; },
+  onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; if (zc!==prev || lblDesfasado(vs)) rerender(); updateScale(); return vs; },
   getTooltip: info => {
     if (info.index<0 || !info.layer) return null; const st = {background:'transparent',padding:0,border:0,boxShadow:'none'};
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
@@ -536,6 +577,19 @@ const dk = new DeckGL({
 mapEl.addEventListener('webglcontextlost', ()=> avisoMapa('<b>El equipo liberó la memoria gráfica y el mapa dejó de dibujarse.</b> Las cifras siguen disponibles; para recuperar el mapa hay que recargar.', true), true);
 let pdown = null;
 mapEl.addEventListener('pointerdown', e=>{ pdown=[e.clientX,e.clientY]; });
+// Dedos «fantasma» en teléfonos (sobre todo iPhone): el mapa lleva la lista de dedos puestos y quita cada uno cuando el navegador
+// avisa que se levantó. Si ese aviso se pierde, el dedo se queda en la lista: con uno de más, un solo dedo hace zoom; con dos, el
+// mapa no responde a ningún gesto. Al empezar un toque como primer dedo, al quedar la pantalla sin dedos y al salir de la página
+// se cancelan los que sigan anotados. La lista es interna de deck.gl 9.4 (mjolnir): si cambia de lugar, esto no hace nada.
+const dedosDelMapa = ()=>{ try { return dk.eventManager.manager.input.store; } catch(e){ return null; } };
+const soltarDedos = salvo=>{ const st = dedosDelMapa(); if (!st || !st.length) return;
+  for (const id of st.map(x=>x.pointerId).filter(id=>id!==salvo)) window.dispatchEvent(new PointerEvent('pointercancel', {pointerId:id, pointerType:'touch', bubbles:true})); };
+mapEl.addEventListener('pointerdown', e=>{ if (e.isPrimary) soltarDedos(e.pointerId); }, true);
+for (const t of ['touchend', 'touchcancel']) addEventListener(t, e=>{ if (!e.touches.length) setTimeout(()=>soltarDedos(), 0); }, true);
+addEventListener('blur', ()=>soltarDedos()); document.addEventListener('visibilitychange', ()=>{ if (document.hidden) soltarDedos(); });
+// Solo para las pruebas automáticas (04_pruebas/prueba_nombres_mapa.js): con window.SIA_PRUEBA se puede leer el estado del mapa.
+if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMapa(); return st? st.length : -1; }, etiquetas: ()=>({ALC, ALC_LABELS, COLS, COL_LABELS, charset}),
+  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
   const r = mapEl.getBoundingClientRect(); const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});
@@ -760,10 +814,10 @@ function repartoHtml(){
 }
 
 // ---------- resumen del ámbito consultado ----------
-const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0,nbi:0})); let t=0,p=0,nbi=0;
+const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0})); let t=0,p=0;
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const m=munIndex[c.m]; if(m===undefined) continue;
-    const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(esPrio(c.p)){ alc[m].p+=pb; p+=pb; alc[m].nbi+=c.nbi||0; nbi+=c.nbi||0; } }
-  return {alc, city:{t,p,nbi}}; })();
+    const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(esPrio(c.p)){ alc[m].p+=pb; p+=pb; } }
+  return {alc, city:{t,p}}; })();
 const hab = n => n>=1e6? fmt1.format(n/1e6)+' millones de habitantes' : fmt.format(n)+' habitantes';
 const habC = n => n>=1e6? fmt1.format(n/1e6)+' M' : fmt.format(n);
 const CITY = META.city;

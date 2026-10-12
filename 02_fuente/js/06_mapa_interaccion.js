@@ -10,7 +10,7 @@ const dk = new DeckGL({
   onLoad: ()=> revisarRendimiento(),
   // un error al dibujar no deja el mapa en blanco sin explicación
   onError: e=>{ console.error(e); avisoMapa('<b>El mapa tuvo un problema al dibujarse.</b> Las cifras, los listados y las descargas siguen disponibles.', true); },
-  onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; let moved=false; if (vs.zoom>=15 && lblCenter){ const w=mapEl.clientWidth||800; const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540; moved = Math.hypot(dx,dy)/mpp > w*0.35; } if (zc!==prev || moved) rerender(); updateScale(); return vs; },
+  onViewStateChange: ({viewState:vs})=>{ vs = {...vs, longitude: Math.min(Math.max(vs.longitude, CITY_BOUNDS[0]-0.05), CITY_BOUNDS[2]+0.05), latitude: Math.min(Math.max(vs.latitude, CITY_BOUNDS[1]-0.04), CITY_BOUNDS[3]+0.04)}; const zc = zoomBand(vs.zoom); const prev = zoomBand(viewState.zoom); viewState = vs; if (zc!==prev || lblDesfasado(vs)) rerender(); updateScale(); return vs; },
   getTooltip: info => {
     if (info.index<0 || !info.layer) return null; const st = {background:'transparent',padding:0,border:0,boxShadow:'none'};
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
@@ -23,6 +23,19 @@ const dk = new DeckGL({
 mapEl.addEventListener('webglcontextlost', ()=> avisoMapa('<b>El equipo liberó la memoria gráfica y el mapa dejó de dibujarse.</b> Las cifras siguen disponibles; para recuperar el mapa hay que recargar.', true), true);
 let pdown = null;
 mapEl.addEventListener('pointerdown', e=>{ pdown=[e.clientX,e.clientY]; });
+// Dedos «fantasma» en teléfonos (sobre todo iPhone): el mapa lleva la lista de dedos puestos y quita cada uno cuando el navegador
+// avisa que se levantó. Si ese aviso se pierde, el dedo se queda en la lista: con uno de más, un solo dedo hace zoom; con dos, el
+// mapa no responde a ningún gesto. Al empezar un toque como primer dedo, al quedar la pantalla sin dedos y al salir de la página
+// se cancelan los que sigan anotados. La lista es interna de deck.gl 9.4 (mjolnir): si cambia de lugar, esto no hace nada.
+const dedosDelMapa = ()=>{ try { return dk.eventManager.manager.input.store; } catch(e){ return null; } };
+const soltarDedos = salvo=>{ const st = dedosDelMapa(); if (!st || !st.length) return;
+  for (const id of st.map(x=>x.pointerId).filter(id=>id!==salvo)) window.dispatchEvent(new PointerEvent('pointercancel', {pointerId:id, pointerType:'touch', bubbles:true})); };
+mapEl.addEventListener('pointerdown', e=>{ if (e.isPrimary) soltarDedos(e.pointerId); }, true);
+for (const t of ['touchend', 'touchcancel']) addEventListener(t, e=>{ if (!e.touches.length) setTimeout(()=>soltarDedos(), 0); }, true);
+addEventListener('blur', ()=>soltarDedos()); document.addEventListener('visibilitychange', ()=>{ if (document.hidden) soltarDedos(); });
+// Solo para las pruebas automáticas (04_pruebas/prueba_nombres_mapa.js): con window.SIA_PRUEBA se puede leer el estado del mapa.
+if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMapa(); return st? st.length : -1; }, etiquetas: ()=>({ALC, ALC_LABELS, COLS, COL_LABELS, charset}),
+  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
   const r = mapEl.getBoundingClientRect(); const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});

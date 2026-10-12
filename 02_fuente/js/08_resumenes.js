@@ -66,10 +66,10 @@ function repartoHtml(){
 }
 
 // ---------- resumen del ámbito consultado ----------
-const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0,nbi:0})); let t=0,p=0,nbi=0;
+const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0})); let t=0,p=0;
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const m=munIndex[c.m]; if(m===undefined) continue;
-    const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(esPrio(c.p)){ alc[m].p+=pb; p+=pb; alc[m].nbi+=c.nbi||0; nbi+=c.nbi||0; } }
-  return {alc, city:{t,p,nbi}}; })();
+    const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(esPrio(c.p)){ alc[m].p+=pb; p+=pb; } }
+  return {alc, city:{t,p}}; })();
 const hab = n => n>=1e6? fmt1.format(n/1e6)+' millones de habitantes' : fmt.format(n)+' habitantes';
 const habC = n => n>=1e6? fmt1.format(n/1e6)+' M' : fmt.format(n);
 const CITY = META.city;

@@ -72,9 +72,33 @@ buildVP();
 const ring = r => r.map(p=>[p[0]/Q, p[1]/Q]);
 const ALC = META.alc.map(a=>({cve:a.cve, nom:a.nom, polys:a.rings.map(ring)}));
 const COLS = META.cols.map(c=>({i:c.i, nom:META.colonias[c.i].n, mun:META.colonias[c.i].m, prio:META.colonias[c.i].p, paths:c.rings.map(ring)}));
-function centroid(paths){ let sx=0,sy=0,n=0; for(const p of paths) for(const q of p){ sx+=q[0]; sy+=q[1]; n++; } return [sx/n, sy/n]; }
+// Punto donde va el nombre de un área: el más alejado de sus bordes dentro de su anillo mayor (polo de inaccesibilidad,
+// como polylabel). El promedio de vértices cae fuera en figuras irregulares. x se escala por cos(lat) para medir parejo.
+const areaAnillo = r => { let a=0; for(let i=0,j=r.length-1;i<r.length;j=i++) a += (r[j][0]-r[i][0])*(r[j][1]+r[i][1]); return Math.abs(a/2); };
+const mayorAnillo = rs => rs.reduce((m,r)=> areaAnillo(r)>areaAnillo(m)? r : m, rs[0]);
+function puntoInterior(r){
+  const k = Math.cos(r[0][1]*Math.PI/180), P = r.map(p=>[p[0]*k, p[1]]);
+  let x0=Infinity, y0=Infinity, x1=-Infinity, y1=-Infinity; for(const [x,y] of P){ if(x<x0)x0=x; if(y<y0)y0=y; if(x>x1)x1=x; if(y>y1)y1=y; }
+  const lado = Math.min(x1-x0, y1-y0); if (!(lado>0)) return [r[0][0], r[0][1]];
+  // distancia con signo al borde: positiva dentro del anillo
+  const dist = (x,y)=>{ let dentro=false, d=Infinity;
+    for(let i=0,j=P.length-1;i<P.length;j=i++){ const ax=P[i][0], ay=P[i][1], bx=P[j][0], by=P[j][1];
+      if ((ay>y)!==(by>y) && x < (bx-ax)*(y-ay)/(by-ay)+ax) dentro=!dentro;
+      const dx=bx-ax, dy=by-ay, t=Math.max(0, Math.min(1, ((x-ax)*dx+(y-ay)*dy)/(dx*dx+dy*dy || 1))); d=Math.min(d, Math.hypot(x-ax-t*dx, y-ay-t*dy)); }
+    return dentro? d : -d; };
+  const celda = (x,y,h)=>{ const d=dist(x,y); return {x, y, h, d, max:d+h*Math.SQRT2}; };
+  // cola de prioridad por la mejor distancia posible de cada celda
+  const cola = [], sube = c=>{ cola.push(c); let i=cola.length-1; while(i>0){ const p=(i-1)>>1; if(cola[p].max>=cola[i].max) break; [cola[p],cola[i]]=[cola[i],cola[p]]; i=p; } },
+    saca = ()=>{ const top=cola[0], u=cola.pop(); if(cola.length){ cola[0]=u; let i=0; for(;;){ const a=2*i+1, b=a+1; let m=i; if(a<cola.length && cola[a].max>cola[m].max) m=a; if(b<cola.length && cola[b].max>cola[m].max) m=b; if(m===i) break; [cola[m],cola[i]]=[cola[i],cola[m]]; i=m; } } return top; };
+  for(let x=x0; x<x1; x+=lado) for(let y=y0; y<y1; y+=lado) sube(celda(x+lado/2, y+lado/2, lado/2));
+  let mejor = celda((x0+x1)/2, (y0+y1)/2, 0); const prec = Math.max(x1-x0, y1-y0)/100;
+  // tope de celdas: una figura degenerada no puede trabar la página
+  for(let vuelta=0; cola.length && vuelta<4000; vuelta++){ const c=saca(); if (c.d>mejor.d) mejor=c; if (!(c.max-mejor.d>prec)) continue; const h=c.h/2;
+    sube(celda(c.x-h,c.y-h,h)); sube(celda(c.x+h,c.y-h,h)); sube(celda(c.x-h,c.y+h,h)); sube(celda(c.x+h,c.y+h,h)); }
+  return [mejor.x/k, mejor.y];
+}
 const ALC_PARTS = ALC.flatMap((a,i)=>a.polys.map(poly=>({i, poly})));
-const ALC_LABELS = ALC.map(a=>({pos:centroid([a.polys.reduce((m,p)=>p.length>m.length?p:m, a.polys[0])]), text:a.nom}));
+const ALC_LABELS = ALC.map(a=>({pos:puntoInterior(mayorAnillo(a.polys)), text:a.nom}));
 const COL_PATHS = COLS.flatMap(c=>c.paths.map(p=>({path:p})));
 const COL_PARTS = COLS.flatMap(c=>c.paths.map(poly=>({poly, prio:c.prio, i:c.i})));
 function colBounds(id){ let w=180,s=90,e=-180,n=-90; for(const c of COLS){ if(c.i!==id) continue; for(const p of c.paths) for(const q of p){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } return [w,s,e,n]; }
@@ -107,5 +131,18 @@ const VP_RECS = META.muns.map(()=>({r:new Set(), rp:new Set()})); for(let i=0;i<
 const domOf = i => isGC()? VP_DOM[i] : ALC_DOM[i];
 const rankOf = i => isGC()? rankVP[i] : rank[i];
 const summOf = i => isGC()? VPC.summ[META.muns[i]] : META.summ[META.muns[i]];
-const COL_LABELS = COLS.map(c=>({pos:centroid(c.paths), text:c.nom, mun:c.mun}));
-const charset = [...new Set((ALC_LABELS.concat(COL_LABELS)).map(l=>l.text).join('') + '0123456789')];
+// El punto interior de las 2,243 colonias toma unos 0.2 s (más en teléfono) y sus nombres solo se ven desde el zoom 13.6:
+// se calcula en ratos libres después de abrir. Mientras tanto, cada nombre queda en el promedio de los vértices de su colonia.
+const promedioVertices = rs=>{ let x=0, y=0, n=0; for(const r of rs) for(const p of r){ x+=p[0]; y+=p[1]; n++; } return [x/n, y/n]; };
+const COL_LABELS = COLS.map(c=>({pos:promedioVertices(c.paths), text:c.nom, mun:c.mun, i:c.i}));
+let colPosListas = false;
+const enRatos = f=> window.requestIdleCallback? requestIdleCallback(f, {timeout:3000}) : setTimeout(()=>f(null), 60);
+(()=>{ let k=0;
+  const paso = dl=>{ const fin = performance.now()+10;
+    while(k<COL_LABELS.length && (dl? dl.timeRemaining()>1 : performance.now()<fin)){ COL_LABELS[k].pos = puntoInterior(mayorAnillo(COLS[k].paths)); k++; }
+    if (k<COL_LABELS.length){ enRatos(paso); return; }
+    colPosListas = true; if (window.SIA_LISTO && viewState.zoom>=13.6) rerender(); };
+  enRatos(paso); })();
+// los nombres de colonia se dibujan en mayúsculas: el juego de letras lleva las dos formas (sin «Ñ» saldría un hueco)
+const textosEtq = (ALC_LABELS.concat(COL_LABELS)).map(l=>l.text).join('');
+const charset = [...new Set(textosEtq + textosEtq.toUpperCase() + '0123456789')];

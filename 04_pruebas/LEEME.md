@@ -27,6 +27,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_casos_limite.js` | Casos límite: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
 | `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central | 1 min |
 | `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, pasos de banqueta y de Street View, en escritorio y teléfono | 1 min |
+| `prueba_nombres_mapa.js` | Nombres del mapa y gestos: nombres de alcaldía y colonia dentro de su figura, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Lote de fichas de las alcaldías** (no es una prueba; vive aquí porque usa las mismas herramientas): `node 04_pruebas/generar_fichas_alcaldias.js` descarga, por alcaldía, la ficha de la alcaldía, la de vialidades primarias y la de la colonia con más frente prioritario, en `_local/fichas_alcaldias_vX.YY/`; `python 04_pruebas/unir_fichas.py CARPETA` (requiere `pypdf`) las une en `00_todas_las_fichas.pdf` y arma el zip. Unos 5 minutos.

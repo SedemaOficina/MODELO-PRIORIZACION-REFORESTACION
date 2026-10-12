@@ -20,7 +20,7 @@ function flyTo(vs, ms=700){ if (NOMAP){ viewState={...viewState,...vs}; return; 
   // haya movido el mapa con el ratón o los dedos (sin _n, "toda la ciudad" podría no hacer nada)
   dk.setProps({initialViewState:{...vs, _n: ++nVista, transitionDuration: sinAnim? 0 : ms, transitionInterpolator: sinAnim? undefined : new FlyToInterpolator()}}); viewState={...viewState,...vs};
   // sin animación deck.gl no avisa del cambio de vista: se actualizan aquí capas y escala
-  if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev)) rerender(); updateScale(); } }
+  if (sinAnim){ if (zoomBand(viewState.zoom)!==zoomBand(prev) || lblDesfasado(viewState)) rerender(); updateScale(); } }
 
 // Rendimiento: deck.gl vuelve a procesar ~1 millón de vértices cada vez que recibe un objeto de datos nuevo.
 // Por eso se reutiliza el mismo objeto mientras no cambien colores ni filtros (solo cambian al cambiar la
@@ -59,6 +59,10 @@ function streetLabelData(){
   const b=vp.getBounds(); const out=[]; lblCenter=[viewState.longitude, viewState.latitude];
   for(const c of COLS){ if(sel!==null && munIndex[c.mun]!==sel) continue; const bb=colBB(c.i); if(bb[2]<b[0]||bb[0]>b[2]||bb[3]<b[1]||bb[1]>b[3]) continue; for(const l of colStreetLabels(c.i)) out.push(l); }
   return out; }
+// ¿la vista se alejó más de 0.35 del ancho del lugar donde se calcularon los nombres de calle? (solo a zoom ≥ 15)
+function lblDesfasado(vs){ if (vs.zoom<15 || !lblCenter) return false; const w=mapEl.clientWidth||800;
+  const mpp=40075016.686*Math.cos(vs.latitude*Math.PI/180)/(512*Math.pow(2,vs.zoom)); const dx=(vs.longitude-lblCenter[0])*111320*Math.cos(vs.latitude*Math.PI/180), dy=(vs.latitude-lblCenter[1])*110540;
+  return Math.hypot(dx,dy)/mpp > w*0.35; }
 // ---------- barra de escala ----------
 function updateScale(){ const el=$('scalebar'); if(!el) return; const mpp = 40075016.686*Math.cos(viewState.latitude*Math.PI/180)/(512*Math.pow(2,viewState.zoom));
   const steps=[10,20,50,100,200,500,1000,2000,5000,10000,20000]; let m=steps[0]; for(const st of steps){ if(st/mpp<=110) m=st; }
@@ -147,8 +151,8 @@ function layers(){
   }
   L.push(new TextLayer({id:'alc-labels', data:ALC_LABELS, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:charset,
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:{sdf:true}, outlineWidth:5, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> d.text.length, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
-  if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data: colLabelsFor(sel), getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:[T.label[0],T.label[1],T.label[2],200], characterSet:charset,
-    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:4, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> -d.text.length, updateTriggers:{getColor:[T.label], data:[sel]}}));
+  if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data: colLabelsFor(sel), getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:T.label, characterSet:charset,
+    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:4, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority: d=> -d.text.length, updateTriggers:{getColor:[T.label], getPosition:[colPosListas], data:[sel]}}));
   if (!isGC() && showFrB && z>=15){ const sd=streetLabelData(); if (sd.length) L.push(new TextLayer({id:'st-labels', data:sd, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:12, getColor:[34,38,42,235], characterSet:'auto',
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:{sdf:true}, outlineWidth:6, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center',
     extensions:[new CollisionFilterExtension()], collisionGroup:'labels', getCollisionPriority:d=>d.len })); }
