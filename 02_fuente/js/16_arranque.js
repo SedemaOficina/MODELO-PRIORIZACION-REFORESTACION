@@ -2,6 +2,7 @@
 // ---------- arranque ----------
 if (isPhone()) setLayer('fr', false);   // en pantallas chicas se dibujan primero las colonias
 document.body.dataset.resp = resp;
+fondoUI(fondo);   // botones y atribución del fondo con que abre (FONDO_INICIAL)
 setSel('');
 setTab('ini');
 if (isPhone()) setSheetState('peek');

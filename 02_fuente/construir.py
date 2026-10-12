@@ -73,7 +73,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /api/priorizacion-reforestacion/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.4'
+VERSION = '1.5'
 ACTUALIZACION = '12 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -271,7 +271,7 @@ poner('index.html', pagina)
 PRE = (['./', 'config.js?v=%s' % v(config), 'app.js?v=%s' % v(app), 'estilos.css?v=%s' % v(estilos)]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('deck.js', 'pako.js')]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('xlsx.js', 'jspdf.js')] + ['libs/excel_worker.js?v=%s&x=%s' % (lver['excel_worker.js'], lver['xlsx.js'])]
-       + ['datos/%s?v=%s' % (n, ver[n]) for n in sorted(ver)]
+       + ['datos/%s?v=%s' % (n, ver[n]) for n in sorted(ver)] + ['datos/fondo/fondo_base.bin?v=%s' % fondo_ver['fondo_base.bin']]   # el fondo «Calles» abre por omisión
        + ['fuentes/%s?v=%s' % (a, fver[a]) for a in FUENTES.values()]
        + ['%s?v=%s' % (img, v(leer(img, True))) for img in IMAGENES])
 SW = '''// %s

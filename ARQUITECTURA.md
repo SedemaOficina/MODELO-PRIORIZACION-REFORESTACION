@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.4 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.5 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -182,7 +182,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Tipografías Cabin y Roboto | `docs/fuentes/` (sitio) · incrustadas (archivo único) | Archivos woff2 de peso variable (400 a 700), subconjunto latino, 63 KB en total. Licencia SIL Open Font License 1.1 (`fuentes/OFL_*.txt`). La página no pide nada a terceros para arrancar; lo verifica `04_pruebas/prueba_sin_terceros.js` |
 | Enlaces "Cómo llegar" y "Street View" | Google Maps | Solo enlaces; se abren en otra pestaña |
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
-| Mapa de fondo de calles (opcional) | Propio, alojado con el sitio (`datos/fondo/`): manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017 de SEDEMA, ANP y AVA oficiales y cuerpos de agua de SEDEMA | Lo genera `03_procesamiento_datos/6_fondo.py` (1.6 MB en total). Se pide al encenderlo; las manzanas, por alcaldía, desde el zoom 13. No está en el archivo único |
+| Mapa de fondo de calles (opcional) | Propio, alojado con el sitio (`datos/fondo/`): manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017 de SEDEMA, ANP y AVA oficiales y cuerpos de agua de SEDEMA | Lo genera `03_procesamiento_datos/6_fondo.py` (1.6 MB en total). Es el fondo con que abre la herramienta (`FONDO_INICIAL`): de lejos solo pide `fondo_base.bin` (143 KB, que también guarda el proceso de servicio para abrir sin conexión); las manzanas, por alcaldía, desde el zoom 13. No está en el archivo único, que abre sin fondo |
 | Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave se da con `SIA_ESRI_KEY` o en `02_fuente/claves.local.json` (ver sección 9). El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 
 ## 9. Cambios comunes

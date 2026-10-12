@@ -109,7 +109,10 @@ let showAlcB = false, showColB = true, showFrB = true, colBefore = false;
 // solo desde el zoom ZOOM_LIGERO y, más lejos, las colonias muestran la prioridad. Ver 06_mapa_interaccion.js.
 let modoLigero = false;
 let opPrio = 1;          // opacidad de las capas de prioridad (0.2 a 1), la ajusta el usuario en el panel de capas
-let fondo = 'no';        // mapa de fondo: 'no' | 'calles' | 'sat'
+// mapa de fondo: 'no' | 'calles' | 'sat'. Al abrir, el propio «Calles» (las calles se ven como el hueco entre manzanas); en el archivo
+// único, que no trae sus datos, sin fondo
+const FONDO_INICIAL = window.SIA_FONDO? 'calles' : 'no';
+let fondo = FONDO_INICIAL;
 const ZOOM_LIGERO = 13;
 const frVisibles = ()=> showFrB && !(modoLigero && viewState.zoom < ZOOM_LIGERO);
 const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), colLista = ()=> showColB && !showFrB && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;

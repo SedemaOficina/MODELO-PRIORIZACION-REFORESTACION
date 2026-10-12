@@ -2,11 +2,11 @@
 
 Generado por 02_fuente/construir.py en cada construcción. No editar aquí.
 
-Medidas al construir la versión 1.4. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
+Medidas al construir la versión 1.5. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
 
 | Concepto | Valor |
 |---|---|
-| Versión de la herramienta | 1.4 |
+| Versión de la herramienta | 1.5 |
 | Corte de los datos | modelo de priorización de nov. 2025; vialidades primarias de ago. 2026 |
 | Módulos de lógica (`02_fuente/js/`) | 19 |
 | Hojas de estilo (`02_fuente/css/`) | 9 |
@@ -19,6 +19,6 @@ Medidas al construir la versión 1.4. README y ARQUITECTURA remiten a esta tabla
 | Sitio completo (`docs/`) | 10.0 MB |
 | Archivos que se piden al abrir, sin comprimir | 6.7 MB |
 | Archivo único (`_local/priorizacion_reforestacion.html`) | 10.8 MB |
-| Archivos que guarda el navegador para abrir sin conexión | 16 |
+| Archivos que guarda el navegador para abrir sin conexión | 17 |
 | Fondo propio «Calles» (`docs/datos/fondo/`, se pide al encenderlo) | 1.6 MB |
 | Satélite (Esri) | sin clave |
