@@ -25,10 +25,11 @@ async function deliverBlob(filename, blob){ if (!/_\d{8}\.[a-z0-9]+$/i.test(file
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000); st.textContent=`Descargado: ${filename}`;
 }
 const slug = s => norm(s).replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'');
-// las descargas de vialidades primarias no se filtran por colonia: su nombre y su ámbito tampoco la declaran
-const scopeSlugVP = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '');
 // los filtros de banqueta y de espacio van en el nombre: dos archivos de la misma consulta con distinto filtro no se confunden
-const filtroSlug = ()=> (filtroBanq==='con'? '_con_banqueta' : filtroBanq==='sin'? '_sin_banqueta' : '') + (filtroEsp? '_con_' + ESP_TIPOS.filter((_, t)=> filtroEsp & (1<<t)).map(e=>e.s).join('_') : '');
+const espSlug = ()=> filtroEsp? '_con_' + ESP_TIPOS.filter((_, t)=> filtroEsp & (1<<t)).map(e=>e.s).join('_') : '';
+const filtroSlug = ()=> (filtroBanq==='con'? '_con_banqueta' : filtroBanq==='sin'? '_sin_banqueta' : '') + espSlug();
+// las descargas de vialidades primarias no se filtran por colonia ni por banqueta: su nombre y su ámbito tampoco lo declaran; sí el espacio
+const scopeSlugVP = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '') + espSlug();
 const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selCol!==null? '_'+slug(colNombre(selCol)) : '') + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '') + filtroSlug();
 // ---------- diccionario de datos ----------
 const NOTAS_COMUNES = [
@@ -129,8 +130,8 @@ function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Bo
   return `Calle ${c.nombre} · ${cols.length>4? cols.length+' colonias' : cols.join(', ')} · ${muns.join(', ')}`; }
 function ambitoTxt(key){
   const vp = key==='tramos' || key==='avenidas';
-  if (selAv!==null && (vp || isGC())) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad');
-  const b = hayFiltro() && !vp? ' · ' + filtroTxt() : '';
+  if (selAv!==null && (vp || isGC())) return VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : ' · toda la ciudad') + (filtroEsp? ' · ' + espTxtVP() : '');
+  const b = vp? (filtroEsp? ' · ' + espTxtVP() : '') : hayFiltro()? ' · ' + filtroTxt() : '';
   if (selCol!==null && !vp) return colNombre(selCol) + ' · ' + META.munNames[sel] + b;
   return (sel===null? 'Ciudad de México' : META.munNames[sel]) + b;
 }
@@ -138,7 +139,7 @@ function dictAoa(key, nreg, archivo, extra){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const a = [['Modelo de priorización de reforestación urbana — Diccionario de datos'], [],
-    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)], ...(filtroEsp && key!=='tramos' && key!=='avenidas'? [['Filtro «Espacio»', espNota()]] : []),
+    ['Archivo', archivo], ['Contenido', d.contenido], ['Ámbito consultado', (key==='calle' && calleSel())? calleAmbito(calleSel()) : ambitoTxt(key)], ...(filtroEsp? [['Filtro «Espacio»', key==='tramos' || key==='avenidas'? espNotaVP() : espNota()]] : []),
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
     ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Última actualización de la herramienta', VERSION.fecha], ['Corte de los datos', VERSION.corte], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
@@ -257,7 +258,7 @@ $('dl-calles').onclick = ()=>{
 };
 $('dl-tramos').onclick = ()=>{
   const rows=[['id_tramo','prioridad','vialidad','nombre_red_vial','tipo','carriles','circulacion','alcaldia','alcaldia_capa','clave','longitud_m','quien_atiende','lat','lon']];
-  const idx=[]; for(let i=0;i<NV;i++) if(esPrio(VP.prio[i]) && (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv)) idx.push(i);
+  const idx=[]; for(let i=0;i<NV;i++) if(esPrio(VP.prio[i]) && enAmbitoVP(i)) idx.push(i);
   idx.sort((a,b)=> VP.prio[b]-VP.prio[a] || VPC.nomenclat[VP.nom[a]].localeCompare(VPC.nomenclat[VP.nom[b]],'es'));
   for(const i of idx){ rows.push([VP.rec[i], META.prio[VP.prio[i]], VPC.nomenclat[VP.nom[i]], VPC.nombres[VP.nombre[i]], VPC.tipos[VP.tipo[i]], VP.car[i], VPC.circula[VP.circ[i]], META.munNames[VP.mun[i]], VPC.alctxt[VP.alct[i]], VPC.claves[VP.clave[i]], VP.len[i], 'Gobierno Central', num(vpMid(i)[0].toFixed(6)), num(vpMid(i)[1].toFixed(6))]); }
   const nTramos = new Set(idx.map(i=>VP.rec[i])).size;
@@ -280,14 +281,16 @@ document.fonts && document.fonts.ready.then(()=> rerender());
 function geoSel(){ const fr=[], vp=[];
   if (respOn.alc && sel!==null) for(let i=0;i<N;i++) if(esPrio(F.prio[i]) && !F.gc[i] && enAmbito(i)) fr.push(i);
   // con una colonia elegida no van las vialidades primarias: no se filtran por colonia y llegarían las de toda la alcaldía
-  if (respOn.gc && selCol===null) for(let i=0;i<NV;i++) if(esPrio(VP.prio[i]) && (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv)) vp.push(i);
+  if (respOn.gc && selCol===null) for(let i=0;i<NV;i++) if(esPrio(VP.prio[i]) && enAmbitoVP(i)) vp.push(i);
   return {fr, vp}; }
 const geoCoord = (A, k) => [+A[2*k].toFixed(6), +A[2*k+1].toFixed(6)];
 const geoFr = i => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', quien_atiende:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i] });
 const geoVp = i => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', quien_atiende:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i] });
-const geoNota = () => `Modelo de priorización de reforestación urbana · ${ambitoGeo()} · prioridades Muy Alta, Alta y Media.${filtroEsp && respOn.alc && sel!==null? ' ' + espNota() : ''} ${FUENTES}${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
+// con las dos redes, cada filtro se declara para la red a la que aplica (la banqueta, solo a los frentes de las alcaldías)
+const geoConFr = () => respOn.alc && sel!==null, geoConVp = () => respOn.gc && selCol===null;
+const geoNota = () => `Modelo de priorización de reforestación urbana · ${ambitoGeo()} · prioridades Muy Alta, Alta y Media.${filtroEsp && geoConFr()? ' ' + espNota() : ''}${filtroEsp && geoConVp()? ' ' + espNotaVP() : ''} ${FUENTES}${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
 const ambitoGeoBase = () => selCol!==null? `Colonia ${colNombre(selCol)}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
-const ambitoGeo = () => ambitoGeoBase() + (hayFiltro() && respOn.alc && sel!==null? ' · ' + filtroTxt() : '');
+const ambitoGeo = () => ambitoGeoBase() + (hayFiltro() && geoConFr()? ' · ' + filtroTxt() : '') + (filtroEsp && geoConVp()? ' · ' + espTxtVP() : '');
 const xmlEsc = v => String(v??'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
 function geoJSON(g){ const f = [];
   const linea = (A, a, b) => { const c = []; for(let k=a;k<b;k++) c.push(geoCoord(A,k)); return c; };

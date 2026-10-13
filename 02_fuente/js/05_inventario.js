@@ -3,7 +3,9 @@
 // manzana más cercano (a 20 m o menos), del que toma calle, colonia, alcaldía y prioridad para su ficha.
 // Aparte, el filtro «Espacio» (07_leyenda_y_capas.js, filtroEsp en 03_estado.js) sí acota cifras, listas y descargas cuando la persona lo
 // prende: usa espacios_frentes.bin (puntos de cada tipo por frente), que se pide con espCargar() la primera vez que se usa. El mismo
-// archivo da las cepas vacantes por frente (ESP_CV) del orden «más cepas vacantes» de «Dónde empezar» (09_listados.js).
+// archivo da las cepas vacantes por frente (ESP_CV) del orden «más cepas vacantes» de «Dónde empezar» (09_listados.js). Con él llega
+// espacios_vp.bin (v1.24): los puntos de cada tipo de cada parte de vialidad primaria del Gobierno Central (ESP_VP, ESP_VPN), por sus frentes
+// a cargo del Gobierno Central o en el camellón; los puntos del camellón traen en su archivo la parte de vialidad (p.vp) para su ficha.
 // Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
 // (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.
 // window.SIA_INVENTARIO (config.js) trae la huella de cada archivo, el corte, los puntos por tipo y el avance del inventario por alcaldía.
@@ -19,13 +21,15 @@ const invOn = [true, true, true];                            // casillas del pan
 const INVD = {mz:new Map(), pend:new Set(), fallo:new Set(), cache:null};
 const invZ = ()=> modoLigero? INV_Z_LIGERO : INV_Z;
 const invVisible = ()=> !!INV && invOn.some(Boolean) && viewState.zoom >= invZ();
-// lee el archivo de una alcaldía: FORMATO, n y por punto dx, dy, tipo, dfrente, dletras, duga, dnúmero (todo en diferencias)
+// lee el archivo de una alcaldía (formato 2): FORMATO, n y por punto dx, dy, tipo, dfrente, dletras, duga, dnúmero (en diferencias) y la
+// parte de vialidad primaria + 1 de un punto del camellón (0 en los demás; no va en diferencias)
 async function invLeer(cve){ const n = 'inv_' + cve + '.bin', v = INV.v[n]; if (!v) throw new Error('sin ' + n);
   const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
   const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
-  const formato = rv(), k = rv(); if (formato!==1) throw new Error(n + ': formato ' + formato);
+  const formato = rv(), k = rv(); if (formato!==2) throw new Error(n + ': formato ' + formato);
   const P = new Array(k); let x=0, y=0, fr=0, pre=0, uga=0, num=0;
-  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); P[i] = {lon:x/INV_ESCALA, lat:y/INV_ESCALA, t, fr:fr-1, pre, uga, num, a:cve}; }
+  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); const vp = rv()-1;
+    P[i] = {lon:x/INV_ESCALA, lat:y/INV_ESCALA, t, fr:fr-1, pre, uga, num, a:cve, vp: vp>=0 && vp<NV? vp : -1}; }
   if (rv.pos()!==b.length) throw new Error(n + ': sobran bytes');
   return P; }
 // clave del inventario (AAA-000-0000): las letras vienen como número en base 26
@@ -63,22 +67,24 @@ let invToque = false;
 mapEl.addEventListener('pointerdown', e=>{ invToque = e.pointerType==='touch' || e.pointerType==='pen'; }, true);
 function invPick(x, y){ if (!invVisible()) return null; const ids = INV_CAPAS.filter((_, t)=> invOn[t]);
   const p = dk.pickObject({x, y, radius: invToque? 16 : 9, layerIds: ids}); return p && p.object? p.object : null; }
-// ficha de un punto (compact: descripción emergente al pasar el ratón)
-function invHtml(p, compact){ const ti = INV_TIPOS[p.t], fr = p.fr, hay = fr>=0 && fr<N;
+// ficha de un punto (compact: descripción emergente al pasar el ratón). Un punto del camellón (sin frente, a 25 m o menos del eje de una
+// vialidad primaria) dice su avenida y que lo atiende el Gobierno Central, con la prioridad del tramo.
+function invHtml(p, compact){ const ti = INV_TIPOS[p.t], fr = p.fr, hay = fr>=0 && fr<N, cam = !hay && p.vp>=0 && p.vp<NV;
   const sim = `<i class="inv-sim ${ti.id}" aria-hidden="true"></i>`;
   const tp = hay? (META.tipos[F.tipo[fr]] || '—') : '—', calle = hay? ((sinNombreFr(fr) || tp==='—')? '' : tp+' ') + nomFrente(fr) : '';
   const col = hay? META.colonias[F.col[fr]] : null, colTxt = col && col.n? col.n : 'Colonia no identificada';
-  const alc = hay? META.munNames[F.mun[fr]] : (META.munNames[munIndex[p.a]] || '');
-  if (compact) return `${sim}<b>${ti.n}</b><br><span class="m">${hay? calle + ' · ' : ''}${ti.que}</span>`;
-  const pr = hay? F.prio[fr] : -1;
-  const prioTxt = hay? `${dot(T.prio[pr])}${META.prio[pr]}${esPrio(pr)? ' (prioritario)' : ''}` : `Sin frente de manzana a ${INV.dist} m o menos`;
+  const alc = hay? META.munNames[F.mun[fr]] : (META.munNames[munIndex[p.a]] || ''), avCam = cam? VPC.nomenclat[VP.nom[p.vp]] : '';
+  if (compact) return `${sim}<b>${ti.n}</b><br><span class="m">${hay? calle + ' · ' : cam? 'Camellón de ' + avCam + ' · ' : ''}${ti.que}</span>`;
+  const pr = hay? F.prio[fr] : cam? VP.prio[p.vp] : -1;
+  const prioTxt = hay || cam? `${dot(T.prio[pr])}${META.prio[pr]}${esPrio(pr)? ' (prioritario)' : ''}` : `Sin frente de manzana a ${INV.dist} m o menos`;
   return `<button class="close" aria-label="Cerrar">×</button>
     <span class="pill inv-pill">${sim}${ti.n}</span>
     <h3>${ti.que}</h3>
-    <div class="sub">${hay? `${calle} · ${colTxt} · ${alc}` : `${alc} · lejos de los frentes de manzana del modelo`}</div>
+    <div class="sub">${hay? `${calle} · ${colTxt} · ${alc}` : cam? `Camellón o vialidad primaria: ${avCam} · a cargo del Gobierno Central` : `${alc} · lejos de los frentes de manzana del modelo`}</div>
     <dl><dt>Clave del inventario</dt><dd>${invClave(p)}</dd>
-    <dt>Prioridad del frente</dt><dd>${prioTxt}</dd>
-    ${hay? `<dt>Quién atiende</dt><dd>${F.gc[fr]? 'Gobierno Central' : 'Alcaldía'}</dd>` : ''}
+    <dt>${cam? 'Prioridad del tramo de vialidad primaria' : 'Prioridad del frente'}</dt><dd>${prioTxt}</dd>
+    ${hay? `<dt>Quién atiende</dt><dd>${F.gc[fr]? 'Gobierno Central' + (F.vp[fr]>=0? ' · sobre ' + VPC.nomenclat[VP.nom[F.vp[fr]]] : '') : 'Alcaldía'}</dd>` : ''}
+    ${cam? `<dt>Quién atiende</dt><dd>Gobierno Central</dd><dt>Alcaldía</dt><dd>${META.munNames[VP.mun[p.vp]]}</dd>` : ''}
     <dt>Coordenadas</dt><dd>${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</dd></dl>
     <div class="cardnote">${INV.fuente}, corte: ${INV.corte}. Confirma en sitio antes de plantar: el inventario se hizo con imágenes de calle.</div>
     ${fieldActs(p.lat, p.lon)}`; }
@@ -110,11 +116,35 @@ async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!
     if (!bits) throw new Error(n + ': frente ' + f + ' sin puntos'); A[f] = bits; }
   if (rv.pos()!==b.length || frentes.join()!==fr.tipos.join() || puntos.join()!==fr.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
   return {A, CV}; }
+// espacios_vp.bin (formato 1): lo mismo por parte de vialidad primaria (índice en diferencias y puntos de cada tipo, por sus frentes del
+// Gobierno Central o en el camellón). De ahí ESP_VP (tipos en bits, el filtro) y ESP_VPN (puntos de cada tipo: ficha del tramo y orden por
+// cepas de las avenidas). Comprueba las cifras de control de config.js (INV.vp).
+async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
+  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
+  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const formato = rv(), k = rv(); if (formato!==vc.formato || formato!==1 || k!==vc.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' partes');
+  const A = new Uint8Array(NV), C = new Uint16Array(3*NV), partes = [0,0,0], puntos = [0,0,0]; let f = -1;
+  for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=NV) throw new Error(n + ': parte ' + f); let bits = 0;
+    for(let t=0;t<3;t++){ const c = rv(); if (c<0 || c>65535) throw new Error(n + ': parte ' + f); if (c){ bits |= 1<<t; partes[t]++; puntos[t] += c; } C[3*f+t] = c; }
+    if (!bits) throw new Error(n + ': parte ' + f + ' sin puntos'); A[f] = bits; }
+  if (rv.pos()!==b.length || partes.join()!==vc.tipos.join() || puntos.join()!==vc.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
+  return {A, C}; }
+// los dos archivos se piden juntos (el filtro aplica a las dos redes); si uno falla, se puede volver a pedir
 function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
-  if (!ESP_P) ESP_P = espLeer().then(d=>{ ESP_FR = d.A; ESP_CV = d.CV; return d; }, e=>{ ESP_P = null; throw e; });
+  if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
   return ESP_P; }
 // lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
 const espNota = ()=> `Solo frentes con al menos un punto de ${espLista()} a ${INV.dist} m o menos, según el ${INV.fuente}, corte: ${INV.corte}. El inventario está en curso: un frente sin puntos puede no haberse inventariado aún.`;
+// lo mismo para las vialidades primarias (Excel de tramos y de avenidas, GeoJSON, KML, fichas y Resumen del Gobierno Central)
+const espNotaVP = ()=> `Solo tramos de vialidad primaria con al menos un punto de ${espLista()}: en sus frentes de manzana a cargo del Gobierno Central (a ${INV.dist} m o menos) o en el camellón (puntos sin frente de manzana a ${INV.vp.dist} m o menos del eje del tramo), según el ${INV.fuente}, corte: ${INV.corte}. El inventario está en curso: un tramo sin puntos puede no haberse inventariado aún.`;
+// ficha de una parte de vialidad primaria: cuántos espacios para plantar cuentan para ella (null mientras no llega el archivo)
+const espVpTxt = i => { if (!ESP_VPN) return null; const c = [0,1,2].map(t=> ESP_VPN[3*i+t]);
+  return !c.some(Boolean)? `Ninguno registrado hasta ${INV.corte} (inventario en curso)`
+    : c.map((v, t)=> fmt.format(v) + ' ' + (v===1? INV_TIPOS[t].n : INV_TIPOS[t].pl).toLowerCase()).join(' · ') + ` · en sus frentes y en el camellón; corte: ${INV.corte}`; };
+// al abrir la ficha de un tramo sin el archivo, se pide y el renglón se completa al llegar (la ficha no se vuelve a armar: no pierde el foco)
+function espFichaVP(i){ if (!INV || ESP_VPN) return;
+  const pon = t=>{ const d = $('card-esp'); if (d && pinned && pinned.kind==='vp' && pinned.i===i) d.textContent = t; };
+  espCargar().then(()=> pon(espVpTxt(i)), e=>{ console.warn('ficha del tramo', e); pon(e && e.sesion? SESION_TXT : 'No fue posible cargar el inventario de arbolado (revisa la conexión a internet).'); }); }
 
 // Solo para las pruebas automáticas (04_pruebas/prueba_inventario_espacios.js): con window.SIA_PRUEBA se puede leer el estado de la capa.
 if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo],
@@ -123,4 +153,6 @@ if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()]
   mide: async cve=>{ const t = performance.now(); const P = await invLeer(cve); return {ms: Math.round(performance.now()-t), n: P.length}; },
   px: (lon, lat)=> dk.getViewports()[0].project([lon, lat]), ficha: p=> showCard('inv', p),
   frenteBajo: (x, y)=>{ const p = dk.pickObject({x, y, radius:6, layerIds:['fronts']}); return p && p.index>=0? frReal(p.index) : null; },
-  esp: ()=>({ cargado: !!ESP_FR, filtro: filtroEsp, casillas: espQuiero, cepas: ESP_CV? ESP_CV.reduce((s, c)=>s+c, 0) : null, orden: iniOrden, pendiente: iniPend }) };
+  esp: ()=>({ cargado: !!ESP_FR, filtro: filtroEsp, casillas: espQuiero, cepas: ESP_CV? ESP_CV.reduce((s, c)=>s+c, 0) : null, orden: iniOrden, pendiente: iniPend,
+    cepasVP: ESP_VPN? ESP_VPN.reduce((s, c, k)=> s + (k%3===0? c : 0), 0) : null }),
+  fichaVP: i=> showCard('vp', i), esGC: f=> !!F.gc[f] && F.vp[f]>=0, lee: async cve=> (await invLeer(cve)).map(p=>({...p, clave:invClave(p)})) };

@@ -90,6 +90,8 @@ Un archivo por alcaldía (clave INEGI de 3 dígitos), con la misma envoltura, en
 
 **`datos/inventario/espacios_frentes.bin`** (v1.21): mismo formato; trae el número de frentes y, por cada frente de `data.bin` con al menos un punto asignado, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene (formato 2, desde la v1.23). Lo usan el filtro «Espacio», que acota los frentes consultados como el de banqueta, y el orden por cepas de «Dónde empezar». Sus cifras de control van en `RESUMEN.json` (`frentes_con_espacio`, con `puntos_por_tipo` y `puntos_alcaldia_por_tipo`); depende de `data.bin` y de los `inv_<cve>.bin`, y se genera con el mismo script.
 
+**Desde la v1.24:** `inv_<cve>.bin` va en formato 2, con un campo más al final de cada punto (no en diferencias): la parte de vialidad primaria + 1 para los puntos del camellón (0 si no aplica). **`datos/inventario/espacios_vp.bin`** (formato 1): por cada parte de `vp.bin` con al menos un punto, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene. Cuenta un punto si está en un frente del Gobierno Central ligado a esa parte o, si no tiene frente a 20 m, si el eje de la parte está a 25 m o menos. Cifras de control en `RESUMEN.json` (`vialidades_con_espacio`) y huella de `vp.bin` (`vp_sha256`): si cambian las vialidades hay que volver a correr el script.
+
 ## 7. Reglas que deben respetarse al sustituir datos
 
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.

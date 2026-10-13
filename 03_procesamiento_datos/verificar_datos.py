@@ -12,7 +12,10 @@ Espacios para plantar (02_fuente/datos/inventario/, de 9_inventario_espacios.py)
 sus puntos por tipo y alcaldía son las cifras de control de RESUMEN.json, cada frente asignado existe y el inventario se asignó con
 el mismo data.bin (si no, hay que volver a correr 9_inventario_espacios.py). El archivo del filtro «Espacio» y del orden por cepas
 (espacios_frentes.bin: puntos de cada tipo de cada frente) es el registrado, trae las cifras de control de RESUMEN.json y coincide con un recálculo propio desde
-los puntos de los archivos por alcaldía.
+los puntos de los archivos por alcaldía. El de las vialidades primarias (espacios_vp.bin, v1.24: puntos de cada tipo de cada parte de
+vialidad) es el registrado, trae sus cifras de control y coincide con un recálculo propio con la regla del Gobierno Central: un punto en
+un frente a cargo del Gobierno Central cuenta para la parte de vialidad de ese frente; un punto sin frente, para la parte del camellón
+que trae su archivo; los de los frentes de las alcaldías, para ninguna.
 
 Uso:  python3 03_procesamiento_datos/verificar_datos.py               verifica; termina con código 1 si algo no coincide
       python3 03_procesamiento_datos/verificar_datos.py --actualizar  registra las sumas de los datos actuales (después de regenerarlos a propósito)
@@ -64,9 +67,11 @@ km_gc = [0.0] * 5
 n_gc = 0
 vp_max = -1
 gc_bits = bytearray(N)   # 1 = a cargo del Gobierno Central (para las cifras del filtro «Espacio»)
+vp_de = [-1] * N         # parte de vialidad primaria de cada frente (para las cifras del filtro «Espacio» del Gobierno Central)
 for k in range(N):
     mun, prio, name, tipo, col, ln, flags, vp = (rv() for _ in range(8))
     gc_bits[k] = (flags >> 6) & 1
+    vp_de[k] = vp - 1
     nv = rv()
     for _ in range(2 * nv):
         rv()
@@ -107,6 +112,7 @@ else:
     SUM_INV = json.load(open(os.path.join(INV, 'SUMAS.json'), encoding='utf-8'))
     malos, cuenta, fr_mal, fuera = [], [0, 0, 0], 0, 0
     cnt_pt = {}   # puntos de cada tipo por frente, recalculados desde los puntos (para revisar espacios_frentes.bin)
+    cnt_vp, cam_mal, cam = {}, 0, [0, 0, 0]   # puntos de cada tipo por parte de vialidad primaria (para revisar espacios_vp.bin)
     for cve in META['muns']:
         n = 'inv_%s.bin' % cve
         ruta = os.path.join(INV, n)
@@ -118,9 +124,17 @@ else:
         c, x, y, fr = [0, 0, 0], 0, 0, 0
         for _ in range(npt):
             x += rv(); y += rv(); tipo = rv(); fr += rv(); rv(); rv(); rv()
+            camellon = rv() - 1 if formato >= 2 else -1   # formato 2: parte de vialidad + 1 de un punto del camellón
             c[tipo] += 1
             if fr > 0:
                 cnt_pt.setdefault(fr - 1, [0, 0, 0])[tipo] += 1
+            # regla del Gobierno Central: por su frente (si es del Gobierno Central) o, sin frente, por el camellón
+            parte = vp_de[fr - 1] if fr > 0 and 0 < fr <= N and gc_bits[fr - 1] else camellon if fr == 0 else -1
+            cam_mal += (camellon >= 0 and fr != 0) or camellon >= NV
+            if fr == 0 and 0 <= camellon < NV:
+                cam[tipo] += 1
+            if 0 <= parte < NV:
+                cnt_vp.setdefault(parte, [0, 0, 0])[tipo] += 1
             fr_mal += not (0 <= fr <= N)
             fuera += not (-99.4 * 200000 < x < -98.9 * 200000 and 19.0 * 200000 < y < 19.65 * 200000)
         if rv.resto() or formato != RES.get('formato') or c != RES['por_alcaldia'][cve]['puntos']:
@@ -128,7 +142,9 @@ else:
         cuenta = [a + b for a, b in zip(cuenta, c)]
     EF = RES.get('frentes_con_espacio') or {}
     nef = EF.get('archivo', 'espacios_frentes.bin')
-    ok('inventario: cada archivo es el registrado y trae los puntos por tipo de su resumen', not malos and set(SUM_INV) == {'inv_%s.bin' % c for c in META['muns']} | {nef}, ', '.join(malos) or '%d alcaldías' % (len(SUM_INV) - 1))
+    EV = RES.get('vialidades_con_espacio') or {}
+    nev = EV.get('archivo', 'espacios_vp.bin')
+    ok('inventario: cada archivo es el registrado y trae los puntos por tipo de su resumen', not malos and set(SUM_INV) == {'inv_%s.bin' % c for c in META['muns']} | {nef, nev}, ', '.join(malos) or '%d alcaldías' % (len(SUM_INV) - 2))
     ok('inventario: puntos por tipo = cifras de control (cepas vacantes, tocones, árboles muertos)', cuenta == RES['puntos_por_tipo'], cuenta)
     ok('inventario: cada punto con frente apunta a un frente que existe y queda dentro de la ciudad', fr_mal == 0 and fuera == 0, '%d frentes inexistentes · %d fuera' % (fr_mal, fuera))
     # filtro «Espacio» y orden por cepas: índices crecientes de frentes que existen, puntos por tipo (al menos uno), cifras de control y recálculo desde los puntos
@@ -154,6 +170,28 @@ else:
         ok('filtro «Espacio»: frentes con cada tipo = cifras de control (cepa vacante, tocón, árbol muerto; total y a cargo de las alcaldías)', por_tipo == EF.get('por_tipo') and alc_tipo == EF.get('alcaldia_por_tipo'), '%s · alcaldías %s' % (por_tipo, alc_tipo))
         ok('orden por cepas: puntos de cada tipo asignados a frentes = cifras de control = puntos con frente de los archivos por alcaldía', pts == EF.get('puntos_por_tipo') == pts_inv and pts_alc == EF.get('puntos_alcaldia_por_tipo'), '%s · alcaldías %s' % (pts, pts_alc))
         ok('filtro «Espacio» y orden por cepas: los puntos de cada tipo de cada frente = recálculo desde los puntos de los archivos por alcaldía', cnt == cnt_pt, '%d frentes' % len(cnt_pt))
+    # Gobierno Central: puntos de cada tipo por parte de vialidad primaria (por su frente o en el camellón) = recálculo desde los puntos
+    ruta = os.path.join(INV, nev)
+    if not EV or not os.path.isfile(ruta) or hashlib.sha256(open(ruta, 'rb').read()).hexdigest() != SUM_INV.get(nev):
+        ok('vialidades primarias: %s es el registrado y RESUMEN.json trae sus cifras de control' % nev, False, 'correr 03_procesamiento_datos/9_inventario_espacios.py')
+    else:
+        rv = lector(gzip.decompress(open(ruta, 'rb').read()))
+        formato, nvp = rv(), rv()
+        cv_, v, orden = {}, -1, True
+        for _ in range(nvp):
+            d, c = rv(), [rv(), rv(), rv()]
+            orden = orden and d > 0 and min(c) >= 0 and max(c) > 0
+            v += d
+            cv_[v] = c
+        ok('vialidades primarias: %s se lee completo, en orden y con partes que existen' % nev, not rv.resto() and formato == EV.get('formato') and orden and nvp == EV.get('partes') and (not cv_ or max(cv_) < NV), '%d partes · formato %d' % (nvp, formato))
+        ok('vialidades primarias: los puntos del camellón no tienen frente y apuntan a una parte que existe', cam_mal == 0, '%d mal' % cam_mal)
+        ok('vialidades primarias: partes con cada tipo y puntos de cada tipo (por su frente y en el camellón) = cifras de control',
+           [sum(1 for c in cv_.values() if c[t]) for t in range(3)] == EV.get('por_tipo') and [sum(c[t] for c in cv_.values()) for t in range(3)] == EV.get('puntos_por_tipo')
+           and cam == EV.get('puntos_camellon') and [a - b for a, b in zip(EV.get('puntos_por_tipo', []), cam)] == EV.get('puntos_por_frente') and sum(cam) == EV.get('sin_frente_recuperados'),
+           'puntos %s · camellón %s' % (EV.get('puntos_por_tipo'), cam))
+        ok('vialidades primarias: los puntos de cada tipo de cada parte = recálculo desde los puntos (por su frente del Gobierno Central o por el camellón)', cv_ == cnt_vp, '%d partes' % len(cnt_vp))
+    if RES.get('vp_sha256') != actual['vp.bin']:
+        aviso_inv.append('el inventario se asignó con otras vialidades primarias (vp.bin cambió): volver a correr 03_procesamiento_datos/9_inventario_espacios.py')
     if RES.get('frentes_sha256') != actual['data.bin']:
         aviso_inv.append('el inventario se asignó con otros frentes (data.bin cambió): volver a correr 03_procesamiento_datos/9_inventario_espacios.py')
 

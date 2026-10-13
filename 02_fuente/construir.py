@@ -13,7 +13,8 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   datos/inventario/ espacios para plantar del inventario de arbolado (cepas vacantes, tocones y árboles muertos), por alcaldía
                    (de 03_procesamiento_datos/9_inventario_espacios.py); se piden al acercar el mapa. Con ellos,
                    espacios_frentes.bin: cuántos puntos de cada tipo tiene cada frente (filtro «Espacio» y orden por cepas de
-                   «Dónde empezar»; se pide al usarlos)
+                   «Dónde empezar»; se pide al usarlos) y espacios_vp.bin: lo mismo para cada parte de vialidad primaria del
+                   Gobierno Central (por su frente o en el camellón; se pide junto con el anterior)
   img/             logotipo y lámina de la metodología
   libs/            deck.gl, pako, jsPDF y SheetJS (copias locales sin modificar, con LICENCIAS.md y el texto de cada licencia)
   fuentes/         tipografías Cabin y Roboto (woff2 variables, subconjunto latino) con su licencia OFL;
@@ -78,7 +79,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.23'
+VERSION = '1.24'
 ACTUALIZACION = '13 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -140,6 +141,7 @@ if not os.path.isfile(ruta_sumas):
     falla('falta datos/SUMAS.json: sin él no se puede comprobar que los datos sean los verificados. Recuperarlo de Git o, si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.')
 sumas = json.load(open(ruta_sumas, encoding='utf-8'))['sha256_descomprimido']
 N_FRENTES = json.load(open(ruta_sumas, encoding='utf-8'))['frentes']
+N_PARTES = json.load(open(ruta_sumas, encoding='utf-8'))['partes_de_vialidad']
 for n in DATOS:
     try:
         h = hashlib.sha256(gzip.decompress(open(os.path.join(FUENTE, 'datos', n + '.bin'), 'rb').read())).hexdigest()
@@ -174,6 +176,8 @@ for n, h in INV_SUMAS.items():
         falla('datos/inventario/%s falta o no coincide con datos/inventario/SUMAS.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.' % n)
 if INV_RES.get('frentes_sha256') != sumas.get('data.bin'):
     falla('el inventario de arbolado se asignó con otros frentes (data.bin cambió). Volver a correr 03_procesamiento_datos/9_inventario_espacios.py.')
+if INV_RES.get('vp_sha256') != sumas.get('vp.bin'):
+    falla('el inventario de arbolado se asignó con otras vialidades primarias (vp.bin cambió). Volver a correr 03_procesamiento_datos/9_inventario_espacios.py.')
 # Filtro «Espacio» y orden por cepas: el archivo de puntos por tipo de cada frente debe estar registrado y traer las cifras de control
 # de RESUMEN.json (frentes con cada tipo y puntos de cada tipo)
 INV_FR = INV_RES.get('frentes_con_espacio') or {}
@@ -194,6 +198,14 @@ _pt = [sum(_e[3 + t::4]) for t in range(3)]
 if (_e[0] != INV_FR.get('formato') or _e[1] != INV_FR.get('frentes') or len(_e) != 2 + 4 * _e[1] or _fr != INV_FR.get('por_tipo')
         or _pt != INV_FR.get('puntos_por_tipo') or sum(_e[2::4]) > N_FRENTES):
     falla('datos/inventario/%s no trae las cifras de control de RESUMEN.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.' % INV_FR['archivo'])
+# Lo mismo para las vialidades primarias del Gobierno Central (espacios_vp.bin: por parte de vialidad, índice en diferencias y puntos de cada tipo)
+INV_VP = INV_RES.get('vialidades_con_espacio') or {}
+if not INV_VP.get('archivo') or INV_VP['archivo'] not in INV_SUMAS:
+    falla('falta datos/inventario/espacios_vp.bin (filtro «Espacio» del Gobierno Central) o sus cifras en RESUMEN.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.')
+_e = list(_enteros(gzip.decompress(open(os.path.join(ruta_inv, INV_VP['archivo']), 'rb').read())))
+if (_e[0] != INV_VP.get('formato') or _e[1] != INV_VP.get('partes') or len(_e) != 2 + 4 * _e[1] or [sum(1 for c in _e[3 + t::4] if c > 0) for t in range(3)] != INV_VP.get('por_tipo')
+        or [sum(_e[3 + t::4]) for t in range(3)] != INV_VP.get('puntos_por_tipo') or sum(_e[2::4]) > N_PARTES):
+    falla('datos/inventario/%s no trae las cifras de control de RESUMEN.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.' % INV_VP['archivo'])
 
 
 AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar aquí.'
@@ -285,7 +297,10 @@ INVENTARIO = {'v': inv_ver, 'corte': INV_RES['corte'], 'fuente': INV_RES['fuente
               # filtro «Espacio» y orden por cepas: archivo de puntos por tipo de cada frente y sus cifras de control (frentes con cada
               # tipo y puntos de cada tipo; 05_inventario.js las comprueba al leerlo)
               'fr': {'archivo': INV_FR['archivo'], 'formato': INV_FR['formato'], 'n': INV_FR['frentes'], 'tipos': INV_FR['por_tipo'],
-                     'puntos': INV_FR['puntos_por_tipo']}}
+                     'puntos': INV_FR['puntos_por_tipo']},
+              # lo mismo para las partes de vialidad primaria del Gobierno Central (espacios_vp.bin), con la distancia del camellón
+              'vp': {'archivo': INV_VP['archivo'], 'formato': INV_VP['formato'], 'n': INV_VP['partes'], 'tipos': INV_VP['por_tipo'],
+                     'puntos': INV_VP['puntos_por_tipo'], 'dist': INV_VP['distancia_camellon_m']}}
 lver = {}
 for lib in LIBS_PUBLICADAS:
     b = leer('libs/' + lib, True)
@@ -393,8 +408,9 @@ filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_D
          ('Archivo único (`_local/priorizacion_reforestacion.html`)', tam(len(unico.encode('utf-8')))),
          ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
          ('Fondo propio «Calles» (`docs/datos/fondo/`, se pide al encenderlo)', tam(sum(len(SALIDA['datos/fondo/' + n]) for n in fondo_ver))),
-         ('Espacios para plantar del inventario de arbolado (`docs/datos/inventario/inv_*.bin`, se piden al acercar el mapa)', '%s · %s puntos · corte: %s' % (tam(sum(len(SALIDA['datos/inventario/' + n]) for n in inv_ver if n != INV_FR['archivo'])), format(sum(INV_RES['puntos_por_tipo']), ','), INV_RES['corte'])),
+         ('Espacios para plantar del inventario de arbolado (`docs/datos/inventario/inv_*.bin`, se piden al acercar el mapa)', '%s · %s puntos · corte: %s' % (tam(sum(len(SALIDA['datos/inventario/' + n]) for n in inv_ver if n not in (INV_FR['archivo'], INV_VP['archivo']))), format(sum(INV_RES['puntos_por_tipo']), ','), INV_RES['corte'])),
          ('Filtro «Espacio» y orden por cepas: puntos por tipo de cada frente (`docs/datos/inventario/%s`, se pide al usarlos)' % INV_FR['archivo'], '%s · %s frentes' % (tam(len(SALIDA['datos/inventario/' + INV_FR['archivo']])), format(INV_FR['frentes'], ','))),
+         ('Filtro «Espacio» y orden por cepas del Gobierno Central: puntos por tipo de cada parte de vialidad primaria (`docs/datos/inventario/%s`, se pide junto con el anterior)' % INV_VP['archivo'], '%s · %s partes · %s puntos (%s del camellón)' % (tam(len(SALIDA['datos/inventario/' + INV_VP['archivo']])), format(INV_VP['partes'], ','), format(sum(INV_VP['puntos_por_tipo']), ','), format(INV_VP['sin_frente_recuperados'], ','))),
          ('Satélite (Esri)', 'con clave' if ESRI_KEY else 'sin clave')]
 cifras = ('# Cifras de la construcción\n\nGenerado por 02_fuente/construir.py en cada construcción. No editar aquí.' + '\n\nMedidas al construir la versión %s. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.\n\n' % VERSION
           + '| Concepto | Valor |\n|---|---|\n' + ''.join('| %s | %s |\n' % f for f in filas))

@@ -49,6 +49,7 @@ function vpHtml(i, compact){
     <dt>Carriles</dt><dd>${VP.car[i]} · ${VPC.circula[VP.circ[i]].toLowerCase()}</dd>
     <dt>Longitud del tramo</dt><dd>${fmt.format(VP.len[i])} m</dd>
     <dt>Banqueta al lado</dt><dd>${vpBanqTxt(i)}</dd>
+    ${INV? `<dt>Espacios para plantar (inventario de arbolado)</dt><dd id="card-esp">${espVpTxt(i) ?? 'Cargando el inventario de arbolado…'}</dd>` : ''}
     <dt>Toda la avenida</dt><dd>${fmt1.format(s.km)} km · ${fmt1.format(s.kmp)} km prioritarios</dd>
     <dt>Alcaldías</dt><dd>${[...s.muns].map(m=>META.munNames[m]).join(', ')}</dd></dl>
     ${fieldActs(...vpMid(i))}

@@ -70,6 +70,7 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
   c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : kind==='inv'? invHtml(i,false) : featHtml(i,false);
   c.hidden=false; c.querySelector('.close').onclick=()=>hideCard(true); enfocaFicha();
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
+  if (kind==='vp') espFichaVP(i);   // espacios para plantar del tramo: si el archivo no ha llegado, se pide y el renglón se completa
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
   const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); rerender(); showCard('col', i); };
   const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>$('dl-ficha').click();

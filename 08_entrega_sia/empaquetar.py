@@ -82,10 +82,11 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     ajenos = [l.split('  ')[1] for l in lineas if not re.match(r'^(index\.html|app\.js|estilos\.css|config\.js|sw\.js|\.nojekyll|datos/|libs/|fuentes/|img/)', l.split('  ')[1])]
     if ajenos:
         sys.exit('ERROR: el sitio trae archivos que no se esperaban: ' + ', '.join(ajenos))
-    # el inventario de arbolado va completo: los archivos por alcaldía (capa «Espacios para plantar») y el del filtro «Espacio»
+    # el inventario de arbolado va completo: los archivos por alcaldía (capa «Espacios para plantar») y los del filtro «Espacio»
+    # (frentes de manzana y, desde la v1.24, vialidades primarias del Gobierno Central)
     inv = json.load(open(os.path.join(t, '02_fuente', 'datos', 'inventario', 'SUMAS.json'), encoding='utf-8'))
     en_sitio = {l.split('  ')[1] for l in lineas}
-    faltan = [n for n in sorted(inv) if 'datos/inventario/' + n not in en_sitio] + ([] if 'espacios_frentes.bin' in inv else ['espacios_frentes.bin'])
+    faltan = [n for n in sorted(inv) if 'datos/inventario/' + n not in en_sitio] + [n for n in ('espacios_frentes.bin', 'espacios_vp.bin') if n not in inv]
     if faltan:
         sys.exit('ERROR: al sitio le faltan archivos del inventario de arbolado: ' + ', '.join(faltan))
 

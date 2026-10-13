@@ -12,7 +12,7 @@ function recFrente(){ let b = -1, bs = -1;
   for(let i=0;i<N;i++){ if (F.gc[i] || !esPrio(F.prio[i]) || !enAmbito(i) || sinNombreFr(i)) continue; const s = F.prio[i]*1e6 + (conBanq(i)? 5e5 : 0) + F.len[i]; if (s>bs){ bs=s; b=i; } }
   return b; }
 function recTramo(){ let b = -1, bs = -1;
-  for(let i=0;i<NV;i++){ if (!esPrio(VP.prio[i]) || (sel!==null && VP.mun[i]!==sel) || (selAv!==null && VP.nom[i]!==selAv)) continue; const s = VP.prio[i]*1e6 + VP.len[i]; if (s>bs){ bs=s; b=i; } }
+  for(let i=0;i<NV;i++){ if (!esPrio(VP.prio[i]) || !enAmbitoVP(i)) continue; const s = VP.prio[i]*1e6 + VP.len[i]; if (s>bs){ bs=s; b=i; } }
   return b; }
 function recFicha(){ if (isGC()){ const i = recTramo(); if (i<0) return false; const [la,lo] = vpMid(i); flyTo({...viewState, longitude:lo, latitude:la, zoom:Math.max(viewState.zoom, 16)}, 0); showCard('vp', i); }
   else { const i = recFrente(); if (i<0) return false; flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 16.5)}, 0); showCard('fr', i); }

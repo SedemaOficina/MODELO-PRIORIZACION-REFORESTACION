@@ -123,7 +123,7 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     await orden(page, 'kmp');
     await L.ponResp(page, 'gc'); await page.waitForTimeout(400);
     const gc = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, orden: document.getElementById('ini-orden-box').hidden }));
-    ok('con Gobierno Central lista avenidas; en toda la ciudad se pueden ver también las alcaldías', /^Avenidas de la ciudad/.test(gc.tit) && gc.n === 10 && !gc.orden && (await page.$$eval('#ini-orden option', o => o.map(x => x.value).join())) === 'av,alc', JSON.stringify(gc));
+    ok('con Gobierno Central lista avenidas; en toda la ciudad se pueden ver también por cepas vacantes (v1.24) y las alcaldías', /^Avenidas de la ciudad/.test(gc.tit) && gc.n === 10 && !gc.orden && (await page.$$eval('#ini-orden option', o => o.map(x => x.value).join())) === 'av,avcv,alc', JSON.stringify(gc));
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await page.waitForTimeout(600);
     const av = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length }));
     ok('con una avenida elegida, la lista da las alcaldías que cruza', /^Tramos de .+ por alcaldía$/.test(av.tit) && av.n > 0, JSON.stringify(av));

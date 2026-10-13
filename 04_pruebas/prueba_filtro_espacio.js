@@ -37,7 +37,7 @@ function leeEspacios() { const rv = enteros(zlib.gunzipSync(fs.readFileSync(path
   return { formato, n, B, CV, CNT, completo: rv.fin(), orden, ultimo: f }; }
 function desdePuntos() { const B = new Uint8Array(D.N), CNT = new Map(), pts = [0, 0, 0];
   for (const cve of M.muns) { const rv = enteros(zlib.gunzipSync(fs.readFileSync(path.join(L.DOCS, 'datos', 'inventario', `inv_${cve}.bin`))));
-    rv(); const n = rv(); let fr = 0; for (let i = 0; i < n; i++) { rv(); rv(); const t = rv(); fr += rv(); rv(); rv(); rv();
+    const formato = rv(), n = rv(); let fr = 0; for (let i = 0; i < n; i++) { rv(); rv(); const t = rv(); fr += rv(); rv(); rv(); rv(); if (formato >= 2) rv();   // formato 2: parte de vialidad del camellón
       if (fr > 0) { B[fr - 1] |= 1 << t; const c = CNT.get(fr - 1) || [0, 0, 0]; c[t]++; CNT.set(fr - 1, c); pts[t]++; } } }
   return { B, CNT, pts }; }
 // recálculo: frentes prioritarios a cargo de la alcaldía en un territorio, con al menos un punto de los tipos elegidos (m = 0: sin filtro)
@@ -170,7 +170,8 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   await page.$eval('#reset-all', b => b.click()); await page.waitForTimeout(900); e = await L.estado(page);
   ok('«Reiniciar» apaga los dos filtros: casillas de espacio apagadas, banqueta en «Todas», sin aviso y sin «e=» ni «b=» en la dirección', (await casillas()).every(v => !v) && !(await aviso()).vis && !/[?&][eb]=/.test(e.url) && await page.evaluate(() => window.__INV.esp().filtro === 0 && document.querySelector('button[data-banq="todas"]').getAttribute('aria-pressed') === 'true'), e.url.replace(srv.url, ''));
   await ir(page, `&r=gc&a=${M.muns[IZT]}&e=cv`);
-  ok('con Gobierno Central la fila «Espacio» y su aviso no se muestran, y la dirección no lleva el filtro', await page.evaluate(() => document.getElementById('esp-row').hidden && document.getElementById('esp-aviso').hidden) && !/[?&]e=/.test(page.url()));
+  // desde la v1.24 el filtro aplica también al Gobierno Central (sus cifras las revisa prueba_espacio_gobierno_central.js); la banqueta no
+  ok('con Gobierno Central la fila «Espacio» y su aviso se muestran, la de banqueta no, y la dirección conserva el filtro', await page.evaluate(() => !document.getElementById('esp-row').hidden && !document.getElementById('esp-aviso').hidden && document.getElementById('banq-row').hidden) && new URL(page.url()).searchParams.get('e') === 'cv');
   await ir(page, `&r=both&a=${M.muns[IZT]}&e=cv`); e = await L.estado(page);
   { const exp = calc(B, f => f.mun === IZT, 1);
     ok('con las dos redes la fila se ve y el filtro acota los frentes de la alcaldía, como la banqueta', await page.evaluate(() => !document.getElementById('esp-row').hidden) && e.mapsum.includes(`${L.kmTxt(exp.km)} km de frente prioritarios · a cargo de la Alcaldía · con cepa vacante`), e.mapsum); }
@@ -246,10 +247,10 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
     ok('si el archivo no llega: mensaje claro, el selector vuelve a km prioritarios y la lista queda como estaba', a.vis && a.warn && /No fue posible cargar las cepas vacantes/.test(a.t) && sv === 'kmp' && JSON.stringify(d.lista) === JSON.stringify(antes.lista), `${a.t} · ${sv}`);
     await ctx.unroute(RUTA); await orden(page, 'cv');
     ok('al elegir otra vez el orden, se vuelve a pedir el archivo y la lista se ordena por cepas', !(await carga(page)).vis && !comparaFilas((await L.estado(page)).lista, colCepas(CV, TLA)).length); }
-  // Gobierno Central: no se ofrece; con las dos redes, sí (cuenta solo los frentes a cargo de la alcaldía)
+  // Gobierno Central: no se ofrecen las colonias por cepas, sino las avenidas (v1.24); con las dos redes, las colonias (cuenta solo los frentes a cargo de la alcaldía)
   { await ir(page, `&r=gc&a=${M.muns[IZT]}`); await tabIni(page); const g = await opciones(page);
     await ir(page, `&r=both&a=${M.muns[IZT]}`); await tabIni(page); const b2 = await opciones(page);
-    ok('Gobierno Central: «Mostrar» no ofrece el orden por cepas; con las dos redes sí', !g.some(o => /cepas/.test(o)) && b2.some(o => o.startsWith('cv=')), `${g.map(o => o.split('=')[0]).join(',')} · ${b2.map(o => o.split('=')[0]).join(',')}`); }
+    ok('Gobierno Central: «Mostrar» no ofrece las colonias ni las calles por cepas, sí las avenidas; con las dos redes, las colonias', !g.some(o => /^(cv|callescv)=/.test(o)) && g.includes('avcv=Avenidas con más cepas vacantes') && b2.some(o => o.startsWith('cv=')), `${g.map(o => o.split('=')[0]).join(',')} · ${b2.map(o => o.split('=')[0]).join(',')}`); }
   await ctx.close();
 
   // ---------- 8) celular de 390 × 844 ----------

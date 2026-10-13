@@ -8,7 +8,8 @@
   "bytes": 365775416
  },
  "frentes_sha256": "af8a08ffa0636cd3347cd9f29521d6c208ebfb7d88390f99b0f2ff5246650539",
- "formato": 1,
+ "vp_sha256": "6aa2e6be254b27e10935cb148549ed26ca0ff40e40a785f77b4aac9897f57587",
+ "formato": 2,
  "escala": 200000,
  "distancia_max_m": 20.0,
  "tipos": [
@@ -53,6 +54,34 @@
    11171,
    7536
   ]
+ },
+ "vialidades_con_espacio": {
+  "archivo": "espacios_vp.bin",
+  "formato": 1,
+  "distancia_camellon_m": 25.0,
+  "partes": 1775,
+  "por_tipo": [
+   1202,
+   803,
+   538
+  ],
+  "puntos_por_tipo": [
+   4261,
+   1621,
+   1071
+  ],
+  "puntos_por_frente": [
+   3972,
+   1482,
+   921
+  ],
+  "puntos_camellon": [
+   289,
+   139,
+   150
+  ],
+  "sin_frente_recuperados": 578,
+  "puntos_gc_sin_parte": 0
  },
  "claves_repetidas": 0,
  "distancia_m": {

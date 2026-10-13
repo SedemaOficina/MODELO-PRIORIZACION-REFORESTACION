@@ -27,7 +27,8 @@ function setResp(v, sinRefresh){
   respOn.alc = v!=='gc'; respOn.gc = v!=='alc';
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
-  $('esp-row').hidden = v==='gc' || !INV;   // el espacio también (y el archivo único no trae el inventario)
+  $('esp-row').hidden = !INV;   // el espacio aplica a las dos redes desde la v1.24 (el archivo único no trae el inventario)
+  espTitulos(v);
   if (resp===v) return; resp=v;
   document.body.dataset.resp = v;
   if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; }
@@ -55,7 +56,12 @@ banqBtns.forEach(b=>{ b.onclick = ()=> setBanq(b.dataset.banq); });
 // Tres casillas independientes, como «Atiende»: todas apagadas = sin filtro; con una o varias, los frentes que tienen al menos un punto de
 // alguno de esos tipos. Se combina con «Banqueta». La primera vez se piden los datos (espCargar): las casillas cambian al instante y las
 // cifras cuando llegan; espQuiero es lo que marcan las casillas y filtroEsp lo que ya se aplica.
+// Con Gobierno Central (v1.24) acota los tramos de vialidad primaria (pasaEspacioVP); con las dos redes, a las dos.
 const espBtns = document.querySelectorAll('button[data-esp]');
+// la descripción de cada casilla dice qué acota según la red consultada
+const ESP_QUE = ['al menos una cepa vacante del inventario de arbolado: se puede plantar directo', 'al menos un tocón del inventario de arbolado: hay que retirarlo antes de plantar', 'al menos un árbol muerto del inventario de arbolado: requiere sustitución'];
+function espTitulos(v){ const quien = v==='gc'? 'Tramos de vialidad primaria (en sus frentes o en el camellón)' : v==='both'? 'Frentes de manzana y tramos de vialidad primaria' : 'Frentes';
+  espBtns.forEach(b=>{ b.title = `${quien} con ${ESP_QUE[+b.dataset.esp]}`; }); }
 let espQuiero = 0;
 const espBotones = ()=> espBtns.forEach(b=> b.setAttribute('aria-pressed', String(!!(espQuiero & (1<<+b.dataset.esp)))));
 function setEspacio(m){ m = INV? (m & 7) : 0; espQuiero = m; espBotones();
@@ -69,7 +75,7 @@ espBtns.forEach(b=>{ b.onclick = ()=> setEspacio(espQuiero ^ (1<<+b.dataset.esp)
 function espAviso(estado){ const n = $('esp-aviso'); if (!n) return; n.classList.toggle('warn', !!(estado && estado!=='carga'));
   if (estado==='carga'){ n.hidden = false; n.textContent = 'Cargando el inventario de arbolado…'; return; }
   if (estado){ n.hidden = false; if (estado.sesion) avisoSesion(n); else n.textContent = 'No fue posible cargar el inventario de arbolado para el filtro (revisa la conexión a internet).'; return; }
-  n.hidden = !filtroEsp || resp==='gc'; if (n.hidden){ n.textContent = ''; return; }
+  n.hidden = !filtroEsp; if (n.hidden){ n.textContent = ''; return; }
   const cve = sel!==null? META.muns[sel] : null, reg = cve? (INV.avance[cve]||0) : Object.values(INV.avance).reduce((s,a)=>s+a, 0);
   n.textContent = `El filtro solo incluye lo inventariado hasta ${INV.corte} (inventario en curso); ${cve? 'en esta alcaldía' : 'en toda la ciudad'} van ${fmt.format(reg)} registros.`; }
 function espReinicia(){ espQuiero = filtroEsp = 0; espBotones(); espAviso(); }

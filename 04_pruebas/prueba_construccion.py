@@ -139,6 +139,37 @@ def espacio_sin_registro(t):
 
 
 debe_fallar('filtro «Espacio»: falta espacios_frentes.bin en el registro: se detiene y no escribe nada', espacio_sin_registro)
+
+
+# Gobierno Central (v1.24): puntos por tipo de cada parte de vialidad primaria
+def vp_sin_registro(t):
+    r = F(t, 'datos', 'inventario', 'SUMAS.json')
+    sumas = json.load(open(r, encoding='utf-8'))
+    del sumas['espacios_vp.bin']
+    open(r, 'w', encoding='utf-8').write(json.dumps(sumas))
+
+
+debe_fallar('filtro «Espacio» del Gobierno Central: falta espacios_vp.bin en el registro: se detiene y no escribe nada', vp_sin_registro)
+
+
+def vp_sin_cuadrar(t):
+    r = F(t, 'datos', 'inventario', 'RESUMEN.json')
+    res = json.load(open(r, encoding='utf-8'))
+    res['vialidades_con_espacio']['puntos_por_tipo'][0] += 1
+    open(r, 'w', encoding='utf-8').write(json.dumps(res, ensure_ascii=False))
+
+
+debe_fallar('filtro «Espacio» del Gobierno Central: puntos por tipo de las vialidades que no cuadran con sus cifras de control: se detiene y no escribe nada', vp_sin_cuadrar)
+
+
+def inventario_de_otras_vialidades(t):
+    r = F(t, 'datos', 'inventario', 'RESUMEN.json')
+    texto = open(r, encoding='utf-8').read()
+    assert '"vp_sha256": "' in texto
+    open(r, 'w', encoding='utf-8').write(texto.replace('"vp_sha256": "', '"vp_sha256": "0'))
+
+
+debe_fallar('inventario asignado con otras vialidades primarias (vp.bin cambió): se detiene y no escribe nada', inventario_de_otras_vialidades)
 debe_fallar('claves.local.json mal escrito: se detiene con un mensaje claro', lambda t: open(F(t, 'claves.local.json'), 'w', encoding='utf-8').write('{"ESRI_KEY": "x"'))
 # claves guardadas con el Bloc de notas o PowerShell 5.1 (con BOM): se leen, y se avisa que quedarán públicas en docs/
 t = copia()

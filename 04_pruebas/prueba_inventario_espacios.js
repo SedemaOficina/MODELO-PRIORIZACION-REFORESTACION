@@ -22,7 +22,8 @@ function leeInventario(D) {
     const raw = zlib.gunzipSync(fs.readFileSync(path.join(L.DOCS, 'datos', 'inventario', `inv_${cve}.bin`))); let rp = 0;
     const rv = () => { let res = 0, sh = 0, b; do { b = raw[rp++]; res += (b & 0x7f) * Math.pow(2, sh); sh += 7; } while (b & 0x80); return (res % 2) ? -((res + 1) / 2) : res / 2; };
     const formato = rv(), n = rv(); const P = []; let x = 0, y = 0, fr = 0, pre = 0, uga = 0, num = 0;
-    for (let i = 0; i < n; i++) { x += rv(); y += rv(); const t = rv(); fr += rv(); pre += rv(); uga += rv(); num += rv(); P.push({ lon: x / ESC, lat: y / ESC, t, fr: fr - 1, clave: String.fromCharCode(65 + Math.floor(pre / 676), 65 + Math.floor(pre / 26) % 26, 65 + pre % 26) + '-' + String(uga).padStart(3, '0') + '-' + String(num).padStart(4, '0') }); }
+    // formato 2 (v1.24): al final de cada punto, la parte de vialidad primaria + 1 de un punto del camellón (0 en los demás)
+    for (let i = 0; i < n; i++) { x += rv(); y += rv(); const t = rv(); fr += rv(); pre += rv(); uga += rv(); num += rv(); const vp = formato >= 2 ? rv() - 1 : -1; P.push({ lon: x / ESC, lat: y / ESC, t, fr: fr - 1, vp, clave: String.fromCharCode(65 + Math.floor(pre / 676), 65 + Math.floor(pre / 26) % 26, 65 + pre % 26) + '-' + String(uga).padStart(3, '0') + '-' + String(num).padStart(4, '0') }); }
     out[cve] = { formato, P, completo: rp === raw.length };
   }
   return out;
@@ -44,7 +45,7 @@ const norm = s => L.norm(s).trim();
   // ---------- 1) cifras de control ----------
   const porTipo = [0, 0, 0]; const malos = [];
   for (const cve of D.META.muns) { const c = [0, 0, 0]; INV[cve].P.forEach(p => c[p.t]++); c.forEach((v, t) => porTipo[t] += v);
-    if (!INV[cve].completo || INV[cve].formato !== 1 || JSON.stringify(c) !== JSON.stringify(RES.por_alcaldia[cve].puntos) || JSON.stringify(c) !== JSON.stringify(SIA_INV && SIA_INV.n[cve])) malos.push(cve); }
+    if (!INV[cve].completo || INV[cve].formato !== RES.formato || INV[cve].formato !== 2 || JSON.stringify(c) !== JSON.stringify(RES.por_alcaldia[cve].puntos) || JSON.stringify(c) !== JSON.stringify(SIA_INV && SIA_INV.n[cve])) malos.push(cve); }
   ok('cada archivo publicado se lee completo y sus puntos por tipo = cifras de control (RESUMEN.json y config.js)', !malos.length && !!SIA_INV, malos.join(', ') || '16 alcaldías');
   ok('puntos publicados por tipo = cifras de control (cepas vacantes, tocones, árboles muertos)', JSON.stringify(porTipo) === JSON.stringify(RES.puntos_por_tipo), porTipo.join(' · '));
   const todos = D.META.muns.flatMap(c => INV[c].P);

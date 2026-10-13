@@ -4,6 +4,10 @@
 Es una capa de oportunidad ENCIMA del modelo de priorización: no cambia ninguna prioridad, cifra, lista ni descarga. Cada punto se
 asigna al frente de manzana más cercano (a DIST m o menos) de los datos publicados (02_fuente/datos/data.bin), para heredar calle,
 colonia, alcaldía y prioridad. Los árboles vivos no se publican: solo cuentan para el avance del inventario en cada alcaldía.
+Para el Gobierno Central (v1.24), cada punto cuenta además para una parte de vialidad primaria (vp.bin):
+  · por su frente: el punto asignado a un frente de manzana a cargo del Gobierno Central cuenta para la parte de vialidad de ese frente;
+  · camellón: el punto que quedó sin frente (a más de DIST m de todos) cuenta para la parte cuyo eje esté a DIST_VP m o menos, la más
+    cercana. Los puntos asignados a frentes de las alcaldías no se mueven.
 
 Insumo (no se copia al repositorio; solo se lee): el CSV del inventario, con las columnas
   fid, idc, uuid, lat, lng, registro, alcaldia, uga, pano_id, pano_date, pano_url, geom
@@ -20,18 +24,29 @@ Sale en 02_fuente/datos/inventario/ (construir.py lo publica en docs/datos/inven
                                   dfr         frente asignado + 1 (0 = sin frente a DIST m), en diferencias
                                   dpre, duga, dnum   clave del inventario AAA-000-0000 (letras como número en base 26, uga y
                                               consecutivo), en diferencias
+                                  vp          (formato 2, desde la v1.24) parte de vialidad primaria + 1 de un punto del camellón
+                                              (sin frente y a DIST_VP m o menos del eje de la parte); 0 en los demás. No va en diferencias
+                                (el formato 1, hasta la v1.23, no traía vp)
   espacios_frentes.bin          para el filtro «Espacio» y el orden «más cepas vacantes» de «Dónde empezar»: cuántos puntos de cada
                                 tipo tiene asignados cada frente de manzana (todos los frentes). Mismo formato: FORMATO_FR (2), n (frentes
                                 con al menos un punto) y, por frente, en orden de índice:
                                   dfr         índice del frente en data.bin, en diferencias respecto al anterior (el primero, respecto a -1)
                                   cv, to, am  puntos asignados de cada tipo: cepas vacantes, tocones y árboles muertos (al menos uno > 0)
                                 (el formato 1, hasta la v1.22, traía solo los tipos en bits)
+  espacios_vp.bin               para el filtro «Espacio» y el orden «más cepas vacantes» del Gobierno Central (v1.24): cuántos puntos de
+                                cada tipo cuentan para cada parte de vialidad primaria (por su frente o en el camellón). Mismo formato:
+                                FORMATO_VP (1), n (partes con al menos un punto) y, por parte, en orden de índice:
+                                  dvp         índice de la parte en vp.bin, en diferencias respecto a la anterior (la primera, respecto a -1)
+                                  cv, to, am  puntos de cada tipo (al menos uno > 0)
   SUMAS.json                    SHA-256 de cada archivo (construir.py los compara)
   RESUMEN.json                  corte, cifras de control (puntos por tipo y alcaldía; las revisa verificar_datos.py), avance del
                                 inventario por alcaldía (registros totales, árboles vivos incluidos), distancias y la huella del
                                 contenido de data.bin con que se asignaron los frentes (si data.bin cambia, hay que volver a correr esto);
                                 en «frentes_con_espacio», las cifras de control de espacios_frentes.bin (frentes con cada tipo, en total
-                                y a cargo de las alcaldías, y puntos de cada tipo asignados a frentes, en total y a cargo de las alcaldías)
+                                y a cargo de las alcaldías, y puntos de cada tipo asignados a frentes, en total y a cargo de las alcaldías);
+                                en «vialidades_con_espacio», las de espacios_vp.bin (partes con cada tipo, puntos de cada tipo, por su
+                                frente y en el camellón, y cuántos de los puntos sin frente se recuperaron por el camellón). Guarda
+                                también la huella de vp.bin («vp_sha256»): si cambia, hay que volver a correr esto
 
 Cuando llegue el inventario completo: reemplazar el CSV (mismo nombre o ruta en INVENTARIO_ARBOLADO_CSV), ajustar INVENTARIO_CORTE,
 correr este script, luego python 03_procesamiento_datos/verificar_datos.py y python 02_fuente/construir.py.
@@ -59,10 +74,14 @@ CSV_OMISION = os.path.join(os.path.dirname(RAIZ), 'adopta-un-arbol', '00_insumos
 CSV_RUTA = os.environ.get('INVENTARIO_ARBOLADO_CSV') or CSV_OMISION
 CORTE = os.environ.get('INVENTARIO_CORTE') or 'septiembre de 2026'
 FUENTE = 'Inventario de arbolado de la Ciudad de México (CIGA-UNAM y SEDEMA)'
-FORMATO = 1
-FORMATO_FR = 2                    # espacios_frentes.bin: puntos por tipo de cada frente (1, hasta la v1.22: solo los tipos en bits)
+FORMATO = 2                       # inv_<cve>.bin: 2 desde la v1.24 (trae la parte de vialidad de los puntos del camellón)
+FORMATO_FR = 2                   # espacios_frentes.bin: puntos por tipo de cada frente (1, hasta la v1.22: solo los tipos en bits)
 ARCHIVO_FR = 'espacios_frentes.bin'
+FORMATO_VP = 1                    # espacios_vp.bin: puntos por tipo de cada parte de vialidad primaria
+ARCHIVO_VP = 'espacios_vp.bin'
 DIST = 20.0                       # metros: más lejos, el punto queda sin frente
+DIST_VP = 25.0                    # metros: un punto sin frente a esta distancia o menos del eje de una vialidad primaria es del camellón
+CAMPOS_VP = 11                    # vp.bin: nomenclatura, nombre, tipo, carriles, circulación, texto de alcaldía, alcaldía, prioridad, longitud, clave, registro
 ESCALA = 200_000                  # 1/200,000 de grado ≈ 0.55 m (la misma de datos/fondo/; INV_ESCALA en 05_inventario.js)
 Q = 100000.0                      # coordenadas de data.bin en 1/100,000 de grado (CONTRATO_DE_DATOS.md)
 KX, KY = 111320 * np.cos(np.radians(19.4)), 110540.0   # metros por grado en la CDMX (los de 8_asignar_sin_colonia.py)
@@ -172,10 +191,12 @@ print('leído en %.0f s: %s registros; %s espacios (cepas, tocones y árboles mu
 # ---------- frentes de manzana de los datos publicados ----------
 crudo = gzip.decompress(open(os.path.join(DATOS, 'data.bin'), 'rb').read())
 FRENTES_SHA = hashlib.sha256(crudo).hexdigest()
+crudo_vp = gzip.decompress(open(os.path.join(DATOS, 'vp.bin'), 'rb').read())
+VP_SHA = hashlib.sha256(crudo_vp).hexdigest()
 vals = lee_enteros(crudo)
 n = vals[0]
 p, x, y = 1, 0, 0
-lineas, prio, mun_fr, gc_fr = [], np.zeros(n, np.int8), np.zeros(n, np.int16), np.zeros(n, np.int8)
+lineas, prio, mun_fr, gc_fr, vp_fr = [], np.zeros(n, np.int8), np.zeros(n, np.int16), np.zeros(n, np.int8), np.full(n, -1, np.int64)
 for k in range(n):
     A = vals[p:p + CAMPOS]
     nv = vals[p + CAMPOS]
@@ -183,10 +204,27 @@ for k in range(n):
     xy = np.cumsum(d, axis=0) + [x, y]
     x, y = int(xy[-1, 0]), int(xy[-1, 1])
     lineas.append(LineString(xy / Q * [KX, KY]) if nv >= 2 else shapely.Point(xy[0] / Q * [KX, KY]))
-    prio[k], mun_fr[k], gc_fr[k] = A[1], A[0], (A[6] >> 6) & 1   # bandera bit 6: a cargo del Gobierno Central
+    prio[k], mun_fr[k], gc_fr[k], vp_fr[k] = A[1], A[0], (A[6] >> 6) & 1, A[7] - 1   # bit 6: a cargo del Gobierno Central; A[7]: vialidad + 1
     p += CAMPOS + 1 + 2 * nv
 assert p == len(vals) and n == META['N'], 'data.bin no se leyó completo'
 arbol = STRtree(lineas)
+
+# ---------- partes de vialidad primaria (vp.bin), para los puntos del Gobierno Central ----------
+vals = lee_enteros(crudo_vp)
+NV = vals[0]
+p, x, y = 1, 0, 0
+lineas_vp, nom_vp, tipo_vp, prio_vp = [], np.zeros(NV, np.int64), np.zeros(NV, np.int8), np.zeros(NV, np.int8)
+for k in range(NV):
+    A = vals[p:p + CAMPOS_VP]
+    nv = vals[p + CAMPOS_VP]
+    d = np.array(vals[p + CAMPOS_VP + 1:p + CAMPOS_VP + 1 + 2 * nv]).reshape(-1, 2)
+    xy = np.cumsum(d, axis=0) + [x, y]
+    x, y = int(xy[-1, 0]), int(xy[-1, 1])
+    lineas_vp.append(LineString(xy / Q * [KX, KY]) if nv >= 2 else shapely.Point(xy[0] / Q * [KX, KY]))
+    nom_vp[k], tipo_vp[k], prio_vp[k] = A[0], A[2], A[7]
+    p += CAMPOS_VP + 1 + 2 * nv
+assert p == len(vals) and NV == META['vp']['n'], 'vp.bin no se leyó completo'
+assert vp_fr.max() < NV, 'un frente enlaza a una parte de vialidad que no existe'
 
 # ---------- asignación: el frente más cercano, a DIST m o menos (índice espacial) ----------
 P = np.array([(a, b) for a, b, *_ in puntos])
@@ -199,6 +237,21 @@ distancia[par[0]] = dist
 # distancia al frente más cercano de los que quedaron sin frente (solo para el reporte)
 sin = np.where(frente < 0)[0]
 lejos = arbol.query_nearest(geo[sin], return_distance=True, all_matches=False)[1] if len(sin) else np.array([])
+# camellón: los que quedaron sin frente, a la parte de vialidad primaria más cercana con su eje a DIST_VP m o menos
+camellon = np.full(len(puntos), -1, np.int64)
+dist_cam = np.full(len(puntos), np.nan)
+if len(sin):
+    par_vp, d_vp = STRtree(lineas_vp).query_nearest(geo[sin], max_distance=DIST_VP, return_distance=True, all_matches=False)
+    camellon[sin[par_vp[0]]] = par_vp[1]
+    dist_cam[sin[par_vp[0]]] = d_vp
+# parte de vialidad primaria para la que cuenta cada punto: la de su frente, si el frente es del Gobierno Central, o la del camellón.
+# Los puntos de los frentes de las alcaldías no cuentan para ninguna.
+parte = np.full(len(puntos), -1, np.int64)
+gc_pt = np.zeros(len(puntos), bool)
+gc_pt[frente >= 0] = gc_fr[frente[frente >= 0]] == 1
+parte[gc_pt] = vp_fr[frente[gc_pt]]
+parte[camellon >= 0] = camellon[camellon >= 0]
+gc_sin_parte = int((gc_pt & (parte < 0)).sum())   # en frentes del Gobierno Central sin parte de vialidad enlazada (no cuentan)
 
 # ---------- alcaldía que contiene cada punto (la del archivo), como el fondo propio ----------
 ALC = [(a['cve'], Polygon(np.array(a['rings'][0]) / Q)) for a in META['alc']]
@@ -225,7 +278,7 @@ for cve in META['muns']:
         lon, lat, tipo, (pre, uga, num), _ = puntos[i]
         qx, qy = int(round(lon * ESCALA)), int(round(lat * ESCALA))
         fr = int(frente[i]) + 1
-        for v in (qx - X, qy - Y, tipo, fr - FR, pre - PRE, uga - UGA, num - NUM):
+        for v in (qx - X, qy - Y, tipo, fr - FR, pre - PRE, uga - UGA, num - NUM, int(camellon[i]) + 1):
             e.v(v)
         X, Y, FR, PRE, UGA, NUM = qx, qy, fr, pre, uga, num
         cuenta[tipo] += 1
@@ -250,6 +303,30 @@ for f in sorted(cuenta_fr):
     anterior = f
 nombre, datos = e.guarda(ARCHIVO_FR)
 archivos[nombre] = datos
+# ---------- puntos por tipo de cada parte de vialidad primaria (filtro «Espacio» y orden por cepas del Gobierno Central) ----------
+cuenta_vp = {}
+for i, pt in enumerate(puntos):
+    v = int(parte[i])
+    if v >= 0:
+        cuenta_vp.setdefault(v, [0, 0, 0])[pt[2]] += 1
+e = Escritor()
+e.v(FORMATO_VP)
+e.v(len(cuenta_vp))
+anterior = -1
+for v in sorted(cuenta_vp):
+    e.v(v - anterior)
+    for c in cuenta_vp[v]:
+        e.v(c)
+    anterior = v
+nombre, datos = e.guarda(ARCHIVO_VP)
+archivos[nombre] = datos
+tipo_np = np.array([pt[2] for pt in puntos])
+vp_tipo = [sum(1 for c in cuenta_vp.values() if c[t]) for t in range(3)]
+vp_pts = [sum(c[t] for c in cuenta_vp.values()) for t in range(3)]
+vp_por_frente = [int(((tipo_np == t) & gc_pt & (parte >= 0)).sum()) for t in range(3)]
+vp_camellon = [int(((tipo_np == t) & (camellon >= 0)).sum()) for t in range(3)]
+assert [a + b for a, b in zip(vp_por_frente, vp_camellon)] == vp_pts
+recup = sum(vp_camellon)
 fr_tipo = [sum(1 for c in cuenta_fr.values() if c[t]) for t in range(3)]
 fr_tipo_alc = [sum(1 for f, c in cuenta_fr.items() if c[t] and not gc_fr[f]) for t in range(3)]
 fr_alc = sum(1 for f in cuenta_fr if not gc_fr[f])
@@ -280,12 +357,36 @@ for cve in sorted(META['muns'], key=lambda c: nom[c]):
     kb = len(archivos['inv_%s.bin' % cve]) / 1024
     print('%-24s %9s %7s %7s %7s %10s %7.0f' % (nom[cve], format(registros.get(cve, 0), ','), format(c[0], ','), format(c[1], ','), format(c[2], ','), format(int((m & ~con).sum()), ','), kb))
 total_bytes = sum(len(b) for b in archivos.values())
-print('%-24s %9s %7s %7s %7s %10s %7.0f' % ('Total', format(sum(registros.values()), ','), *[format(sum(control[c][t] for c in control), ',') for t in range(3)], format(int((~con).sum()), ','), sum(len(b) for k, b in archivos.items() if k != ARCHIVO_FR) / 1024))
+print('%-24s %9s %7s %7s %7s %10s %7.0f' % ('Total', format(sum(registros.values()), ','), *[format(sum(control[c][t] for c in control), ',') for t in range(3)], format(int((~con).sum()), ','), sum(len(b) for k, b in archivos.items() if k not in (ARCHIVO_FR, ARCHIVO_VP)) / 1024))
 print('\nFiltro «Espacio» y orden por cepas (%s, %.1f KB): %s frentes con al menos un punto (%s a cargo de las alcaldías)'
       % (ARCHIVO_FR, len(archivos[ARCHIVO_FR]) / 1024, format(len(cuenta_fr), ','), format(fr_alc, ',')))
 for t, nt in enumerate(NOMBRE_TIPO):
     print('  frentes con %-14s %7s · a cargo de las alcaldías: %7s · puntos: %7s (a cargo de las alcaldías: %7s)'
           % (nt.lower(), format(fr_tipo[t], ','), format(fr_tipo_alc[t], ','), format(pt_tipo[t], ','), format(pt_tipo_alc[t], ',')))
+nom_av = META['vp']['nomenclat']
+print('\nVialidades primarias del Gobierno Central (%s, %.1f KB): %s partes de %s con al menos un punto'
+      % (ARCHIVO_VP, len(archivos[ARCHIVO_VP]) / 1024, format(len(cuenta_vp), ','), format(NV, ',')))
+for t, nt in enumerate(NOMBRE_TIPO):
+    print('  %-14s %6s puntos · por su frente: %6s · en el camellón (a ≤ %d m del eje): %5s · partes con %s: %5s'
+          % (nt, format(vp_pts[t], ','), format(vp_por_frente[t], ','), DIST_VP, format(vp_camellon[t], ','), nt.lower(), format(vp_tipo[t], ',')))
+print('  de los %s puntos sin frente a ≤ %d m, %s (%.1f %%) se recuperaron por el camellón; distancia al eje: mediana %.1f m'
+      % (format(int((~con).sum()), ','), DIST, format(recup, ','), 100 * recup / max(1, int((~con).sum())), float(np.nanmedian(dist_cam)) if recup else 0))
+if gc_sin_parte:
+    print('  %d puntos en frentes del Gobierno Central sin parte de vialidad enlazada no cuentan para ninguna' % gc_sin_parte)
+print('  por tipo de vía:')
+for k, tv in enumerate(META['vp']['tipos']):
+    m = (parte >= 0) & (tipo_vp[np.maximum(parte, 0)] == k)
+    print('    %-26s %s' % (tv, ' · '.join('%s %s' % (nt.lower(), format(int((m & (tipo_np == t)).sum()), ',')) for t, nt in enumerate(NOMBRE_TIPO))))
+por_av = {}
+for v, c in cuenta_vp.items():
+    a = por_av.setdefault(int(nom_vp[v]), [0, 0, 0, 0])
+    for t in range(3):
+        a[t] += c[t]
+    if prio_vp[v] >= PRIO_MIN:
+        a[3] += c[0]
+print('  por vía: %d avenidas con puntos; las 15 con más cepas vacantes («en prioritarias»: cepas de sus partes Muy Alta, Alta y Media):' % len(por_av))
+for a, c in sorted(por_av.items(), key=lambda kv: (-kv[1][0], nom_av[kv[0]]))[:15]:
+    print('    %-44s cepas %5s · tocones %5s · muertos %5s · cepas en prioritarias %5s' % (nom_av[a][:44], format(c[0], ','), format(c[1], ','), format(c[2], ','), format(c[3], ',')))
 
 # ---------- escritura: hasta aquí nada se había escrito ----------
 os.makedirs(SALIDA, exist_ok=True)
@@ -299,7 +400,7 @@ resumen = {
     'nota': 'Lo escribe 03_procesamiento_datos/9_inventario_espacios.py. Cifras de control que revisa verificar_datos.py; construir.py publica corte y avance.',
     'fuente': FUENTE, 'corte': CORTE,
     'insumo': {'archivo': os.path.basename(CSV_RUTA), 'sha256': CSV_SHA, 'bytes': os.path.getsize(CSV_RUTA)},
-    'frentes_sha256': FRENTES_SHA, 'formato': FORMATO, 'escala': ESCALA, 'distancia_max_m': DIST,
+    'frentes_sha256': FRENTES_SHA, 'vp_sha256': VP_SHA, 'formato': FORMATO, 'escala': ESCALA, 'distancia_max_m': DIST,
     'tipos': NOMBRE_TIPO,
     'registros_por_tipo': {k: por_tipo_csv[k] for k in sorted(por_tipo_csv)},
     'puntos_por_tipo': [int((tipo_arr == t).sum()) for t in range(3)],
@@ -307,6 +408,9 @@ resumen = {
     'frentes_con_espacio': {'archivo': ARCHIVO_FR, 'formato': FORMATO_FR, 'frentes': len(cuenta_fr), 'por_tipo': fr_tipo,
                             'frentes_alcaldia': fr_alc, 'alcaldia_por_tipo': fr_tipo_alc,
                             'puntos_por_tipo': pt_tipo, 'puntos_alcaldia_por_tipo': pt_tipo_alc},
+    'vialidades_con_espacio': {'archivo': ARCHIVO_VP, 'formato': FORMATO_VP, 'distancia_camellon_m': DIST_VP, 'partes': len(cuenta_vp),
+                               'por_tipo': vp_tipo, 'puntos_por_tipo': vp_pts, 'puntos_por_frente': vp_por_frente,
+                               'puntos_camellon': vp_camellon, 'sin_frente_recuperados': recup, 'puntos_gc_sin_parte': gc_sin_parte},
     'claves_repetidas': duplicadas,
     'distancia_m': {'mediana': round(float(np.percentile(dd, 50)), 2), 'p75': round(float(np.percentile(dd, 75)), 2), 'p90': round(float(np.percentile(dd, 90)), 2)},
     'por_alcaldia': {cve: {'nombre': nom[cve], 'registros': registros.get(cve, 0), 'puntos': control[cve],

@@ -51,6 +51,15 @@ let filtroEsp = 0, ESP_FR = null, ESP_CV = null;
 const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
 const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
 const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
+// El mismo filtro para el Gobierno Central (v1.24): una parte de vialidad primaria pasa si tiene al menos un punto de los tipos elegidos.
+// Cuentan los puntos de sus frentes de manzana a cargo del Gobierno Central y los del camellón (sin frente y a 25 m o menos de su eje);
+// los de los frentes de las alcaldías no. ESP_VP (Uint8Array de NV) trae los tipos de cada parte y ESP_VPN (Uint16Array de 3·NV) cuántos
+// puntos de cada tipo (ficha del tramo y orden «Avenidas con más cepas vacantes»); los baja espCargar() junto con ESP_FR. pasaEspacioVP es la
+// única condición del filtro para las vialidades: la usan enAmbitoVP(i) (mapa, cifras, listas, descargas y fichas) y lo que acota por
+// alcaldía o por avenida sin enAmbitoVP. La banqueta no aplica a las vialidades primarias.
+let ESP_VP = null, ESP_VPN = null;
+const pasaEspacioVP = i => filtroEsp===0 || (ESP_VP!==null && i>=0 && (ESP_VP[i] & filtroEsp)!==0);
+const enAmbitoVP = i => (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv) && pasaEspacioVP(i);
 // texto que acompaña al ámbito cuando el filtro de banqueta está activo
 const banqTxt = () => filtroBanq==='con'? 'solo frentes con banqueta (INEGI 2020)' : filtroBanq==='sin'? 'solo frentes sin banqueta o por verificar (INEGI 2020)' : '';
 // tipos elegidos en «Espacio», en palabras: «cepa vacante», «cepa vacante o tocón», «cepa vacante, tocón o árbol muerto»
@@ -59,6 +68,9 @@ const espLista = (m = filtroEsp) => { const n = ESP_TIPOS.filter((_, t)=> m & (1
 const espCodigo = (m = filtroEsp) => ESP_TIPOS.filter((_, t)=> m & (1<<t)).map(e=>e.k).join(',');
 const espDeTexto = t => String(t||'').split(/[\s,.;_-]+/).reduce((m, k)=>{ const t2 = ESP_TIPOS.findIndex(e=>e.k===k.toLowerCase()); return t2<0? m : m | (1<<t2); }, 0);
 const espTxt = () => filtroEsp?`solo frentes con ${espLista()} (inventario de arbolado)` : '';
+// lo mismo para las vialidades primarias (el filtro de banqueta no les aplica): etiqueta larga y corta
+const espTxtVP = () => filtroEsp?`solo tramos con ${espLista()} (inventario de arbolado)` : '';
+const espCorto = () => filtroEsp? ' · con ' + espLista() : '';
 // los dos filtros juntos: lo dicen las cifras, el resumen del mapa, los archivos y las fichas; con los dos apagados, nada cambia
 const hayFiltro = () => filtroBanq!=='todas' || filtroEsp!==0;
 const filtroTxt = () => filtroBanq!=='todas' && filtroEsp? `${banqTxt()} y con ${espLista()} (inventario de arbolado)` : banqTxt() || espTxt();
@@ -82,7 +94,7 @@ function buildVP(){
   const ctx = resp==='alc';
   for(let i=0;i<NV;i++){
     const c = ctx? T.vpctx : T.prio[VP.prio[i]];
-    const inS = (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv);
+    const inS = enAmbitoVP(i);
     const a = ctx? 200 : (inS? 255 : 40);
     const v = visible[VP.prio[i]]? 1 : 0;
     for(let k=vstart[i];k<vstart[i+1];k++){ const o=4*k; VCOLORS[o]=c[0]; VCOLORS[o+1]=c[1]; VCOLORS[o+2]=c[2]; VCOLORS[o+3]=a; VFILTER[2*k]=VP.mun[i]; VFILTER[2*k+1]=v; }
