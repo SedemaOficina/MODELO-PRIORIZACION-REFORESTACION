@@ -30,7 +30,7 @@ let anuncioT = null;
 function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
-  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
+  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); invNota(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito(); rotuloInfo();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;

@@ -1,7 +1,7 @@
 // Instancia del mapa (DeckGL), clic y descripción emergente, mostrar u ocultar tarjetas y botones de acercamiento.
 // Las capas solo cambian al cruzar estos niveles de zoom (tamaño de nombres de alcaldía, límites y nombres
 // de colonias, nombres de calle); entre ellos no hace falta rehacerlas, lo que mantiene fluido el zoom.
-const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15];
+const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15, 16];   // 15 y 16: espacios para plantar (INV_Z e INV_Z_LIGERO)
 const zoomBand = z => ZOOM_CORTES.filter(c => z >= c).length;
 const dk = new DeckGL({
   container: mapEl, views: new MapView({repeat:false}), controller:{dragRotate:false, touchRotate:false, minZoom:9.4, maxZoom:18.5},
@@ -15,6 +15,7 @@ const dk = new DeckGL({
     if (info.index<0 || !info.layer) return null; const st = {background:'transparent',padding:0,border:0,boxShadow:'none'};
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
     if (info.layer.id.startsWith('col-fill')){ const id=info.object.i; const c=META.colonias[id]; if (sel!==null && munIndex[c.m]!==sel) return null; const cs=colStat(id); const pc=c.p>=0? T.prio[c.p]:null; return {html:`<div class="tip">${pc? `<span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span>`:''}<b>${c.n}</b><br><span class="m">${META.munNames[munIndex[c.m]]} · Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'} · ${fmt1.format(cs.kmp)} km prioritarios</span></div>`, style:st}; }
+    if (INV_CAPAS.includes(info.layer.id) && !pinned) return {html:`<div class="tip">${invHtml(info.object,true)}</div>`, style:st};
     if (info.layer.id==='vias' && !pinned) return {html:`<div class="tip">${vpHtml(info.index,true)}</div>`, style:st};
     return (info.layer.id==='fronts' && !pinned && enAmbito(frReal(info.index))) ? {html:`<div class="tip">${featHtml(frReal(info.index),true)}</div>`, style:st} : null;
   },
@@ -39,7 +40,9 @@ if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMa
   clavesCalles: ()=>[...streetIdx.keys()], kmCalle: k=>{ const s=streetIdx.get(k); return s? s.km : null; }, tramosDe: k=>{ const s=streetIdx.get(k); return s? tramosDeCalle(s.idx).map(t=>({n:t.n, largo:t.largo, lados:t.lados, lado:t.lado||'', entre:entreTxt(t), texto:tramoTxt(t), m:t.m})) : null; } };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
-  const r = mapEl.getBoundingClientRect(); const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});
+  const r = mapEl.getBoundingClientRect();
+  const pi = invPick(e.clientX-r.left, e.clientY-r.top); if (pi){ showCard('inv', pi); return; }   // un punto del inventario gana al frente de debajo
+  const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});
   if (p && p.layer && p.layer.id.startsWith('alcaldias') && p.object){ const i=p.object.i; if (sel!==i || selCol!==null || selAv!==null){ selEl.value=String(i); setSel(String(i)); } return; }
   if (p && p.layer && p.layer.id.startsWith('col-fill') && p.object){ const id=p.object.i; pickColonia(id); showCard('col', id); return; }
   if (p && p.layer && p.layer.id==='vias' && p.index>=0){ showCard('vp', p.index); return; }
@@ -64,7 +67,7 @@ let cardOrigen = null;
 function enfocaFicha(){ const c=$('card'); const a=document.activeElement; if (a && a!==document.body && !c.contains(a)) cardOrigen = a;
   const h=c.querySelector('h3'); c.setAttribute('aria-label', 'Ficha: ' + (h? h.textContent : 'elemento seleccionado')); try { c.focus({preventScroll:true}); } catch(e){ c.focus(); } }
 function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i}; const c=$('card');
-  c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : featHtml(i,false);
+  c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : kind==='inv'? invHtml(i,false) : featHtml(i,false);
   c.hidden=false; c.querySelector('.close').onclick=()=>hideCard(true); enfocaFicha();
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };

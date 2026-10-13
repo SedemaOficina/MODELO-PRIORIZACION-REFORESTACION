@@ -72,13 +72,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla le corresponde a quien administra la cuenta.
 
-## Estado al 12 de octubre de 2026 (versión 1.19)
+## Estado al 13 de octubre de 2026 (versión 1.20)
 
-- Versión vigente: **v1.19**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.20**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.20 | Capa «Espacios para plantar» con el inventario de arbolado (CIGA-UNAM y SEDEMA, corte de septiembre de 2026, en curso): 39,276 cepas vacantes, 14,077 tocones y 9,545 árboles muertos, cada uno asignado al frente de manzana más cercano a 20 m o menos (91 %). Se ve al acercar el mapa, con símbolos distintos de la rampa de prioridad, casillas por tipo, el avance del inventario por alcaldía y una ficha con tipo, clave, calle, prioridad del frente y Street View. No cambia ninguna cifra del modelo. Script nuevo `9_inventario_espacios.py` y prueba nueva `prueba_inventario_espacios.js`; la serie completa dura unos 22 minutos. |
 | 1.19 | Recorrido guiado al día con la interfaz. Paso nuevo en el celular, «Información y mapa» («Ver el mapa» y «Volver a la información»). «Dónde empezar» menciona «Mostrar» y «Más detalles». «Tu lista de campo» ilumina la pestaña Descargas cuando no hay nada que descargar (toda la ciudad) y aclara que los KML están en «Descargas». |
 | 1.18 | Etapa 3 de la simplificación. Descargas: sin nada que descargar (toda la ciudad con «Alcaldías») queda solo el motivo, arriba, sin botones apagados; los archivos para mapas (KML y GeoJSON) en un plegable. «Cómo funciona»: la metodología (pasos 1 a 3) plegada en el celular; la ayuda y los criterios de lectura a la vista. El título del ámbito ya no muestra marco al recibir el foco. Sale la explicación bajo los botones de banqueta (v1.16). El botón «Sin o por verificar» se llama «Sin banqueta» (sigue incluyendo los frentes sin dato; lo dice su título y la ayuda). |
 | 1.17 | A pedido de Liber, «Atiende» y «Banqueta» vuelven a verse siempre en el celular: sale la línea resumida con el botón «Cambiar» de la v1.16. Se queda la explicación visible de la opción de banqueta elegida. |

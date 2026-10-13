@@ -10,6 +10,8 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   datos/nombres_colonias.json   nombre para mostrar de cada colonia que lo cambia (03_procesamiento_datos/7_nombres_colonias.py)
   datos/fondo/     fondo propio del mapa (opción «Calles»): manzanas por alcaldía, parques, agua, ANP y AVA
                    (de 03_procesamiento_datos/6_fondo.py); se piden solo al encender ese fondo
+  datos/inventario/ espacios para plantar del inventario de arbolado (cepas vacantes, tocones y árboles muertos), por alcaldía
+                   (de 03_procesamiento_datos/9_inventario_espacios.py); se piden al acercar el mapa
   img/             logotipo y lámina de la metodología
   libs/            deck.gl, pako, jsPDF y SheetJS (copias locales sin modificar, con LICENCIAS.md y el texto de cada licencia)
   fuentes/         tipografías Cabin y Roboto (woff2 variables, subconjunto latino) con su licencia OFL;
@@ -74,8 +76,8 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.19'
-ACTUALIZACION = '12 de octubre de 2026'
+VERSION = '1.20'
+ACTUALIZACION = '13 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -102,11 +104,11 @@ def falla(mensaje):
 
 
 # ---------- piezas esperadas: si falta o sobra una, la construcción se detiene antes de escribir ----------
-JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '04_nombres_mapa.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
+JS_ESPERADOS = ['01_utilidades.js', '02_datos.js', '03_estado.js', '04_mapa_capas.js', '04_nombres_mapa.js', '05_inventario.js', '05_mapa_tarjetas.js', '06_mapa_interaccion.js',
                 '07_leyenda_y_capas.js', '08_resumenes.js', '09_listados.js', '09_tramos.js', '10_seleccion.js', '11_descargas.js',
                 '12_fichas_pdf.js', '13_interfaz.js', '14_buscador.js', '15_mi_ubicacion.js', '16_arranque.js', '17_recorrido.js']
 CSS_ESPERADOS = ['01_variables.css', '02_base.css', '03_controles.css', '04_pantalla_y_leyenda.css', '05_panel_y_hoja_inferior.css',
-                 '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css', '09_recorrido.css', '10_dos_pantallas.css']
+                 '06_mi_ubicacion.css', '07_accesibilidad.css', '08_orientacion.css', '09_recorrido.css', '10_dos_pantallas.css', '11_inventario.css']
 # Lo único de libs/ y fuentes/ que se publica. Un archivo que no esté aquí no llega a docs/.
 LIBS_PUBLICADAS = ['deck.js', 'pako.js', 'jspdf.js', 'xlsx.js', 'excel_worker.js', 'LICENCIAS.md',
                    'LICENCIA_deck.gl.txt', 'LICENCIA_pako.txt', 'LICENCIA_jspdf.txt', 'LICENCIA_xlsx.txt']
@@ -126,7 +128,7 @@ for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLIC
     faltan = [n for n in esperados if not os.path.isfile(os.path.join(FUENTE, carpeta, n))]
     if faltan:
         falla('%s/ no trae: %s.' % (carpeta, ', '.join(faltan)))
-    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo', 'nombres_colonias.json'))
+    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo', 'inventario', 'nombres_colonias.json'))
     if extra:
         print('AVISO: %s/ trae archivos que no se publican: %s.' % (carpeta, ', '.join(extra)))
 # Los datos deben ser los verificados: se compara el contenido descomprimido con datos/SUMAS.json,
@@ -156,6 +158,19 @@ FONDO_SUMAS = json.load(open(os.path.join(ruta_fondo, 'SUMAS.json'), encoding='u
 for n, h in FONDO_SUMAS.items():
     if not os.path.isfile(os.path.join(ruta_fondo, n)) or hashlib.sha256(open(os.path.join(ruta_fondo, n), 'rb').read()).hexdigest() != h:
         falla('datos/fondo/%s falta o no coincide con datos/fondo/SUMAS.json. Regenerar con 03_procesamiento_datos/6_fondo.py.' % n)
+# Espacios para plantar (inventario de arbolado): cada archivo debe ser el que escribió 9_inventario_espacios.py, y el inventario debe
+# haberse asignado con estos mismos frentes (cada punto guarda el índice de su frente en data.bin)
+ruta_inv = os.path.join(FUENTE, 'datos', 'inventario')
+try:
+    INV_SUMAS = json.load(open(os.path.join(ruta_inv, 'SUMAS.json'), encoding='utf-8'))
+    INV_RES = json.load(open(os.path.join(ruta_inv, 'RESUMEN.json'), encoding='utf-8'))
+except (OSError, ValueError) as e:
+    falla('falta o está dañado datos/inventario/SUMAS.json o RESUMEN.json (%s). Regenerar con 03_procesamiento_datos/9_inventario_espacios.py o recuperarlo de Git.' % e)
+for n, h in INV_SUMAS.items():
+    if not os.path.isfile(os.path.join(ruta_inv, n)) or hashlib.sha256(open(os.path.join(ruta_inv, n), 'rb').read()).hexdigest() != h:
+        falla('datos/inventario/%s falta o no coincide con datos/inventario/SUMAS.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.' % n)
+if INV_RES.get('frentes_sha256') != sumas.get('data.bin'):
+    falla('el inventario de arbolado se asignó con otros frentes (data.bin cambió). Volver a correr 03_procesamiento_datos/9_inventario_espacios.py.')
 
 
 AVISO = 'Generado por 02_fuente/construir.py a partir de 02_fuente/%s. No editar aquí.'
@@ -235,6 +250,15 @@ for n in sorted(FONDO_SUMAS):
     b = leer('datos/fondo/' + n, True)
     poner('datos/fondo/' + n, b)
     fondo_ver[n] = huella(b)
+inv_ver = {}
+for n in sorted(INV_SUMAS):
+    b = leer('datos/inventario/' + n, True)
+    poner('datos/inventario/' + n, b)
+    inv_ver[n] = huella(b)
+# lo que la página necesita sin descargar nada: huella de cada archivo, corte, puntos por tipo de cada alcaldía (los que contiene) y
+# registros del inventario por alcaldía (árboles vivos incluidos: dicen cuánto se ha avanzado)
+INVENTARIO = {'v': inv_ver, 'corte': INV_RES['corte'], 'fuente': INV_RES['fuente'], 'dist': INV_RES['distancia_max_m'],
+              'n': {c: a['puntos'] for c, a in INV_RES['por_alcaldia'].items()}, 'avance': {c: a['registros'] for c, a in INV_RES['por_alcaldia'].items()}}
 lver = {}
 for lib in LIBS_PUBLICADAS:
     b = leer('libs/' + lib, True)
@@ -248,7 +272,7 @@ for arch in FUENTES_PUBLICADAS:
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_NOMBRES_COL = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(fondo_ver), json.dumps(NOMBRES_COL, ensure_ascii=False, separators=(',', ':')), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_INVENTARIO = %s;\nwindow.SIA_NOMBRES_COL = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(fondo_ver), json.dumps(INVENTARIO, ensure_ascii=False, separators=(',', ':')), json.dumps(NOMBRES_COL, ensure_ascii=False, separators=(',', ':')), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)
@@ -342,6 +366,7 @@ filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_D
          ('Archivo único (`_local/priorizacion_reforestacion.html`)', tam(len(unico.encode('utf-8')))),
          ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
          ('Fondo propio «Calles» (`docs/datos/fondo/`, se pide al encenderlo)', tam(sum(len(SALIDA['datos/fondo/' + n]) for n in fondo_ver))),
+         ('Espacios para plantar del inventario de arbolado (`docs/datos/inventario/`, se piden al acercar el mapa)', '%s · %s puntos · corte: %s' % (tam(sum(len(SALIDA['datos/inventario/' + n]) for n in inv_ver)), format(sum(INV_RES['puntos_por_tipo']), ','), INV_RES['corte'])),
          ('Satélite (Esri)', 'con clave' if ESRI_KEY else 'sin clave')]
 cifras = ('# Cifras de la construcción\n\nGenerado por 02_fuente/construir.py en cada construcción. No editar aquí.' + '\n\nMedidas al construir la versión %s. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.\n\n' % VERSION
           + '| Concepto | Valor |\n|---|---|\n' + ''.join('| %s | %s |\n' % f for f in filas))

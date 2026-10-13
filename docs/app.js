@@ -173,6 +173,7 @@ function readTokens(){
   T.prio = PRIO_VARS.map(v=>hex(css(v)));
   T.alc = hex(css('--map-alc')); T.col = hex(css('--map-col')); T.label = hex(css('--map-label')); T.sel = hex(css('--map-sel')); T.gold = hex(css('--dorado')); T.vpctx = hex(css('--map-vp'));
   T.ground = css('--ground');
+  T.inv = ['--inv-cepa','--inv-tocon','--inv-muerto'].map(v=>hex(css(v)));   // espacios para plantar (05_inventario.js)
   T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
 }
 readTokens();
@@ -183,7 +184,7 @@ let sel = null;           // índice de alcaldía o null
 let selCol = null;        // id de colonia o null
 let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobierno Central
 let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
-let pinned = null;        // {kind:'fr'|'vp', i}
+let pinned = null;        // {kind:'fr'|'vp'|'col'|'inv'|'loc'|'pto', i}  (inv: i es el punto del inventario)
 let viewState = null;
 let locSel = false;       // true mientras Mi ubicación cambia el ámbito por sí misma (no es un cambio hecho a mano)
 let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial
@@ -509,6 +510,7 @@ function layers(){
       for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=src.st[i];k<src.st[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
       L.push(new PathLayer({id:'hl-prio', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false})); }
   }
+  L.push(...invCapas());   // espacios para plantar del inventario de arbolado (05_inventario.js), debajo de los nombres
   const E = NOMAP? {alc:[], col:[], st:[]} : colocarNombres();
   L.push(new TextLayer({id:'alc-labels', data:E.alc, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:ETQ_LETRAS,
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
@@ -678,6 +680,108 @@ function colArea(i){ let a=COL_AREA.get(i); if (a===undefined){ a=0; for(const c
 // ¿hay que volver a acomodar los nombres? (otro paso de zoom, o la vista se alejó de donde se acomodaron)
 const etqDesfasado = vs=> (ETQ_Z!==null && Math.round(vs.zoom/ETQ_PASO)*ETQ_PASO!==ETQ_Z) || lblDesfasado(vs);
 
+// Espacios para plantar: cepas vacantes, tocones y árboles muertos del inventario de arbolado (CIGA-UNAM y SEDEMA).
+// Es una capa de oportunidad ENCIMA del modelo: no cambia ninguna prioridad, cifra, lista ni descarga. Cada punto trae el frente de
+// manzana más cercano (a 20 m o menos), del que toma calle, colonia, alcaldía y prioridad para su ficha.
+// Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
+// (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.
+// window.SIA_INVENTARIO (config.js) trae la huella de cada archivo, el corte, los puntos por tipo y el avance del inventario por alcaldía.
+// El archivo único no lo trae: allí la sección del panel de capas lo dice.
+const INV = window.SIA_INVENTARIO || null;
+const INV_ESCALA = 200000, INV_Z = 15, INV_Z_LIGERO = 16;   // coordenadas en 1/200,000 de grado (ESCALA en 9_inventario_espacios.py)
+const INV_TIPOS = [
+  {id:'cepa', n:'Cepa vacante', pl:'Cepas vacantes', que:'Se puede plantar directo'},
+  {id:'tocon', n:'Tocón', pl:'Tocones', que:'Hay que retirar el tocón antes de plantar'},
+  {id:'muerto', n:'Árbol muerto', pl:'Árboles muertos', que:'Requiere derribo y reposición'}];
+const INV_CAPAS = ['inv-cepa', 'inv-tocon', 'inv-muerto'];   // las capas que se pueden tocar (una por tipo)
+const invOn = [true, true, true];                            // casillas del panel de capas
+const INVD = {mz:new Map(), pend:new Set(), fallo:new Set(), cache:null};
+const invZ = ()=> modoLigero? INV_Z_LIGERO : INV_Z;
+const invVisible = ()=> !!INV && invOn.some(Boolean) && viewState.zoom >= invZ();
+// lee el archivo de una alcaldía: FORMATO, n y por punto dx, dy, tipo, dfrente, dletras, duga, dnúmero (todo en diferencias)
+async function invLeer(cve){ const n = 'inv_' + cve + '.bin', v = INV.v[n]; if (!v) throw new Error('sin ' + n);
+  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
+  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const formato = rv(), k = rv(); if (formato!==1) throw new Error(n + ': formato ' + formato);
+  const P = new Array(k); let x=0, y=0, fr=0, pre=0, uga=0, num=0;
+  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); P[i] = {lon:x/INV_ESCALA, lat:y/INV_ESCALA, t, fr:fr-1, pre, uga, num, a:cve}; }
+  if (rv.pos()!==b.length) throw new Error(n + ': sobran bytes');
+  return P; }
+// clave del inventario (AAA-000-0000): las letras vienen como número en base 26
+const invClave = p => String.fromCharCode(65+Math.floor(p.pre/676), 65+Math.floor(p.pre/26)%26, 65+p.pre%26) + '-' + String(p.uga).padStart(3,'0') + '-' + String(p.num).padStart(4,'0');
+function invAviso(e){ const n = $('inv-falla'); if (!n) return; n.hidden = false;
+  if (e && e.sesion) avisoSesion(n); else n.textContent = 'No fue posible cargar los espacios para plantar de esta zona (revisa la conexión a internet).'; }
+// capas del mapa: pide los archivos de las alcaldías a la vista y dibuja cada tipo con su símbolo (sin depender del color):
+// cepa = anillo verde con centro hueco; tocón = círculo café relleno; árbol muerto = círculo gris oscuro con «×». Todos con contorno
+// blanco, para verse sobre el fondo «Calles» y sobre el satélite.
+function invCapas(){ const L = []; const zn = $('inv-zoom'); if (zn) zn.hidden = !INV || viewState.zoom >= invZ();
+  if (!invVisible()) return L;
+  const b = new WebMercatorViewport({...viewState, width:mapEl.clientWidth||800, height:mapEl.clientHeight||600}).getBounds(); const cves = [];
+  ALC.forEach((a,k)=>{ const bb = ALC_BB[k]; if (bb[2]<b[0] || bb[0]>b[2] || bb[3]<b[1] || bb[1]>b[3]) return;
+    if (INVD.mz.has(a.cve)) cves.push(a.cve);
+    else if (!INVD.pend.has(a.cve) && !INVD.fallo.has(a.cve)){ INVD.pend.add(a.cve);
+      invLeer(a.cve).then(P=>{ INVD.mz.set(a.cve, P); INVD.pend.delete(a.cve); if (invVisible()) rerender(); })
+        .catch(e=>{ console.warn('inventario', a.cve, e); INVD.pend.delete(a.cve); INVD.fallo.add(a.cve); invAviso(e); }); } });
+  // un objeto de datos por tipo; se rehace solo si cambian las alcaldías cargadas a la vista (deck.gl reprocesa cada objeto nuevo)
+  const key = cves.join(',');
+  if (!INVD.cache || INVD.cache.key!==key){ const D = [[],[],[]]; for (const c of cves) for (const p of INVD.mz.get(c)) D[p.t].push(p); INVD.cache = {key, D}; }
+  const D = INVD.cache.D, pos = d=>[d.lon, d.lat], blanco = [255,255,255,235];
+  const punto = (id, data, o)=> new deck.ScatterplotLayer({id, data, getPosition:pos, radiusUnits:'pixels', lineWidthUnits:'pixels', ...o});
+  if (invOn[0] && D[0].length){
+    L.push(punto('inv-cepa-halo', D[0], {getRadius:6, filled:false, stroked:true, getLineWidth:6, getLineColor:blanco, pickable:false}));
+    L.push(punto('inv-cepa', D[0], {getRadius:6, filled:false, stroked:true, getLineWidth:3, getLineColor:T.inv[0], pickable:true, autoHighlight:true, highlightColor:T.gold, updateTriggers:{getLineColor:[T.inv[0]]}})); }
+  if (invOn[1] && D[1].length)
+    L.push(punto('inv-tocon', D[1], {getRadius:6, filled:true, stroked:true, getFillColor:T.inv[1], getLineWidth:2, getLineColor:blanco, pickable:true, autoHighlight:true, highlightColor:T.gold, updateTriggers:{getFillColor:[T.inv[1]]}}));
+  if (invOn[2] && D[2].length){
+    L.push(punto('inv-muerto', D[2], {getRadius:7, filled:true, stroked:true, getFillColor:T.inv[2], getLineWidth:1.5, getLineColor:blanco, pickable:true, autoHighlight:true, highlightColor:T.gold, updateTriggers:{getFillColor:[T.inv[2]]}}));
+    L.push(new TextLayer({id:'inv-muerto-x', data:D[2], getPosition:pos, getText:()=>'×', getSize:15, getColor:[255,255,255,255], characterSet:['×'],
+      fontFamily:'Roboto, sans-serif', fontWeight:700, getTextAnchor:'middle', getAlignmentBaseline:'center', pickable:false})); }
+  return L; }
+// al tocar el mapa, un punto del inventario gana al frente que tenga debajo (radio mayor con el dedo)
+let invToque = false;
+mapEl.addEventListener('pointerdown', e=>{ invToque = e.pointerType==='touch' || e.pointerType==='pen'; }, true);
+function invPick(x, y){ if (!invVisible()) return null; const ids = INV_CAPAS.filter((_, t)=> invOn[t]);
+  const p = dk.pickObject({x, y, radius: invToque? 16 : 9, layerIds: ids}); return p && p.object? p.object : null; }
+// ficha de un punto (compact: descripción emergente al pasar el ratón)
+function invHtml(p, compact){ const ti = INV_TIPOS[p.t], fr = p.fr, hay = fr>=0 && fr<N;
+  const sim = `<i class="inv-sim ${ti.id}" aria-hidden="true"></i>`;
+  const tp = hay? (META.tipos[F.tipo[fr]] || '—') : '—', calle = hay? ((sinNombreFr(fr) || tp==='—')? '' : tp+' ') + nomFrente(fr) : '';
+  const col = hay? META.colonias[F.col[fr]] : null, colTxt = col && col.n? col.n : 'Colonia no identificada';
+  const alc = hay? META.munNames[F.mun[fr]] : (META.munNames[munIndex[p.a]] || '');
+  if (compact) return `${sim}<b>${ti.n}</b><br><span class="m">${hay? calle + ' · ' : ''}${ti.que}</span>`;
+  const pr = hay? F.prio[fr] : -1;
+  const prioTxt = hay? `${dot(T.prio[pr])}${META.prio[pr]}${esPrio(pr)? ' (prioritario)' : ''}` : `Sin frente de manzana a ${INV.dist} m o menos`;
+  return `<button class="close" aria-label="Cerrar">×</button>
+    <span class="pill inv-pill">${sim}${ti.n}</span>
+    <h3>${ti.que}</h3>
+    <div class="sub">${hay? `${calle} · ${colTxt} · ${alc}` : `${alc} · lejos de los frentes de manzana del modelo`}</div>
+    <dl><dt>Clave del inventario</dt><dd>${invClave(p)}</dd>
+    <dt>Prioridad del frente</dt><dd>${prioTxt}</dd>
+    ${hay? `<dt>Quién atiende</dt><dd>${F.gc[fr]? 'Gobierno Central' : 'Alcaldía'}</dd>` : ''}
+    <dt>Coordenadas</dt><dd>${p.lat.toFixed(5)}, ${p.lon.toFixed(5)}</dd></dl>
+    <div class="cardnote">${INV.fuente}, corte: ${INV.corte}. Confirma en sitio antes de plantar: el inventario se hizo con imágenes de calle.</div>
+    ${fieldActs(p.lat, p.lon)}`; }
+// ---------- sección del panel de capas: casillas, conteos y avance del inventario ----------
+function invNota(){ if (!INV) return; const cve = sel!==null? META.muns[sel] : null, todas = Object.values(INV.n);
+  const n = cve? INV.n[cve] : [0,1,2].map(t=> todas.reduce((s,a)=>s+a[t], 0));
+  INV_TIPOS.forEach((_, k)=>{ const e = $('inv-n'+k); if (e) e.textContent = fmt.format(n[k]); });
+  const av = Object.entries(INV.avance).sort((a,b)=>a[1]-b[1]), nom = c=> META.munNames[munIndex[c]];
+  $('inv-avance').textContent = cve
+    ? `En esta alcaldía van ${fmt.format(INV.avance[cve]||0)} registros del inventario (árboles, cepas, tocones y árboles muertos).`
+    : `En toda la ciudad van ${fmt.format(av.reduce((s,a)=>s+a[1], 0))} registros del inventario. El avance es desigual: de ${fmt.format(av[0][1])} en ${nom(av[0][0])} a ${fmt.format(av[av.length-1][1])} en ${nom(av[av.length-1][0])}.`; }
+function invReinicia(){ for (let t=0;t<3;t++) invOn[t] = true; document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.checked = true; }); }
+if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #inv-nota, #inv-zoom').forEach(e=>{ e.hidden = true; }); $('inv-avance').textContent = 'Los espacios para plantar no vienen en el archivo único: ábrelo desde el sitio.'; } }
+else { $('inv-corte').textContent = INV.corte;
+  document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.onchange = ()=>{ invOn[+c.dataset.inv] = c.checked;
+    if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
+// Solo para las pruebas automáticas (04_pruebas/prueba_inventario_espacios.js): con window.SIA_PRUEBA se puede leer el estado de la capa.
+if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo],
+  puntos: cve=> (INVD.mz.get(cve) || []).map(p=>({...p, clave:invClave(p)})), z: ()=>invZ(), on: ()=>invOn.slice(),
+  capas: ()=> dk.props.layers.filter(l=>l && l.id.startsWith('inv-')).map(l=>({id:l.id, n:l.props.data.length})),
+  mide: async cve=>{ const t = performance.now(); const P = await invLeer(cve); return {ms: Math.round(performance.now()-t), n: P.length}; },
+  px: (lon, lat)=> dk.getViewports()[0].project([lon, lat]), ficha: p=> showCard('inv', p),
+  frenteBajo: (x, y)=>{ const p = dk.pickObject({x, y, radius:6, layerIds:['fronts']}); return p && p.index>=0? frReal(p.index) : null; } };
+
 // Contenido de las tarjetas del mapa: frente, tramo de vialidad primaria y colonia, con acciones de campo.
 const dot = c => `<i class="dot" data-st="background:rgb(${c[0]},${c[1]},${c[2]})"></i>`;
 function featHtml(i, compact){
@@ -762,7 +866,7 @@ function colHtml(id){
 // Instancia del mapa (DeckGL), clic y descripción emergente, mostrar u ocultar tarjetas y botones de acercamiento.
 // Las capas solo cambian al cruzar estos niveles de zoom (tamaño de nombres de alcaldía, límites y nombres
 // de colonias, nombres de calle); entre ellos no hace falta rehacerlas, lo que mantiene fluido el zoom.
-const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15];
+const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15, 16];   // 15 y 16: espacios para plantar (INV_Z e INV_Z_LIGERO)
 const zoomBand = z => ZOOM_CORTES.filter(c => z >= c).length;
 const dk = new DeckGL({
   container: mapEl, views: new MapView({repeat:false}), controller:{dragRotate:false, touchRotate:false, minZoom:9.4, maxZoom:18.5},
@@ -776,6 +880,7 @@ const dk = new DeckGL({
     if (info.index<0 || !info.layer) return null; const st = {background:'transparent',padding:0,border:0,boxShadow:'none'};
     if (info.layer.id.startsWith('alcaldias')){ const i=info.object.i; const s=summOf(i); const tot=sum(s.km); const d=domOf(i); const pc=T.prio[d]; return {html:`<div class="tip"><span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span><b>${META.munNames[i]}</b><br><span class="m">${isGC()? 'Vialidades primarias: prioridad predominante':'Prioridad predominante'} ${META.prio[d]} (${pct(s.km[d],tot)}) · ${fmt0.format(kmPrio(s))} km prioritarios · ${partTxt(i,isGC())}</span></div>`, style:st}; }
     if (info.layer.id.startsWith('col-fill')){ const id=info.object.i; const c=META.colonias[id]; if (sel!==null && munIndex[c.m]!==sel) return null; const cs=colStat(id); const pc=c.p>=0? T.prio[c.p]:null; return {html:`<div class="tip">${pc? `<span class="pr" data-st="background:rgb(${pc[0]},${pc[1]},${pc[2]})"></span>`:''}<b>${c.n}</b><br><span class="m">${META.munNames[munIndex[c.m]]} · Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'} · ${fmt1.format(cs.kmp)} km prioritarios</span></div>`, style:st}; }
+    if (INV_CAPAS.includes(info.layer.id) && !pinned) return {html:`<div class="tip">${invHtml(info.object,true)}</div>`, style:st};
     if (info.layer.id==='vias' && !pinned) return {html:`<div class="tip">${vpHtml(info.index,true)}</div>`, style:st};
     return (info.layer.id==='fronts' && !pinned && enAmbito(frReal(info.index))) ? {html:`<div class="tip">${featHtml(frReal(info.index),true)}</div>`, style:st} : null;
   },
@@ -800,7 +905,9 @@ if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMa
   clavesCalles: ()=>[...streetIdx.keys()], kmCalle: k=>{ const s=streetIdx.get(k); return s? s.km : null; }, tramosDe: k=>{ const s=streetIdx.get(k); return s? tramosDeCalle(s.idx).map(t=>({n:t.n, largo:t.largo, lados:t.lados, lado:t.lado||'', entre:entreTxt(t), texto:tramoTxt(t), m:t.m})) : null; } };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
-  const r = mapEl.getBoundingClientRect(); const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});
+  const r = mapEl.getBoundingClientRect();
+  const pi = invPick(e.clientX-r.left, e.clientY-r.top); if (pi){ showCard('inv', pi); return; }   // un punto del inventario gana al frente de debajo
+  const p = dk.pickObject({x:e.clientX-r.left, y:e.clientY-r.top, radius:6});
   if (p && p.layer && p.layer.id.startsWith('alcaldias') && p.object){ const i=p.object.i; if (sel!==i || selCol!==null || selAv!==null){ selEl.value=String(i); setSel(String(i)); } return; }
   if (p && p.layer && p.layer.id.startsWith('col-fill') && p.object){ const id=p.object.i; pickColonia(id); showCard('col', id); return; }
   if (p && p.layer && p.layer.id==='vias' && p.index>=0){ showCard('vp', p.index); return; }
@@ -825,7 +932,7 @@ let cardOrigen = null;
 function enfocaFicha(){ const c=$('card'); const a=document.activeElement; if (a && a!==document.body && !c.contains(a)) cardOrigen = a;
   const h=c.querySelector('h3'); c.setAttribute('aria-label', 'Ficha: ' + (h? h.textContent : 'elemento seleccionado')); try { c.focus({preventScroll:true}); } catch(e){ c.focus(); } }
 function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i}; const c=$('card');
-  c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : featHtml(i,false);
+  c.innerHTML = kind==='vp'? vpHtml(i,false) : kind==='col'? colHtml(i) : kind==='inv'? invHtml(i,false) : featHtml(i,false);
   c.hidden=false; c.querySelector('.close').onclick=()=>hideCard(true); enfocaFicha();
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
@@ -961,7 +1068,7 @@ function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone(
 addEventListener('resize', ajustaEscala);
 function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
 document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
-$('reset-all').onclick = ()=>{ opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); notaFiltro(); if (fondo!=='no') setFondo(FONDO_INICIAL); selEl.value=''; setSel(''); };
+$('reset-all').onclick = ()=>{ invReinicia(); opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); notaFiltro(); if (fondo!=='no') setFondo(FONDO_INICIAL); selEl.value=''; setSel(''); };
 
 // Estadísticas por colonia, avenida y ámbito; cifras principales, barras por prioridad y textos de contexto del panel.
 // estadísticas por colonia (frentes a cargo de la alcaldía)
@@ -1522,7 +1629,7 @@ let anuncioT = null;
 function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
-  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
+  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); invNota(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito(); rotuloInfo();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;

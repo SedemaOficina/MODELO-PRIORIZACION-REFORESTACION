@@ -161,7 +161,18 @@
       <div id="legend-rows"></div>
       <p class="lg-note warn" id="lg-filter-note" hidden></p>
       <div class="row static" id="legend-vp"></div>
-      
+      <!-- Espacios para plantar (inventario de arbolado): capa de oportunidad encima del modelo; la llena js/05_inventario.js -->
+      <div class="lg-sec lg-inv" id="inv-sec"><span class="lg-cap" id="inv-label">Espacios para plantar · inventario de arbolado</span>
+        <div class="inv-casillas" role="group" aria-labelledby="inv-label">
+          <label class="inv-cb"><input type="checkbox" data-inv="0" checked><i class="inv-sim cepa" aria-hidden="true"></i><span>Cepas vacantes</span><em class="inv-n" id="inv-n0"></em></label>
+          <label class="inv-cb"><input type="checkbox" data-inv="1" checked><i class="inv-sim tocon" aria-hidden="true"></i><span>Tocones</span><em class="inv-n" id="inv-n1"></em></label>
+          <label class="inv-cb"><input type="checkbox" data-inv="2" checked><i class="inv-sim muerto" aria-hidden="true"></i><span>Árboles muertos</span><em class="inv-n" id="inv-n2"></em></label>
+        </div>
+        <p class="lg-note" id="inv-nota">Inventario en curso (corte: <span id="inv-corte">septiembre de 2026</span>). Donde no hay puntos puede que aún no se haya inventariado.</p>
+        <p class="lg-note" id="inv-avance"></p>
+        <p class="lg-note inv-zoom" id="inv-zoom">Se ven al acercar el mapa a nivel de calle.</p>
+        <p class="lg-note warn" id="inv-falla" role="status" hidden></p></div>
+
       </div>
     </div>
     <button type="button" class="leymini" id="leymini" title="Abrir capas y prioridad" aria-label="Prioridad de reforestación, de Muy Alta a Muy Baja. Abrir capas y prioridad"><span>Muy Alta</span><i></i><i></i><i></i><i></i><i></i><span>Muy Baja</span></button>

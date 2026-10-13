@@ -26,6 +26,7 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 | 6 | `6_fondo.py` | `insumos/fondo/` (manzanas del Catastro de la CDMX, Inventario de Áreas Verdes 2017, cuerpos de agua y ANP y AVA oficiales) y `intermedios/meta.json` (alcaldías) | `02_fuente/datos/fondo/`: fondo propio del mapa (opción «Calles»), con manzanas por alcaldía, parques y jardines, agua, ANP y AVA, y su `SUMAS.json`. Independiente de los pasos 1 a 5 |
 | 7 | `7_nombres_colonias.py` | `intermedios/meta.json` | `02_fuente/datos/nombres_colonias.json` (nombre para mostrar de las colonias que cambian: acentos, abreviaturas, siglas, ordinales y romanos; correcciones a mano en `CORRECCIONES`) y `_local/revision_nombres_colonias.csv` (lista para revisar). La herramienta, los Excel (`colonia_catalogo`) y la capa de GeoServer conservan el nombre del catálogo |
 | 8 | `8_asignar_sin_colonia.py` | `02_fuente/datos/data.bin`, `meta.bin` y `nombres_colonias.json` | Frentes de alcaldía sin colonia a ≤ 30 m de una colonia de su alcaldía pasan a la más cercana. Cambia solo ese campo de `data.bin` (no regenera los pasos 1 a 4); lista en `_local/asignacion_sin_colonia.csv`. Después: `verificar_datos.py --actualizar`, construir y, para GeoServer, el paso 5 |
+| 9 | `9_inventario_espacios.py` | El CSV del inventario de arbolado (CIGA-UNAM y SEDEMA; ruta en `INVENTARIO_ARBOLADO_CSV`, por omisión `../adopta-un-arbol/00_insumos/arbolado/arbolado_cdmx_sep.csv`, solo lectura) y `02_fuente/datos/data.bin` y `meta.bin` | `02_fuente/datos/inventario/`: espacios para plantar (cepas vacantes, tocones y árboles muertos; los árboles vivos solo cuentan para el avance) en un archivo por alcaldía, cada punto con el frente de manzana más cercano a 20 m o menos (índice espacial); `SUMAS.json` y `RESUMEN.json` (corte, cifras de control, avance por alcaldía, distancias y la huella de `data.bin` con que se asignó). Capa de oportunidad: no cambia ningún dato del modelo. Imprime el reporte por tipo y alcaldía. Requiere `numpy` y `shapely` |
 | — | `lamina_composicion.py` | `insumos/slide_orig.jpg` | `06_entregables/composicion_frentes_manzana*.png` |
 | — | `reporte_catalogos.py` | `02_fuente/datos/*.bin` (los datos publicados) | `06_entregables/Catalogos_para_homologacion_SIA.xlsx`: listas de colonias y calles para homologar en la fuente. No modifica ningún catálogo. Requiere `openpyxl` |
 
@@ -56,6 +57,7 @@ node 04_pruebas/correr_todas.js
 | `insumos/VP_REFORESTACION/PRIMARIAS_REFORESTACION.shp` y sus archivos | Pasos 3 y 4 | Copia local. Falta entregarla al SIA |
 | `insumos/originales/shp_frentes_manzanasv.rar` | Origen del modelo (la v6 se armó a partir de él) | Copia local |
 | `insumos/fondo/` (Catastro, áreas verdes, agua, ANP y AVA) | Paso 6 (fondo «Calles») | Copia local, tomada de `adopta-un-arbol/00_insumos/` (12 oct 2026); sumas en `SUMAS_INSUMOS.md` |
+| Inventario de arbolado (`arbolado_cdmx_sep.csv`, 350 MB) | Paso 9 (espacios para plantar) | No se copia: se lee de la carpeta hermana `adopta-un-arbol` o de `INVENTARIO_ARBOLADO_CSV`; su suma queda en `02_fuente/datos/inventario/RESUMEN.json` |
 | `insumos/slide_orig.jpg` | Solo `lamina_composicion.py` | **No se encontró** en la copia local. No es crítico: sus resultados ya están en `06_entregables/composicion_frentes_manzana*.png` |
 | `07_versiones/calles_prioritarias_v6_original.html` | Paso 1 (origen de los frentes priorizados) | Solo en la copia local; su suma está en `SUMAS_INSUMOS.md` |
 | Modelo de priorización de frentes (SIA, nov. 2025) | Origen de la prioridad de cada frente | No se tiene; depende del SIA |
@@ -67,3 +69,15 @@ Verificado el 25 sep 2026 en la copia local: los pasos 3 y 4 reproducen exactame
 ## Regla del cruce con vialidades primarias
 
 Un frente pasa a Gobierno Central si corre paralelo (30° o menos) a una vialidad primaria a 18 m o menos, o a 60 m o menos cuando además coincide el nombre de la calle. Pendiente de validación con la Secretaría.
+
+## Espacios para plantar: actualizar el inventario de arbolado
+
+El inventario está en curso. Cuando llegue una entrega nueva (o la final):
+
+1. Reemplazar el CSV con el mismo nombre en `adopta-un-arbol/00_insumos/arbolado/`, o indicar su ruta: `set INVENTARIO_ARBOLADO_CSV=C:utalrchivo.csv` (PowerShell: `$env:INVENTARIO_ARBOLADO_CSV = "…"`).
+2. Indicar el corte nuevo, que se muestra en la herramienta: `INVENTARIO_CORTE` (por ejemplo `diciembre de 2026`); si no se da, queda `septiembre de 2026` (constante `CORTE` del script).
+3. `python 03_procesamiento_datos/9_inventario_espacios.py` (unos 15 s): imprime puntos por tipo y por alcaldía, los que quedaron sin frente a 20 m y la distancia típica, y reescribe `02_fuente/datos/inventario/`.
+4. `python 03_procesamiento_datos/verificar_datos.py`, `python 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js` (la prueba `prueba_inventario_espacios.js` recuenta desde el CSV si está en el equipo).
+
+Si el script se detiene, dice por qué: falta el CSV, una alcaldía o un tipo de registro desconocido, una clave que no tiene la forma `AAA-000-0000` o un punto fuera de la ciudad. Si cambian los frentes (`data.bin`), `verificar_datos.py` y `construir.py` piden volver a correr este paso, porque cada punto guarda el índice de su frente.
+

@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.19 (12 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.20 (13 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -77,6 +77,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `04_mapa_capas.js` | Vista del mapa, mapas de fondo (el propio «Calles» y el satélite de Esri), línea media de cada calle para su nombre (entre un frente y el de enfrente, con la regla `trEnfrente` de los tramos), barra de escala y capas de deck.gl (reutiliza los objetos de datos para no reprocesar 1 millón de vértices en cada zoom) | `layers`, `flyTo`, `fitTo`, `updateScale`, `frontsData`, `lineaMedia` |
 | `04_nombres_mapa.js` | Acomodo propio de los nombres del mapa (alcaldías, colonias, vialidades primarias y calles), sin el filtro de choques de deck.gl: en píxeles del mundo a un zoom redondeado (no brincan al mover el mapa), sin encimarse ni quedar bajo los paneles, solo donde el nombre cabe en un tramo recto, repartidos sobre una cuadrícula fija. Los tramos de calle se calculan por colonia en ratos libres | `colocarNombres`, `tramosColonia`, `tramosVP`, `etqDesfasado` |
 | `05_mapa_tarjetas.js` | HTML de las tarjetas: frente, tramo de vialidad primaria, colonia; acciones de campo | `featHtml`, `vpHtml`, `colHtml`, `fieldActs` |
+| `05_inventario.js` | Capa «Espacios para plantar» del inventario de arbolado (CIGA-UNAM y SEDEMA): cepas vacantes, tocones y árboles muertos. Carga diferida por alcaldía desde zoom 15 (16 en modo ligero), símbolos distinguibles sin color, ficha (`showCard('inv')`), casillas y avance del inventario. Es una capa de oportunidad: no altera ninguna cifra, lista ni descarga del modelo | `invCapas`, `invPick`, `invHtml`, `invNota`, `invReinicia`, `INV_Z`, `INV_Z_LIGERO` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, dedos «fantasma» en teléfono, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero. Con `window.SIA_PRUEBA` expone `window.__MAPA` para las pruebas | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento`, `soltarDedos` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, filas «Atiende» (alcaldías / Gobierno Central) y «Banqueta». Casillas de capas, mapa de fondo | `setResp`, `setBanq`, `setLayer`, `setFondo` |
 | `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; desglose de lo prioritario por banqueta y cuadro «Quién atiende» en km de frente por responsable. «Más detalles» (`details.mas`): plegado en el celular y abierto en la computadora; con `siempre`, plegado también en la computadora (lo del Gobierno Central en km de frente) | `masDet`, `notaPlegable`, `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `repartoHtml`, `renderSummary` |
@@ -148,6 +149,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `08_orientacion.css` | Entrada por territorio, pestaña «Dónde empezar» (filtro y tramos), Descargas sin botones apagados (solo el motivo), bloques del Resumen con las dos redes, leyenda compacta, «Quién atiende» dentro del panel de capas y acciones junto al título de la consulta |
 | `09_recorrido.css` | Velo, foco y globo del recorrido guiado y su botón en «Cómo funciona» |
 | `10_dos_pantallas.css` | Celular: información y mapa en dos pantallas completas encimadas (el panel sale hacia la izquierda; el mapa nunca cambia de tamaño), botones «Ver el mapa» y el de abajo del mapa, controles por encima de ese botón, modo sin mapa, alto real de la pantalla (`--alto`, `--vvh`), «Más detalles» (`details.mas`, `.siempre`) y encabezado compacto del celular |
+| `11_inventario.css` | Sección «Espacios para plantar» del panel de capas y ficha del inventario (colores `--inv-*` en `01_variables.css`) |
 
 Los archivos 04, 05 y 07 ajustan reglas de los anteriores: **el orden importa**. Los tamaños de letra van en `rem` (16 px = 1 rem) para respetar el tamaño configurado en el navegador; el mínimo es 0.75 rem. Para cambiar un componente, buscar su clase en todos los archivos de `css/`.
 
@@ -173,7 +175,9 @@ Los tres archivos son **gzip de una secuencia de enteros varint con signo en zig
 
 **`vp.bin`** (tramos de vialidades primarias): `NV`, y por cada tramo: nomenclatura, nombre, tipo, carriles, circulación, texto de alcaldía, alcaldía, prioridad, longitud (m), clave, registro, número de vértices y los vértices.
 
-Cómo se generan: `03_procesamiento_datos/LEEME.md`.
+**`datos/inventario/inv_<cve>.bin`** (un archivo por alcaldía, mismo formato que el fondo propio): por punto, coordenadas, tipo (0 cepa vacante, 1 tocón, 2 árbol muerto), frente de manzana asignado + 1 (a 20 m o menos; 0 = sin frente) y la clave del inventario. `RESUMEN.json` y `SUMAS.json` (en `02_fuente/datos/inventario/`) guardan el corte, las cifras de control, el avance por alcaldía y la huella de `data.bin` con que se asignaron; `construir.py` se detiene si no coinciden. La página recibe huellas, corte y avance en `window.SIA_INVENTARIO` (`config.js`).
+
+Cómo se generan: `03_procesamiento_datos/LEEME.md` (el inventario, paso 9).
 
 ## 8. Dependencias externas
 
@@ -185,6 +189,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Geolocalización | API del navegador | Requiere HTTPS; la posición no sale del teléfono |
 | Mapa de fondo de calles (opcional) | Propio, alojado con el sitio (`datos/fondo/`): manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017 de SEDEMA, ANP y AVA oficiales y cuerpos de agua de SEDEMA | Lo genera `03_procesamiento_datos/6_fondo.py` (1.6 MB en total). Es el fondo con que abre la herramienta (`FONDO_INICIAL`): de lejos solo pide `fondo_base.bin` (143 KB, que también guarda el proceso de servicio para abrir sin conexión); las manzanas, por alcaldía, desde el zoom 13. No está en el archivo único, que abre sin fondo |
 | Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave se da con `SIA_ESRI_KEY` o en `02_fuente/claves.local.json` (ver sección 9). El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
+| Inventario de arbolado (capa «Espacios para plantar») | CIGA-UNAM y SEDEMA, corte de septiembre de 2026, **en curso**. Se lee del CSV de «Guardianes de árboles» (`INVENTARIO_ARBOLADO_CSV`) sin copiarlo; solo se publican cepas vacantes, tocones y árboles muertos. Pendiente de análisis: tomarlo de una sola fuente en PostGIS/GeoServer del SIA, al construir |
 
 ## 9. Cambios comunes
 
@@ -196,6 +201,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md`.
 | Agregar una columna a un Excel | `js/11_descargas.js` (datos y diccionario van juntos) |
 | Cambiar qué muestra la tarjeta de un frente | `js/05_mapa_tarjetas.js` |
 | Actualizar los datos del modelo | Scripts de `03_procesamiento_datos/` → `construir.py` |
+| Actualizar el inventario de arbolado | Reemplazar el CSV con el mismo nombre (o `INVENTARIO_ARBOLADO_CSV`), indicar el corte en `INVENTARIO_CORTE` y correr `9_inventario_espacios.py` → `verificar_datos.py` → `construir.py` → pruebas (`03_procesamiento_datos/LEEME.md`) |
 | Publicar una versión nueva o cambiar el corte de los datos | `VERSION` y `CORTE_DATOS` en `construir.py` (aparecen en el panel, las fichas y el diccionario de los Excel) |
 | Permitir que aparezca en buscadores | `ROBOTS = ''` en `construir.py` |
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |

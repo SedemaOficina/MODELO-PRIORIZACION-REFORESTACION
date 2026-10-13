@@ -99,6 +99,17 @@ debe_fallar('datos distintos de los registrados: se detiene y no escribe nada', 
 debe_fallar('argumento desconocido: se detiene y no escribe nada', lambda t: None, '--publicar')
 debe_fallar('un módulo vacío: se detiene y no escribe nada', lambda t: open(F(t, 'js', '08_resumenes.js'), 'w').close())
 debe_fallar('falta datos/SUMAS.json: se detiene y no escribe nada (sin él no se verifican los datos)', lambda t: os.remove(F(t, 'datos', 'SUMAS.json')))
+debe_fallar('un archivo del inventario de arbolado distinto del registrado: se detiene y no escribe nada', lambda t: open(F(t, 'datos', 'inventario', 'inv_007.bin'), 'r+b').truncate(1000))
+
+
+def inventario_de_otros_frentes(t):
+    r = F(t, 'datos', 'inventario', 'RESUMEN.json')
+    texto = open(r, encoding='utf-8').read()
+    assert '"frentes_sha256": "' in texto
+    open(r, 'w', encoding='utf-8').write(texto.replace('"frentes_sha256": "', '"frentes_sha256": "0'))
+
+
+debe_fallar('inventario asignado con otros frentes (data.bin cambió): se detiene y no escribe nada', inventario_de_otros_frentes)
 debe_fallar('claves.local.json mal escrito: se detiene con un mensaje claro', lambda t: open(F(t, 'claves.local.json'), 'w', encoding='utf-8').write('{"ESRI_KEY": "x"'))
 # claves guardadas con el Bloc de notas o PowerShell 5.1 (con BOM): se leen, y se avisa que quedarán públicas en docs/
 t = copia()

@@ -14,5 +14,6 @@ img{max-width:100%}
   --map-alc:#8A8C8E; --map-col:#B9B3A8; --map-label:#55585A; --map-sel:#273A45; --map-vp:#6E7174;
   --focus:#B28E5C;
   --shadow: 0 8px 28px rgba(36,38,42,.14);
+  --inv-cepa:#1B8A3C; --inv-tocon:#7A5534; --inv-muerto:#3C4043;   /* espacios para plantar: cepa vacante, tocón y árbol muerto (fuera de la rampa de prioridad) */
   --loc:#1A73E8;   /* punto y botón de Mi ubicación (azul convencional de "tu ubicación")*/
 }

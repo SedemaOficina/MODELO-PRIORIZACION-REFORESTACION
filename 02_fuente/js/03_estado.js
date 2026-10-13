@@ -7,6 +7,7 @@ function readTokens(){
   T.prio = PRIO_VARS.map(v=>hex(css(v)));
   T.alc = hex(css('--map-alc')); T.col = hex(css('--map-col')); T.label = hex(css('--map-label')); T.sel = hex(css('--map-sel')); T.gold = hex(css('--dorado')); T.vpctx = hex(css('--map-vp'));
   T.ground = css('--ground');
+  T.inv = ['--inv-cepa','--inv-tocon','--inv-muerto'].map(v=>hex(css(v)));   // espacios para plantar (05_inventario.js)
   T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
 }
 readTokens();
@@ -17,7 +18,7 @@ let sel = null;           // índice de alcaldía o null
 let selCol = null;        // id de colonia o null
 let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobierno Central
 let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
-let pinned = null;        // {kind:'fr'|'vp', i}
+let pinned = null;        // {kind:'fr'|'vp'|'col'|'inv'|'loc'|'pto', i}  (inv: i es el punto del inventario)
 let viewState = null;
 let locSel = false;       // true mientras Mi ubicación cambia el ámbito por sí misma (no es un cambio hecho a mano)
 let restaurando = true;   // mientras arranca o se restaura una consulta desde la dirección no se escribe en el historial

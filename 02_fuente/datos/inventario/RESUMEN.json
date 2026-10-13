@@ -1,0 +1,199 @@
+{
+ "nota": "Lo escribe 03_procesamiento_datos/9_inventario_espacios.py. Cifras de control que revisa verificar_datos.py; construir.py publica corte y avance.",
+ "fuente": "Inventario de arbolado de la Ciudad de México (CIGA-UNAM y SEDEMA)",
+ "corte": "septiembre de 2026",
+ "insumo": {
+  "archivo": "arbolado_cdmx_sep.csv",
+  "sha256": "dc95105af9835ae17f2394405d945b4cbab00bcc24b4b30a1a81ad5ca1dcde94",
+  "bytes": 365775416
+ },
+ "frentes_sha256": "af8a08ffa0636cd3347cd9f29521d6c208ebfb7d88390f99b0f2ff5246650539",
+ "formato": 1,
+ "escala": 200000,
+ "distancia_max_m": 20.0,
+ "tipos": [
+  "Cepa vacante",
+  "Tocón",
+  "Árbol muerto"
+ ],
+ "registros_por_tipo": {
+  "Cepa Vacante": 39276,
+  "Tocón": 14077,
+  "Árbol": 961318,
+  "Árbol Muerto": 9545
+ },
+ "puntos_por_tipo": [
+  39276,
+  14077,
+  9545
+ ],
+ "sin_frente": 5597,
+ "claves_repetidas": 0,
+ "distancia_m": {
+  "mediana": 2.4,
+  "p75": 4.3,
+  "p90": 7.29
+ },
+ "por_alcaldia": {
+  "002": {
+   "nombre": "Azcapotzalco",
+   "registros": 70001,
+   "puntos": [
+    2393,
+    1084,
+    750
+   ],
+   "sin_frente": 589
+  },
+  "003": {
+   "nombre": "Coyoacán",
+   "registros": 99710,
+   "puntos": [
+    1924,
+    1146,
+    885
+   ],
+   "sin_frente": 68
+  },
+  "004": {
+   "nombre": "Cuajimalpa de Morelos",
+   "registros": 27223,
+   "puntos": [
+    916,
+    345,
+    318
+   ],
+   "sin_frente": 406
+  },
+  "005": {
+   "nombre": "Gustavo A. Madero",
+   "registros": 134343,
+   "puntos": [
+    6046,
+    2298,
+    1637
+   ],
+   "sin_frente": 1218
+  },
+  "006": {
+   "nombre": "Iztacalco",
+   "registros": 45504,
+   "puntos": [
+    504,
+    138,
+    187
+   ],
+   "sin_frente": 24
+  },
+  "007": {
+   "nombre": "Iztapalapa",
+   "registros": 145086,
+   "puntos": [
+    9481,
+    2526,
+    1728
+   ],
+   "sin_frente": 1054
+  },
+  "008": {
+   "nombre": "La Magdalena Contreras",
+   "registros": 13698,
+   "puntos": [
+    320,
+    222,
+    71
+   ],
+   "sin_frente": 5
+  },
+  "009": {
+   "nombre": "Milpa Alta",
+   "registros": 15339,
+   "puntos": [
+    473,
+    188,
+    254
+   ],
+   "sin_frente": 177
+  },
+  "010": {
+   "nombre": "Álvaro Obregón",
+   "registros": 63987,
+   "puntos": [
+    1399,
+    746,
+    645
+   ],
+   "sin_frente": 51
+  },
+  "011": {
+   "nombre": "Tláhuac",
+   "registros": 73774,
+   "puntos": [
+    8102,
+    1779,
+    1045
+   ],
+   "sin_frente": 1126
+  },
+  "012": {
+   "nombre": "Tlalpan",
+   "registros": 90978,
+   "puntos": [
+    2084,
+    1103,
+    571
+   ],
+   "sin_frente": 147
+  },
+  "013": {
+   "nombre": "Xochimilco",
+   "registros": 68828,
+   "puntos": [
+    2659,
+    1233,
+    746
+   ],
+   "sin_frente": 242
+  },
+  "014": {
+   "nombre": "Benito Juárez",
+   "registros": 48492,
+   "puntos": [
+    776,
+    229,
+    174
+   ],
+   "sin_frente": 9
+  },
+  "015": {
+   "nombre": "Cuauhtémoc",
+   "registros": 18198,
+   "puntos": [
+    288,
+    143,
+    97
+   ],
+   "sin_frente": 0
+  },
+  "016": {
+   "nombre": "Miguel Hidalgo",
+   "registros": 101483,
+   "puntos": [
+    1562,
+    712,
+    337
+   ],
+   "sin_frente": 461
+  },
+  "017": {
+   "nombre": "Venustiano Carranza",
+   "registros": 7572,
+   "puntos": [
+    349,
+    185,
+    100
+   ],
+   "sin_frente": 20
+  }
+ }
+}

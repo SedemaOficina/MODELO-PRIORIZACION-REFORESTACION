@@ -84,6 +84,10 @@ Grados decimales (longitud, latitud, WGS 84) multiplicados por `Q = 100000` y re
 
 **Resúmenes.** Cada uno es `{n: [5], km: [5]}` por clase de prioridad (algunos traen además `km_sinarb`). Son una **segunda copia** de lo que dicen los registros. La herramienta recalcula los kilómetros desde los frentes al cargar; los conteos sí se leen de aquí.
 
+## 6 bis. `datos/inventario/inv_<cve>.bin` · espacios para plantar (inventario de arbolado)
+
+Un archivo por alcaldía (clave INEGI de 3 dígitos), con la misma envoltura, enteros y coordenadas de este documento. Por cada punto: coordenadas (diferencias), tipo (0 cepa vacante, 1 tocón, 2 árbol muerto), frente de manzana asignado + 1 (índice en `data.bin`; 0 = sin frente a 20 m o menos) y la clave del inventario. Fuente: inventario de arbolado urbano del CIGA-UNAM y SEDEMA (corte en `config.js`, `window.SIA_INVENTARIO`), **en curso**. Se generan con `03_procesamiento_datos/9_inventario_espacios.py` y dependen de `data.bin`: si cambian los frentes hay que volver a generarlos (la construcción se detiene si no coinciden). Es una capa de consulta: no interviene en ninguna cifra del modelo.
+
 ## 7. Reglas que deben respetarse al sustituir datos
 
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.

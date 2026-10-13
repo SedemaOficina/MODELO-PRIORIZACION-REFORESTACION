@@ -3,7 +3,7 @@
 Una sola orden corre todo y termina con código 0 solo si todo pasó:
 
 ```
-node 04_pruebas/correr_todas.js            todo: unos 12 minutos sin tarjeta gráfica
+node 04_pruebas/correr_todas.js            todo: unos 22 minutos sin tarjeta gráfica
 node 04_pruebas/correr_todas.js rapidas    datos, construcción y revisión estática: menos de un minuto
 ```
 
@@ -13,8 +13,8 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 
 | Verificación | Qué cuida | Duración aproximada |
 |---|---|---|
-| `03_procesamiento_datos/verificar_datos.py` | Que los datos sean los registrados y cuadren entre sí | 10 s |
-| `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza | 30 s |
+| `03_procesamiento_datos/verificar_datos.py` | Que los datos sean los registrados y cuadren entre sí; del inventario de arbolado, que cada archivo sea el registrado, sus puntos por tipo las cifras de control y sus frentes los de `data.bin` | 10 s |
+| `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza, o si el inventario de arbolado no es el registrado o se asignó con otros frentes | 30 s |
 | ESLint (`npm run lint`) | Variables sin definir o sin usar en `docs/app.js` | 5 s |
 | `prueba_sin_terceros.js` | Que el sitio, el archivo único y la instalación en una subruta trabajen sin pedir nada a otros dominios | 2 min |
 | `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 6 min |
@@ -29,6 +29,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, pasos de banqueta y de Street View, en escritorio y teléfono | 1 min |
 | `prueba_nombres_mapa.js` | Nombres del mapa, gestos y búsqueda por coordenadas: nombres de alcaldía y colonia dentro de su figura, nombres de calle sobre la línea media, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta |
 | `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo, «Atiende» y «Banqueta» siempre a la vista; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) |
+| `prueba_inventario_espacios.js` | Espacios para plantar (inventario de arbolado): puntos por tipo de los datos publicados = cifras de control y recálculo propio (y el CSV del inventario, si está en el equipo), frente asignado a 20 m o menos y ninguno cerca de los que quedaron sin frente, capa que aparece al acercar y no de lejos (archivos con huella, solo de las alcaldías a la vista), casillas que encienden y apagan cada tipo (también con el teclado), ficha de una cepa que gana al frente de debajo (tipo, clave, calle, colonia, prioridad del frente, Street View), avance de la alcaldía, cifras del modelo sin cambios, celular de 390 px sin desborde ni encimados y sin errores | 6 min |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Lote de fichas de las alcaldías** (no es una prueba; vive aquí porque usa las mismas herramientas): `node 04_pruebas/generar_fichas_alcaldias.js` descarga, por alcaldía, la ficha de la alcaldía, la de vialidades primarias y la de la colonia con más frente prioritario, en `_local/fichas_alcaldias_vX.YY/`; `python 04_pruebas/unir_fichas.py CARPETA` (requiere `pypdf`) las une en `00_todas_las_fichas.pdf` y arma el zip. Unos 5 minutos.
@@ -118,7 +119,7 @@ python3 04_pruebas/prueba_construccion.py
 
 ## Prueba del servidor del SIA
 
-`prueba_servidor_sia.js` sirve el sitio desde `/priorizacion-reforestacion/` con la política de seguridad de contenido que declara `08_entrega_sia/nginx_priorizacion_reforestacion.conf.ejemplo` (la lee de ese archivo, para que no diverjan) y comprueba: que la dirección sin barra final redirige y carga; que doce funciones (cifras, barras, leyenda, tramos, ficha, mapas de fondo, Excel, Excel grande, PDF, ayuda, Mi ubicación) trabajan con **cero violaciones** de la política; que ni la página ni el programa traen estilos en línea; que las librerías se piden con huella; que una sesión vencida (respuesta 401, o la página de acceso con código 200) se dice como tal al cargar y al pedir un Excel o una ficha, y que los datos cargan aunque un intermediario los entregue descomprimidos. Del bloque «Fase 2» del ejemplo de nginx revisa, con la regla de nginx (exacta y después prefijo más largo), qué ubicación atiende cada dirección: la herramienta con `auth_request`; la pantalla de acceso (`/priorizacion-reforestacion/acceso/`) y la API (`/priorizacion-reforestacion/api/`, que llega al módulo en `/api/priorizacion-reforestacion/`) sin él; y que el módulo, `empaquetar.py`, la herramienta y las páginas de acceso usan las mismas direcciones, todas bajo la ruta de la cookie.
+`prueba_servidor_sia.js` sirve el sitio desde `/priorizacion-reforestacion/` con la política de seguridad de contenido que declara `08_entrega_sia/nginx_priorizacion_reforestacion.conf.ejemplo` (la lee de ese archivo, para que no diverjan) y comprueba: que la dirección sin barra final redirige y carga; que trece funciones (cifras, barras, leyenda, tramos, ficha, mapas de fondo, espacios para plantar, Excel, Excel grande, PDF, ayuda, Mi ubicación) trabajan con **cero violaciones** de la política; que ni la página ni el programa traen estilos en línea; que las librerías se piden con huella; que una sesión vencida (respuesta 401, o la página de acceso con código 200) se dice como tal al cargar y al pedir un Excel o una ficha, y que los datos cargan aunque un intermediario los entregue descomprimidos. Del bloque «Fase 2» del ejemplo de nginx revisa, con la regla de nginx (exacta y después prefijo más largo), qué ubicación atiende cada dirección: la herramienta con `auth_request`; la pantalla de acceso (`/priorizacion-reforestacion/acceso/`) y la API (`/priorizacion-reforestacion/api/`, que llega al módulo en `/api/priorizacion-reforestacion/`) sin él; y que el módulo, `empaquetar.py`, la herramienta y las páginas de acceso usan las mismas direcciones, todas bajo la ruta de la cookie.
 
 ```
 node 04_pruebas/prueba_servidor_sia.js
@@ -142,4 +143,12 @@ node 04_pruebas/prueba_orientacion.js
 
 ```
 node 04_pruebas/prueba_mapa_descargas.js
+```
+
+## Espacios para plantar
+
+`prueba_inventario_espacios.js` revisa la capa del inventario de arbolado (cepas vacantes, tocones y árboles muertos), que va encima del modelo sin cambiar ninguna cifra. Con un decodificador propio lee `docs/datos/inventario/*.bin` y compara los puntos por tipo y por alcaldía con las cifras de control (`02_fuente/datos/inventario/RESUMEN.json` y `config.js`); recalcula con la geometría publicada que cada punto con frente esté a 20 m o menos de él y que los que quedaron sin frente no tengan ninguno cerca. Si el CSV del inventario está en el equipo (variable `INVENTARIO_ARBOLADO_CSV` o `../adopta-un-arbol/00_insumos/arbolado/arbolado_cdmx_sep.csv`), recuenta desde él los tipos y los registros por alcaldía y comprueba que es el mismo con que se generaron los datos; si no está, esa parte se omite con un aviso. En el navegador comprueba que la capa no se dibuja ni se descarga de lejos y sí al acercar en Iztapalapa (desde el zoom 16 en modo ligero; 15 en modo completo), las casillas, la ficha de una cepa al tocarla sobre su frente, el teclado, el avance de la alcaldía y el celular de 390 px.
+
+```
+node 04_pruebas/prueba_inventario_espacios.js
 ```

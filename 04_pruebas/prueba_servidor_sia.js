@@ -114,6 +114,10 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     await page.keyboard.press('Escape');
     await L.clic(page, '#zcapas'); await page.evaluate(() => { if (!document.querySelector('.legend').classList.contains('open')) document.getElementById('zcapas').click(); }); await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await page.waitForTimeout(3000);
     await page.$eval('.seg.fondo button[data-fondo="sat"]', b => b.click()); await page.waitForTimeout(3000); f.fondo = (await page.$eval('#attrib', e => e.innerText)).includes('Esri');
+    // espacios para plantar (inventario de arbolado): el archivo de la alcaldía llega con su huella y la capa se dibuja bajo la política
+    await page.evaluate(() => window.__MAPA.ir({ longitude: -99.0565, latitude: 19.3445, zoom: 16.3 }, 0));
+    f.inventario = await page.waitForFunction(() => window.__INV.cargadas().includes('007') && window.__INV.capas().some(c => c.id === 'inv-cepa'), null, { timeout: 120000 }).then(() => true, () => false)
+      && srv.pedidas.some(q => /^\/priorizacion-reforestacion\/datos\/inventario\/inv_007\.bin\?v=[0-9a-f]{10}$/.test(q));
     await page.$eval('.seg.fondo button[data-fondo="no"]', b => b.click());
     await L.elegir(page, 'iztapalapa');
     const x = await L.descargar(page, '#dl-calles', SAL, 180000); f.excel = !!x && /\.xlsx$/.test(x.nombre) && x.bytes > 5000;

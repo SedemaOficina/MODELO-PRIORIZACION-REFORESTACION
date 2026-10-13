@@ -1,0 +1,24 @@
+/* Espacios para plantar (inventario de arbolado): sección del panel de capas, símbolos y ficha (js/05_inventario.js).
+   Los colores están en 01_variables.css (--inv-*). Los símbolos se distinguen sin depender del color: anillo con centro hueco (cepa
+   vacante), círculo relleno (tocón) y círculo con «×» (árbol muerto), los tres con contorno blanco como en el mapa. */
+.legend .lg-inv{border-top:1px solid var(--line);border-bottom:0;margin-top:8px;padding-bottom:2px}
+.inv-casillas{display:flex;flex-direction:column;gap:1px}
+.inv-cb{display:grid;grid-template-columns:16px 14px minmax(0,1fr) auto;gap:7px;align-items:center;min-height:26px;padding:0 5px;margin:0 -5px;border-radius:5px;cursor:pointer;color:var(--ink)}
+.inv-cb:hover{background:var(--panel-2)}
+.inv-cb input{margin:0;width:15px;height:15px;accent-color:var(--ink);cursor:pointer}
+.inv-cb:focus-within{outline:3px solid var(--focus);outline-offset:1px}
+.inv-cb input:focus-visible{outline:none}
+.inv-n{font-style:normal;color:var(--ink-2);font-variant-numeric:tabular-nums}
+.inv-sim{display:inline-block;width:14px;height:14px;border-radius:50%;box-sizing:border-box;flex:none;box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px rgba(36,38,42,.35)}
+.inv-sim.cepa{border:3px solid var(--inv-cepa);background:transparent}
+.inv-sim.tocon{background:var(--inv-tocon)}
+.inv-sim.muerto{background:linear-gradient(45deg,transparent 41%,#fff 41%,#fff 59%,transparent 59%),linear-gradient(-45deg,transparent 41%,#fff 41%,#fff 59%,transparent 59%),var(--inv-muerto);background-size:70% 70%,70% 70%,100% 100%;background-position:center;background-repeat:no-repeat}
+.legend .inv-zoom{font-style:italic}
+/* ficha y descripción emergente */
+.pill.inv-pill{gap:7px}
+.pill .inv-sim{width:12px;height:12px;box-shadow:0 0 0 1.5px #fff,0 0 0 2.5px rgba(36,38,42,.35)}
+.pill .inv-sim.cepa{border-width:2.5px}
+.tip .inv-sim{width:11px;height:11px;margin-right:6px;vertical-align:-1px}
+.tip .inv-sim.cepa{border-width:2.5px}
+/* celular: casillas de 38 px o más, como las demás capas */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .inv-cb{min-height:38px} .inv-cb input{width:18px;height:18px} .inv-cb{grid-template-columns:20px 14px minmax(0,1fr) auto} }

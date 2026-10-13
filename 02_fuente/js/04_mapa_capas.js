@@ -189,6 +189,7 @@ function layers(){
       for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=src.st[i];k<src.st[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
       L.push(new PathLayer({id:'hl-prio', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false})); }
   }
+  L.push(...invCapas());   // espacios para plantar del inventario de arbolado (05_inventario.js), debajo de los nombres
   const E = NOMAP? {alc:[], col:[], st:[]} : colocarNombres();
   L.push(new TextLayer({id:'alc-labels', data:E.alc, getPosition:d=>d.pos, getText:d=>d.text, getSize: z<11.5? 13 : 15, getColor:T.label, characterSet:ETQ_LETRAS,
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
