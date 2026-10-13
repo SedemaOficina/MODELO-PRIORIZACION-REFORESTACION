@@ -18,7 +18,7 @@
     </div>
     <div class="panel-body" id="panel-body">
       <!-- consulta: buscador único (js/14_buscador.js), filas «Atiende» y «Banqueta» y ruta de navegación; la explicación de «Atiende» está en el panel
-           de capas. En el celular las dos filas se pliegan en una línea con lo elegido y el botón «Cambiar» (js/07_leyenda_y_capas.js) -->
+           de capas; la de la banqueta elegida, debajo de sus botones (js/07_leyenda_y_capas.js) -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -26,9 +26,8 @@
           <button class="clear" id="omni-clear" type="button" aria-label="Borrar búsqueda" hidden>×</button>
           <ul class="combo-list omni-list" id="omni-list" role="listbox" hidden></ul>
         </div>
-        <div class="filtros" id="filtros">
-        <div class="filtros-linea"><span class="filtros-txt" id="filtros-txt"><b>Calles de alcaldías</b> · todas las banquetas</span><button type="button" class="filtros-btn" id="filtros-btn" aria-expanded="false" aria-controls="filtros-ops" aria-label="Cambiar quién atiende y banqueta">Cambiar</button></div>
-        <div class="filtros-ops" id="filtros-ops">
+        <div class="filtros">
+        <div class="filtros-ops">
         <div class="resp-row"><span class="lab" id="resp-label">Atiende</span><div class="chips" role="group" aria-labelledby="resp-label">
           <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
           <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>

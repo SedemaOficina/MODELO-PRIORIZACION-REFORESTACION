@@ -43,20 +43,16 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
       // qué acción lleva a qué pantalla
       await L.elegirTipo(page, 'Iztapalapa', 'Alc'); await page.waitForTimeout(500);
       let e = await estado(page); ok(t + 'elegir una alcaldía se queda en la información; el botón dirá «Iztapalapa»', e.info && e.rotulo === 'Iztapalapa', JSON.stringify(e));
-      // «Atiende» y «Banqueta»: una línea con lo elegido y «Cambiar», que despliega las dos filas tal como están
-      const fl = () => page.evaluate(() => { const v = e => !!e && e.offsetParent !== null; const b = document.getElementById('filtros-btn'), r = b.getBoundingClientRect(), ex = document.getElementById('banq-expl');
-        return { linea: v(document.querySelector('.filtros-linea')), txt: document.getElementById('filtros-txt').textContent, atiende: v(document.querySelector('.resp-row')), banq: v(document.getElementById('banq-row')), exp: b.getAttribute('aria-expanded'), ctl: !!document.getElementById(b.getAttribute('aria-controls')),
-          alto: Math.round(r.height), ancho: Math.round(r.width), expl: v(ex) ? ex.textContent : '', desborde: document.documentElement.scrollWidth - innerWidth }; });
+      // «Atiende» y «Banqueta»: las dos filas siempre a la vista, con la explicación de la banqueta elegida
+      const fl = () => page.evaluate(() => { const v = e => !!e && e.offsetParent !== null, ex = document.getElementById('banq-expl');
+        return { atiende: v(document.querySelector('.resp-row')), banq: v(document.getElementById('banq-row')), expl: v(ex) ? ex.textContent : '', desborde: document.documentElement.scrollWidth - innerWidth }; });
       let f = await fl();
-      ok(t + '«Atiende» y «Banqueta» en una línea con lo elegido y «Cambiar» (44 px o más, aria-expanded y aria-controls)', f.linea && !f.atiende && !f.banq && f.exp === 'false' && f.ctl && f.alto >= 44 && f.ancho >= 44 && f.txt === 'Calles de alcaldías · todas las banquetas', JSON.stringify(f));
-      await L.clic(page, '#filtros-btn'); f = await fl();
-      ok(t + '«Cambiar» despliega las dos filas, sin desbordarse', f.atiende && f.banq && f.exp === 'true' && f.desborde <= 0, JSON.stringify(f));
+      ok(t + '«Atiende» y «Banqueta» se ven siempre, sin botón para desplegarlas y sin desbordarse', f.atiende && f.banq && !f.expl && f.desborde <= 0 && !(await page.$('#filtros-btn')), JSON.stringify(f));
       await L.clic(page, 'button[data-banq="sin"]'); await page.waitForTimeout(500); f = await fl();
-      ok(t + 'al elegir, la línea se actualiza, el desplegable sigue abierto y se explica la opción de banqueta', f.atiende && f.txt === 'Calles de alcaldías · sin banqueta o por verificar' && /reconocimiento en sitio/.test(f.expl), JSON.stringify(f));
+      ok(t + 'al elegir una opción de banqueta se explica debajo', /reconocimiento en sitio/.test(f.expl), JSON.stringify(f));
       await L.clic(page, 'button[data-banq="todas"]'); await L.ponResp(page, 'gc'); await page.waitForTimeout(500); f = await fl();
-      ok(t + 'con Gobierno Central la línea dice que la banqueta no aplica', f.txt === 'Vialidades primarias · la banqueta no aplica' && !f.banq && !f.expl, JSON.stringify(f));
-      await L.ponResp(page, 'alc'); await L.clic(page, '#filtros-btn'); await page.waitForTimeout(300); f = await fl();
-      ok(t + '«Cambiar» vuelve a plegar las dos filas', !f.atiende && f.exp === 'false' && f.txt === 'Calles de alcaldías · todas las banquetas', JSON.stringify(f));
+      ok(t + 'con Gobierno Central la banqueta no aplica: sin su fila ni explicación', !f.banq && !f.expl, JSON.stringify(f));
+      await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
       await L.elegirTipo(page, 'Progreso Tizapan', 'Col'); await page.waitForTimeout(500);
       e = await estado(page); ok(t + 'elegir una colonia se queda en la información; «Col. …»', e.info && /^Col\. Progreso Tizap/.test(e.rotulo), JSON.stringify(e));
       await L.clic(page, '#tab-ini'); const fila = await page.$('#ini-list li[tabindex]'); if (fila) { await fila.click(); await page.waitForTimeout(800); }
@@ -92,8 +88,8 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
     const d = await page.evaluate(() => { const p = document.querySelector('.panel').getBoundingClientRect(), m = document.getElementById('map').getBoundingClientRect();
       return { botones: [...document.querySelectorAll('.btn-vista')].filter(b => getComputedStyle(b).display !== 'none').length, panel: Math.round(p.width), mapa: [Math.round(m.left), Math.round(m.width)],
         inerte: document.querySelector('.panel').inert || document.querySelector('.mapwrap').inert, desborde: document.documentElement.scrollWidth - innerWidth,
-        filas: getComputedStyle(document.querySelector('.filtros-linea')).display === 'none' && document.querySelector('.resp-row').offsetParent !== null && document.getElementById('banq-row').offsetParent !== null }; });
-    ok('1440 px: la computadora no cambia (panel a la izquierda, mapa a su lado, sin botones de cambio ni pantallas inertes; «Atiende» y «Banqueta» en sus dos filas, sin la línea resumida)', d.botones === 0 && d.panel === 392 && d.mapa[0] === 392 && d.mapa[1] === 1048 && !d.inerte && d.desborde <= 0 && d.filas, JSON.stringify(d));
+        filas: document.querySelector('.resp-row').offsetParent !== null && document.getElementById('banq-row').offsetParent !== null }; });
+    ok('1440 px: la computadora no cambia (panel a la izquierda, mapa a su lado, sin botones de cambio ni pantallas inertes; «Atiende» y «Banqueta» en sus dos filas)', d.botones === 0 && d.panel === 392 && d.mapa[0] === 392 && d.mapa[1] === 1048 && !d.inerte && d.desborde <= 0 && d.filas, JSON.stringify(d));
     await ctx.close(); }
   if (webkit) { const wb = await webkit.launch(); const ctx = await wb.newContext({ viewport: { width: 390, height: 800 }, isMobile: true, hasTouch: true, locale: 'es-MX' });
     await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); await L.sinEntrada(ctx); const page = await ctx.newPage();
