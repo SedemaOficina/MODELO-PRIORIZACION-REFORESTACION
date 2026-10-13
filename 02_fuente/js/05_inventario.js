@@ -103,19 +103,20 @@ else { $('inv-corte').textContent = INV.corte;
     if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
 // ---------- filtro «Espacio» y orden por cepas: puntos de cada tipo asignados a cada frente (todos los frentes, no solo los de la vista) ----------
 // espacios_frentes.bin (formato 2): FORMATO, n y por frente con al menos un punto, el índice en diferencias y cuántas cepas vacantes,
-// tocones y árboles muertos tiene. De ahí salen ESP_FR (tipos en bits: 1 cepa, 2 tocón, 4 muerto; el filtro) y ESP_CV (cepas vacantes; el
-// orden de «Dónde empezar»). Se pide una vez; si falla, se puede volver a pedir. Comprueba las cifras de control de config.js (INV.fr).
+// tocones y árboles muertos tiene. De ahí salen ESP_FR (tipos en bits: 1 cepa, 2 tocón, 4 muerto; el filtro), ESP_CV (cepas vacantes; el
+// orden de «Dónde empezar») y ESP_FRN (puntos de cada tipo; columnas de las descargas). Se pide una vez; si falla, se puede volver a pedir.
+// Comprueba las cifras de control de config.js (INV.fr).
 let ESP_P = null;
 async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
   const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
   const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==fr.formato || formato!==2 || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
-  const A = new Uint8Array(N), CV = new Uint16Array(N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
+  const A = new Uint8Array(N), CV = new Uint16Array(N), C = new Uint16Array(3*N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
   for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=N) throw new Error(n + ': frente ' + f); let bits = 0;
-    for(let t=0;t<3;t++){ const c = rv(); if (c<0 || c>65535) throw new Error(n + ': frente ' + f); if (c){ bits |= 1<<t; frentes[t]++; puntos[t] += c; } if (t===0) CV[f] = c; }
+    for(let t=0;t<3;t++){ const c = rv(); if (c<0 || c>65535) throw new Error(n + ': frente ' + f); if (c){ bits |= 1<<t; frentes[t]++; puntos[t] += c; } C[3*f+t] = c; if (t===0) CV[f] = c; }
     if (!bits) throw new Error(n + ': frente ' + f + ' sin puntos'); A[f] = bits; }
   if (rv.pos()!==b.length || frentes.join()!==fr.tipos.join() || puntos.join()!==fr.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
-  return {A, CV}; }
+  return {A, CV, C}; }
 // espacios_vp.bin (formato 1): lo mismo por parte de vialidad primaria (índice en diferencias y puntos de cada tipo, por sus frentes del
 // Gobierno Central o en el camellón). De ahí ESP_VP (tipos en bits, el filtro) y ESP_VPN (puntos de cada tipo: ficha del tramo y orden por
 // cepas de las avenidas). Comprueba las cifras de control de config.js (INV.vp).
@@ -131,7 +132,7 @@ async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if 
   return {A, C}; }
 // los dos archivos se piden juntos (el filtro aplica a las dos redes); si uno falla, se puede volver a pedir
 function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
-  if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
+  if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_FRN = d.C; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
   return ESP_P; }
 // lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
 const espNota = ()=> `Solo frentes con al menos un punto de ${espLista()} a ${INV.dist} m o menos, según el ${INV.fuente}, corte: ${INV.corte}. El inventario está en curso: un frente sin puntos puede no haberse inventariado aún.`;

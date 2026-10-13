@@ -79,6 +79,12 @@ function distLinea(px, py, pts) { if (pts.length < 4) return Math.hypot(px - pts
     const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy || 1))); d = Math.min(d, Math.hypot(px - ax - t * dx, py - ay - t * dy)); }
   return d; }
 
+// lo que la v1.25 agregó a las descargas (las columnas y propiedades de espacios para plantar, al final, y su renglón del diccionario) se
+// quita para comparar con la versión anterior; lo demás debe ser idéntico (lo revisa también prueba_cepas_total.js contra la v1.24)
+const COLS_ESP = ['cepas_vacantes', 'tocones', 'arboles_muertos'], FILA_ESP = 'Espacios para plantar (inventario de arbolado)';
+const sinFecha = X => { const k = (X.datos[0] || []).indexOf(COLS_ESP[0]);
+  return { datos: k < 0 ? X.datos : X.datos.map(r => r.slice(0, k)), dic: X.dic.filter(r => !['Fecha de generación', 'Versión de la herramienta', 'Última actualización de la herramienta', 'Archivo', FILA_ESP].includes(r[0]) && !COLS_ESP.includes(r[0])) }; };
+const geoSinEsp = t => { const J = JSON.parse(t); J.descripcion = String(J.descripcion || '').replace(/ (Propiedades cepas_vacantes|No se pudo cargar el inventario|Esta copia \(archivo único\)).*$/, ''); for (const f of J.features) for (const c of COLS_ESP) delete f.properties[c]; return JSON.stringify(J); };
 // la versión anterior, tal como se publicó (docs/ de ese commit), en una carpeta temporal
 function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-ant-'));
   const git = (...a) => cp.execFileSync('git', ['-C', RAIZ, ...a], { maxBuffer: 1 << 30 });
@@ -212,7 +218,7 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
   await ctx.route(RUTA, async r => { await new Promise(s => setTimeout(s, 2500)); await r.continue().catch(() => {}); });
   await ir(page, `&r=gc&a=${M.muns[IZT]}`); await tabIni(page); pedidos.length = 0;
   { const ops = await opciones(page), antes = await L.estado(page);
-    ok('Gobierno Central en una alcaldía: «Mostrar» ofrece «Avenidas con más cepas vacantes», sin bajar nada al abrir', ops.join('|') === 'av=Avenidas con más kilómetros prioritarios|avcv=Avenidas con más cepas vacantes' && pedidos.length === 0, ops.join(' | '));
+    ok('Gobierno Central en una alcaldía: «Mostrar» ofrece «Avenidas con más cepas (prioritarias)» (y «(todas)», v1.25), sin bajar nada al abrir', ops.join('|') === 'av=Avenidas con más kilómetros prioritarios|avcv=Avenidas con más cepas (prioritarias)|avcvt=Avenidas con más cepas (todas)' && pedidos.length === 0, ops.join(' | '));
     await page.selectOption('#ini-orden', 'avcv'); await page.waitForTimeout(300);
     const a = await carga(page), d = await L.estado(page), sv = await page.$eval('#ini-orden', s => s.value);
     ok('mientras baja el archivo: aviso, el selector dice lo pedido y la lista sigue con el orden anterior', a.vis && !a.warn && a.t === 'Cargando las cepas vacantes del inventario de arbolado…' && sv === 'avcv' && JSON.stringify(d.lista) === JSON.stringify(antes.lista) && !d.lista.some(l => /cepa/.test(l.t)), a.t);
@@ -229,7 +235,7 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
   // toda la ciudad, y con el filtro «Tocón»
   { await ir(page, '&r=gc'); await tabIni(page); const ops = await opciones(page); await orden(page, 'avcv');
     const exp = avCepas(BV, CNT, 0, null), e = await L.estado(page), malas = comparaAv(e.lista, exp); top.cdmx = exp.slice(0, 5);
-    ok('toda la ciudad, avenidas por cepas vacantes: las 10 primeras y el número de avenidas = recálculo propio; la vista «Alcaldías» no se ordena por cepas', !malas.length && e.lista.length === 10 && L.numEs(e.listCount) === exp.length && ops.map(o => o.split('=')[0]).join() === 'av,avcv,alc',
+    ok('toda la ciudad, avenidas por cepas vacantes: las 10 primeras y el número de avenidas = recálculo propio; la vista «Alcaldías» no se ordena por cepas', !malas.length && e.lista.length === 10 && L.numEs(e.listCount) === exp.length && ops.map(o => o.split('=')[0]).join() === 'av,avcv,avcvt,alc',
       malas.slice(0, 2).join(' | ') || `${exp.length} avenidas · ${exp.slice(0, 5).map(x => `${x.n} ${x.cv}`).join(', ')}`); }
   { await ir(page, `&r=gc&a=${M.muns[IZT]}&e=to`); await tabIni(page); await orden(page, 'avcv');
     const exp = avCepas(BV, CNT, 2, IZT), filas = await verTodo(page), malas = comparaAv(filas, exp);
@@ -327,10 +333,9 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
       ok(`con el filtro apagado, pantalla y listas iguales que en ${REF} (Gobierno Central, las dos redes y alcaldías; ${apagado.length + 1} consultas)`, !difA.length, difA.join(' | '));
       // descargas con el filtro apagado: Excel de tramos y de avenidas, GeoJSON y ficha de vialidades (Gobierno Central, Iztapalapa)
       { await irA(pA.page, sAnt.url + `?modo=ligero&r=gc&a=${M.muns[IZT]}#nomap`); await irA(pN.page, base + `&r=gc&a=${M.muns[IZT]}#nomap`); const difD = [];
-        const sinFecha = X => ({ datos: X.datos, dic: X.dic.filter(r => !['Fecha de generación', 'Versión de la herramienta', 'Última actualización de la herramienta', 'Archivo'].includes(r[0])) });
         for (const id of ['#dl-tramos', '#dl-avenidas']) { const a = await L.descargar(pA.page, id, SAL, 240000), b = await L.descargar(pN.page, id, SAL, 240000);
           if (!a || !b || a.nombre !== b.nombre || JSON.stringify(sinFecha(xlsx(a.ruta))) !== JSON.stringify(sinFecha(xlsx(b.ruta)))) difD.push(id); }
-        { const a = await L.descargar(pA.page, '#dl-geojson', SAL), b = await L.descargar(pN.page, '#dl-geojson', SAL); if (!a || !b || quitaVer(fs.readFileSync(a.ruta, 'utf8')) !== quitaVer(fs.readFileSync(b.ruta, 'utf8'))) difD.push('geojson'); }
+        { const a = await L.descargar(pA.page, '#dl-geojson', SAL), b = await L.descargar(pN.page, '#dl-geojson', SAL); if (!a || !b || quitaVer(geoSinEsp(fs.readFileSync(a.ruta, 'utf8'))) !== quitaVer(geoSinEsp(fs.readFileSync(b.ruta, 'utf8')))) difD.push('geojson'); }
         { const a = await L.descargar(pA.page, '#dl-ficha-vpalc', SAL, 180000), b = await L.descargar(pN.page, '#dl-ficha-vpalc', SAL, 180000); if (!a || !b || a.nombre !== b.nombre || quitaVer(pdf(a.ruta)) !== quitaVer(pdf(b.ruta))) difD.push('ficha de vialidades'); }
         ok(`con el filtro apagado, Excel de tramos y de avenidas, GeoJSON y ficha de vialidades iguales que en ${REF}`, !difD.length, difD.join(', ')); }
       // con «Alcaldías»: el filtro y el orden por cepas dan lo mismo
@@ -344,7 +349,6 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
       ok(`con «Alcaldías», el orden por cepas vacantes (listas completas) igual que en ${REF}`, !difO.length, difO.join(' | '));
       { await irA(pA.page, sAnt.url + `?modo=ligero&c=${COLT}&e=cv#nomap`); await irA(pN.page, base + `&c=${COLT}&e=cv#nomap`);
         const a = await L.descargar(pA.page, '#dl-frentes', SAL, 240000), b = await L.descargar(pN.page, '#dl-frentes', SAL, 240000);
-        const sinFecha = X => ({ datos: X.datos, dic: X.dic.filter(r => !['Fecha de generación', 'Versión de la herramienta', 'Última actualización de la herramienta', 'Archivo'].includes(r[0])) });
         ok(`con «Alcaldías» y «Cepa vacante», el Excel de frentes de una colonia igual que en ${REF}`, !!a && !!b && a.nombre === b.nombre && JSON.stringify(sinFecha(xlsx(a.ruta))) === JSON.stringify(sinFecha(xlsx(b.ruta))), a && a.nombre); }
       ok(`la versión anterior (${REF}) abrió sin errores de JavaScript`, !errAnt.length, errAnt.slice(0, 2).join(' | '));
       await pA.ctx.close(); await pN.ctx.close(); sAnt.close();

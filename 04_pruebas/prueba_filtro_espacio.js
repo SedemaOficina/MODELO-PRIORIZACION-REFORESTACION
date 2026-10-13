@@ -194,7 +194,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   await ctx.route(RUTA, async r => { await new Promise(s => setTimeout(s, 2500)); await r.continue().catch(() => {}); });
   await ir(page, `&a=${M.muns[TLA]}`); await tabIni(page); pedidos.length = 0;
   { const ops = await opciones(page), antes = await L.estado(page);
-    ok('alcaldía: «Mostrar» ofrece «Colonias con más cepas vacantes» y «Calles con más cepas vacantes», sin bajar nada al abrir', ops.includes('cv=Colonias con más cepas vacantes') && ops.includes('callescv=Calles con más cepas vacantes') && pedidos.length === 0, ops.map(o => o.split('=')[0]).join(', '));
+    ok('alcaldía: «Mostrar» ofrece «Colonias con más cepas (prioritarias)» y «Calles con más cepas (prioritarias)», sin bajar nada al abrir', ops.includes('cv=Colonias con más cepas (prioritarias)') && ops.includes('callescv=Calles con más cepas (prioritarias)') && pedidos.length === 0, ops.map(o => o.split('=')[0]).join(', '));
     await page.selectOption('#ini-orden', 'cv'); await page.waitForTimeout(300);
     const a = await carga(page), d = await L.estado(page), sv = await page.$eval('#ini-orden', s => s.value);
     ok('mientras baja el archivo: aviso breve, el selector dice lo pedido y la lista sigue con el orden anterior y sus cifras reales (no se vacía ni muestra cepas)', a.vis && !a.warn && a.t === 'Cargando las cepas vacantes del inventario de arbolado…' && sv === 'cv' && antes.lista.length === 10 && JSON.stringify(d.lista) === JSON.stringify(antes.lista) && d.listCount === antes.listCount && !d.lista.some(l => /cepa/.test(l.t)) && pedidos.length === 1, `${a.t} · ${d.listCount}`);
@@ -217,7 +217,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   const COLC = colCepas(CV, TLA)[0].c;
   { await orden(page, 'cv'); await page.$eval('#ini-list li', li => li.click()); await page.waitForTimeout(1200); await tabIni(page);
     const ops = await opciones(page), sv = await page.$eval('#ini-orden', s => s.value), exp = callesCepas(CV, f => f.col === COLC), filas = await verTodo(page), e = await L.estado(page), malas = comparaFilas(filas, exp);
-    ok(`colonia ${M.colonias[COLC].n} elegida desde la lista por cepas: el selector ofrece km prioritarios y cepas, y sigue en cepas`, ops.join('|') === 'calles=Calles con más kilómetros prioritarios|cv=Calles con más cepas vacantes' && sv === 'cv' && new URL(e.url).searchParams.get('c') === String(COLC), `${ops.join(' | ')} · ${sv}`);
+    ok(`colonia ${M.colonias[COLC].n} elegida desde la lista por cepas: el selector ofrece km prioritarios y cepas, y sigue en cepas`, ops.join('|') === 'calles=Calles con más kilómetros prioritarios|cv=Calles con más cepas (prioritarias)|cvt=Calles con más cepas (todas)' && sv === 'cv' && new URL(e.url).searchParams.get('c') === String(COLC), `${ops.join(' | ')} · ${sv}`);
     ok('las calles de la colonia por cepas vacantes: todas, en orden y con su número = recálculo propio; nota del corte', !malas.length && filas.length === exp.length && L.numEs(e.listCount) === exp.length && /por cepas vacantes/.test(e.listCount) && (await nota(page)).includes(NOTA_CALLE),
       malas.slice(0, 3).join(' | ') || `${exp.length} calles · ${exp.slice(0, 3).map(x => `${x.n} ${x.cv}`).join(', ')}`); }
   // una colonia abierta desde la dirección: lo predeterminado son los km prioritarios
@@ -250,7 +250,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   // Gobierno Central: no se ofrecen las colonias por cepas, sino las avenidas (v1.24); con las dos redes, las colonias (cuenta solo los frentes a cargo de la alcaldía)
   { await ir(page, `&r=gc&a=${M.muns[IZT]}`); await tabIni(page); const g = await opciones(page);
     await ir(page, `&r=both&a=${M.muns[IZT]}`); await tabIni(page); const b2 = await opciones(page);
-    ok('Gobierno Central: «Mostrar» no ofrece las colonias ni las calles por cepas, sí las avenidas; con las dos redes, las colonias', !g.some(o => /^(cv|callescv)=/.test(o)) && g.includes('avcv=Avenidas con más cepas vacantes') && b2.some(o => o.startsWith('cv=')), `${g.map(o => o.split('=')[0]).join(',')} · ${b2.map(o => o.split('=')[0]).join(',')}`); }
+    ok('Gobierno Central: «Mostrar» no ofrece las colonias ni las calles por cepas, sí las avenidas; con las dos redes, las colonias', !g.some(o => /^(cv|callescv|cvt|callescvt)=/.test(o)) && g.includes('avcv=Avenidas con más cepas (prioritarias)') && b2.some(o => o.startsWith('cv=')), `${g.map(o => o.split('=')[0]).join(',')} · ${b2.map(o => o.split('=')[0]).join(',')}`); }
   await ctx.close();
 
   // ---------- 8) celular de 390 × 844 ----------

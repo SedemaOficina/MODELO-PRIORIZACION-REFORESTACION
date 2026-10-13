@@ -212,8 +212,10 @@ const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.m
 // espCargar() (05_inventario.js) la primera vez que se pide el filtro: filtroEsp solo cambia cuando ESP_FR ya está. Igual que la banqueta,
 // forma parte del filtro único y se combina con ella. El inventario está en curso: donde no hay puntos puede que aún no se haya inventariado.
 // ESP_CV (Uint16Array de N), del mismo archivo, trae las cepas vacantes de cada frente: las cuenta el orden «más cepas vacantes» de
-// «Dónde empezar» (09_listados.js), solo en los frentes prioritarios que pasan enAmbito(i).
-let filtroEsp = 0, ESP_FR = null, ESP_CV = null;
+// «Dónde empezar» (09_listados.js) en los frentes que pasan enAmbito(i): solo los prioritarios, o los de cualquier prioridad (v1.25).
+// ESP_FRN (Uint16Array de 3·N), también de ese archivo, trae cuántas cepas vacantes, tocones y árboles muertos tiene cada frente: las
+// columnas de los Excel, el GeoJSON y el KML (11_descargas.js).
+let filtroEsp = 0, ESP_FR = null, ESP_CV = null, ESP_FRN = null;
 const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
 const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
 const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
@@ -817,19 +819,20 @@ else { $('inv-corte').textContent = INV.corte;
     if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
 // ---------- filtro «Espacio» y orden por cepas: puntos de cada tipo asignados a cada frente (todos los frentes, no solo los de la vista) ----------
 // espacios_frentes.bin (formato 2): FORMATO, n y por frente con al menos un punto, el índice en diferencias y cuántas cepas vacantes,
-// tocones y árboles muertos tiene. De ahí salen ESP_FR (tipos en bits: 1 cepa, 2 tocón, 4 muerto; el filtro) y ESP_CV (cepas vacantes; el
-// orden de «Dónde empezar»). Se pide una vez; si falla, se puede volver a pedir. Comprueba las cifras de control de config.js (INV.fr).
+// tocones y árboles muertos tiene. De ahí salen ESP_FR (tipos en bits: 1 cepa, 2 tocón, 4 muerto; el filtro), ESP_CV (cepas vacantes; el
+// orden de «Dónde empezar») y ESP_FRN (puntos de cada tipo; columnas de las descargas). Se pide una vez; si falla, se puede volver a pedir.
+// Comprueba las cifras de control de config.js (INV.fr).
 let ESP_P = null;
 async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
   const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
   const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==fr.formato || formato!==2 || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
-  const A = new Uint8Array(N), CV = new Uint16Array(N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
+  const A = new Uint8Array(N), CV = new Uint16Array(N), C = new Uint16Array(3*N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
   for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=N) throw new Error(n + ': frente ' + f); let bits = 0;
-    for(let t=0;t<3;t++){ const c = rv(); if (c<0 || c>65535) throw new Error(n + ': frente ' + f); if (c){ bits |= 1<<t; frentes[t]++; puntos[t] += c; } if (t===0) CV[f] = c; }
+    for(let t=0;t<3;t++){ const c = rv(); if (c<0 || c>65535) throw new Error(n + ': frente ' + f); if (c){ bits |= 1<<t; frentes[t]++; puntos[t] += c; } C[3*f+t] = c; if (t===0) CV[f] = c; }
     if (!bits) throw new Error(n + ': frente ' + f + ' sin puntos'); A[f] = bits; }
   if (rv.pos()!==b.length || frentes.join()!==fr.tipos.join() || puntos.join()!==fr.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
-  return {A, CV}; }
+  return {A, CV, C}; }
 // espacios_vp.bin (formato 1): lo mismo por parte de vialidad primaria (índice en diferencias y puntos de cada tipo, por sus frentes del
 // Gobierno Central o en el camellón). De ahí ESP_VP (tipos en bits, el filtro) y ESP_VPN (puntos de cada tipo: ficha del tramo y orden por
 // cepas de las avenidas). Comprueba las cifras de control de config.js (INV.vp).
@@ -845,7 +848,7 @@ async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if 
   return {A, C}; }
 // los dos archivos se piden juntos (el filtro aplica a las dos redes); si uno falla, se puede volver a pedir
 function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
-  if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
+  if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_FRN = d.C; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
   return ESP_P; }
 // lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
 const espNota = ()=> `Solo frentes con al menos un punto de ${espLista()} a ${INV.dist} m o menos, según el ${INV.fuente}, corte: ${INV.corte}. El inventario está en curso: un frente sin puntos puede no haberse inventariado aún.`;
@@ -1196,11 +1199,12 @@ $('reset-all').onclick = ()=>{ invReinicia(); espReinicia();
 
 // Estadísticas por colonia, avenida y ámbito; cifras principales, barras por prioridad y textos de contexto del panel.
 // estadísticas por colonia (frentes a cargo de la alcaldía)
-// cv: cepas vacantes del inventario en los frentes prioritarios (orden «más cepas vacantes» de «Dónde empezar»); 0 hasta que se carga ESP_CV
+// cv: cepas vacantes del inventario en los frentes prioritarios (orden «más cepas vacantes» de «Dónde empezar»); cvt: en todos sus frentes, de
+// cualquier prioridad (orden «… (cualquier prioridad)», v1.25). Los dos valen 0 hasta que se carga ESP_CV
 let COLSTAT = null, COLSTAT_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio, y al llegar las cepas
-function colStat(id){ const clave = filtroClave() + (ESP_CV? '|cv' : ''); if(!COLSTAT || COLSTAT_B!==clave){ COLSTAT = new Map(); COLSTAT_B = clave; for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0,cv:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if(esPrio(p)){ s.kmp+=k; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; }
+function colStat(id){ const clave = filtroClave() + (ESP_CV? '|cv' : ''); if(!COLSTAT || COLSTAT_B!==clave){ COLSTAT = new Map(); COLSTAT_B = clave; for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0,cv:0,cvt:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if (ESP_CV) s.cvt+=ESP_CV[i]; if(esPrio(p)){ s.kmp+=k; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; }
       if (esPrio(p) && (fl&7)===1 && ((fl>>3)&7)===0) s.pl+=k; } }   // pl: prioritario sin arbolado y con banqueta (INEGI), igual que repStat()
-  return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0,cv:0}; }
+  return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0,cv:0,cvt:0}; }
 // estadísticas por avenida (NOMENCLAT), toda la ciudad, calculadas una vez
 let AVSTAT = null;
 function avStat(id){ if(!AVSTAT){ AVSTAT=new Map(); for(let i=0;i<NV;i++){ const a=VP.nom[i]; let s=AVSTAT.get(a); if(!s){ s={idx:[],n:[0,0,0,0,0],km:[0,0,0,0,0],kmt:0,kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; AVSTAT.set(a,s); } const p=VP.prio[i], k=VP.len[i]/1000; s.idx.push(i); s.n[p]++; s.km[p]+=k; s.kmt+=k; s.recs.add(VP.rec[i]); if(esPrio(p)){ s.kmp+=k; s.recsp.add(VP.rec[i]); } s.muns.add(VP.mun[i]); s.nombres.add(VPC.nombres[VP.nombre[i]]); } } const s=AVSTAT.get(id); return s? {...s, km:s.kmt, kmByP:s.km} : {idx:[],n:[0,0,0,0,0],km:0,kmByP:[0,0,0,0,0],kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; }
@@ -1412,27 +1416,29 @@ function renderSummary(){
 // Lista de «Dónde empezar»: colonias, calles dentro de su colonia, avenidas y alcaldías, con orden elegible, filtro por nombre y paso de
 // ubicación de las calles cuyo nombre se repite; calle consultada (la resaltada).
 // ---------- índices de calles y avenidas ----------
-let streetIdx = null; // Map clave -> {nid, col, idx:[], km, kmp, np, cv, tipos:Set, cols:Set}; clave = calle dentro de su colonia
-// cv: cepas vacantes del inventario en sus frentes prioritarios (0 mientras no se cargue espacios_frentes.bin; ESP_CV en 03_estado.js)
+let streetIdx = null; // Map clave -> {nid, col, idx:[], km, kmp, np, cv, cvt, tipos:Set, cols:Set}; clave = calle dentro de su colonia
+// cv: cepas vacantes del inventario en sus frentes prioritarios; cvt: en todos sus frentes del ámbito, de cualquier prioridad (v1.25).
+// Valen 0 mientras no se cargue espacios_frentes.bin (ESP_CV en 03_estado.js)
 let sinNombre = {km:0, kmp:0, n:0, np:0};  // frentes sin nombre de vialidad en INEGI dentro del ámbito
 function buildStreets(){
   streetIdx = new Map(); sinNombre = {km:0, kmp:0, n:0, np:0};
   for(let i=0;i<N;i++){ if (F.gc[i] || !enAmbito(i)) continue; const nid=F.name[i];
     if (PLACEHOLDER.has(nid)){ const k=F.len[i]/1000; sinNombre.km+=k; sinNombre.n++; if(esPrio(F.prio[i])){ sinNombre.kmp+=k; sinNombre.np++; } continue; }
-    const col=F.col[i]; const key = nid*4096 + col; let s=streetIdx.get(key); if(!s){ s={nid, col, idx:[],km:0,kmp:0,np:0,cv:0,kp:[0,0,0,0,0],tipos:new Set(),cols:new Set()}; streetIdx.set(key,s); }
-    s.idx.push(i); s.km+=F.len[i]/1000; s.kp[F.prio[i]]+=F.len[i]/1000; if(esPrio(F.prio[i])){ s.kmp+=F.len[i]/1000; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; } s.tipos.add(META.tipos[F.tipo[i]]); if(col) s.cols.add(META.colonias[col].n); }
+    const col=F.col[i]; const key = nid*4096 + col; let s=streetIdx.get(key); if(!s){ s={nid, col, idx:[],km:0,kmp:0,np:0,cv:0,cvt:0,kp:[0,0,0,0,0],tipos:new Set(),cols:new Set()}; streetIdx.set(key,s); }
+    s.idx.push(i); s.km+=F.len[i]/1000; s.kp[F.prio[i]]+=F.len[i]/1000; if (ESP_CV) s.cvt+=ESP_CV[i]; if(esPrio(F.prio[i])){ s.kmp+=F.len[i]/1000; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; } s.tipos.add(META.tipos[F.tipo[i]]); if(col) s.cols.add(META.colonias[col].n); }
 }
 // Corredor de la red vial de una avenida, para mostrar: los «Ruta N» de la capa de vialidades primarias son una numeración interna
 // que no le dice nada a quien consulta. Se omiten en pantalla y en las fichas; en las descargas van completos, para cruzar con la capa.
 const redVisible = n => !!n && !/^ruta\s/i.test(String(n).trim());
 const redesTxt = (ns, max=2)=>{ const v=[...ns].filter(redVisible); return v.slice(0,max).join(', ') + (v.length>max? ' +'+(v.length-max) : ''); };
-let avIdx = null; // Map nomId -> {idx:[], km, kmp, cv, recs:Set, recsp:Set, nombres:Set, muns:Set, tipos:Set}
-// avenidas de la alcaldía (o de la ciudad) con el filtro «Espacio»; cv: cepas vacantes de sus partes prioritarias (0 mientras no se cargue
-// espacios_vp.bin; ESP_VPN en 03_estado.js), por sus frentes del Gobierno Central y en el camellón
+let avIdx = null; // Map nomId -> {idx:[], km, kmp, cv, cvt, recs:Set, recsp:Set, nombres:Set, muns:Set, tipos:Set}
+// avenidas de la alcaldía (o de la ciudad) con el filtro «Espacio»; cv: cepas vacantes de sus partes prioritarias; cvt: de todas sus partes
+// del ámbito, de cualquier prioridad (v1.25). Por sus frentes del Gobierno Central y en el camellón; valen 0 mientras no se cargue
+// espacios_vp.bin (ESP_VPN en 03_estado.js)
 function buildAvenues(){
   avIdx = new Map();
-  for(let i=0;i<NV;i++){ if ((sel!==null && VP.mun[i]!==sel) || !pasaEspacioVP(i)) continue; const a=VP.nom[i]; let s=avIdx.get(a); if(!s){ s={idx:[],km:0,kmp:0,cv:0,recs:new Set(),recsp:new Set(),nombres:new Set(),muns:new Set(),tipos:new Set()}; avIdx.set(a,s); }
-    const k=VP.len[i]/1000; s.idx.push(i); s.km+=k; s.recs.add(VP.rec[i]); if(esPrio(VP.prio[i])){ s.kmp+=k; s.recsp.add(VP.rec[i]); if (ESP_VPN) s.cv+=ESP_VPN[3*i]; } s.nombres.add(VPC.nombres[VP.nombre[i]]); s.muns.add(VP.mun[i]); s.tipos.add(VPC.tipos[VP.tipo[i]]); }
+  for(let i=0;i<NV;i++){ if ((sel!==null && VP.mun[i]!==sel) || !pasaEspacioVP(i)) continue; const a=VP.nom[i]; let s=avIdx.get(a); if(!s){ s={idx:[],km:0,kmp:0,cv:0,cvt:0,recs:new Set(),recsp:new Set(),nombres:new Set(),muns:new Set(),tipos:new Set()}; avIdx.set(a,s); }
+    const k=VP.len[i]/1000; s.idx.push(i); s.km+=k; s.recs.add(VP.rec[i]); if (ESP_VPN) s.cvt+=ESP_VPN[3*i]; if(esPrio(VP.prio[i])){ s.kmp+=k; s.recsp.add(VP.rec[i]); if (ESP_VPN) s.cv+=ESP_VPN[3*i]; } s.nombres.add(VPC.nombres[VP.nombre[i]]); s.muns.add(VP.mun[i]); s.tipos.add(VPC.tipos[VP.tipo[i]]); }
 }
 const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
 const NAMES_N = META.names.map(norm);
@@ -1510,7 +1516,10 @@ let iniOrden = 'kmp', iniN = 10;
 // Con Gobierno Central (v1.24), 'avcv' son las avenidas por cepas vacantes de sus partes prioritarias en el ámbito, con el filtro «Espacio»
 // (buildAvenues). La vista «Alcaldías» de la ciudad no se ordena por cepas: el inventario avanza muy distinto en cada alcaldía y ese orden
 // diría más del avance del inventario que de dónde plantar.
-const INI_CV = new Set(['cv', 'callescv', 'avcv']);
+// Desde la v1.25 cada orden por cepas tiene su par «de cualquier prioridad» ('cvt', 'callescvt', 'avcvt'): cuenta las cepas de todos los
+// frentes (o partes de vialidad) del ámbito que pasan enAmbito(i) (o el filtro «Espacio»), de cualquier prioridad, y lista también lo que
+// no tiene km prioritarios pero sí cepas. Los órdenes «(prioritarias)» no cambian.
+const INI_CV = new Set(['cv', 'callescv', 'avcv', 'cvt', 'callescvt', 'avcvt']);
 let iniPend = null;   // orden por cepas pedido mientras baja el archivo
 const cepasTxt = n => n? `${fmt.format(n)} cepa${n===1? '' : 's'} vacante${n===1? '' : 's'}` : 'sin cepas registradas';
 const cepasNota = que => `Cuenta solo lo inventariado hasta ${INV.corte} (inventario en curso): ${que} con 0 puede no estar inventariada todavía.`;
@@ -1519,20 +1528,24 @@ const INI_VISTA = {
   pct: { op:'Colonias con mayor porcentaje prioritario', tit:'por porcentaje de frente prioritario', val:s=>s.kmp/(sum(s.km)||1), nota:'Porcentaje del frente de la colonia que es prioritario. Una colonia pequeña puede aparecer arriba con pocos kilómetros: revisa la cifra en kilómetros de cada renglón.' },
   pob: { op:'Colonias con más habitantes', tit:'por habitantes', val:(s,c)=>c.pob||0, nota:'Población residente de la colonia (Censo 2020) entre las colonias con frente prioritario; no equivale a población atendida.' },
   pl:  { op:'Colonias con más kilómetros sin arbolado y con banqueta', tit:'por kilómetros sin arbolado y con banqueta', val:s=>s.pl, nota:'Frentes de prioridad Muy Alta, Alta o Media sin arbolado y con banqueta según INEGI 2020: orienta sobre dónde es más probable poder plantar. La banqueta debe verificarse en campo.' },
-  cv:  { op:'Colonias con más cepas vacantes', opCol:'Calles con más cepas vacantes', tit:'por cepas vacantes en frentes prioritarios', val:s=>s.cv, nota:'Cepas vacantes del inventario de arbolado en los frentes prioritarios (Muy Alta, Alta y Media) a cargo de la alcaldía: ahí se puede plantar directo. Con el mismo número, va primero la colonia con más kilómetros prioritarios. Selecciona una colonia para ver sus calles.' },
+  cv:  { op:'Colonias con más cepas (prioritarias)', opCol:'Calles con más cepas (prioritarias)', tit:'por cepas vacantes en frentes prioritarios', val:s=>s.cv, nota:'Cepas vacantes del inventario de arbolado en los frentes prioritarios (Muy Alta, Alta y Media) a cargo de la alcaldía: ahí se puede plantar directo. Con el mismo número, va primero la colonia con más kilómetros prioritarios. Selecciona una colonia para ver sus calles.' },
+  cvt: { op:'Colonias con más cepas (todas)', opCol:'Calles con más cepas (todas)', tit:'por cepas vacantes en frentes de cualquier prioridad', val:s=>s.cvt, nota:'Cepas vacantes del inventario de arbolado en todos los frentes a cargo de la alcaldía, de cualquier prioridad: ahí se puede plantar directo. Incluye las colonias sin kilómetros prioritarios. Con el mismo número, va primero la colonia con más kilómetros prioritarios. Selecciona una colonia para ver sus calles.' },
   calles: { op:'Calles con más kilómetros prioritarios' },
-  callescv: { op:'Calles con más cepas vacantes' },
+  callescv: { op:'Calles con más cepas (prioritarias)' },
+  callescvt: { op:'Calles con más cepas (todas)' },
   alc: { op:'Alcaldías con más kilómetros prioritarios' },
   av: { op:'Avenidas con más kilómetros prioritarios' },
-  avcv: { op:'Avenidas con más cepas vacantes' } };
+  avcv: { op:'Avenidas con más cepas (prioritarias)' },
+  avcvt: { op:'Avenidas con más cepas (todas)' } };
 // lo que se puede mostrar en el ámbito consultado (la primera opción es la de siempre); con una sola, no se ofrece el selector
 function iniVistas(){
-  if (isGC()) return selAv!==null? ['avalc'] : sel===null? ['av', ...(INV? ['avcv'] : []), 'alc'] : ['av', ...(INV? ['avcv'] : [])];
-  const cv = INV? ['cv'] : [];   // el archivo único no trae el inventario
+  const avcv = INV? ['avcv', 'avcvt'] : [];   // el archivo único no trae el inventario
+  if (isGC()) return selAv!==null? ['avalc'] : sel===null? ['av', ...avcv, 'alc'] : ['av', ...avcv];
+  const cv = INV? ['cv', 'cvt'] : [];
   if (selCol!==null) return ['calles', ...cv];
-  return ['kmp','pct','pob','pl', ...cv, ...(sel===null? ['alc'] : INV? ['calles','callescv'] : ['calles'])]; }
-// el nombre de la opción: con una colonia elegida, «cv» son sus calles por cepas
-const iniOp = k => k==='cv' && selCol!==null? INI_VISTA.cv.opCol : INI_VISTA[k].op;
+  return ['kmp','pct','pob','pl', ...cv, ...(sel===null? ['alc'] : INV? ['calles','callescv','callescvt'] : ['calles'])]; }
+// el nombre de la opción: con una colonia elegida, «cv» y «cvt» son sus calles por cepas
+const iniOp = k => (k==='cv' || k==='cvt') && selCol!==null? INI_VISTA[k].opCol : INI_VISTA[k].op;
 function iniFila(pos, nombre, sub, k, small, go, dotc, extra=''){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
   li.innerHTML = `<div><div class="n"><span class="pos">${pos}</span>${dotc? dot(dotc):''}${nombre}</div>${sub? `<div class="t">${sub}</div>` : ''}${extra}</div><div class="k">${k}<small>${small}</small></div>`;
   li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; return li; }
@@ -1542,68 +1555,79 @@ function iniNota(txt, extra){ const n=$('ini-note'); n.textContent = txt; if (ex
 function filasColonias(ul, ord){
   const o = INI_VISTA[ord], m = sel===null? null : META.muns[sel];
   $('ini-title').textContent = `Colonias ${sel===null? 'de la ciudad' : 'de '+META.munNames[sel]} por atender primero`;
-  const items=[]; for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const s=colStat(i); if (ord==='pl'? s.pl>0 : s.kmp>0) items.push([i,s,c,o.val(s,c)]); }
-  items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp);   // con el mismo valor, la de más km prioritarios (en «cv», las de 0 cepas quedan al final)
+  const items=[]; for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const s=colStat(i); if (ord==='pl'? s.pl>0 : ord==='cvt'? s.kmp>0 || s.cvt>0 : s.kmp>0) items.push([i,s,c,o.val(s,c)]); }
+  // con el mismo valor, la de más km prioritarios (en «cv» y «cvt», las de 0 cepas quedan al final); «cvt» lista también las colonias sin
+  // km prioritarios que tienen cepas
+  items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp);
   $('ini-count').textContent = `${fmt.format(items.length)} colonia${items.length===1?'':'s'}, ${o.tit}`;
   const sc = sinColStat();
-  iniNota(o.nota, [ord==='cv'? cepasNota('una colonia') : '', sc.n? `Además, ${fmt.format(sc.n)} frentes (${kmFull(sc.km)}; ${kmFull(sc.kmp)} prioritarios) ${sel===null? 'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo y no aparecen en esta lista. Sí se cuentan en las cifras de la alcaldía y en su Excel de frentes.` : ''].filter(Boolean).join(' '));
-  if(!items.length) return iniVacio(ul, ord==='pl' && filtroBanq==='sin'? 'Este orden cuenta solo frentes con banqueta y el filtro de banqueta muestra los que no la tienen: elige otro orden o la opción «Todas» de Banqueta.' : filtroEsp? `Ninguna colonia de este ámbito tiene frentes prioritarios con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : 'Este ámbito no tiene colonias con frente prioritario.');
+  iniNota(o.nota, [ord==='cv' || ord==='cvt'? cepasNota('una colonia') : '', sc.n? `Además, ${fmt.format(sc.n)} frentes (${kmFull(sc.km)}; ${kmFull(sc.kmp)} prioritarios) ${sel===null? 'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo y no aparecen en esta lista. Sí se cuentan en las cifras de la alcaldía y en su Excel de frentes.` : ''].filter(Boolean).join(' '));
+  if(!items.length) return iniVacio(ul, ord==='pl' && filtroBanq==='sin'? 'Este orden cuenta solo frentes con banqueta y el filtro de banqueta muestra los que no la tienen: elige otro orden o la opción «Todas» de Banqueta.' : filtroEsp? `Ninguna colonia de este ámbito tiene frentes ${ord==='cvt'? '' : 'prioritarios '}con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : ord==='cvt'? 'Este ámbito no tiene colonias con frente prioritario ni con cepas vacantes registradas.' : 'Este ámbito no tiene colonias con frente prioritario.');
   items.slice(0,iniN).forEach(([i,s,c],k)=>{ const tot=sum(s.km);
     const [v,sm] = ord==='pct'? [pct(s.kmp,tot), `${kmFull(s.kmp)} de ${kmFull(tot)} de frente`]
       : ord==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]
       : ord==='pl'? [kmFull(s.pl), `sin arbolado y con banqueta · ${kmFull(s.kmp)} prioritarios`]
       : ord==='cv'? [cepasTxt(s.cv), `${kmFull(s.kmp)} de frente prioritario`]
+      : ord==='cvt'? [cepasTxt(s.cvt), `${kmFull(s.kmp)} de frente prioritario`]
       : [kmFull(s.kmp), `${fmt.format(s.np)} de ${fmt.format(sum(s.n))} frentes son prioritarios`];
     ul.appendChild(iniFila(k+1, c.n, `${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.pob && ord!=='pob'? ' · '+fmt.format(c.pob)+' hab.':''}`, v, sm, ()=>pickColonia(i), c.p>=0? T.prio[c.p]:null)); });
   return items.length; }
-// calles de la colonia o de la alcaldía (cada una dentro de su colonia), o las que coinciden con el filtro; con cepas, por cepas vacantes
+// calles de la colonia o de la alcaldía (cada una dentro de su colonia), o las que coinciden con el filtro; con cepas, por cepas vacantes:
+// cepas = true, las de sus frentes prioritarios; cepas = 'total', las de todos sus frentes (cualquier prioridad; v1.25), y entonces la lista
+// incluye también las calles sin km prioritarios que tienen cepas
 function filasCalles(ul, q, qRaw, cepas=false){
   const lugar = selCol!==null? 'la colonia '+META.colonias[selCol].n : sel===null? 'toda la ciudad' : 'la alcaldía '+META.munNames[sel];
-  const items = [];
+  const items = [], tot = cepas==='total', cvDe = s => tot? s.cvt : s.cv;
   if (q){ for(const [key,s] of streetIdx){ if (calleCoincide(s, q)) items.push([key,s]); }
     if (sel===null && selCol===null && new Set(items.map(x=>x[1].col)).size>1) return renderUbicar(ul, items, qRaw);
     if (sel!==null && selCol===null) locChips(`<button type="button" class="lchip" data-m="">Buscar «${qRaw.replace(/[<>&"]/g,'')}» en otra alcaldía</button>`);
     $('ini-title').textContent = `Calles encontradas en ${lugar}`; }
-  else { for(const [key,s] of streetIdx){ if(s.kmp>0 && META.names[s.nid]) items.push([key,s]); }
+  else { for(const [key,s] of streetIdx){ if((s.kmp>0 || (tot && s.cvt>0)) && META.names[s.nid]) items.push([key,s]); }
     $('ini-title').textContent = `Calles de ${selCol!==null? META.colonias[selCol].n : META.munNames[sel]} por atender primero`; }
-  if (cepas) items.sort((a,b)=> b[1].cv-a[1].cv || b[1].kmp-a[1].kmp || b[1].km-a[1].km);   // con las mismas cepas, por km prioritarios
+  if (cepas) items.sort((a,b)=> cvDe(b[1])-cvDe(a[1]) || b[1].kmp-a[1].kmp || b[1].km-a[1].km);   // con las mismas cepas, por km prioritarios
   else items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
   const total = items.length;
-  $('ini-count').textContent = cepas? `${fmt.format(total)} calle${total===1?'':'s'} con frente prioritario${selCol!==null? '' : ', contadas por colonia'}, por cepas vacantes`
+  $('ini-count').textContent = tot? `${fmt.format(total)} calle${total===1?'':'s'}${selCol!==null? '' : ', contadas por colonia'}, por cepas vacantes en frentes de cualquier prioridad`
+    : cepas? `${fmt.format(total)} calle${total===1?'':'s'} con frente prioritario${selCol!==null? '' : ', contadas por colonia'}, por cepas vacantes`
     : selCol!==null
     ? `${fmt.format(total)} calle${total===1?'':'s'}${q?'':' con frente prioritario'}`
     : q ? `${fmt.format(total)} resultado${total===1?'':'s'}, cada uno en su colonia`
     : `${fmt.format(total)} calles con frente prioritario, contadas por colonia`;
   const sinNom = !q && sinNombre.kmp>0? `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI («Ninguno» o «Manzana o edificación contigua»). No aparecen en esta lista, pero sí en el Excel de frentes.` : '';
-  if (cepas) iniNota(`Calles ${selCol!==null? 'de la colonia' : 'de la alcaldía'} ordenadas por cepas vacantes del inventario de arbolado en sus frentes prioritarios (Muy Alta, Alta y Media); con el mismo número, por kilómetros prioritarios.${selCol!==null? '' : ' Una calle que pasa por varias colonias aparece una vez en cada una.'} Selecciona una calle para ubicarla en el mapa y ver sus tramos.`,
+  if (tot) iniNota(`Calles ${selCol!==null? 'de la colonia' : 'de la alcaldía'} ordenadas por cepas vacantes del inventario de arbolado en todos sus frentes, de cualquier prioridad; con el mismo número, por kilómetros prioritarios. Incluye las calles sin kilómetros prioritarios.${selCol!==null? '' : ' Una calle que pasa por varias colonias aparece una vez en cada una.'} Selecciona una calle para ubicarla en el mapa y ver sus tramos.`,
+    [cepasNota('una calle'), sinNom].filter(Boolean).join(' '));
+  else if (cepas) iniNota(`Calles ${selCol!==null? 'de la colonia' : 'de la alcaldía'} ordenadas por cepas vacantes del inventario de arbolado en sus frentes prioritarios (Muy Alta, Alta y Media); con el mismo número, por kilómetros prioritarios.${selCol!==null? '' : ' Una calle que pasa por varias colonias aparece una vez en cada una.'} Selecciona una calle para ubicarla en el mapa y ver sus tramos.`,
     [cepasNota('una calle'), sinNom].filter(Boolean).join(' '));
   else iniNota(q? 'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
     : selCol!==null? 'Calles de la colonia ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media). Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
     : 'Calles de la alcaldía ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media); una calle que pasa por varias colonias aparece una vez en cada una. Selecciona una calle para ubicarla en el mapa y ver sus tramos.',
     sinNom);
-  if (!total) return iniVacio(ul, q? `Sin coincidencias en ${lugar}.` : `${selCol!==null? 'Esta colonia' : 'Este ámbito'} no tiene calles con frente prioritario (Muy Alta, Alta o Media).`);
+  if (!total) return iniVacio(ul, q? `Sin coincidencias en ${lugar}.` : `${selCol!==null? 'Esta colonia' : 'Este ámbito'} no tiene calles con frente prioritario (Muy Alta, Alta o Media)${tot? ' ni con cepas vacantes registradas' : ''}.`);
   items.slice(0,iniN).forEach(([key,s],k)=>{ const d=dom({km:s.kp}); const tl=[...s.tipos].filter(Boolean); const tipos = tl.slice(0,2).join(', ')+(tl.length>2?' +'+(tl.length-2):'');
     const donde = selCol!==null? '' : (s.col? META.colonias[s.col].n : 'Colonia no identificada') + (sel===null? ' · '+META.munNames[F.mun[s.idx[0]]] : '');
-    const li = iniFila(k+1, META.names[s.nid]||'Sin nombre', [donde, tipos].filter(Boolean).join(' · '), cepas? cepasTxt(s.cv) : kmFull(s.kmp), cepas? `${kmFull(s.kmp)} de frente prioritario` : `${s.np} de ${s.idx.length} frentes prioritarios`, ()=>{ highlightStreet(key, s); renderInicio(); }, T.prio[d], desgHtml(s));
+    const li = iniFila(k+1, META.names[s.nid]||'Sin nombre', [donde, tipos].filter(Boolean).join(' · '), cepas? cepasTxt(cvDe(s)) : kmFull(s.kmp), cepas? `${kmFull(s.kmp)} de frente prioritario` : `${s.np} de ${s.idx.length} frentes prioritarios`, ()=>{ highlightStreet(key, s); renderInicio(); }, T.prio[d], desgHtml(s));
     if (highlight && highlight.nameId===key) li.classList.add('active');
     ul.appendChild(li); });
   return total; }
-// avenidas del ámbito (Gobierno Central), o las que coinciden con el filtro; con cepas, por cepas vacantes de sus tramos prioritarios
+// avenidas del ámbito (Gobierno Central), o las que coinciden con el filtro; con cepas, por cepas vacantes: cepas = true, las de sus tramos
+// prioritarios; cepas = 'total', las de todos sus tramos (cualquier prioridad; v1.25), y la lista incluye las avenidas sin km prioritarios con cepas
 function filasAvenidas(ul, q, cepas=false){
   const en = sel===null? 'en toda la ciudad' : 'en la alcaldía '+META.munNames[sel];
-  const items = [];
+  const items = [], tot = cepas==='total', cvDe = s => tot? s.cvt : s.cv;
   if (q){ for(const [a,s] of avIdx){ if (AV_N[a].includes(q) || [...s.nombres].some(n=>norm(n).includes(q))) items.push([a,s]); } $('ini-title').textContent = `Avenidas encontradas ${en}`; }
-  else { for(const [a,s] of avIdx){ if(s.kmp>0) items.push([a,s]); } $('ini-title').textContent = `Avenidas ${sel===null? 'de la ciudad' : 'de la alcaldía '+META.munNames[sel]} por atender primero`; }
-  if (cepas) items.sort((a,b)=> b[1].cv-a[1].cv || b[1].kmp-a[1].kmp || b[1].km-a[1].km);   // con las mismas cepas, por km prioritarios
+  else { for(const [a,s] of avIdx){ if(s.kmp>0 || (tot && s.cvt>0)) items.push([a,s]); } $('ini-title').textContent = `Avenidas ${sel===null? 'de la ciudad' : 'de la alcaldía '+META.munNames[sel]} por atender primero`; }
+  if (cepas) items.sort((a,b)=> cvDe(b[1])-cvDe(a[1]) || b[1].kmp-a[1].kmp || b[1].km-a[1].km);   // con las mismas cepas, por km prioritarios
   else items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
   const total = items.length;
-  $('ini-count').textContent = `${fmt.format(total)} avenida${total===1?'':'s'}${q?'':' con km prioritarios'}${cepas? ', por cepas vacantes en tramos prioritarios' : ''}`;
-  if (cepas) iniNota('Vialidades primarias a cargo del Gobierno Central, ordenadas por cepas vacantes del inventario de arbolado en sus tramos prioritarios (Muy Alta, Alta y Media): las de sus frentes de manzana y las del camellón. Ahí se puede plantar directo. Con el mismo número, va primero la de más kilómetros prioritarios. Selecciona una avenida para consultarla.', cepasNota('una avenida'));
+  $('ini-count').textContent = tot? `${fmt.format(total)} avenida${total===1?'':'s'}, por cepas vacantes en tramos de cualquier prioridad`
+    : `${fmt.format(total)} avenida${total===1?'':'s'}${q?'':' con km prioritarios'}${cepas? ', por cepas vacantes en tramos prioritarios' : ''}`;
+  if (tot) iniNota('Vialidades primarias a cargo del Gobierno Central, ordenadas por cepas vacantes del inventario de arbolado en todos sus tramos, de cualquier prioridad: las de sus frentes de manzana y las del camellón. Ahí se puede plantar directo. Incluye las avenidas sin kilómetros prioritarios. Con el mismo número, va primero la de más kilómetros prioritarios. Selecciona una avenida para consultarla.', cepasNota('una avenida'));
+  else if (cepas) iniNota('Vialidades primarias a cargo del Gobierno Central, ordenadas por cepas vacantes del inventario de arbolado en sus tramos prioritarios (Muy Alta, Alta y Media): las de sus frentes de manzana y las del camellón. Ahí se puede plantar directo. Con el mismo número, va primero la de más kilómetros prioritarios. Selecciona una avenida para consultarla.', cepasNota('una avenida'));
   else iniNota('Vialidades primarias a cargo del Gobierno Central, ordenadas por kilómetros prioritarios (Muy Alta, Alta y Media) medidos sobre el eje. Selecciona una avenida para consultarla.');
-  if (!total) return iniVacio(ul, q? `Sin coincidencias ${en}.` : filtroEsp? `Ninguna avenida de este ámbito tiene tramos prioritarios con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : 'Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta, Alta o Media).');
+  if (!total) return iniVacio(ul, q? `Sin coincidencias ${en}.` : filtroEsp? `Ninguna avenida de este ámbito tiene tramos ${tot? '' : 'prioritarios '}con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : `Este ámbito no tiene avenidas con kilómetros prioritarios (Muy Alta, Alta o Media)${tot? ' ni con cepas vacantes registradas' : ''}.`);
   items.slice(0,iniN).forEach(([a,s],k)=>{ const ms=[...s.muns];
     const li = iniFila(k+1, VPC.nomenclat[a], [redesTxt(s.nombres), sel===null? ms.slice(0,2).map(m=>META.munNames[m]).join(', ')+(ms.length>2?' +'+(ms.length-2):'') : ''].filter(Boolean).join(' · '),
-      cepas? cepasTxt(s.cv) : kmFull(s.kmp), cepas? `${kmFull(s.kmp)} prioritarios · ${s.recsp.size} de ${s.recs.size} tramos` : `${s.recsp.size} de ${s.recs.size} tramos son prioritarios`, ()=>pickAvenida(a));
+      cepas? cepasTxt(cvDe(s)) : kmFull(s.kmp), cepas? `${kmFull(s.kmp)} prioritarios · ${s.recsp.size} de ${s.recs.size} tramos` : `${s.recsp.size} de ${s.recs.size} tramos son prioritarios`, ()=>pickAvenida(a));
     if (selAv===a) li.classList.add('active');
     ul.appendChild(li); });
   return total; }
@@ -1637,7 +1661,7 @@ function renderInicio(){
   const ph = isGC()? `Buscar una avenida ${sel===null? 'de la ciudad' : 'de la alcaldía'}` : `Buscar una calle ${selCol!==null? 'de la colonia' : sel===null? 'de la ciudad' : 'de la alcaldía'}`;
   if (qEl.placeholder!==ph){ qEl.placeholder = ph; qEl.setAttribute('aria-label', ph); }
   const vistas = iniVistas();
-  let v = vistas.includes(iniOrden)? iniOrden : iniOrden==='callescv' && selCol!==null? 'cv' : vistas[0];
+  let v = vistas.includes(iniOrden)? iniOrden : iniOrden==='callescv' && selCol!==null? 'cv' : iniOrden==='callescvt' && selCol!==null? 'cvt' : vistas[0];
   if (INI_CV.has(v) && !ESP_CV) v = vistas[0];   // sin las cepas cargadas no hay números que mostrar
   const ops = vistas.join() + (selCol!==null? '|col' : '');
   if (sv.dataset.ops!==ops){ sv.innerHTML = vistas.filter(k=>INI_VISTA[k]).map(k=>`<option value="${k}">${iniOp(k)}</option>`).join(''); sv.dataset.ops = ops; }
@@ -1646,8 +1670,9 @@ function renderInicio(){
   if (INI_VISTA[ve]) sv.value = ve;
   box.hidden = !!q || vistas.length<2;   // al filtrar por nombre, la lista es la de lo que coincide
   const total = q? (isGC()? filasAvenidas(ul, q) : filasCalles(ul, q, qRaw))
-    : v==='avalc'? filasAvAlc(ul) : v==='av'? filasAvenidas(ul, '') : v==='avcv'? filasAvenidas(ul, '', true) : v==='alc'? filasAlcaldias(ul) : v==='calles'? filasCalles(ul, '', '')
-    : v==='callescv' || (v==='cv' && selCol!==null)? filasCalles(ul, '', '', true) : filasColonias(ul, v);
+    : v==='avalc'? filasAvAlc(ul) : v==='av'? filasAvenidas(ul, '') : v==='avcv'? filasAvenidas(ul, '', true) : v==='avcvt'? filasAvenidas(ul, '', 'total')
+    : v==='alc'? filasAlcaldias(ul) : v==='calles'? filasCalles(ul, '', '')
+    : v==='callescv' || (v==='cv' && selCol!==null)? filasCalles(ul, '', '', true) : v==='callescvt' || (v==='cvt' && selCol!==null)? filasCalles(ul, '', '', 'total') : filasColonias(ul, v);
   mas.hidden = total<=iniN; if(!mas.hidden) mas.textContent = `Ver ${Math.min(10,total-iniN)} más`;
 }
 $('q').addEventListener('input', ()=>{ iniN = 10; renderInicio(); });
@@ -2025,7 +2050,8 @@ function ambitoTxt(key){
   if (selCol!==null && !vp) return colNombre(selCol) + ' · ' + META.munNames[sel] + b;
   return (sel===null? 'Ciudad de México' : META.munNames[sel]) + b;
 }
-function dictAoa(key, nreg, archivo, extra){
+// mas: {campos, cols} de las columnas que se agregan al final (las de espacios para plantar, si llegaron)
+function dictAoa(key, nreg, archivo, extra, mas){
   const d = DIC[key];
   const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
   const a = [['Modelo de priorización de reforestación urbana — Diccionario de datos'], [],
@@ -2033,7 +2059,7 @@ function dictAoa(key, nreg, archivo, extra){
     ['Elaboración', 'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA)'],
     ['Registros', nreg], ...(extra||[]), ['Fecha de generación', hoy], ['Versión de la herramienta', VERSION.v], ['Última actualización de la herramienta', VERSION.fecha], ['Corte de los datos', VERSION.corte], [],
     ['Campo', 'Descripción', 'Valores o unidad']];
-  for (const f of d.campos) a.push(f);
+  for (const f of d.campos.concat(mas? mas.campos : [])) a.push(f);
   a.push([], ['Notas']);
   for (const n of NOTAS_COMUNES) a.push([n]);
   a.push([], [FUENTES]);
@@ -2076,11 +2102,12 @@ function excelAparte(aoa, cols, dic, props){ return new Promise((res, rej)=>{ le
   w.onmessage = e=>{ w.terminate(); e.data && e.data.ok? res(e.data.buf) : rej(new Error(e.data && e.data.msg || 'proceso auxiliar')); };
   w.onerror = e=>{ w.terminate(); rej(new Error('proceso auxiliar')); }; w.postMessage({aoa, cols, dic, props}); }); }
 const GRANDE = 20000;   // renglones a partir de los cuales se avisa del tamaño y de la espera
-async function deliverTable(base, key, aoa, extra){
-  const nreg = aoa.length - 1;
-  const st = $('dl-status'); st.textContent = nreg>GRANDE? `Preparando un archivo grande: ${fmt.format(nreg)} renglones, alrededor de ${fmt0.format(Math.max(1, nreg*0.19/1000))} MB. Puede tardar hasta un minuto…` : 'Preparando archivo…';
+const avisaPreparando = nreg => { $('dl-status').textContent = nreg>GRANDE? `Preparando un archivo grande: ${fmt.format(nreg)} renglones, alrededor de ${fmt0.format(Math.max(1, nreg*0.19/1000))} MB. Puede tardar hasta un minuto…` : 'Preparando archivo…'; };
+async function deliverTable(base, key, aoa, extra, mas){
+  const nreg = aoa.length - 1, cols = DIC[key].cols.concat(mas? mas.cols : []);
+  const st = $('dl-status'); avisaPreparando(nreg);
   if (window.SIA_LIBS && window.Worker){
-    try { const buf = await excelAparte(aoa, DIC[key].cols, dictAoa(key, nreg, base + '.xlsx', extra), propsExcel(base));
+    try { const buf = await excelAparte(aoa, cols, dictAoa(key, nreg, base + '.xlsx', extra, mas), propsExcel(base));
       await deliverBlob(base + '.xlsx', new Blob([buf], { type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })); return; }
     catch(e){ console.warn('Excel en proceso auxiliar no disponible; se genera en la página', e); }
   }
@@ -2090,18 +2117,18 @@ async function deliverTable(base, key, aoa, extra){
     st.textContent = (e && e.causa==='red')? 'Sin conexión para generar el Excel; se descarga en CSV.' : 'No se pudo cargar el programa que arma el Excel; se descarga en CSV.';
     const csv = aoa.map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '.csv', csv);
-    const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']]).map(r=>r.map(csvEsc).join(',')).join('\r\n');
+    const dic = dictAoa(key, nreg, base + '.csv', [...(extra||[]), ['Nota sobre el formato CSV', 'El código postal es un texto de 5 dígitos: al abrir el archivo en una hoja de cálculo, importar esa columna como texto para no perder los ceros iniciales.']], mas).map(r=>r.map(csvEsc).join(',')).join('\r\n');
     await deliver(base + '_diccionario.csv', dic);
     st.textContent = 'Descargado en CSV (dos archivos: listado y diccionario), porque no se pudo cargar el generador de Excel.';
     return;
   }
   const wb = X.utils.book_new(); wb.Props = propsExcel(base);
   const ws = X.utils.aoa_to_sheet(aoa);
-  ws['!cols'] = wch(DIC[key].cols);
+  ws['!cols'] = wch(cols);
   ws['!autofilter'] = { ref: X.utils.encode_range({ s:{r:0,c:0}, e:{r:Math.max(1,aoa.length-1), c:aoa[0].length-1} }) };
   ws['!freeze'] = { xSplit:'0', ySplit:'1', topLeftCell:'A2', activePane:'bottomLeft', state:'frozen' };
   X.utils.book_append_sheet(wb, ws, 'Datos');
-  const wd = X.utils.aoa_to_sheet(dictAoa(key, nreg, base + '.xlsx', extra));
+  const wd = X.utils.aoa_to_sheet(dictAoa(key, nreg, base + '.xlsx', extra, mas));
   wd['!cols'] = wch([26, 78, 46]);
   X.utils.book_append_sheet(wb, wd, 'Diccionario');
   const buf = X.write(wb, { bookType:'xlsx', type:'array', compression:true });
@@ -2119,6 +2146,43 @@ function prioExtra(){ const R = repStat(sel, selCol); const k = v => num(v.toFix
     ['De lo prioritario, km de frente sin arbolado', k(sumPrio(R.sa[0]))],
     ['De lo prioritario, km de frente sin arbolado y con banqueta (INEGI)', k(sumPrio(R.sb[0]))],
     ['Prioritario del ámbito, km de frente a cargo del Gobierno Central', k(sumPrio(R.km[1]))]]; }
+// ---------- espacios para plantar en las descargas (v1.25) ----------
+// Tres columnas al final de cada Excel (y tres propiedades en el GeoJSON y el KML): cepas vacantes, tocones y árboles muertos del
+// inventario de arbolado. Por frente de manzana, los puntos asignados a ese frente (ESP_FRN); por parte de vialidad primaria, los de sus
+// frentes del Gobierno Central y los del camellón (ESP_VPN); en los resúmenes por calle y por avenida, la suma de sus frentes o partes del
+// ámbito, de cualquier prioridad. Si el inventario no se ha bajado, se baja antes de armar el archivo (espCargar); si no llega, el archivo
+// sale sin esas columnas, el diccionario lo dice y la pantalla lo avisa: la descarga nunca se cae por el inventario.
+const ESP_COLS = ['cepas_vacantes', 'tocones', 'arboles_muertos'], ESP_ANCHOS = [15, 9, 16];
+const ESP_FILA = 'Espacios para plantar (inventario de arbolado)';
+async function espDescarga(){ if (!INV) return {ok:false, unico:true};
+  try { await espCargar(); return {ok:true}; } catch(e){ console.warn('descarga sin espacios para plantar', e); return {ok:false}; } }
+const espDeFrente = i => [ESP_FRN[3*i], ESP_FRN[3*i+1], ESP_FRN[3*i+2]];
+const espDeParte = i => [ESP_VPN[3*i], ESP_VPN[3*i+1], ESP_VPN[3*i+2]];
+const espSuma = (idx, de) => idx.reduce((a, i)=>{ const c = de(i); return [a[0]+c[0], a[1]+c[1], a[2]+c[2]]; }, [0,0,0]);
+// campos del diccionario; que: 'frente', 'tramo', 'calle' o 'avenida'
+function espCampos(que){ const d = INV.dist, dv = INV.vp.dist;
+  const donde = que==='frente'? `en este frente de manzana (puntos a ${d} m o menos del frente)`
+    : que==='tramo'? `que cuentan para esta parte del tramo: los de sus frentes de manzana a cargo del Gobierno Central (a ${d} m o menos) y los del camellón (puntos sin frente de manzana a ${dv} m o menos del eje)`
+    : que==='calle'? 'en todos los frentes de manzana de la calle en el ámbito, de cualquier prioridad (como frentes_total y km_total): suma de sus frentes'
+    : 'en todos los tramos de la avenida en el ámbito, de cualquier prioridad (como tramos_total y km_total): suma de sus partes, por sus frentes de manzana a cargo del Gobierno Central y en el camellón';
+  return [['cepas_vacantes', `Cepas vacantes del inventario de arbolado ${donde}. Ahí se puede plantar directo.`, 'Entero; 0 = ninguna registrada hasta el corte'],
+    ['tocones', `Tocones del inventario de arbolado ${donde}. Hay que retirar el tocón antes de plantar.`, 'Entero'],
+    ['arboles_muertos', `Árboles muertos del inventario de arbolado ${donde}. Requieren sustitución.`, 'Entero']]; }
+// renglón del diccionario: fuente, corte y regla de asignación, o por qué no vienen las columnas
+const espFilaDic = esp => [ESP_FILA, esp.ok
+  ? `Columnas cepas_vacantes, tocones y arboles_muertos. Fuente: Inventario de arbolado de la Ciudad de México, CIGA-UNAM y SEDEMA; en curso. Corte: ${INV.corte}. Regla de asignación: cada punto cuenta para el frente de manzana a ${INV.dist} m o menos; en vialidades primarias, también los del camellón (puntos sin frente de manzana) a ${INV.vp.dist} m o menos del eje. Un 0 puede ser un lugar que aún no se ha inventariado.`
+  : esp.unico? 'Esta copia (archivo único) no trae el inventario: sin columnas de espacios' : 'No se pudo cargar el inventario: sin columnas de espacios'];
+// aviso en pantalla cuando el archivo salió sin las columnas (solo si sí se entregó)
+function espAvisoDescarga(esp){ const st = $('dl-status'); if (esp.ok || !/^Descargado/.test(st.textContent)) return;
+  st.append(esp.unico? ' Va sin las columnas de espacios para plantar: esta copia no trae el inventario de arbolado.' : ' Va sin las columnas de espacios para plantar: no se pudo cargar el inventario de arbolado (revisa la conexión a internet).'); }
+// entrega una tabla con las tres columnas al final: ids[k] es el frente, la parte o la calle del renglón k+1 y cuenta(ids[k]) sus tres
+// conteos. El aviso de «Preparando…» sale antes de esperar al inventario (la persona ve de inmediato el tamaño del archivo).
+async function deliverConEsp(base, key, rows, extra, ids, cuenta, que){
+  avisaPreparando(rows.length - 1);
+  const esp = await espDescarga();
+  if (esp.ok){ rows[0].push(...ESP_COLS); ids.forEach((x, k)=> rows[k+1].push(...cuenta(x))); }
+  await deliverTable(base, key, rows, [...(extra||[]), espFilaDic(esp)], esp.ok? {campos:espCampos(que), cols:ESP_ANCHOS} : null);
+  espAvisoDescarga(esp); }
 $('dl-frentes').onclick = ()=>{
   if (sel===null) return;
   const rows=[['id_frente','prioridad','vialidad','tipo_vialidad','quien_atiende','colonia','colonia_catalogo','cp','prioridad_colonia','desarrollo_social_ids','unidad_territorial','poblacion_colonia','poblacion_pobreza_nbi','alcaldia','longitud_m','banqueta_inegi','lat','lon']];
@@ -2126,7 +2190,8 @@ $('dl-frentes').onclick = ()=>{
   idx.sort((a,b)=> F.prio[b]-F.prio[a] || (META.names[F.name[a]]||'').localeCompare(META.names[F.name[b]]||'') );
   for(const i of idx){ const c=META.colonias[F.col[i]]; rows.push([i, META.prio[F.prio[i]], nomFrente(i), META.tipos[F.tipo[i]], 'Alcaldía', c.n, c.cat||c.n, c.cp? c.cp.padStart(5,'0'):'', c.p>=0? META.prio[c.p]:'', c.ids||'', c.ut||'', c.n? (c.pob||0) : '', c.n? (c.nbi||0) : '', META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   const sn = idx.filter(sinNombreFr);
-  deliverTable(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows, [['Quién atiende todos los renglones', 'Alcaldía (los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen)'], ['Frentes sin nombre de calle (INEGI) en este archivo', sn.length], ['Km de esos frentes sin nombre de calle', num((sn.reduce((t,i)=>t+F.len[i],0)/1000).toFixed(2))], ...prioExtra()]);
+  deliverConEsp(`frentes_prioritarios_${scopeSlug()}`, 'frentes', rows, [['Quién atiende todos los renglones', 'Alcaldía (los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen)'], ['Frentes sin nombre de calle (INEGI) en este archivo', sn.length], ['Km de esos frentes sin nombre de calle', num((sn.reduce((t,i)=>t+F.len[i],0)/1000).toFixed(2))], ...prioExtra()],
+    idx, espDeFrente, 'frente');
 };
 $('dl-calle').onclick = ()=>{
   const c = calleSel(); if (!c) return;
@@ -2135,16 +2200,19 @@ $('dl-calle').onclick = ()=>{
   const idx=[...c.idx].sort((a,b)=> nt(a)-nt(b) || F.prio[b]-F.prio[a]);
   for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([i, META.prio[F.prio[i]], nomFrente(i), META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cat||k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.n? (k.pob||0) : '', k.n? (k.nbi||0) : '', META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], nt(i)||'', tr.has(i)? tramoTxt(tr.get(i)) : '', num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
-  deliverTable(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${filtroSlug()}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]]);
+  deliverConEsp(`frentes_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${filtroSlug()}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]],
+    idx, espDeFrente, 'frente');
 };
 $('dl-calles').onclick = ()=>{
   if (sel===null) return;
   const rows=[['vialidad','colonia','colonia_catalogo','cp','tipos_vialidad','alcaldia','frentes_total','frentes_muy_alta','frentes_alta','frentes_media','km_muy_alta','km_alta','km_media','km_prioritario','km_total']];
-  const items=[]; for(const s of streetIdx.values()){ if(!s.kmp) continue; const n=[0,0,0,0,0]; for(const i of s.idx) n[F.prio[i]]++;
+  const items=[], deCalle = new Map(); for(const s of streetIdx.values()){ if(!s.kmp) continue; const n=[0,0,0,0,0]; for(const i of s.idx) n[F.prio[i]]++;
     const c = s.col? META.colonias[s.col] : null;
-    items.push([META.names[s.nid], c? c.n : 'Colonia no identificada', c? (c.cat||c.n) : '', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, n[4], n[3], n[2], num(s.kp[4].toFixed(2)), num(s.kp[3].toFixed(2)), num(s.kp[2].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
+    const r = [META.names[s.nid], c? c.n : 'Colonia no identificada', c? (c.cat||c.n) : '', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, n[4], n[3], n[2], num(s.kp[4].toFixed(2)), num(s.kp[3].toFixed(2)), num(s.kp[2].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))];
+    items.push(r); deCalle.set(r, s); }
   items.sort((x,y)=> y[12]-x[12]); for(const r of items) rows.push(r);
-  deliverTable(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, [['Km de frente prioritario sin nombre de calle (INEGI), no incluidos en este resumen', num(sinNombre.kmp.toFixed(2))], ['Frentes prioritarios sin nombre de calle, no incluidos', sinNombre.np], ...prioExtra()]);
+  deliverConEsp(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, [['Km de frente prioritario sin nombre de calle (INEGI), no incluidos en este resumen', num(sinNombre.kmp.toFixed(2))], ['Frentes prioritarios sin nombre de calle, no incluidos', sinNombre.np], ...prioExtra()],
+    items.map(r=> deCalle.get(r)), s=> espSuma(s.idx, espDeFrente), 'calle');
 };
 $('dl-tramos').onclick = ()=>{
   const rows=[['id_tramo','prioridad','vialidad','nombre_red_vial','tipo','carriles','circulacion','alcaldia','alcaldia_capa','clave','longitud_m','quien_atiende','lat','lon']];
@@ -2152,14 +2220,15 @@ $('dl-tramos').onclick = ()=>{
   idx.sort((a,b)=> VP.prio[b]-VP.prio[a] || VPC.nomenclat[VP.nom[a]].localeCompare(VPC.nomenclat[VP.nom[b]],'es'));
   for(const i of idx){ rows.push([VP.rec[i], META.prio[VP.prio[i]], VPC.nomenclat[VP.nom[i]], VPC.nombres[VP.nombre[i]], VPC.tipos[VP.tipo[i]], VP.car[i], VPC.circula[VP.circ[i]], META.munNames[VP.mun[i]], VPC.alctxt[VP.alct[i]], VPC.claves[VP.clave[i]], VP.len[i], 'Gobierno Central', num(vpMid(i)[0].toFixed(6)), num(vpMid(i)[1].toFixed(6))]); }
   const nTramos = new Set(idx.map(i=>VP.rec[i])).size;
-  deliverTable(`tramos_prioritarios_vialidades_primarias_${scopeSlugVP()}`, 'tramos', rows, [['Tramos distintos (id_tramo)', nTramos], ...gcExtra()]);
+  deliverConEsp(`tramos_prioritarios_vialidades_primarias_${scopeSlugVP()}`, 'tramos', rows, [['Tramos distintos (id_tramo)', nTramos], ...gcExtra()], idx, espDeParte, 'tramo');
 };
 $('dl-avenidas').onclick = ()=>{
   const rows=[['vialidad','nombres_red_vial','tipos','alcaldias','tramos_total','tramos_prioritarios','km_muy_alta','km_alta','km_media','km_baja','km_muy_baja','km_prioritario','km_total']];
-  const items=[]; for(const [a,s] of avIdx){ if (selAv!==null && a!==selAv) continue; const km=[0,0,0,0,0]; for(const i of s.idx) km[VP.prio[i]]+=VP.len[i]/1000;
-    items.push([VPC.nomenclat[a], [...s.nombres].join('; '), [...s.tipos].join('; '), [...s.muns].map(m=>META.munNames[m]).join('; '), s.recs.size, s.recsp.size, num(km[4].toFixed(2)), num(km[3].toFixed(2)), num(km[2].toFixed(2)), num(km[1].toFixed(2)), num(km[0].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))]); }
+  const items=[], deAv = new Map(); for(const [a,s] of avIdx){ if (selAv!==null && a!==selAv) continue; const km=[0,0,0,0,0]; for(const i of s.idx) km[VP.prio[i]]+=VP.len[i]/1000;
+    const r = [VPC.nomenclat[a], [...s.nombres].join('; '), [...s.tipos].join('; '), [...s.muns].map(m=>META.munNames[m]).join('; '), s.recs.size, s.recsp.size, num(km[4].toFixed(2)), num(km[3].toFixed(2)), num(km[2].toFixed(2)), num(km[1].toFixed(2)), num(km[0].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))];
+    items.push(r); deAv.set(r, s); }
   items.sort((x,y)=> y[11]-x[11]); for(const r of items) rows.push(r);
-  deliverTable(`resumen_avenidas_prioritarias_${scopeSlugVP()}`, 'avenidas', rows, gcExtra());
+  deliverConEsp(`resumen_avenidas_prioritarias_${scopeSlugVP()}`, 'avenidas', rows, gcExtra(), items.map(r=> deAv.get(r)), s=> espSuma(s.idx, espDeParte), 'avenida');
 };
 
 document.fonts && document.fonts.ready.then(()=> rerender());
@@ -2174,38 +2243,45 @@ function geoSel(){ const fr=[], vp=[];
   if (respOn.gc && selCol===null) for(let i=0;i<NV;i++) if(esPrio(VP.prio[i]) && enAmbitoVP(i)) vp.push(i);
   return {fr, vp}; }
 const geoCoord = (A, k) => [+A[2*k].toFixed(6), +A[2*k+1].toFixed(6)];
-const geoFr = i => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', quien_atiende:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i] });
-const geoVp = i => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', quien_atiende:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i] });
+// conEsp: con las propiedades de espacios para plantar al final (cepas_vacantes, tocones, arboles_muertos), como las columnas del Excel
+const espProps = c => ({ cepas_vacantes:c[0], tocones:c[1], arboles_muertos:c[2] });
+const geoFr = (i, conEsp) => ({ id_frente:i, prioridad:META.prio[F.prio[i]], vialidad:nomFrente(i), tipo_vialidad:META.tipos[F.tipo[i]]||'', quien_atiende:'Alcaldía', colonia:(META.colonias[F.col[i]]||{}).n||'', alcaldia:META.munNames[F.mun[i]], longitud_m:F.len[i], ...(conEsp? espProps(espDeFrente(i)) : {}) });
+const geoVp = (i, conEsp) => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', quien_atiende:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i], ...(conEsp? espProps(espDeParte(i)) : {}) });
 // con las dos redes, cada filtro se declara para la red a la que aplica (la banqueta, solo a los frentes de las alcaldías)
 const geoConFr = () => respOn.alc && sel!==null, geoConVp = () => respOn.gc && selCol===null;
-const geoNota = () => `Modelo de priorización de reforestación urbana · ${ambitoGeo()} · prioridades Muy Alta, Alta y Media.${filtroEsp && geoConFr()? ' ' + espNota() : ''}${filtroEsp && geoConVp()? ' ' + espNotaVP() : ''} ${FUENTES}${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.`;
+// al final, la frase de los espacios para plantar (v1.25): fuente, corte y regla, o por qué no vienen las propiedades
+const geoEspTxt = esp => !esp? '' : esp.ok
+  ? ` Propiedades cepas_vacantes, tocones y arboles_muertos: Inventario de arbolado de la Ciudad de México, CIGA-UNAM y SEDEMA; en curso, corte: ${INV.corte}. Cada punto cuenta para el frente de manzana a ${INV.dist} m o menos; en vialidades primarias, también los del camellón (puntos sin frente de manzana) a ${INV.vp.dist} m o menos del eje.`
+  : esp.unico? ' Esta copia (archivo único) no trae el inventario: sin propiedades de espacios (cepas_vacantes, tocones, arboles_muertos).' : ' No se pudo cargar el inventario: sin propiedades de espacios (cepas_vacantes, tocones, arboles_muertos).';
+const geoNota = esp => `Modelo de priorización de reforestación urbana · ${ambitoGeo()} · prioridades Muy Alta, Alta y Media.${filtroEsp && geoConFr()? ' ' + espNota() : ''}${filtroEsp && geoConVp()? ' ' + espNotaVP() : ''} ${FUENTES}${respOn.gc && selCol!==null? ' Con una colonia elegida no se incluyen las vialidades primarias, que no se dividen por colonia: se descargan desde la alcaldía.' : ''} ${VERSION_TXT}.${geoEspTxt(esp)}`;
 const ambitoGeoBase = () => selCol!==null? `Colonia ${colNombre(selCol)}, ${META.munNames[sel]}` : selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ', '+META.munNames[sel] : '') : sel!==null? META.munNames[sel] : 'Ciudad de México';
 const ambitoGeo = () => ambitoGeoBase() + (hayFiltro() && geoConFr()? ' · ' + filtroTxt() : '') + (filtroEsp && geoConVp()? ' · ' + espTxtVP() : '');
 const xmlEsc = v => String(v??'').replace(/[<>&"']/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&apos;'}[c]));
-function geoJSON(g){ const f = [];
+function geoJSON(g, esp){ const f = [], e = !!(esp && esp.ok);
   const linea = (A, a, b) => { const c = []; for(let k=a;k<b;k++) c.push(geoCoord(A,k)); return c; };
-  for (const i of g.fr) f.push(JSON.stringify({type:'Feature', properties:geoFr(i), geometry:{type:'LineString', coordinates:linea(POS, start[i], start[i+1])}}));
-  for (const i of g.vp) f.push(JSON.stringify({type:'Feature', properties:geoVp(i), geometry:{type:'LineString', coordinates:linea(VPOS, vstart[i], vstart[i+1])}}));
-  return `{"type":"FeatureCollection","name":${JSON.stringify('Modelo de priorización de reforestación urbana · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota())},"features":[\n${f.join(',\n')}\n]}\n`; }
-function geoKML(g){ const kc = p => { const c = T.prio[p]; const h = v => v.toString(16).padStart(2,'0'); return 'ff' + h(c[2]) + h(c[1]) + h(c[0]); };   // KML: aabbggrr
+  for (const i of g.fr) f.push(JSON.stringify({type:'Feature', properties:geoFr(i, e), geometry:{type:'LineString', coordinates:linea(POS, start[i], start[i+1])}}));
+  for (const i of g.vp) f.push(JSON.stringify({type:'Feature', properties:geoVp(i, e), geometry:{type:'LineString', coordinates:linea(VPOS, vstart[i], vstart[i+1])}}));
+  return `{"type":"FeatureCollection","name":${JSON.stringify('Modelo de priorización de reforestación urbana · '+ambitoGeo())},"descripcion":${JSON.stringify(geoNota(esp))},"features":[\n${f.join(',\n')}\n]}\n`; }
+function geoKML(g, esp){ const e = !!(esp && esp.ok); const kc = p => { const c = T.prio[p]; const h = v => v.toString(16).padStart(2,'0'); return 'ff' + h(c[2]) + h(c[1]) + h(c[0]); };   // KML: aabbggrr
   const marca = (pr, p, A, a, b, ancho) => { let cs = ''; for(let k=a;k<b;k++){ const q = geoCoord(A,k); cs += q[0]+','+q[1]+',0 '; }
     return `<Placemark><name>${xmlEsc(pr.vialidad)}</name><styleUrl>#p${p}${ancho}</styleUrl><ExtendedData>${Object.entries(pr).map(([k,v])=>`<Data name="${k}"><value>${xmlEsc(v)}</value></Data>`).join('')}</ExtendedData><LineString><tessellate>1</tessellate><coordinates>${cs.trim()}</coordinates></LineString></Placemark>`; };
   const estilos = META.prio.map((_,p)=>p).filter(esPrio).map(p=> `<Style id="p${p}f"><LineStyle><color>${kc(p)}</color><width>3</width></LineStyle></Style><Style id="p${p}v"><LineStyle><color>${kc(p)}</color><width>5</width></LineStyle></Style>`).join('');
   const carpeta = (nombre, marcas) => marcas.length? `<Folder><name>${xmlEsc(nombre)}</name>\n${marcas.join('\n')}\n</Folder>\n` : '';
-  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Modelo de priorización de reforestación urbana · '+ambitoGeo())}</name><description>${xmlEsc(geoNota())}</description>${estilos}\n`
-    + carpeta('Frentes de manzana a cargo de la alcaldía (Muy Alta, Alta y Media)', g.fr.map(i=>marca(geoFr(i), F.prio[i], POS, start[i], start[i+1], 'f')))
-    + carpeta('Vialidades primarias a cargo del Gobierno Central (Muy Alta, Alta y Media)', g.vp.map(i=>marca(geoVp(i), VP.prio[i], VPOS, vstart[i], vstart[i+1], 'v')))
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2"><Document><name>${xmlEsc('Modelo de priorización de reforestación urbana · '+ambitoGeo())}</name><description>${xmlEsc(geoNota(esp))}</description>${estilos}\n`
+    + carpeta('Frentes de manzana a cargo de la alcaldía (Muy Alta, Alta y Media)', g.fr.map(i=>marca(geoFr(i, e), F.prio[i], POS, start[i], start[i+1], 'f')))
+    + carpeta('Vialidades primarias a cargo del Gobierno Central (Muy Alta, Alta y Media)', g.vp.map(i=>marca(geoVp(i, e), VP.prio[i], VPOS, vstart[i], vstart[i+1], 'v')))
     + '</Document></kml>\n'; }
 function geoDescarga(tipo){ const st = $('dl-status'); const g = geoSel(); const n = g.fr.length + g.vp.length;
   if (!n){ st.textContent = (respOn.alc && sel===null && !respOn.gc)? 'Elige una alcaldía o una colonia para descargar sus calles como mapa.' : 'Este ámbito no tiene calles de prioridad Muy Alta, Alta o Media que descargar.'; return; }
   // en teléfono un archivo de decenas de miles de líneas pesa demasiado: se pide acotar a una colonia (mismo criterio que el Excel)
   if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un teléfono. Elige una colonia o descárgalo desde una computadora.`; return; }
   st.textContent = n>GRANDE? `Preparando un archivo grande: ${fmt.format(n)} líneas, alrededor de ${fmt0.format(Math.max(1, n*(tipo==='kml'? 0.0006 : 0.00033)))} MB…` : 'Preparando archivo…';
-  setTimeout(()=>{ try {
-      const base = `calles_prioritarias_mapa_${g.fr.length? scopeSlug() : 'vialidades_primarias_'+scopeSlugVP()}`;
-      const blob = tipo==='kml'? new Blob([geoKML(g)], {type:'application/vnd.google-earth.kml+xml'}) : new Blob([geoJSON(g)], {type:'application/geo+json'});
-      deliverBlob(`${base}.${tipo==='kml'? 'kml' : 'geojson'}`, blob).then(()=>{ if (n>2000 && tipo==='kml') st.textContent += ` · ${fmt.format(n)} líneas. Google Earth lo abre completo; «Mis mapas» de Google admite hasta 2,000 por capa: para ese uso, descarga por colonia.`; });
-    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30); }
+  const base = `calles_prioritarias_mapa_${g.fr.length? scopeSlug() : 'vialidades_primarias_'+scopeSlugVP()}`;
+  // primero los conteos del inventario (si no llegan, el archivo sale sin esas propiedades y lo dice)
+  espDescarga().then(esp=> setTimeout(()=>{ try {
+      const blob = tipo==='kml'? new Blob([geoKML(g, esp)], {type:'application/vnd.google-earth.kml+xml'}) : new Blob([geoJSON(g, esp)], {type:'application/geo+json'});
+      deliverBlob(`${base}.${tipo==='kml'? 'kml' : 'geojson'}`, blob).then(()=>{ if (n>2000 && tipo==='kml') st.textContent += ` · ${fmt.format(n)} líneas. Google Earth lo abre completo; «Mis mapas» de Google admite hasta 2,000 por capa: para ese uso, descarga por colonia.`; espAvisoDescarga(esp); });
+    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30)); }
 $('dl-kml').onclick = ()=>geoDescarga('kml');
 $('dl-geojson').onclick = ()=>geoDescarga('geojson');
 

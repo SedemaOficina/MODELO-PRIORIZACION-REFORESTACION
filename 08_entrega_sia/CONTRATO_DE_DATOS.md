@@ -92,6 +92,8 @@ Un archivo por alcaldía (clave INEGI de 3 dígitos), con la misma envoltura, en
 
 **Desde la v1.24:** `inv_<cve>.bin` va en formato 2, con un campo más al final de cada punto (no en diferencias): la parte de vialidad primaria + 1 para los puntos del camellón (0 si no aplica). **`datos/inventario/espacios_vp.bin`** (formato 1): por cada parte de `vp.bin` con al menos un punto, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene. Cuenta un punto si está en un frente del Gobierno Central ligado a esa parte o, si no tiene frente a 20 m, si el eje de la parte está a 25 m o menos. Cifras de control en `RESUMEN.json` (`vialidades_con_espacio`) y huella de `vp.bin` (`vp_sha256`): si cambian las vialidades hay que volver a correr el script.
 
+**Desde la v1.25,** `espacios_frentes.bin` y `espacios_vp.bin` alimentan también las columnas `cepas_vacantes`, `tocones` y `arboles_muertos` de los Excel, el GeoJSON y el KML. Sus formatos no cambian.
+
 ## 7. Reglas que deben respetarse al sustituir datos
 
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.
