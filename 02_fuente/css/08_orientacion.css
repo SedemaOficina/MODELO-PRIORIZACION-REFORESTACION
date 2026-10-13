@@ -89,6 +89,15 @@
 @media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
 /* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css) */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
+/* ---------- fila «Espacio»: casillas como las de «Atiende»; si no caben en un renglón, pasan al siguiente sin cortarse ---------- */
+.esp-row[hidden],.esp-aviso[hidden]{display:none}
+.esp-row{align-items:flex-start}
+.esp-row .lab{padding-top:9px}
+.esp-row .chips{flex-wrap:wrap;row-gap:6px}
+.esp-row .chip{flex:none}
+.esp-aviso{margin:-4px 0 0;font-size:.75rem;line-height:1.35;color:var(--ink-2)}
+.esp-aviso.warn{color:var(--guinda-ink)}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .esp-row .chip{min-height:44px} .esp-row .lab{padding-top:15px} }
 /* «Atiende» y «Banqueta»: las dos filas, con la explicación de la banqueta elegida debajo */
 .filtros-ops{display:flex;flex-direction:column;gap:10px}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){ .filtros-ops{gap:8px} .query .filtros-ops .resp-row{margin-top:0} }

@@ -13,8 +13,8 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 
 | Verificación | Qué cuida | Duración aproximada |
 |---|---|---|
-| `03_procesamiento_datos/verificar_datos.py` | Que los datos sean los registrados y cuadren entre sí; del inventario de arbolado, que cada archivo sea el registrado, sus puntos por tipo las cifras de control y sus frentes los de `data.bin` | 10 s |
-| `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza, o si el inventario de arbolado no es el registrado o se asignó con otros frentes | 30 s |
+| `03_procesamiento_datos/verificar_datos.py` | Que los datos sean los registrados y cuadren entre sí; del inventario de arbolado, que cada archivo sea el registrado, sus puntos por tipo las cifras de control y sus frentes los de `data.bin`; del archivo del filtro «Espacio», sus cifras de control y un recálculo desde los puntos | 10 s |
+| `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza, o si el inventario de arbolado no es el registrado, se asignó con otros frentes o el archivo del filtro «Espacio» falta o no cuadra | 30 s |
 | ESLint (`npm run lint`) | Variables sin definir o sin usar en `docs/app.js` | 5 s |
 | `prueba_sin_terceros.js` | Que el sitio, el archivo único y la instalación en una subruta trabajen sin pedir nada a otros dominios | 2 min |
 | `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 6 min |
@@ -30,6 +30,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_nombres_mapa.js` | Nombres del mapa, gestos y búsqueda por coordenadas: nombres de alcaldía y colonia dentro de su figura, nombres de calle sobre la línea media, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta |
 | `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo, «Atiende» y «Banqueta» siempre a la vista; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) |
 | `prueba_inventario_espacios.js` | Espacios para plantar (inventario de arbolado): puntos por tipo de los datos publicados = cifras de control y recálculo propio (y el CSV del inventario, si está en el equipo), frente asignado a 20 m o menos y ninguno cerca de los que quedaron sin frente, capa que aparece al acercar y no de lejos (archivos con huella, solo de las alcaldías a la vista), casillas que encienden y apagan cada tipo (también con el teclado), ficha de una cepa que gana al frente de debajo (tipo, clave, calle, colonia, prioridad del frente, Street View), avance de la alcaldía, cifras del modelo sin cambios, celular de 390 px sin desborde ni encimados y sin errores | 6 min |
+| `prueba_filtro_espacio.js` | Filtro «Espacio» (cepa vacante, tocón, árbol muerto): archivo de tipos por frente = cifras de control y recálculo propio desde los puntos; cifras con las siete combinaciones (Tláhuac) y con cada tipo, los tres y «Con banqueta» (Iztapalapa) contra un recálculo propio; «Dónde empezar», Excel, GeoJSON, KML y ficha de una colonia con el filtro; todo igual al apagarlo; dirección (`e=`), «Reiniciar», Gobierno Central, aviso del inventario en curso, teclado y celular de 390 px | 1 min |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Lote de fichas de las alcaldías** (no es una prueba; vive aquí porque usa las mismas herramientas): `node 04_pruebas/generar_fichas_alcaldias.js` descarga, por alcaldía, la ficha de la alcaldía, la de vialidades primarias y la de la colonia con más frente prioritario, en `_local/fichas_alcaldias_vX.YY/`; `python 04_pruebas/unir_fichas.py CARPETA` (requiere `pypdf`) las une en `00_todas_las_fichas.pdf` y arma el zip. Unos 5 minutos.
@@ -151,4 +152,12 @@ node 04_pruebas/prueba_mapa_descargas.js
 
 ```
 node 04_pruebas/prueba_inventario_espacios.js
+```
+
+## Filtro «Espacio»
+
+`prueba_filtro_espacio.js` revisa la fila «Espacio» de la consulta, que deja solo los frentes de las alcaldías con al menos un punto del inventario de arbolado de los tipos elegidos. Con un decodificador propio lee `docs/datos/inventario/espacios_frentes.bin`, compara los frentes con cada tipo con las cifras de control de `RESUMEN.json` y los tipos de cada frente con un recálculo desde los puntos de `inv_<cve>.bin`. En el navegador recorre con las casillas las siete combinaciones en Tláhuac y abre Iztapalapa desde la dirección (`e=cv`, `e=to`, `e=am`, `e=cv,to,am`, también con `b=con`), y compara cifra, etiqueta y resumen del mapa con un recálculo propio (frentes prioritarios a cargo de la alcaldía con al menos un punto de esos tipos). Comprueba que al apagar todo la página queda exactamente como antes; «Dónde empezar»; el Excel, el GeoJSON, el KML y la ficha de una colonia con «Cepa vacante» (solo esos frentes, y lo declaran) y el Excel sin filtro; códigos desconocidos en `e=`; «Reiniciar»; Gobierno Central y las dos redes; el aviso del inventario en curso; el teclado; y en un celular de 390 px, casillas que caben sin cortarse, de 44 px, con `aria-pressed` y etiqueta de grupo. Al final imprime las cifras de control y los km prioritarios de Tláhuac e Iztapalapa con cada filtro.
+
+```
+node 04_pruebas/prueba_filtro_espacio.js
 ```

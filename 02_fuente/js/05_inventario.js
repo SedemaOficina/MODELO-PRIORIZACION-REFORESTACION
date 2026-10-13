@@ -1,6 +1,8 @@
 // Espacios para plantar: cepas vacantes, tocones y árboles muertos del inventario de arbolado (CIGA-UNAM y SEDEMA).
 // Es una capa de oportunidad ENCIMA del modelo: no cambia ninguna prioridad, cifra, lista ni descarga. Cada punto trae el frente de
 // manzana más cercano (a 20 m o menos), del que toma calle, colonia, alcaldía y prioridad para su ficha.
+// Aparte, el filtro «Espacio» (07_leyenda_y_capas.js, filtroEsp en 03_estado.js) sí acota cifras, listas y descargas cuando la persona lo
+// prende: usa espacios_frentes.bin (tipos de punto de cada frente), que se pide con espCargar() la primera vez que se usa.
 // Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
 // (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.
 // window.SIA_INVENTARIO (config.js) trae la huella de cada archivo, el corte, los puntos por tipo y el avance del inventario por alcaldía.
@@ -92,10 +94,29 @@ if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #i
 else { $('inv-corte').textContent = INV.corte;
   document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.onchange = ()=>{ invOn[+c.dataset.inv] = c.checked;
     if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
+// ---------- filtro «Espacio»: tipos de punto asignados a cada frente (todos los frentes, no solo los de la vista) ----------
+// espacios_frentes.bin: FORMATO, n y por frente con al menos un punto, el índice en diferencias y los tipos en bits (1 cepa, 2 tocón, 4 muerto).
+// Se pide una vez; si falla, se puede volver a pedir. Comprueba las cifras de control que trae config.js (INV.fr).
+let ESP_P = null;
+async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
+  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
+  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const formato = rv(), k = rv(); if (formato!==fr.formato || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
+  const A = new Uint8Array(N), cuenta = [0,0,0]; let f = -1;
+  for(let j=0;j<k;j++){ f += rv(); const bits = rv(); if (f<0 || f>=N || bits<1 || bits>7) throw new Error(n + ': frente ' + f); A[f] = bits; for(let t=0;t<3;t++) if (bits & (1<<t)) cuenta[t]++; }
+  if (rv.pos()!==b.length || cuenta.join()!==fr.tipos.join()) throw new Error(n + ': no cuadra con las cifras de control');
+  return A; }
+function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
+  if (!ESP_P) ESP_P = espLeer().then(A=>{ ESP_FR = A; return A; }, e=>{ ESP_P = null; throw e; });
+  return ESP_P; }
+// lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
+const espNota = ()=> `Solo frentes con al menos un punto de ${espLista()} a ${INV.dist} m o menos, según el ${INV.fuente}, corte: ${INV.corte}. El inventario está en curso: un frente sin puntos puede no haberse inventariado aún.`;
+
 // Solo para las pruebas automáticas (04_pruebas/prueba_inventario_espacios.js): con window.SIA_PRUEBA se puede leer el estado de la capa.
 if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo],
   puntos: cve=> (INVD.mz.get(cve) || []).map(p=>({...p, clave:invClave(p)})), z: ()=>invZ(), on: ()=>invOn.slice(),
   capas: ()=> dk.props.layers.filter(l=>l && l.id.startsWith('inv-')).map(l=>({id:l.id, n:l.props.data.length})),
   mide: async cve=>{ const t = performance.now(); const P = await invLeer(cve); return {ms: Math.round(performance.now()-t), n: P.length}; },
   px: (lon, lat)=> dk.getViewports()[0].project([lon, lat]), ficha: p=> showCard('inv', p),
-  frenteBajo: (x, y)=>{ const p = dk.pickObject({x, y, radius:6, layerIds:['fronts']}); return p && p.index>=0? frReal(p.index) : null; } };
+  frenteBajo: (x, y)=>{ const p = dk.pickObject({x, y, radius:6, layerIds:['fronts']}); return p && p.index>=0? frReal(p.index) : null; },
+  esp: ()=>({ cargado: !!ESP_FR, filtro: filtroEsp, casillas: espQuiero }) };

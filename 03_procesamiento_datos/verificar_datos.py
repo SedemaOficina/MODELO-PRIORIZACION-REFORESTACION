@@ -10,7 +10,9 @@ Gobierno Central a una parte existente y cuadre de kilómetros por prioridad ent
 
 Espacios para plantar (02_fuente/datos/inventario/, de 9_inventario_espacios.py): cada archivo es el registrado en su SUMAS.json,
 sus puntos por tipo y alcaldía son las cifras de control de RESUMEN.json, cada frente asignado existe y el inventario se asignó con
-el mismo data.bin (si no, hay que volver a correr 9_inventario_espacios.py).
+el mismo data.bin (si no, hay que volver a correr 9_inventario_espacios.py). El archivo del filtro «Espacio» (espacios_frentes.bin:
+tipos de punto de cada frente) es el registrado, trae las cifras de control de RESUMEN.json y coincide con un recálculo propio desde
+los puntos de los archivos por alcaldía.
 
 Uso:  python3 03_procesamiento_datos/verificar_datos.py               verifica; termina con código 1 si algo no coincide
       python3 03_procesamiento_datos/verificar_datos.py --actualizar  registra las sumas de los datos actuales (después de regenerarlos a propósito)
@@ -61,8 +63,10 @@ km = [0.0] * 5
 km_gc = [0.0] * 5
 n_gc = 0
 vp_max = -1
-for _ in range(N):
+gc_bits = bytearray(N)   # 1 = a cargo del Gobierno Central (para las cifras del filtro «Espacio»)
+for k in range(N):
     mun, prio, name, tipo, col, ln, flags, vp = (rv() for _ in range(8))
+    gc_bits[k] = (flags >> 6) & 1
     nv = rv()
     for _ in range(2 * nv):
         rv()
@@ -102,6 +106,7 @@ else:
     RES = json.load(open(os.path.join(INV, 'RESUMEN.json'), encoding='utf-8'))
     SUM_INV = json.load(open(os.path.join(INV, 'SUMAS.json'), encoding='utf-8'))
     malos, cuenta, fr_mal, fuera = [], [0, 0, 0], 0, 0
+    bits_pt = {}   # tipos por frente, recalculados desde los puntos (para revisar espacios_frentes.bin)
     for cve in META['muns']:
         n = 'inv_%s.bin' % cve
         ruta = os.path.join(INV, n)
@@ -114,14 +119,37 @@ else:
         for _ in range(npt):
             x += rv(); y += rv(); tipo = rv(); fr += rv(); rv(); rv(); rv()
             c[tipo] += 1
+            if fr > 0:
+                bits_pt[fr - 1] = bits_pt.get(fr - 1, 0) | (1 << tipo)
             fr_mal += not (0 <= fr <= N)
             fuera += not (-99.4 * 200000 < x < -98.9 * 200000 and 19.0 * 200000 < y < 19.65 * 200000)
         if rv.resto() or formato != RES.get('formato') or c != RES['por_alcaldia'][cve]['puntos']:
             malos.append(n)
         cuenta = [a + b for a, b in zip(cuenta, c)]
-    ok('inventario: cada archivo es el registrado y trae los puntos por tipo de su resumen', not malos and len(SUM_INV) == len(META['muns']), ', '.join(malos) or '%d alcaldías' % len(SUM_INV))
+    EF = RES.get('frentes_con_espacio') or {}
+    nef = EF.get('archivo', 'espacios_frentes.bin')
+    ok('inventario: cada archivo es el registrado y trae los puntos por tipo de su resumen', not malos and set(SUM_INV) == {'inv_%s.bin' % c for c in META['muns']} | {nef}, ', '.join(malos) or '%d alcaldías' % (len(SUM_INV) - 1))
     ok('inventario: puntos por tipo = cifras de control (cepas vacantes, tocones, árboles muertos)', cuenta == RES['puntos_por_tipo'], cuenta)
     ok('inventario: cada punto con frente apunta a un frente que existe y queda dentro de la ciudad', fr_mal == 0 and fuera == 0, '%d frentes inexistentes · %d fuera' % (fr_mal, fuera))
+    # filtro «Espacio»: índices crecientes de frentes que existen, tipos de 1 a 7, cifras de control y recálculo desde los puntos
+    ruta = os.path.join(INV, nef)
+    if not EF or not os.path.isfile(ruta) or hashlib.sha256(open(ruta, 'rb').read()).hexdigest() != SUM_INV.get(nef):
+        ok('filtro «Espacio»: %s es el registrado y RESUMEN.json trae sus cifras de control' % nef, False, 'correr 03_procesamiento_datos/9_inventario_espacios.py')
+    else:
+        rv = lector(gzip.decompress(open(ruta, 'rb').read()))
+        formato, nfr = rv(), rv()
+        bits, f, orden = {}, -1, True
+        for _ in range(nfr):
+            d, b = rv(), rv()
+            orden = orden and d > 0 and 1 <= b <= 7
+            f += d
+            bits[f] = b
+        gc = set(i for i in range(N) if gc_bits[i])
+        por_tipo = [sum(1 for b in bits.values() if b >> t & 1) for t in range(3)]
+        alc_tipo = [sum(1 for k, b in bits.items() if b >> t & 1 and k not in gc) for t in range(3)]
+        ok('filtro «Espacio»: %s se lee completo, en orden y con frentes que existen' % nef, not rv.resto() and formato == EF.get('formato') and orden and nfr == EF.get('frentes') and (not bits or max(bits) < N), '%d frentes' % nfr)
+        ok('filtro «Espacio»: frentes con cada tipo = cifras de control (cepa vacante, tocón, árbol muerto; total y a cargo de las alcaldías)', por_tipo == EF.get('por_tipo') and alc_tipo == EF.get('alcaldia_por_tipo'), '%s · alcaldías %s' % (por_tipo, alc_tipo))
+        ok('filtro «Espacio»: los tipos de cada frente = recálculo desde los puntos de los archivos por alcaldía', bits == bits_pt, '%d frentes' % len(bits_pt))
     if RES.get('frentes_sha256') != actual['data.bin']:
         aviso_inv.append('el inventario se asignó con otros frentes (data.bin cambió): volver a correr 03_procesamiento_datos/9_inventario_espacios.py')
 

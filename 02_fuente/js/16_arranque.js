@@ -6,7 +6,9 @@ fondoUI(fondo);   // botones y atribución del fondo con que abre (FONDO_INICIAL
 setSel('');
 setTab('ini');
 pantalla('info');   // la página se abre en la información
-// consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial
+// consulta indicada en la dirección (enlace compartido o recarga); después, cada cambio de consulta se anota en el historial.
+// Con el filtro «Espacio» en la dirección (e=), sus datos se esperan antes: así la página abre ya filtrada (si no llegan, lo avisa).
+if (INV && espDeTexto(new URLSearchParams(location.search).get('e'))) await espCargar().catch(()=>{});
 aplicarURL();
 // sin consulta en la dirección: se abre en la última alcaldía consultada; si es la primera visita, se pregunta el territorio
 let preguntaEntrada = false;

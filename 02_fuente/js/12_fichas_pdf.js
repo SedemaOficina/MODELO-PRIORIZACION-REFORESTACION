@@ -50,10 +50,10 @@ function fichaPDF(kind){
     : isAlc? `Ciudad de México · ${fmt.format(ntot)} frentes de manzana a cargo de la alcaldía · ${fmt0.format(tot)} km de frentes`
     : isVpAlc? `Ciudad de México · ${fmt.format(ntot)} tramos de vialidad primaria a cargo del Gobierno Central · ${fmt0.format(tot)} km`
     : `${redesTxt(av.nombres, 9)? redesTxt(av.nombres, 9)+' · ' : ''}${[...av.muns].map(m=>META.munNames[m]).join(', ')} · ${fmt1.format(tot)} km · ${fmt.format(ntot)} tramos`;
-  // con filtro de banqueta las cifras de la ficha son las filtradas: el subtítulo lo dice primero, para que no se corte
-  const subB = (isCol||isAlc) && filtroBanq!=='todas'? (filtroBanq==='con'? 'Solo con banqueta (INEGI 2020) · ' : 'Solo sin banqueta o por verificar (INEGI 2020) · ') : '';
+  // con filtro de banqueta o de espacio las cifras de la ficha son las filtradas: el subtítulo lo dice primero, para que no se corte
+  const subB = (isCol||isAlc) && hayFiltro()? filtroTxt().replace(/^solo frentes /, 'Solo ') + ' · ' : '';
   doc.text(cortaTxt(doc, subB + sub, W-2*M), M, 44);
-  const pk = isCol? c.p : isAlc? (filtroBanq!=='todas'? dom({km:cs.km}) : ALC_DOM[sel]) : isVpAlc? VP_DOM[sel] : dom({km:av.kmByP}); const pc = pk>=0? T.prio[pk] : GRIS;
+  const pk = isCol? c.p : isAlc? (hayFiltro()? dom({km:cs.km}) : ALC_DOM[sel]) : isVpAlc? VP_DOM[sel] : dom({km:av.kmByP}); const pc = pk>=0? T.prio[pk] : GRIS;
   doc.setFillColor(pc[0],pc[1],pc[2]); doc.setDrawColor(200,194,184); doc.setLineWidth(0.15); doc.circle(M+2, 51.2, 1.8, 'FD');
   const l1 = isCol? `Prioridad de la colonia: ${pk>=0? META.prio[pk]:'—'}` : `Prioridad predominante: ${META.prio[pk]} (${pct(cs.km[pk],tot)} de los ${isVpAv? 'km de la avenida' : isVP? 'km de vialidad primaria de la alcaldía' : 'km de frente de la alcaldía'})`;
   doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(l1, M+6, 52.5);
@@ -127,7 +127,7 @@ function fichaPDF(kind){
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...INK);
     const ug = sumPrio(R.km[1]);
     // el filtro de banqueta, si está activo, y el desglose por banqueta de los km prioritarios, siempre
-    const lsU = doc.splitTextToSize(`${filtroBanq!=='todas'? 'Consulta filtrada: '+banqTxt()+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente prioritario sobre vialidades primarias ${isCol?'de la colonia':'de la alcaldía'}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
+    const lsU = doc.splitTextToSize(`${hayFiltro()? 'Consulta filtrada: '+filtroTxt()+'. ' : ''}${filtroEsp? 'Inventario en curso, corte: '+INV.corte+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente prioritario sobre vialidades primarias ${isCol?'de la colonia':'de la alcaldía'}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
     doc.text(lsU, M, y+2, {lineHeightFactor:1.25});
     y += 16 + Math.max(0, lsU.length-3)*4.4; }
   doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
@@ -169,7 +169,7 @@ function fichaPDF(kind){
     ? `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. Prioridad predominante = categoría con más kilómetros. Las vialidades primarias y de acceso controlado corresponden al Gobierno de la Ciudad de México. Fuentes: SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); modelo de priorización del Sistema de Información Ambiental. La meta se mide sobre los ${fmt.format(Math.round(VPC.cov.km_total))} km de la red primaria completa. Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`
     : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX). Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`;
   doc.text(doc.splitTextToSize(fuentes, W-2*M), M, 258);
-  const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(colNombre(selCol))}${banqSlug()}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}${banqSlug()}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}_toda_la_ciudad.pdf`;
+  const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(colNombre(selCol))}${filtroSlug()}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}${filtroSlug()}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}_toda_la_ciudad.pdf`;
   deliverBlob(fname, doc.output('blob'));
 }
 // ---------- ficha de calle (red de las alcaldías) ----------
@@ -206,7 +206,7 @@ function fichaCallePDF(){
   const kw=(W-2*M-8)/3; let y=58;
   kp.forEach((k,i)=>{ const x=M+i*(kw+4); doc.setFillColor(...PANEL); doc.setDrawColor(...LINE); doc.roundedRect(x,y,kw,20,2,2,'FD'); doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(k[0], x+4, y+9); doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GRIS); doc.text(doc.splitTextToSize(k[1], kw-8), x+4, y+14); });
   doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GUINDA);
-  doc.text(doc.splitTextToSize(`${filtroBanq!=='todas'? 'Consulta filtrada: '+banqTxt()+'. ' : ''}Banqueta (INEGI): ${fmt.format(banq)} de ${fmt.format(ntot)} frentes registran banqueta; el espacio de plantación se verifica en campo. Cada frente es un lado de la calle frente a una manzana.`, W-2*M).slice(0,2), M, 80.6, {lineHeightFactor:1.2});
+  doc.text(doc.splitTextToSize(`${hayFiltro()? 'Consulta filtrada: '+filtroTxt()+(filtroEsp? ', corte: '+INV.corte : '')+'. ' : ''}Banqueta (INEGI): ${fmt.format(banq)} de ${fmt.format(ntot)} frentes registran banqueta; el espacio de plantación se verifica en campo. Cada frente es un lado de la calle frente a una manzana.`, W-2*M).slice(0,2), M, 80.6, {lineHeightFactor:1.2});
   // barras + mapa
   y=90.5; const colW=(W-2*M)*0.46;
   doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS); doc.text('KILÓMETROS POR PRIORIDAD EN LA CALLE', M, y);
@@ -255,7 +255,7 @@ function fichaCallePDF(){
   // pie
   doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
   doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
-  deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${banqSlug()}.pdf`, doc.output('blob'));
+  deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${filtroSlug()}.pdf`, doc.output('blob'));
 }
 $('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf')
   .then(()=> generaFicha(fichaCallePDF), e=>{ const st = $('dl-status'); if (e && e.causa==='sesion') avisoSesion(st); else st.textContent = 'No se pudo cargar el generador de PDF. Revisa tu conexión e inténtalo de nuevo.'; });

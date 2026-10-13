@@ -30,7 +30,7 @@ let anuncioT = null;
 function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
-  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); invNota(); rerender(); if (!keepView) flyTo(scopeView());
+  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); invNota(); espAviso(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito(); rotuloInfo();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
@@ -52,13 +52,15 @@ let usoUlt = '', usoT = null;
 function usoConsulta(){ if (!USO_URL || restaurando || locSel) return; clearTimeout(usoT);
   usoT = setTimeout(()=>{ if (sel===null && selAv===null) return; const a = ambitoUso(), k = JSON.stringify(a); if (k===usoUlt) return; usoUlt = k; avisaUso({ evento:'consulta', ...a }); }, 1500); }
 // ---------- la consulta queda en la dirección ----------
-// r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida, b = banqueta (con | sin). Atrás y Adelante recorren las consultas,
+// r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida, b = banqueta (con | sin), e = espacio (cv, to, am separados
+// por coma: cepa vacante, tocón, árbol muerto; un código desconocido se ignora). Atrás y Adelante recorren las consultas,
 // la consulta sobrevive a una recarga y la dirección se puede compartir.
-function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v','b'].forEach(k=>p.delete(k));
+function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v','b','e'].forEach(k=>p.delete(k));
   if (resp!=='alc') p.set('r', resp);
   if (filtroBanq!=='todas' && resp!=='gc') p.set('b', filtroBanq);
+  if (filtroEsp && resp!=='gc') p.set('e', espCodigo());
   if (selCol!==null) p.set('c', selCol); else { if (sel!==null) p.set('a', META.muns[sel]); if (selAv!==null) p.set('v', selAv); }
-  const q = p.toString(); return location.pathname + (q? '?'+q : '') + location.hash; }
+  const q = p.toString().replace(/%2C/g, ','); return location.pathname + (q? '?'+q : '') + location.hash; }
 // La última alcaldía y la red consultadas se recuerdan en este navegador: la siguiente visita abre ahí. No son datos personales.
 const CLAVE_INICIO = 'cp_inicio';
 const leeInicio = ()=>{ try { return localStorage.getItem(CLAVE_INICIO); } catch(e){ return null; } };
@@ -75,6 +77,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
     else if (p.has('v') && r==='gc' && Number.isInteger(v) && v>0 && VPC.nomenclat[v]){ if (sel!==m){ sel=m; selEl.value = m===null? '' : String(m); } if (selAv!==v) pickAvenida(v); else refresh(); }
     else if (sel!==m || selCol!==null || selAv!==null){ selEl.value = m===null? '' : String(m); setSel(selEl.value); }
     const b = p.get('b')==='con' || p.get('b')==='sin'? p.get('b') : 'todas'; if (b!==filtroBanq) setBanq(b);
+    const e = espDeTexto(p.get('e')); if (e!==espQuiero) setEspacio(e);
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
 function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;

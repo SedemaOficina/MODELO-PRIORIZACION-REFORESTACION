@@ -33,8 +33,8 @@ const SIN_NOMBRE = 'Frente sin nombre de calle (INEGI)';
 const sinNombreFr = i => PLACEHOLDER.has(F.name[i]) || !META.names[F.name[i]];
 const nomFrente = i => sinNombreFr(i)? SIN_NOMBRE : META.names[F.name[i]];
 // frentes de alcaldía sin colonia asignada: no aparecen en ninguna consulta por colonia
-let SINCOL = null, SINCOL_B = null;   // se rehace al cambiar el filtro de banqueta
-const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroBanq){ SINCOL_B = filtroBanq; SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaBanq(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
+let SINCOL = null, SINCOL_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio
+const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroClave()){ SINCOL_B = filtroClave(); SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
 const sinColStat = () => sel!==null? sinColBase()[sel] : sinColBase().reduce((t,s)=>({n:t.n+s.n, km:t.km+s.km, kmp:t.kmp+s.kmp}), {n:0,km:0,kmp:0});
 // ---------- ubicar una calle cuyo nombre se repite ----------
 // Sin alcaldía ni colonia elegidas, un nombre que existe en varias colonias no se responde con cifras:
@@ -115,7 +115,7 @@ function filasColonias(ul, ord){
   $('ini-count').textContent = `${fmt.format(items.length)} colonia${items.length===1?'':'s'}, ${o.tit}`;
   const sc = sinColStat();
   iniNota(o.nota, sc.n? `Además, ${fmt.format(sc.n)} frentes (${kmFull(sc.km)}; ${kmFull(sc.kmp)} prioritarios) ${sel===null? 'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo y no aparecen en esta lista. Sí se cuentan en las cifras de la alcaldía y en su Excel de frentes.` : '');
-  if(!items.length) return iniVacio(ul, ord==='pl' && filtroBanq==='sin'? 'Este orden cuenta solo frentes con banqueta y el filtro de banqueta muestra los que no la tienen: elige otro orden o la opción «Todas» de Banqueta.' : 'Este ámbito no tiene colonias con frente prioritario.');
+  if(!items.length) return iniVacio(ul, ord==='pl' && filtroBanq==='sin'? 'Este orden cuenta solo frentes con banqueta y el filtro de banqueta muestra los que no la tienen: elige otro orden o la opción «Todas» de Banqueta.' : filtroEsp? `Ninguna colonia de este ámbito tiene frentes prioritarios con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : 'Este ámbito no tiene colonias con frente prioritario.');
   items.slice(0,iniN).forEach(([i,s,c],k)=>{ const tot=sum(s.km);
     const [v,sm] = ord==='pct'? [pct(s.kmp,tot), `${kmFull(s.kmp)} de ${kmFull(tot)} de frente`]
       : ord==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]
@@ -184,7 +184,7 @@ function filasAlcaldias(ul){
   $('ini-title').textContent = isGC()? 'Alcaldías por kilómetros prioritarios de vialidad primaria' : 'Alcaldías por kilómetros de frente prioritario';
   $('ini-count').textContent = `${META.muns.length} alcaldías de la ciudad`;
   iniNota(isGC()? 'Kilómetros de vialidad primaria de prioridad Muy Alta, Alta y Media en cada alcaldía, medidos sobre el eje. Dice dónde se concentra la necesidad; no es una calificación. Selecciona una alcaldía para ver sus avenidas.'
-    : `Kilómetros de frente de prioridad Muy Alta, Alta y Media a cargo de cada alcaldía. Dice dónde se concentra la necesidad; no es una calificación.${filtroBanq!=='todas'? ' Esta lista no aplica el filtro de banqueta.' : ''} Selecciona una alcaldía para ver sus colonias.`);
+    : `Kilómetros de frente de prioridad Muy Alta, Alta y Media a cargo de cada alcaldía. Dice dónde se concentra la necesidad; no es una calificación.${filtroBanq!=='todas' && filtroEsp? ' Esta lista no aplica los filtros de banqueta ni de espacio.' : filtroBanq!=='todas'? ' Esta lista no aplica el filtro de banqueta.' : filtroEsp? ' Esta lista no aplica el filtro de espacio.' : ''} Selecciona una alcaldía para ver sus colonias.`);
   items.slice(0,iniN).forEach((i,k)=>{ const s=summOf(i), tot=sum(s.km), d=domOf(i);
     ul.appendChild(iniFila(k+1, META.munNames[i], `Prioridad predominante ${META.prio[d]} · ${pct(kmPrio(s),tot)} de ${isGC()? 'sus km de vialidad primaria':'sus km de frente'} es prioritario`, kmFull(kmPrio(s)),
       isGC()? `${fmt.format(VP_RECS[i].rp.size)} de ${fmt.format(VP_RECS[i].r.size)} tramos prioritarios` : `${fmt.format(sumPrio(s.n))} frentes prioritarios`, ()=>{ selEl.value=String(i); setSel(String(i)); }, T.prio[d])); });

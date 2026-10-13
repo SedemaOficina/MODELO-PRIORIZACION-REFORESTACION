@@ -1,5 +1,5 @@
 // Corre todas las verificaciones, una tras otra, y da una sola señal: código 0 si todo pasó.
-// Uso: node 04_pruebas/correr_todas.js          todas (unos 22 minutos sin tarjeta gráfica)
+// Uso: node 04_pruebas/correr_todas.js          todas (unos 23 minutos sin tarjeta gráfica)
 //      node 04_pruebas/correr_todas.js rapidas  solo las que no abren el navegador (menos de un minuto)
 const cp = require('child_process'), path = require('path'), fs = require('fs');
 const RAIZ = path.join(__dirname, '..'); const py = process.platform === 'win32' ? 'python' : 'python3';
@@ -10,7 +10,7 @@ const RAPIDAS = [
   ['construcción', py, ['04_pruebas/prueba_construccion.py']],
   ['revisión estática (ESLint)', fs.existsSync(eslint) ? process.execPath : null, [eslint, 'docs/app.js']],
 ];
-const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js']
+const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js']
   .map(f => [f.replace('prueba_', '').replace('.js', '').replace(/_/g, ' '), process.execPath, ['04_pruebas/' + f]]);
 const lista = process.argv[2] === 'rapidas' ? RAPIDAS : RAPIDAS.concat(NAVEGADOR); const res = [];
 for (const [nombre, cmd, args] of lista) {

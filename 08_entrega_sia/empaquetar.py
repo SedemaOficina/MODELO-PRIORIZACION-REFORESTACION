@@ -82,6 +82,12 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     ajenos = [l.split('  ')[1] for l in lineas if not re.match(r'^(index\.html|app\.js|estilos\.css|config\.js|sw\.js|\.nojekyll|datos/|libs/|fuentes/|img/)', l.split('  ')[1])]
     if ajenos:
         sys.exit('ERROR: el sitio trae archivos que no se esperaban: ' + ', '.join(ajenos))
+    # el inventario de arbolado va completo: los archivos por alcaldía (capa «Espacios para plantar») y el del filtro «Espacio»
+    inv = json.load(open(os.path.join(t, '02_fuente', 'datos', 'inventario', 'SUMAS.json'), encoding='utf-8'))
+    en_sitio = {l.split('  ')[1] for l in lineas}
+    faltan = [n for n in sorted(inv) if 'datos/inventario/' + n not in en_sitio] + ([] if 'espacios_frentes.bin' in inv else ['espacios_frentes.bin'])
+    if faltan:
+        sys.exit('ERROR: al sitio le faltan archivos del inventario de arbolado: ' + ', '.join(faltan))
 
     # 2. inicio de sesión: pantalla de acceso y, con la estructura del repositorio sia-backend, el módulo (src/modulos/),
     #    su SQL (db/) y la herramienta de la primera cuenta (herramientas/). Sin pruebas, demostraciones ni package.json:

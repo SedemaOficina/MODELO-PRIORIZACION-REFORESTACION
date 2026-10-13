@@ -1,4 +1,4 @@
-// Leyenda-filtro por prioridad, fila "Atiende" (alcaldías / Gobierno Central) y casillas de capas.
+// Leyenda-filtro por prioridad, filas "Atiende" (alcaldías / Gobierno Central), "Banqueta" y "Espacio", y casillas de capas.
 // ---------- leyenda-filtro ----------
 const lg = $('legend-rows');
 META.prio.slice().reverse().forEach((p, ri)=>{
@@ -27,6 +27,7 @@ function setResp(v, sinRefresh){
   respOn.alc = v!=='gc'; respOn.gc = v!=='alc';
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
+  $('esp-row').hidden = v==='gc' || !INV;   // el espacio también (y el archivo único no trae el inventario)
   if (resp===v) return; resp=v;
   document.body.dataset.resp = v;
   if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; }
@@ -49,6 +50,30 @@ function setBanq(v){ if (v!=='con' && v!=='sin') v = 'todas'; if (filtroBanq===v
   banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v)));
   highlight = null; hideCard(); refresh(); }   // la calle resaltada se arma con el filtro anterior: se suelta
 banqBtns.forEach(b=>{ b.onclick = ()=> setBanq(b.dataset.banq); });
+
+// ---------- fila «Espacio»: frentes con cepa vacante, tocón o árbol muerto del inventario de arbolado; ver filtroEsp en 03_estado.js ----------
+// Tres casillas independientes, como «Atiende»: todas apagadas = sin filtro; con una o varias, los frentes que tienen al menos un punto de
+// alguno de esos tipos. Se combina con «Banqueta». La primera vez se piden los datos (espCargar): las casillas cambian al instante y las
+// cifras cuando llegan; espQuiero es lo que marcan las casillas y filtroEsp lo que ya se aplica.
+const espBtns = document.querySelectorAll('button[data-esp]');
+let espQuiero = 0;
+const espBotones = ()=> espBtns.forEach(b=> b.setAttribute('aria-pressed', String(!!(espQuiero & (1<<+b.dataset.esp)))));
+function setEspacio(m){ m = INV? (m & 7) : 0; espQuiero = m; espBotones();
+  if (m && !ESP_FR){ espAviso('carga');
+    espCargar().then(()=>{ if (espQuiero===m) setEspacio(m); }, e=>{ console.warn('filtro de espacio', e); if (espQuiero!==m) return; espQuiero = filtroEsp; espBotones(); espAviso(e); });
+    return; }
+  if (filtroEsp===m){ espAviso(); return; }
+  filtroEsp = m; espAviso(); highlight = null; hideCard(); refresh(); }   // como con la banqueta, la calle resaltada se suelta
+espBtns.forEach(b=>{ b.onclick = ()=> setEspacio(espQuiero ^ (1<<+b.dataset.esp)); });
+// aviso bajo la fila mientras el filtro está activo: el inventario está en curso (corte y registros de la alcaldía consultada)
+function espAviso(estado){ const n = $('esp-aviso'); if (!n) return; n.classList.toggle('warn', !!(estado && estado!=='carga'));
+  if (estado==='carga'){ n.hidden = false; n.textContent = 'Cargando el inventario de arbolado…'; return; }
+  if (estado){ n.hidden = false; if (estado.sesion) avisoSesion(n); else n.textContent = 'No fue posible cargar el inventario de arbolado para el filtro (revisa la conexión a internet).'; return; }
+  n.hidden = !filtroEsp || resp==='gc'; if (n.hidden){ n.textContent = ''; return; }
+  const cve = sel!==null? META.muns[sel] : null, reg = cve? (INV.avance[cve]||0) : Object.values(INV.avance).reduce((s,a)=>s+a, 0);
+  n.textContent = `El filtro solo incluye lo inventariado hasta ${INV.corte} (inventario en curso); ${cve? 'en esta alcaldía' : 'en toda la ciudad'} van ${fmt.format(reg)} registros.`; }
+function espReinicia(){ espQuiero = filtroEsp = 0; espBotones(); espAviso(); }
+if (!INV) $('esp-row').hidden = true;
 
 const LAY = { alc: ()=>showAlcB, col: ()=>showColB, fr: ()=>showFrB };
 function setLayer(k, v){ if(k==='alc') showAlcB=v; else if(k==='col') showColB=v; else showFrB=v; document.querySelector(`.seg.lvl button[data-lvl="${k}"]`).setAttribute('aria-pressed', String(v)); }
@@ -74,4 +99,4 @@ function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone(
 addEventListener('resize', ajustaEscala);
 function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
 document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
-$('reset-all').onclick = ()=>{ invReinicia(); opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); notaFiltro(); if (fondo!=='no') setFondo(FONDO_INICIAL); selEl.value=''; setSel(''); };
+$('reset-all').onclick = ()=>{ invReinicia(); espReinicia(); opPrio=1; $('op-prio').value=100; $('op-val').textContent='100 %'; setResp('alc'); setLayer('alc',false); setLayer('col',true); setLayer('fr',true); for(let k=0;k<5;k++) visible[k]=true; document.querySelectorAll('.legend .row').forEach(r=>{ r.classList.remove('off'); r.setAttribute('aria-checked','true'); }); buildFilter(); buildVP(); notaFiltro(); if (fondo!=='no') setFondo(FONDO_INICIAL); selEl.value=''; setSel(''); };

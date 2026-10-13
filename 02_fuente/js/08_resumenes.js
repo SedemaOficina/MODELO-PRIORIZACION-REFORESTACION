@@ -1,7 +1,7 @@
 // Estadísticas por colonia, avenida y ámbito; cifras principales, barras por prioridad y textos de contexto del panel.
 // estadísticas por colonia (frentes a cargo de la alcaldía)
-let COLSTAT = null, COLSTAT_B = null;   // se rehace al cambiar el filtro de banqueta
-function colStat(id){ if(!COLSTAT || COLSTAT_B!==filtroBanq){ COLSTAT = new Map(); COLSTAT_B = filtroBanq; for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if(esPrio(p)){ s.kmp+=k; s.np++; }
+let COLSTAT = null, COLSTAT_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio
+function colStat(id){ if(!COLSTAT || COLSTAT_B!==filtroClave()){ COLSTAT = new Map(); COLSTAT_B = filtroClave(); for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if(esPrio(p)){ s.kmp+=k; s.np++; }
       if (esPrio(p) && (fl&7)===1 && ((fl>>3)&7)===0) s.pl+=k; } }   // pl: prioritario sin arbolado y con banqueta (INEGI), igual que repStat()
   return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; }
 // estadísticas por avenida (NOMENCLAT), toda la ciudad, calculadas una vez
@@ -26,9 +26,9 @@ function vpSumm(){ const s={n:[0,0,0,0,0],km:[0,0,0,0,0],recs:new Set(),recsp:ne
 // total (km), sin arbolado (sa) y sin arbolado con banqueta registrada por INEGI (sb). Con colonia manda la colonia, igual que enAmbito().
 const REP_CACHE = new Map();
 function repStat(mun, col){
-  const key = mun+'|'+col+'|'+filtroBanq; let r = REP_CACHE.get(key); if (r) return r;
+  const key = mun+'|'+col+'|'+filtroClave(); let r = REP_CACHE.get(key); if (r) return r;
   r = {km:[[0,0,0,0,0],[0,0,0,0,0]], sa:[[0,0,0,0,0],[0,0,0,0,0]], sb:[[0,0,0,0,0],[0,0,0,0,0]]};
-  for(let i=0;i<N;i++){ if ((col!==null? F.col[i]!==col : (mun!==null && F.mun[i]!==mun)) || !pasaBanq(i)) continue;
+  for(let i=0;i<N;i++){ if ((col!==null? F.col[i]!==col : (mun!==null && F.mun[i]!==mun)) || !pasaBanq(i) || !pasaEspacio(i)) continue;
     const g=F.gc[i], p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; r.km[g][p]+=k;
     if ((fl&7)===1){ r.sa[g][p]+=k; if (((fl>>3)&7)===0) r.sb[g][p]+=k; } }
   if (REP_CACHE.size>40) REP_CACHE.clear(); REP_CACHE.set(key, r); return r; }
@@ -82,7 +82,7 @@ const partTxt = (i, gc) => pct(kmPrio((gc? VPC.summ : META.summ)[META.muns[i]]),
 const top2Txt = (S, tot) => { const o = META.muns.map((m,i)=>[i, kmPrio(S[m])]).sort((a,b)=>b[1]-a[1]);
   return `${META.munNames[o[0][0]]} y ${META.munNames[o[1][0]]} concentran ${pct(o[0][1]+o[1][1], tot)} de los km prioritarios de la ciudad.`; };
 function frSumm(){
-  if (selCol!==null || filtroBanq!=='todas'){ const s={n:[0,0,0,0,0], km:[0,0,0,0,0]}; for(let i=0;i<N;i++){ if(F.gc[i] || !enAmbito(i)) continue; const p=F.prio[i], k=F.len[i]/1000; s.n[p]++; s.km[p]+=k; } return s; }
+  if (selCol!==null || hayFiltro()){ const s={n:[0,0,0,0,0], km:[0,0,0,0,0]}; for(let i=0;i<N;i++){ if(F.gc[i] || !enAmbito(i)) continue; const p=F.prio[i], k=F.len[i]/1000; s.n[p]++; s.km[p]+=k; } return s; }
   return sel===null? CITY : META.summ[META.muns[sel]];
 }
 // Desglose por banqueta de los km prioritarios a cargo de la alcaldía en el territorio consultado, SIN importar el filtro:
@@ -117,7 +117,7 @@ function renderSummary(){
   const fs = frSumm(); const nprioF = sumPrio(fs.n);
   const emptyCol = selCol!==null && sum(fs.n)===0;  // colonia sin frentes a cargo de la alcaldía
   const EMPTY_MSG = 'Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. Puede ser una unidad habitacional o un predio sin vía pública propia.';
-  const kFr = emptyCol? `<div class="kpi-empty"><b>Sin frentes a cargo de la alcaldía</b>${EMPTY_MSG.replace('Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. ','')}</div>` : kpiHtml(fs, {nprio:nprioF, l1:`de frente prioritario ${amb}<br>(Muy Alta, Alta y Media)${filtroBanq!=='todas'? '<br><b class="banq-tag">'+banqTxt()+'</b>' : ''}`, l2:`de frentes ${amb}`, l3:`frentes prioritarios ${amb}`+(sel!==null && selCol===null && filtroBanq==='todas'? '<br>'+partTxt(sel,false):'')});
+  const kFr = emptyCol? `<div class="kpi-empty"><b>Sin frentes a cargo de la alcaldía</b>${EMPTY_MSG.replace('Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. ','')}</div>` : kpiHtml(fs, {nprio:nprioF, l1:`de frente prioritario ${amb}<br>(Muy Alta, Alta y Media)${hayFiltro()? '<br><b class="banq-tag">'+filtroTxt()+'</b>' : ''}`, l2:`de frentes ${amb}`, l3:`frentes prioritarios ${amb}`+(sel!==null && selCol===null && !hayFiltro()? '<br>'+partTxt(sel,false):'')});
   const vs = (resp!=='alc')? vpSumm() : null;
   const ambV = selAv!==null? (sel===null? 'de la avenida en toda la ciudad' : 'de la avenida dentro de la alcaldía') : sel===null? 'de vialidad primaria de la ciudad' : 'de vialidad primaria de la alcaldía';
   const ambV1 = selAv!==null? (sel===null? 'de la avenida' : 'de la avenida en la alcaldía') : sel===null? 'de la ciudad' : 'de la alcaldía';
@@ -154,7 +154,7 @@ function renderSummary(){
         <div class="st opt"><b>${fmt.format(vs.recsp.size)}</b><small>tramos prioritarios ${scV2}</small></div>`;
     } else if (resp==='both'){
       // en una colonia no hay cifra de vialidades primarias: se muestra su población en su lugar
-      stats = `<div class="st"><b>${kmTxt(kmPrio(fs))}</b><small>${kmUn(kmPrio(fs))} de frente prioritarios · a cargo de la Alcaldía${filtroBanq==='con'? ' · con banqueta' : filtroBanq==='sin'? ' · sin banqueta o por verificar' : ''}</small></div>
+      stats = `<div class="st"><b>${kmTxt(kmPrio(fs))}</b><small>${kmUn(kmPrio(fs))} de frente prioritarios · a cargo de la Alcaldía${filtroCorto()}</small></div>
         ${selCol!==null? '' : `<div class="st opt"><b>${kmTxt(kmPrio(vs))}</b><small>${kmUn(kmPrio(vs))} de vialidad prioritarios · a cargo del Gob. Central</small></div>`}
         <div class="st opt"><b>${habC(selCol!==null? (META.colonias[selCol].pob||0) : P.p)}</b><small>${selCol!==null? 'habitantes de la colonia' : 'habitantes en colonias prioritarias'}</small></div>`;
     } else if (emptyCol){
@@ -162,7 +162,7 @@ function renderSummary(){
         <div class="st opt"><b>${habC(META.colonias[selCol].pob||0)}</b><small>habitantes de la colonia</small></div>`;
     } else {
       const t2 = sum(fs.km);
-      stats = `<div class="st"><b>${kmTxt(kmPrio(fs))}</b><small>${kmUn(kmPrio(fs))} prioritarios de frente${filtroBanq==='con'? ' · con banqueta' : filtroBanq==='sin'? ' · sin banqueta o por verificar' : ''}</small></div>
+      stats = `<div class="st"><b>${kmTxt(kmPrio(fs))}</b><small>${kmUn(kmPrio(fs))} prioritarios de frente${filtroCorto()}</small></div>
         <div class="st opt"><b>${pct(kmPrio(fs),t2)}</b><small>de ${kmFull(t2)} de frentes ${amb}</small></div>
         <div class="st opt"><b>${habC(selCol!==null? (META.colonias[selCol].pob||0) : P.p)}</b><small>${selCol!==null? 'habitantes de la colonia' : 'habitantes en colonias prioritarias'}</small></div>`;
     }

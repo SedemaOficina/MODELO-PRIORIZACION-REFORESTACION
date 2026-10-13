@@ -6,6 +6,7 @@ Trabaja sobre copias en una carpeta temporal: no toca la carpeta del proyecto.
 Uso:  python3 04_pruebas/prueba_construccion.py     · termina con código 1 si algo falla. Requiere únicamente Python 3.
 """
 import hashlib
+import json
 import os
 import shutil
 import subprocess
@@ -110,6 +111,24 @@ def inventario_de_otros_frentes(t):
 
 
 debe_fallar('inventario asignado con otros frentes (data.bin cambió): se detiene y no escribe nada', inventario_de_otros_frentes)
+
+
+def espacio_sin_cuadrar(t):
+    r = F(t, 'datos', 'inventario', 'RESUMEN.json')
+    res = json.load(open(r, encoding='utf-8'))
+    res['frentes_con_espacio']['por_tipo'][0] += 1
+    open(r, 'w', encoding='utf-8').write(json.dumps(res, ensure_ascii=False))
+
+
+debe_fallar('filtro «Espacio»: tipos por frente que no cuadran con sus cifras de control: se detiene y no escribe nada', espacio_sin_cuadrar)
+def espacio_sin_registro(t):
+    r = F(t, 'datos', 'inventario', 'SUMAS.json')
+    sumas = json.load(open(r, encoding='utf-8'))
+    del sumas['espacios_frentes.bin']
+    open(r, 'w', encoding='utf-8').write(json.dumps(sumas))
+
+
+debe_fallar('filtro «Espacio»: falta espacios_frentes.bin en el registro: se detiene y no escribe nada', espacio_sin_registro)
 debe_fallar('claves.local.json mal escrito: se detiene con un mensaje claro', lambda t: open(F(t, 'claves.local.json'), 'w', encoding='utf-8').write('{"ESRI_KEY": "x"'))
 # claves guardadas con el Bloc de notas o PowerShell 5.1 (con BOM): se leen, y se avisa que quedarán públicas en docs/
 t = copia()

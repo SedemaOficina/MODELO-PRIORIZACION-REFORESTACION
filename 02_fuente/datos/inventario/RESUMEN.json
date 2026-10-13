@@ -28,6 +28,22 @@
   9545
  ],
  "sin_frente": 5597,
+ "frentes_con_espacio": {
+  "archivo": "espacios_frentes.bin",
+  "formato": 1,
+  "frentes": 29090,
+  "por_tipo": [
+   19398,
+   9261,
+   6625
+  ],
+  "frentes_alcaldia": 26563,
+  "alcaldia_por_tipo": [
+   17785,
+   8368,
+   6043
+  ]
+ },
  "claves_repetidas": 0,
  "distancia_m": {
   "mediana": 2.4,

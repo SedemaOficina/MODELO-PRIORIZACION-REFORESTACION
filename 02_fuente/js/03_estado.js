@@ -41,9 +41,27 @@ let filtroBanq = 'todas';   // 'todas' | 'con' | 'sin'
 const conBanq = i => ((F.flags[i]>>3)&7)===0;
 const pasaBanq = i => filtroBanq==='todas' || (filtroBanq==='con') === conBanq(i);
 const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.mun[i]===sel);
-const enAmbito = i => enTerritorio(i) && pasaBanq(i);
+// Espacio: frentes con al menos un punto del inventario de arbolado (a 20 m o menos) de los tipos elegidos. filtroEsp guarda los tipos en
+// bits (1 cepa vacante, 2 tocón, 4 árbol muerto; 0 = sin filtro); ESP_FR (Uint8Array de N) trae los tipos de cada frente y lo carga
+// espCargar() (05_inventario.js) la primera vez que se pide el filtro: filtroEsp solo cambia cuando ESP_FR ya está. Igual que la banqueta,
+// forma parte del filtro único y se combina con ella. El inventario está en curso: donde no hay puntos puede que aún no se haya inventariado.
+let filtroEsp = 0, ESP_FR = null;
+const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
+const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
+const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
 // texto que acompaña al ámbito cuando el filtro de banqueta está activo
 const banqTxt = () => filtroBanq==='con'? 'solo frentes con banqueta (INEGI 2020)' : filtroBanq==='sin'? 'solo frentes sin banqueta o por verificar (INEGI 2020)' : '';
+// tipos elegidos en «Espacio», en palabras: «cepa vacante», «cepa vacante o tocón», «cepa vacante, tocón o árbol muerto»
+const espLista = (m = filtroEsp) => { const n = ESP_TIPOS.filter((_, t)=> m & (1<<t)).map(e=>e.n); return n.length<2? n.join('') : n.slice(0,-1).join(', ') + ' o ' + n[n.length-1]; };
+// en la dirección (e=cv,to,am) y en el registro de usos; un código desconocido se ignora
+const espCodigo = (m = filtroEsp) => ESP_TIPOS.filter((_, t)=> m & (1<<t)).map(e=>e.k).join(',');
+const espDeTexto = t => String(t||'').split(/[\s,.;_-]+/).reduce((m, k)=>{ const t2 = ESP_TIPOS.findIndex(e=>e.k===k.toLowerCase()); return t2<0? m : m | (1<<t2); }, 0);
+const espTxt = () => filtroEsp?`solo frentes con ${espLista()} (inventario de arbolado)` : '';
+// los dos filtros juntos: lo dicen las cifras, el resumen del mapa, los archivos y las fichas; con los dos apagados, nada cambia
+const hayFiltro = () => filtroBanq!=='todas' || filtroEsp!==0;
+const filtroTxt = () => filtroBanq!=='todas' && filtroEsp? `${banqTxt()} y con ${espLista()} (inventario de arbolado)` : banqTxt() || espTxt();
+const filtroCorto = () => (filtroBanq==='con'? ' · con banqueta' : filtroBanq==='sin'? ' · sin banqueta o por verificar' : '') + (filtroEsp? ' · con ' + espLista() : '');
+const filtroClave = () => filtroBanq + '|' + filtroEsp;   // las cifras guardadas en caché se rehacen al cambiar cualquiera de los dos
 function buildColors(){
   for(let i=0;i<N;i++){ const c=T.prio[F.prio[i]]; const a = enAmbito(i)? 255 : 38; for(let k=start[i];k<start[i+1];k++){ const o=4*k; COLORS[o]=c[0]; COLORS[o+1]=c[1]; COLORS[o+2]=c[2]; COLORS[o+3]=a; } }
   COLORS = COLORS.slice(0);
