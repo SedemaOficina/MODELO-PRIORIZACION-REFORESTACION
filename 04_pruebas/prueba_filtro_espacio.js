@@ -123,9 +123,9 @@ const kpi = (e, exp) => e.kpis.length > 0 && e.kpis[0].v.replace(/\s+/g, '').sta
     ok('apagado, el Excel de la colonia trae todos sus frentes prioritarios, sin el filtro en el nombre ni en el diccionario', !!x && X.datos.length - 1 === RC0.n && !/_con_/.test(x.nombre) && !X.dic.some(r => r[0] === 'Filtro «Espacio»') && !/inventario/.test((X.dic.find(r => r[0] === 'Ámbito consultado') || [])[1] || ''), `${X.datos.length - 1} vs ${RC0.n} · ${x && x.nombre}`); }
 
   // ---------- 6) «Reiniciar», Gobierno Central y las dos redes ----------
-  await ir(page, `&a=${M.muns[TLA]}&e=cv,am`);
+  await ir(page, `&a=${M.muns[TLA]}&b=con&e=cv,am`);
   await page.$eval('#reset-all', b => b.click()); await page.waitForTimeout(900); e = await L.estado(page);
-  ok('«Reiniciar» apaga el filtro: casillas apagadas, sin aviso y sin «e=» en la dirección', (await casillas()).every(v => !v) && !(await aviso()).vis && !/[?&]e=/.test(e.url) && await page.evaluate(() => window.__INV.esp().filtro === 0), e.url.replace(srv.url, ''));
+  ok('«Reiniciar» apaga los dos filtros: casillas de espacio apagadas, banqueta en «Todas», sin aviso y sin «e=» ni «b=» en la dirección', (await casillas()).every(v => !v) && !(await aviso()).vis && !/[?&][eb]=/.test(e.url) && await page.evaluate(() => window.__INV.esp().filtro === 0 && document.querySelector('button[data-banq="todas"]').getAttribute('aria-pressed') === 'true'), e.url.replace(srv.url, ''));
   await ir(page, `&r=gc&a=${M.muns[IZT]}&e=cv`);
   ok('con Gobierno Central la fila «Espacio» y su aviso no se muestran, y la dirección no lleva el filtro', await page.evaluate(() => document.getElementById('esp-row').hidden && document.getElementById('esp-aviso').hidden) && !/[?&]e=/.test(page.url()));
   await ir(page, `&r=both&a=${M.muns[IZT]}&e=cv`); e = await L.estado(page);
