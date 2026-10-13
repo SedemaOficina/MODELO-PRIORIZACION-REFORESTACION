@@ -70,7 +70,10 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
   await request(app).post(API + '/contrasena').set('Origin', ORIGEN).set('Cookie', cu).send({ actual: temp, nueva: 'jacarandas en la banqueta' });
   assert.equal((await request(app).get(API + '/sesion').set('Cookie', cu)).status, 204);
   const uso = d => request(app).post(API + '/uso').set('Origin', ORIGEN).set('Cookie', cu).set('Content-Type', 'text/plain;charset=UTF-8').send(JSON.stringify(d));
-  assert.equal((await uso({ evento: 'consulta', red: 'alc', alcaldia: 'Iztapalapa', banqueta: 'con' })).status, 204);
+  assert.equal((await uso({ evento: 'consulta', red: 'alc', alcaldia: 'Iztapalapa', banqueta: 'con', espacio: 'cv,am' })).status, 204);
+  { const c = await pool.query("SELECT detalle FROM priorizacion_reforestacion.bitacora WHERE evento = 'consulta' ORDER BY id DESC LIMIT 1");
+    const dc = typeof c.rows[0].detalle === 'string' ? JSON.parse(c.rows[0].detalle) : c.rows[0].detalle;
+    assert.equal(dc.espacio, 'cv,am', 'el filtro «Espacio» se guarda en el registro de usos'); assert.equal(dc.banqueta, 'con'); }
   assert.equal((await uso({ evento: 'descarga', tipo: 'excel_frentes', archivo: 'frentes_prioritarios_iztapalapa_con_banqueta_20261005.xlsx', alcaldia: 'Iztapalapa' })).status, 204);
   assert.equal((await uso({ evento: 'descarga', tipo: 'ficha_pdf', alcaldia: 'Coyoacán', colonia: '<script>x</script>' })).status, 204);
   assert.equal((await uso({ evento: 'borrar_todo' })).status, 400, 'solo eventos conocidos');

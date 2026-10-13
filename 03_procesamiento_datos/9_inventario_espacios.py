@@ -20,17 +20,18 @@ Sale en 02_fuente/datos/inventario/ (construir.py lo publica en docs/datos/inven
                                   dfr         frente asignado + 1 (0 = sin frente a DIST m), en diferencias
                                   dpre, duga, dnum   clave del inventario AAA-000-0000 (letras como número en base 26, uga y
                                               consecutivo), en diferencias
-  espacios_frentes.bin          para el filtro «Espacio» de la herramienta: qué tipos de punto tiene asignados cada frente de manzana
-                                (todos los frentes, desde el arranque). Mismo formato: FORMATO_FR, n (frentes con al menos un punto) y,
-                                por frente, en orden de índice:
+  espacios_frentes.bin          para el filtro «Espacio» y el orden «más cepas vacantes» de «Dónde empezar»: cuántos puntos de cada
+                                tipo tiene asignados cada frente de manzana (todos los frentes). Mismo formato: FORMATO_FR (2), n (frentes
+                                con al menos un punto) y, por frente, en orden de índice:
                                   dfr         índice del frente en data.bin, en diferencias respecto al anterior (el primero, respecto a -1)
-                                  bits        tipos asignados: bit 0 cepa vacante, bit 1 tocón, bit 2 árbol muerto (1 a 7)
+                                  cv, to, am  puntos asignados de cada tipo: cepas vacantes, tocones y árboles muertos (al menos uno > 0)
+                                (el formato 1, hasta la v1.22, traía solo los tipos en bits)
   SUMAS.json                    SHA-256 de cada archivo (construir.py los compara)
   RESUMEN.json                  corte, cifras de control (puntos por tipo y alcaldía; las revisa verificar_datos.py), avance del
                                 inventario por alcaldía (registros totales, árboles vivos incluidos), distancias y la huella del
                                 contenido de data.bin con que se asignaron los frentes (si data.bin cambia, hay que volver a correr esto);
                                 en «frentes_con_espacio», las cifras de control de espacios_frentes.bin (frentes con cada tipo, en total
-                                y a cargo de las alcaldías)
+                                y a cargo de las alcaldías, y puntos de cada tipo asignados a frentes, en total y a cargo de las alcaldías)
 
 Cuando llegue el inventario completo: reemplazar el CSV (mismo nombre o ruta en INVENTARIO_ARBOLADO_CSV), ajustar INVENTARIO_CORTE,
 correr este script, luego python 03_procesamiento_datos/verificar_datos.py y python 02_fuente/construir.py.
@@ -59,7 +60,7 @@ CSV_RUTA = os.environ.get('INVENTARIO_ARBOLADO_CSV') or CSV_OMISION
 CORTE = os.environ.get('INVENTARIO_CORTE') or 'septiembre de 2026'
 FUENTE = 'Inventario de arbolado de la Ciudad de México (CIGA-UNAM y SEDEMA)'
 FORMATO = 1
-FORMATO_FR = 1                    # espacios_frentes.bin (ESP_FORMATO en 05_inventario.js)
+FORMATO_FR = 2                    # espacios_frentes.bin: puntos por tipo de cada frente (1, hasta la v1.22: solo los tipos en bits)
 ARCHIVO_FR = 'espacios_frentes.bin'
 DIST = 20.0                       # metros: más lejos, el punto queda sin frente
 ESCALA = 200_000                  # 1/200,000 de grado ≈ 0.55 m (la misma de datos/fondo/; INV_ESCALA en 05_inventario.js)
@@ -232,25 +233,28 @@ for cve in META['muns']:
     archivos[nombre] = datos
     control[cve] = cuenta
 
-# ---------- tipos por frente (filtro «Espacio»): un renglón por frente con al menos un punto asignado ----------
-bits_fr = {}
+# ---------- puntos por tipo de cada frente (filtro «Espacio» y orden por cepas): un renglón por frente con al menos un punto ----------
+cuenta_fr = {}
 for i, pt in enumerate(puntos):
     f = int(frente[i])
     if f >= 0:
-        bits_fr[f] = bits_fr.get(f, 0) | (1 << pt[2])
+        cuenta_fr.setdefault(f, [0, 0, 0])[pt[2]] += 1
 e = Escritor()
 e.v(FORMATO_FR)
-e.v(len(bits_fr))
+e.v(len(cuenta_fr))
 anterior = -1
-for f in sorted(bits_fr):
+for f in sorted(cuenta_fr):
     e.v(f - anterior)
-    e.v(bits_fr[f])
+    for c in cuenta_fr[f]:
+        e.v(c)
     anterior = f
 nombre, datos = e.guarda(ARCHIVO_FR)
 archivos[nombre] = datos
-fr_tipo = [sum(1 for b in bits_fr.values() if b >> t & 1) for t in range(3)]
-fr_tipo_alc = [sum(1 for f, b in bits_fr.items() if b >> t & 1 and not gc_fr[f]) for t in range(3)]
-fr_alc = sum(1 for f in bits_fr if not gc_fr[f])
+fr_tipo = [sum(1 for c in cuenta_fr.values() if c[t]) for t in range(3)]
+fr_tipo_alc = [sum(1 for f, c in cuenta_fr.items() if c[t] and not gc_fr[f]) for t in range(3)]
+fr_alc = sum(1 for f in cuenta_fr if not gc_fr[f])
+pt_tipo = [sum(c[t] for c in cuenta_fr.values()) for t in range(3)]                          # = puntos con frente de los inv_<cve>.bin
+pt_tipo_alc = [sum(c[t] for f, c in cuenta_fr.items() if not gc_fr[f]) for t in range(3)]
 
 # ---------- reporte ----------
 nom = dict(zip(META['muns'], META['munNames']))
@@ -277,10 +281,11 @@ for cve in sorted(META['muns'], key=lambda c: nom[c]):
     print('%-24s %9s %7s %7s %7s %10s %7.0f' % (nom[cve], format(registros.get(cve, 0), ','), format(c[0], ','), format(c[1], ','), format(c[2], ','), format(int((m & ~con).sum()), ','), kb))
 total_bytes = sum(len(b) for b in archivos.values())
 print('%-24s %9s %7s %7s %7s %10s %7.0f' % ('Total', format(sum(registros.values()), ','), *[format(sum(control[c][t] for c in control), ',') for t in range(3)], format(int((~con).sum()), ','), sum(len(b) for k, b in archivos.items() if k != ARCHIVO_FR) / 1024))
-print('\nFiltro «Espacio» (%s, %.1f KB): %s frentes con al menos un punto (%s a cargo de las alcaldías)'
-      % (ARCHIVO_FR, len(archivos[ARCHIVO_FR]) / 1024, format(len(bits_fr), ','), format(fr_alc, ',')))
+print('\nFiltro «Espacio» y orden por cepas (%s, %.1f KB): %s frentes con al menos un punto (%s a cargo de las alcaldías)'
+      % (ARCHIVO_FR, len(archivos[ARCHIVO_FR]) / 1024, format(len(cuenta_fr), ','), format(fr_alc, ',')))
 for t, nt in enumerate(NOMBRE_TIPO):
-    print('  frentes con %-14s %7s · a cargo de las alcaldías: %7s' % (nt.lower(), format(fr_tipo[t], ','), format(fr_tipo_alc[t], ',')))
+    print('  frentes con %-14s %7s · a cargo de las alcaldías: %7s · puntos: %7s (a cargo de las alcaldías: %7s)'
+          % (nt.lower(), format(fr_tipo[t], ','), format(fr_tipo_alc[t], ','), format(pt_tipo[t], ','), format(pt_tipo_alc[t], ',')))
 
 # ---------- escritura: hasta aquí nada se había escrito ----------
 os.makedirs(SALIDA, exist_ok=True)
@@ -299,8 +304,9 @@ resumen = {
     'registros_por_tipo': {k: por_tipo_csv[k] for k in sorted(por_tipo_csv)},
     'puntos_por_tipo': [int((tipo_arr == t).sum()) for t in range(3)],
     'sin_frente': int((~con).sum()),
-    'frentes_con_espacio': {'archivo': ARCHIVO_FR, 'formato': FORMATO_FR, 'frentes': len(bits_fr), 'por_tipo': fr_tipo,
-                            'frentes_alcaldia': fr_alc, 'alcaldia_por_tipo': fr_tipo_alc},
+    'frentes_con_espacio': {'archivo': ARCHIVO_FR, 'formato': FORMATO_FR, 'frentes': len(cuenta_fr), 'por_tipo': fr_tipo,
+                            'frentes_alcaldia': fr_alc, 'alcaldia_por_tipo': fr_tipo_alc,
+                            'puntos_por_tipo': pt_tipo, 'puntos_alcaldia_por_tipo': pt_tipo_alc},
     'claves_repetidas': duplicadas,
     'distancia_m': {'mediana': round(float(np.percentile(dd, 50)), 2), 'p75': round(float(np.percentile(dd, 75)), 2), 'p90': round(float(np.percentile(dd, 90)), 2)},
     'por_alcaldia': {cve: {'nombre': nom[cve], 'registros': registros.get(cve, 0), 'puntos': control[cve],

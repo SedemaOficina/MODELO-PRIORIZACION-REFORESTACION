@@ -121,6 +121,16 @@ def espacio_sin_cuadrar(t):
 
 
 debe_fallar('filtro «Espacio»: tipos por frente que no cuadran con sus cifras de control: se detiene y no escribe nada', espacio_sin_cuadrar)
+
+
+def cepas_sin_cuadrar(t):
+    r = F(t, 'datos', 'inventario', 'RESUMEN.json')
+    res = json.load(open(r, encoding='utf-8'))
+    res['frentes_con_espacio']['puntos_por_tipo'][0] += 1
+    open(r, 'w', encoding='utf-8').write(json.dumps(res, ensure_ascii=False))
+
+
+debe_fallar('orden por cepas: puntos por tipo de los frentes que no cuadran con sus cifras de control: se detiene y no escribe nada', cepas_sin_cuadrar)
 def espacio_sin_registro(t):
     r = F(t, 'datos', 'inventario', 'SUMAS.json')
     sumas = json.load(open(r, encoding='utf-8'))

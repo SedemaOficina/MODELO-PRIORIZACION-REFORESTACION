@@ -2,7 +2,8 @@
 // Es una capa de oportunidad ENCIMA del modelo: no cambia ninguna prioridad, cifra, lista ni descarga. Cada punto trae el frente de
 // manzana más cercano (a 20 m o menos), del que toma calle, colonia, alcaldía y prioridad para su ficha.
 // Aparte, el filtro «Espacio» (07_leyenda_y_capas.js, filtroEsp en 03_estado.js) sí acota cifras, listas y descargas cuando la persona lo
-// prende: usa espacios_frentes.bin (tipos de punto de cada frente), que se pide con espCargar() la primera vez que se usa.
+// prende: usa espacios_frentes.bin (puntos de cada tipo por frente), que se pide con espCargar() la primera vez que se usa. El mismo
+// archivo da las cepas vacantes por frente (ESP_CV) del orden «más cepas vacantes» de «Dónde empezar» (09_listados.js).
 // Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
 // (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.
 // window.SIA_INVENTARIO (config.js) trae la huella de cada archivo, el corte, los puntos por tipo y el avance del inventario por alcaldía.
@@ -12,7 +13,7 @@ const INV_ESCALA = 200000, INV_Z = 15, INV_Z_LIGERO = 16;   // coordenadas en 1/
 const INV_TIPOS = [
   {id:'cepa', n:'Cepa vacante', pl:'Cepas vacantes', que:'Se puede plantar directo'},
   {id:'tocon', n:'Tocón', pl:'Tocones', que:'Hay que retirar el tocón antes de plantar'},
-  {id:'muerto', n:'Árbol muerto', pl:'Árboles muertos', que:'Requiere derribo y reposición'}];
+  {id:'muerto', n:'Árbol muerto', pl:'Árboles muertos', que:'Requiere sustitución'}];
 const INV_CAPAS = ['inv-cepa', 'inv-tocon', 'inv-muerto'];   // las capas que se pueden tocar (una por tipo)
 const invOn = [true, true, true];                            // casillas del panel de capas
 const INVD = {mz:new Map(), pend:new Set(), fallo:new Set(), cache:null};
@@ -94,20 +95,23 @@ if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #i
 else { $('inv-corte').textContent = INV.corte;
   document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.onchange = ()=>{ invOn[+c.dataset.inv] = c.checked;
     if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
-// ---------- filtro «Espacio»: tipos de punto asignados a cada frente (todos los frentes, no solo los de la vista) ----------
-// espacios_frentes.bin: FORMATO, n y por frente con al menos un punto, el índice en diferencias y los tipos en bits (1 cepa, 2 tocón, 4 muerto).
-// Se pide una vez; si falla, se puede volver a pedir. Comprueba las cifras de control que trae config.js (INV.fr).
+// ---------- filtro «Espacio» y orden por cepas: puntos de cada tipo asignados a cada frente (todos los frentes, no solo los de la vista) ----------
+// espacios_frentes.bin (formato 2): FORMATO, n y por frente con al menos un punto, el índice en diferencias y cuántas cepas vacantes,
+// tocones y árboles muertos tiene. De ahí salen ESP_FR (tipos en bits: 1 cepa, 2 tocón, 4 muerto; el filtro) y ESP_CV (cepas vacantes; el
+// orden de «Dónde empezar»). Se pide una vez; si falla, se puede volver a pedir. Comprueba las cifras de control de config.js (INV.fr).
 let ESP_P = null;
 async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
   const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
   const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
-  const formato = rv(), k = rv(); if (formato!==fr.formato || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
-  const A = new Uint8Array(N), cuenta = [0,0,0]; let f = -1;
-  for(let j=0;j<k;j++){ f += rv(); const bits = rv(); if (f<0 || f>=N || bits<1 || bits>7) throw new Error(n + ': frente ' + f); A[f] = bits; for(let t=0;t<3;t++) if (bits & (1<<t)) cuenta[t]++; }
-  if (rv.pos()!==b.length || cuenta.join()!==fr.tipos.join()) throw new Error(n + ': no cuadra con las cifras de control');
-  return A; }
+  const formato = rv(), k = rv(); if (formato!==fr.formato || formato!==2 || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
+  const A = new Uint8Array(N), CV = new Uint16Array(N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
+  for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=N) throw new Error(n + ': frente ' + f); let bits = 0;
+    for(let t=0;t<3;t++){ const c = rv(); if (c<0 || c>65535) throw new Error(n + ': frente ' + f); if (c){ bits |= 1<<t; frentes[t]++; puntos[t] += c; } if (t===0) CV[f] = c; }
+    if (!bits) throw new Error(n + ': frente ' + f + ' sin puntos'); A[f] = bits; }
+  if (rv.pos()!==b.length || frentes.join()!==fr.tipos.join() || puntos.join()!==fr.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
+  return {A, CV}; }
 function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
-  if (!ESP_P) ESP_P = espLeer().then(A=>{ ESP_FR = A; return A; }, e=>{ ESP_P = null; throw e; });
+  if (!ESP_P) ESP_P = espLeer().then(d=>{ ESP_FR = d.A; ESP_CV = d.CV; return d; }, e=>{ ESP_P = null; throw e; });
   return ESP_P; }
 // lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
 const espNota = ()=> `Solo frentes con al menos un punto de ${espLista()} a ${INV.dist} m o menos, según el ${INV.fuente}, corte: ${INV.corte}. El inventario está en curso: un frente sin puntos puede no haberse inventariado aún.`;
@@ -119,4 +123,4 @@ if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()]
   mide: async cve=>{ const t = performance.now(); const P = await invLeer(cve); return {ms: Math.round(performance.now()-t), n: P.length}; },
   px: (lon, lat)=> dk.getViewports()[0].project([lon, lat]), ficha: p=> showCard('inv', p),
   frenteBajo: (x, y)=>{ const p = dk.pickObject({x, y, radius:6, layerIds:['fronts']}); return p && p.index>=0? frReal(p.index) : null; },
-  esp: ()=>({ cargado: !!ESP_FR, filtro: filtroEsp, casillas: espQuiero }) };
+  esp: ()=>({ cargado: !!ESP_FR, filtro: filtroEsp, casillas: espQuiero, cepas: ESP_CV? ESP_CV.reduce((s, c)=>s+c, 0) : null, orden: iniOrden, pendiente: iniPend }) };

@@ -78,7 +78,7 @@ const COOKIE = "priorizacion_reforestacion_sesion";
 /** Cuentas por petición de alta masiva. */
 export const MASIVA_MAX = 100;
 const EVENTOS_USO = ["consulta", "descarga"] as const;
-const CAMPOS_USO = ["red", "alcaldia", "colonia", "avenida", "calle", "banqueta", "archivo", "tipo"] as const;
+const CAMPOS_USO = ["red", "alcaldia", "colonia", "avenida", "calle", "banqueta", "espacio", "archivo", "tipo"] as const;   // espacio: filtro del inventario (cv, to, am)
 const LIMPIO = /^[\p{L}\p{N} .,;:()«»'_\-·/]{0,160}$/u;
 
 interface Usuario {

@@ -72,13 +72,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla le corresponde a quien administra la cuenta.
 
-## Estado al 13 de octubre de 2026 (versión 1.22)
+## Estado al 13 de octubre de 2026 (versión 1.23)
 
-- Versión vigente: **v1.22**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.23**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.23 | «Dónde empezar» ordena por cepas vacantes en frentes prioritarios: «Colonias con más cepas vacantes» (ciudad y alcaldía) y «Calles con más cepas vacantes» (alcaldía y colonia; la lista de calles de una colonia ahora tiene selector). Cada renglón dice cuántas cepas tiene; las que no tienen van al final, con un aviso de que el inventario va en curso. Respeta los filtros de banqueta y espacio. `espacios_frentes.bin` pasa a guardar cuántos puntos de cada tipo tiene cada frente (41 KB). El árbol muerto dice «Requiere sustitución». El registro de usos del servidor guarda también el filtro «Espacio» (`CAMPOS_USO`). |
 | 1.22 | «Reiniciar» apaga los dos filtros: la banqueta vuelve a «Todas» y «Espacio» queda sin casillas. |
 | 1.21 | Filtro «Espacio», debajo de «Banqueta»: tres casillas independientes (Cepa vacante, Tocón, Árbol muerto). Todas apagadas = sin filtro; con una o varias, solo los frentes de las alcaldías que tienen asignado al menos un punto del inventario de esos tipos. Se combina con la banqueta y acota mapa, cifras, «Dónde empezar» y descargas, que lo declaran; con Gobierno Central se oculta. Avisa que el inventario está en curso. Va en la dirección (`e=cv,to,am`). Con el filtro apagado todo queda igual que en la v1.20. Archivo nuevo `espacios_frentes.bin` (29 KB) y prueba nueva `prueba_filtro_espacio.js`. |
 | 1.20 | Capa «Espacios para plantar» con el inventario de arbolado (CIGA-UNAM y SEDEMA, corte de septiembre de 2026, en curso): 39,276 cepas vacantes, 14,077 tocones y 9,545 árboles muertos, cada uno asignado al frente de manzana más cercano a 20 m o menos (91 %). Se ve al acercar el mapa, con símbolos distintos de la rampa de prioridad, casillas por tipo, el avance del inventario por alcaldía y una ficha con tipo, clave, calle, prioridad del frente y Street View. No cambia ninguna cifra del modelo. Script nuevo `9_inventario_espacios.py` y prueba nueva `prueba_inventario_espacios.js`; la serie completa dura unos 22 minutos. |

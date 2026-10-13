@@ -45,7 +45,9 @@ const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.m
 // bits (1 cepa vacante, 2 tocón, 4 árbol muerto; 0 = sin filtro); ESP_FR (Uint8Array de N) trae los tipos de cada frente y lo carga
 // espCargar() (05_inventario.js) la primera vez que se pide el filtro: filtroEsp solo cambia cuando ESP_FR ya está. Igual que la banqueta,
 // forma parte del filtro único y se combina con ella. El inventario está en curso: donde no hay puntos puede que aún no se haya inventariado.
-let filtroEsp = 0, ESP_FR = null;
+// ESP_CV (Uint16Array de N), del mismo archivo, trae las cepas vacantes de cada frente: las cuenta el orden «más cepas vacantes» de
+// «Dónde empezar» (09_listados.js), solo en los frentes prioritarios que pasan enAmbito(i).
+let filtroEsp = 0, ESP_FR = null, ESP_CV = null;
 const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
 const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
 const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);

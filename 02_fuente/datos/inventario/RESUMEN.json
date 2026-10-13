@@ -30,7 +30,7 @@
  "sin_frente": 5597,
  "frentes_con_espacio": {
   "archivo": "espacios_frentes.bin",
-  "formato": 1,
+  "formato": 2,
   "frentes": 29090,
   "por_tipo": [
    19398,
@@ -42,6 +42,16 @@
    17785,
    8368,
    6043
+  ],
+  "puntos_por_tipo": [
+   36191,
+   12653,
+   8457
+  ],
+  "puntos_alcaldia_por_tipo": [
+   32219,
+   11171,
+   7536
   ]
  },
  "claves_repetidas": 0,

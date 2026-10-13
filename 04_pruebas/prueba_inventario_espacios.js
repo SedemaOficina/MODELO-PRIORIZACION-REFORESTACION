@@ -142,7 +142,7 @@ const norm = s => L.norm(s).trim();
     ok('con el teclado se recorre la ficha y Esc la cierra', dentro && await page.evaluate(() => document.getElementById('card').hidden));
     // los tres tipos tienen su ficha
     const fichas = await page.evaluate(() => [0, 1, 2].map(t => { const q = window.__INV.puntos('007').find(x => x.t === t); window.__INV.ficha(q); const c = document.getElementById('card'); return c.querySelector('h3').textContent + ' | ' + c.querySelector('.pill').textContent.trim(); }));
-    ok('cada tipo dice qué hacer: cepa, tocón y árbol muerto', /^Se puede plantar directo \| Cepa vacante$/.test(fichas[0]) && /^Hay que retirar el tocón antes de plantar \| Tocón$/.test(fichas[1]) && /^Requiere derribo y reposición \| Árbol muerto$/.test(fichas[2]), fichas.join(' · '));
+    ok('cada tipo dice qué hacer: cepa, tocón y árbol muerto', /^Se puede plantar directo \| Cepa vacante$/.test(fichas[0]) && /^Hay que retirar el tocón antes de plantar \| Tocón$/.test(fichas[1]) && /^Requiere sustitución \| Árbol muerto$/.test(fichas[2]), fichas.join(' · '));
     await page.keyboard.press('Escape');
   }
   // el avance de la alcaldía consultada y las cifras del modelo, sin cambios

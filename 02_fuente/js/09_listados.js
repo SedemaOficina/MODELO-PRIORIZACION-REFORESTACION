@@ -1,14 +1,15 @@
 // Lista de «Dónde empezar»: colonias, calles dentro de su colonia, avenidas y alcaldías, con orden elegible, filtro por nombre y paso de
 // ubicación de las calles cuyo nombre se repite; calle consultada (la resaltada).
 // ---------- índices de calles y avenidas ----------
-let streetIdx = null; // Map clave -> {nid, col, idx:[], km, kmp, np, tipos:Set, cols:Set}; clave = calle dentro de su colonia
+let streetIdx = null; // Map clave -> {nid, col, idx:[], km, kmp, np, cv, tipos:Set, cols:Set}; clave = calle dentro de su colonia
+// cv: cepas vacantes del inventario en sus frentes prioritarios (0 mientras no se cargue espacios_frentes.bin; ESP_CV en 03_estado.js)
 let sinNombre = {km:0, kmp:0, n:0, np:0};  // frentes sin nombre de vialidad en INEGI dentro del ámbito
 function buildStreets(){
   streetIdx = new Map(); sinNombre = {km:0, kmp:0, n:0, np:0};
   for(let i=0;i<N;i++){ if (F.gc[i] || !enAmbito(i)) continue; const nid=F.name[i];
     if (PLACEHOLDER.has(nid)){ const k=F.len[i]/1000; sinNombre.km+=k; sinNombre.n++; if(esPrio(F.prio[i])){ sinNombre.kmp+=k; sinNombre.np++; } continue; }
-    const col=F.col[i]; const key = nid*4096 + col; let s=streetIdx.get(key); if(!s){ s={nid, col, idx:[],km:0,kmp:0,np:0,kp:[0,0,0,0,0],tipos:new Set(),cols:new Set()}; streetIdx.set(key,s); }
-    s.idx.push(i); s.km+=F.len[i]/1000; s.kp[F.prio[i]]+=F.len[i]/1000; if(esPrio(F.prio[i])){ s.kmp+=F.len[i]/1000; s.np++; } s.tipos.add(META.tipos[F.tipo[i]]); if(col) s.cols.add(META.colonias[col].n); }
+    const col=F.col[i]; const key = nid*4096 + col; let s=streetIdx.get(key); if(!s){ s={nid, col, idx:[],km:0,kmp:0,np:0,cv:0,kp:[0,0,0,0,0],tipos:new Set(),cols:new Set()}; streetIdx.set(key,s); }
+    s.idx.push(i); s.km+=F.len[i]/1000; s.kp[F.prio[i]]+=F.len[i]/1000; if(esPrio(F.prio[i])){ s.kmp+=F.len[i]/1000; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; } s.tipos.add(META.tipos[F.tipo[i]]); if(col) s.cols.add(META.colonias[col].n); }
 }
 // Corredor de la red vial de una avenida, para mostrar: los «Ruta N» de la capa de vialidades primarias son una numeración interna
 // que no le dice nada a quien consulta. Se omiten en pantalla y en las fichas; en las descargas van completos, para cruzar con la capa.
@@ -88,19 +89,33 @@ function highlightStreet(nid, s){
 // El campo de filtro busca calles (o avenidas) del ámbito por nombre; un nombre repetido en toda la ciudad pide primero dónde.
 // Con una calle consultada, sus tramos van arriba de la lista (09_tramos.js).
 let iniOrden = 'kmp', iniN = 10;
+// Orden por cepas vacantes (inventario de arbolado): 'cv' son las colonias por cepas y, con una colonia elegida, sus calles por cepas (así el
+// orden se conserva al bajar de la alcaldía a la colonia y al volver); 'callescv', las calles de la alcaldía por cepas. Cuenta las cepas de
+// los frentes prioritarios a cargo de la alcaldía que pasan enAmbito(i), con los filtros de banqueta y espacio. Necesita espacios_frentes.bin:
+// se baja la primera vez que se elige (espCargar); mientras llega, la lista sigue con el orden anterior y un aviso dice que está cargando.
+// El archivo único no trae el inventario y no lo ofrece.
+const INI_CV = new Set(['cv', 'callescv']);
+let iniPend = null;   // orden por cepas pedido mientras baja el archivo
+const cepasTxt = n => n? `${fmt.format(n)} cepa${n===1? '' : 's'} vacante${n===1? '' : 's'}` : 'sin cepas registradas';
+const cepasNota = que => `Cuenta solo lo inventariado hasta ${INV.corte} (inventario en curso): ${que} con 0 puede no estar inventariada todavía.`;
 const INI_VISTA = {
   kmp: { op:'Colonias con más kilómetros prioritarios', tit:'por kilómetros de frente prioritario', val:s=>s.kmp, nota:'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una colonia para ver sus calles.' },
   pct: { op:'Colonias con mayor porcentaje prioritario', tit:'por porcentaje de frente prioritario', val:s=>s.kmp/(sum(s.km)||1), nota:'Porcentaje del frente de la colonia que es prioritario. Una colonia pequeña puede aparecer arriba con pocos kilómetros: revisa la cifra en kilómetros de cada renglón.' },
   pob: { op:'Colonias con más habitantes', tit:'por habitantes', val:(s,c)=>c.pob||0, nota:'Población residente de la colonia (Censo 2020) entre las colonias con frente prioritario; no equivale a población atendida.' },
   pl:  { op:'Colonias con más kilómetros sin arbolado y con banqueta', tit:'por kilómetros sin arbolado y con banqueta', val:s=>s.pl, nota:'Frentes de prioridad Muy Alta, Alta o Media sin arbolado y con banqueta según INEGI 2020: orienta sobre dónde es más probable poder plantar. La banqueta debe verificarse en campo.' },
+  cv:  { op:'Colonias con más cepas vacantes', opCol:'Calles con más cepas vacantes', tit:'por cepas vacantes en frentes prioritarios', val:s=>s.cv, nota:'Cepas vacantes del inventario de arbolado en los frentes prioritarios (Muy Alta, Alta y Media) a cargo de la alcaldía: ahí se puede plantar directo. Con el mismo número, va primero la colonia con más kilómetros prioritarios. Selecciona una colonia para ver sus calles.' },
   calles: { op:'Calles con más kilómetros prioritarios' },
+  callescv: { op:'Calles con más cepas vacantes' },
   alc: { op:'Alcaldías con más kilómetros prioritarios' },
   av: { op:'Avenidas con más kilómetros prioritarios' } };
 // lo que se puede mostrar en el ámbito consultado (la primera opción es la de siempre); con una sola, no se ofrece el selector
 function iniVistas(){
   if (isGC()) return selAv!==null? ['avalc'] : sel===null? ['av','alc'] : ['av'];
-  if (selCol!==null) return ['calles'];
-  return ['kmp','pct','pob','pl', sel===null? 'alc' : 'calles']; }
+  const cv = INV? ['cv'] : [];   // el archivo único no trae el inventario
+  if (selCol!==null) return ['calles', ...cv];
+  return ['kmp','pct','pob','pl', ...cv, ...(sel===null? ['alc'] : INV? ['calles','callescv'] : ['calles'])]; }
+// el nombre de la opción: con una colonia elegida, «cv» son sus calles por cepas
+const iniOp = k => k==='cv' && selCol!==null? INI_VISTA.cv.opCol : INI_VISTA[k].op;
 function iniFila(pos, nombre, sub, k, small, go, dotc, extra=''){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
   li.innerHTML = `<div><div class="n"><span class="pos">${pos}</span>${dotc? dot(dotc):''}${nombre}</div>${sub? `<div class="t">${sub}</div>` : ''}${extra}</div><div class="k">${k}<small>${small}</small></div>`;
   li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; return li; }
@@ -111,20 +126,21 @@ function filasColonias(ul, ord){
   const o = INI_VISTA[ord], m = sel===null? null : META.muns[sel];
   $('ini-title').textContent = `Colonias ${sel===null? 'de la ciudad' : 'de '+META.munNames[sel]} por atender primero`;
   const items=[]; for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n || (m && c.m!==m)) continue; const s=colStat(i); if (ord==='pl'? s.pl>0 : s.kmp>0) items.push([i,s,c,o.val(s,c)]); }
-  items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp);
+  items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp);   // con el mismo valor, la de más km prioritarios (en «cv», las de 0 cepas quedan al final)
   $('ini-count').textContent = `${fmt.format(items.length)} colonia${items.length===1?'':'s'}, ${o.tit}`;
   const sc = sinColStat();
-  iniNota(o.nota, sc.n? `Además, ${fmt.format(sc.n)} frentes (${kmFull(sc.km)}; ${kmFull(sc.kmp)} prioritarios) ${sel===null? 'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo y no aparecen en esta lista. Sí se cuentan en las cifras de la alcaldía y en su Excel de frentes.` : '');
+  iniNota(o.nota, [ord==='cv'? cepasNota('una colonia') : '', sc.n? `Además, ${fmt.format(sc.n)} frentes (${kmFull(sc.km)}; ${kmFull(sc.kmp)} prioritarios) ${sel===null? 'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo y no aparecen en esta lista. Sí se cuentan en las cifras de la alcaldía y en su Excel de frentes.` : ''].filter(Boolean).join(' '));
   if(!items.length) return iniVacio(ul, ord==='pl' && filtroBanq==='sin'? 'Este orden cuenta solo frentes con banqueta y el filtro de banqueta muestra los que no la tienen: elige otro orden o la opción «Todas» de Banqueta.' : filtroEsp? `Ninguna colonia de este ámbito tiene frentes prioritarios con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : 'Este ámbito no tiene colonias con frente prioritario.');
   items.slice(0,iniN).forEach(([i,s,c],k)=>{ const tot=sum(s.km);
     const [v,sm] = ord==='pct'? [pct(s.kmp,tot), `${kmFull(s.kmp)} de ${kmFull(tot)} de frente`]
       : ord==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]
       : ord==='pl'? [kmFull(s.pl), `sin arbolado y con banqueta · ${kmFull(s.kmp)} prioritarios`]
+      : ord==='cv'? [cepasTxt(s.cv), `${kmFull(s.kmp)} de frente prioritario`]
       : [kmFull(s.kmp), `${fmt.format(s.np)} de ${fmt.format(sum(s.n))} frentes son prioritarios`];
     ul.appendChild(iniFila(k+1, c.n, `${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.pob && ord!=='pob'? ' · '+fmt.format(c.pob)+' hab.':''}`, v, sm, ()=>pickColonia(i), c.p>=0? T.prio[c.p]:null)); });
   return items.length; }
-// calles de la colonia o de la alcaldía (cada una dentro de su colonia), o las que coinciden con el filtro
-function filasCalles(ul, q, qRaw){
+// calles de la colonia o de la alcaldía (cada una dentro de su colonia), o las que coinciden con el filtro; con cepas, por cepas vacantes
+function filasCalles(ul, q, qRaw, cepas=false){
   const lugar = selCol!==null? 'la colonia '+META.colonias[selCol].n : sel===null? 'toda la ciudad' : 'la alcaldía '+META.munNames[sel];
   const items = [];
   if (q){ for(const [key,s] of streetIdx){ if (calleCoincide(s, q)) items.push([key,s]); }
@@ -133,20 +149,25 @@ function filasCalles(ul, q, qRaw){
     $('ini-title').textContent = `Calles encontradas en ${lugar}`; }
   else { for(const [key,s] of streetIdx){ if(s.kmp>0 && META.names[s.nid]) items.push([key,s]); }
     $('ini-title').textContent = `Calles de ${selCol!==null? META.colonias[selCol].n : META.munNames[sel]} por atender primero`; }
-  items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
+  if (cepas) items.sort((a,b)=> b[1].cv-a[1].cv || b[1].kmp-a[1].kmp || b[1].km-a[1].km);   // con las mismas cepas, por km prioritarios
+  else items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
   const total = items.length;
-  $('ini-count').textContent = selCol!==null
+  $('ini-count').textContent = cepas? `${fmt.format(total)} calle${total===1?'':'s'} con frente prioritario${selCol!==null? '' : ', contadas por colonia'}, por cepas vacantes`
+    : selCol!==null
     ? `${fmt.format(total)} calle${total===1?'':'s'}${q?'':' con frente prioritario'}`
     : q ? `${fmt.format(total)} resultado${total===1?'':'s'}, cada uno en su colonia`
     : `${fmt.format(total)} calles con frente prioritario, contadas por colonia`;
-  iniNota(q? 'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
+  const sinNom = !q && sinNombre.kmp>0? `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI («Ninguno» o «Manzana o edificación contigua»). No aparecen en esta lista, pero sí en el Excel de frentes.` : '';
+  if (cepas) iniNota(`Calles ${selCol!==null? 'de la colonia' : 'de la alcaldía'} ordenadas por cepas vacantes del inventario de arbolado en sus frentes prioritarios (Muy Alta, Alta y Media); con el mismo número, por kilómetros prioritarios.${selCol!==null? '' : ' Una calle que pasa por varias colonias aparece una vez en cada una.'} Selecciona una calle para ubicarla en el mapa y ver sus tramos.`,
+    [cepasNota('una calle'), sinNom].filter(Boolean).join(' '));
+  else iniNota(q? 'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
     : selCol!==null? 'Calles de la colonia ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media). Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
     : 'Calles de la alcaldía ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media); una calle que pasa por varias colonias aparece una vez en cada una. Selecciona una calle para ubicarla en el mapa y ver sus tramos.',
-    !q && sinNombre.kmp>0? `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI («Ninguno» o «Manzana o edificación contigua»). No aparecen en esta lista, pero sí en el Excel de frentes.` : '');
+    sinNom);
   if (!total) return iniVacio(ul, q? `Sin coincidencias en ${lugar}.` : `${selCol!==null? 'Esta colonia' : 'Este ámbito'} no tiene calles con frente prioritario (Muy Alta, Alta o Media).`);
   items.slice(0,iniN).forEach(([key,s],k)=>{ const d=dom({km:s.kp}); const tl=[...s.tipos].filter(Boolean); const tipos = tl.slice(0,2).join(', ')+(tl.length>2?' +'+(tl.length-2):'');
     const donde = selCol!==null? '' : (s.col? META.colonias[s.col].n : 'Colonia no identificada') + (sel===null? ' · '+META.munNames[F.mun[s.idx[0]]] : '');
-    const li = iniFila(k+1, META.names[s.nid]||'Sin nombre', [donde, tipos].filter(Boolean).join(' · '), kmFull(s.kmp), `${s.np} de ${s.idx.length} frentes prioritarios`, ()=>{ highlightStreet(key, s); renderInicio(); }, T.prio[d], desgHtml(s));
+    const li = iniFila(k+1, META.names[s.nid]||'Sin nombre', [donde, tipos].filter(Boolean).join(' · '), cepas? cepasTxt(s.cv) : kmFull(s.kmp), cepas? `${kmFull(s.kmp)} de frente prioritario` : `${s.np} de ${s.idx.length} frentes prioritarios`, ()=>{ highlightStreet(key, s); renderInicio(); }, T.prio[d], desgHtml(s));
     if (highlight && highlight.nameId===key) li.classList.add('active');
     ul.appendChild(li); });
   return total; }
@@ -195,16 +216,34 @@ function renderInicio(){
   const qRaw = qEl.value.trim(), q = qRaw.length>=2? norm(qRaw) : '';
   const ph = isGC()? `Buscar una avenida ${sel===null? 'de la ciudad' : 'de la alcaldía'}` : `Buscar una calle ${selCol!==null? 'de la colonia' : sel===null? 'de la ciudad' : 'de la alcaldía'}`;
   if (qEl.placeholder!==ph){ qEl.placeholder = ph; qEl.setAttribute('aria-label', ph); }
-  const vistas = iniVistas(), v = vistas.includes(iniOrden)? iniOrden : vistas[0];
-  if (sv.dataset.ops!==vistas.join()){ sv.innerHTML = vistas.filter(k=>INI_VISTA[k]).map(k=>`<option value="${k}">${INI_VISTA[k].op}</option>`).join(''); sv.dataset.ops = vistas.join(); }
-  if (INI_VISTA[v]) sv.value = v;
+  const vistas = iniVistas();
+  let v = vistas.includes(iniOrden)? iniOrden : iniOrden==='callescv' && selCol!==null? 'cv' : vistas[0];
+  if (INI_CV.has(v) && !ESP_CV) v = vistas[0];   // sin las cepas cargadas no hay números que mostrar
+  const ops = vistas.join() + (selCol!==null? '|col' : '');
+  if (sv.dataset.ops!==ops){ sv.innerHTML = vistas.filter(k=>INI_VISTA[k]).map(k=>`<option value="${k}">${iniOp(k)}</option>`).join(''); sv.dataset.ops = ops; }
+  // mientras bajan las cepas, el selector muestra lo pedido y la lista sigue con el orden anterior (con sus cifras reales)
+  const ve = iniPend && vistas.includes(iniPend)? iniPend : v;
+  if (INI_VISTA[ve]) sv.value = ve;
   box.hidden = !!q || vistas.length<2;   // al filtrar por nombre, la lista es la de lo que coincide
   const total = q? (isGC()? filasAvenidas(ul, q) : filasCalles(ul, q, qRaw))
-    : v==='avalc'? filasAvAlc(ul) : v==='av'? filasAvenidas(ul, '') : v==='alc'? filasAlcaldias(ul) : v==='calles'? filasCalles(ul, '', '') : filasColonias(ul, v);
+    : v==='avalc'? filasAvAlc(ul) : v==='av'? filasAvenidas(ul, '') : v==='alc'? filasAlcaldias(ul) : v==='calles'? filasCalles(ul, '', '')
+    : v==='callescv' || (v==='cv' && selCol!==null)? filasCalles(ul, '', '', true) : filasColonias(ul, v);
   mas.hidden = total<=iniN; if(!mas.hidden) mas.textContent = `Ver ${Math.min(10,total-iniN)} más`;
 }
 $('q').addEventListener('input', ()=>{ iniN = 10; renderInicio(); });
-$('ini-orden').onchange = e=>{ iniOrden = INI_VISTA[e.target.value]? e.target.value : 'kmp'; iniN = 10; renderInicio(); };
+$('ini-orden').onchange = e=>{ const k = INI_VISTA[e.target.value]? e.target.value : 'kmp'; iniN = 10;
+  if (INI_CV.has(k) && !ESP_CV){ iniCepas(k); return; }
+  iniPend = null; iniCarga(); iniOrden = k; renderInicio(); };
+// aviso bajo el selector mientras bajan las cepas vacantes (estado: 'carga', un error o nada)
+function iniCarga(estado){ const n = $('ini-carga'); if (!n) return; n.classList.toggle('warn', !!(estado && estado!=='carga')); n.hidden = !estado;
+  if (!estado) n.textContent = '';
+  else if (estado==='carga') n.textContent = 'Cargando las cepas vacantes del inventario de arbolado…';
+  else if (estado.sesion) avisoSesion(n);
+  else n.textContent = 'No fue posible cargar las cepas vacantes del inventario (revisa la conexión a internet). Elige otra vez el orden para volver a intentarlo.'; }
+// la primera vez que se pide un orden por cepas: se baja espacios_frentes.bin (el mismo del filtro «Espacio») y, al llegar, se ordena
+function iniCepas(k){ iniPend = k; iniCarga('carga');
+  espCargar().then(()=>{ if (iniPend!==k) return; iniPend = null; iniCarga(); iniOrden = k; buildStreets(); renderInicio(); },
+    e=>{ console.warn('orden por cepas vacantes', e); if (iniPend!==k) return; iniPend = null; iniCarga(e); renderInicio(); }); }
 $('ini-mas').onclick = ()=>{ const n = iniN; iniN += 10; renderInicio(); const li = $('ini-list').children[n]; if (li) li.focus(); };
 // Renglones de la lista y de los tramos: se activan también con la barra espaciadora y, como la lista se vuelve a armar al elegir,
 // el foco pasa al título de la respuesta (cambio de ámbito) o regresa al renglón elegido (calle consultada).

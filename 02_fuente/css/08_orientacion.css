@@ -97,6 +97,8 @@
 .esp-row .chip{flex:none}
 .esp-aviso{margin:-4px 0 0;font-size:.75rem;line-height:1.35;color:var(--ink-2)}
 .esp-aviso.warn{color:var(--guinda-ink)}
+/* aviso bajo «Mostrar» mientras bajan las cepas vacantes del orden por cepas (o si fallan) */
+.ini-carga{flex:1 0 100%;margin:0}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){ .esp-row .chip{min-height:44px} .esp-row .lab{padding-top:15px} }
 /* «Atiende» y «Banqueta»: las dos filas, con la explicación de la banqueta elegida debajo */
 .filtros-ops{display:flex;flex-direction:column;gap:10px}

@@ -1,9 +1,10 @@
 // Estadísticas por colonia, avenida y ámbito; cifras principales, barras por prioridad y textos de contexto del panel.
 // estadísticas por colonia (frentes a cargo de la alcaldía)
-let COLSTAT = null, COLSTAT_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio
-function colStat(id){ if(!COLSTAT || COLSTAT_B!==filtroClave()){ COLSTAT = new Map(); COLSTAT_B = filtroClave(); for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if(esPrio(p)){ s.kmp+=k; s.np++; }
+// cv: cepas vacantes del inventario en los frentes prioritarios (orden «más cepas vacantes» de «Dónde empezar»); 0 hasta que se carga ESP_CV
+let COLSTAT = null, COLSTAT_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio, y al llegar las cepas
+function colStat(id){ const clave = filtroClave() + (ESP_CV? '|cv' : ''); if(!COLSTAT || COLSTAT_B!==clave){ COLSTAT = new Map(); COLSTAT_B = clave; for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0,cv:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; s.n[p]++; s.km[p]+=k; if(esPrio(p)){ s.kmp+=k; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; }
       if (esPrio(p) && (fl&7)===1 && ((fl>>3)&7)===0) s.pl+=k; } }   // pl: prioritario sin arbolado y con banqueta (INEGI), igual que repStat()
-  return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0}; }
+  return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,pl:0,cv:0}; }
 // estadísticas por avenida (NOMENCLAT), toda la ciudad, calculadas una vez
 let AVSTAT = null;
 function avStat(id){ if(!AVSTAT){ AVSTAT=new Map(); for(let i=0;i<NV;i++){ const a=VP.nom[i]; let s=AVSTAT.get(a); if(!s){ s={idx:[],n:[0,0,0,0,0],km:[0,0,0,0,0],kmt:0,kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; AVSTAT.set(a,s); } const p=VP.prio[i], k=VP.len[i]/1000; s.idx.push(i); s.n[p]++; s.km[p]+=k; s.kmt+=k; s.recs.add(VP.rec[i]); if(esPrio(p)){ s.kmp+=k; s.recsp.add(VP.rec[i]); } s.muns.add(VP.mun[i]); s.nombres.add(VPC.nombres[VP.nombre[i]]); } } const s=AVSTAT.get(id); return s? {...s, km:s.kmt, kmByP:s.km} : {idx:[],n:[0,0,0,0,0],km:0,kmByP:[0,0,0,0,0],kmp:0,recs:new Set(),recsp:new Set(),muns:new Set(),nombres:new Set()}; }

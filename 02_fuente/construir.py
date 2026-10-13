@@ -12,7 +12,8 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
                    (de 03_procesamiento_datos/6_fondo.py); se piden solo al encender ese fondo
   datos/inventario/ espacios para plantar del inventario de arbolado (cepas vacantes, tocones y árboles muertos), por alcaldía
                    (de 03_procesamiento_datos/9_inventario_espacios.py); se piden al acercar el mapa. Con ellos,
-                   espacios_frentes.bin: qué tipos de punto tiene cada frente (filtro «Espacio»; se pide al usarlo)
+                   espacios_frentes.bin: cuántos puntos de cada tipo tiene cada frente (filtro «Espacio» y orden por cepas de
+                   «Dónde empezar»; se pide al usarlos)
   img/             logotipo y lámina de la metodología
   libs/            deck.gl, pako, jsPDF y SheetJS (copias locales sin modificar, con LICENCIAS.md y el texto de cada licencia)
   fuentes/         tipografías Cabin y Roboto (woff2 variables, subconjunto latino) con su licencia OFL;
@@ -77,7 +78,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.22'
+VERSION = '1.23'
 ACTUALIZACION = '13 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -173,7 +174,8 @@ for n, h in INV_SUMAS.items():
         falla('datos/inventario/%s falta o no coincide con datos/inventario/SUMAS.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.' % n)
 if INV_RES.get('frentes_sha256') != sumas.get('data.bin'):
     falla('el inventario de arbolado se asignó con otros frentes (data.bin cambió). Volver a correr 03_procesamiento_datos/9_inventario_espacios.py.')
-# Filtro «Espacio»: el archivo de tipos por frente debe estar registrado y traer las cifras de control de RESUMEN.json
+# Filtro «Espacio» y orden por cepas: el archivo de puntos por tipo de cada frente debe estar registrado y traer las cifras de control
+# de RESUMEN.json (frentes con cada tipo y puntos de cada tipo)
 INV_FR = INV_RES.get('frentes_con_espacio') or {}
 if not INV_FR.get('archivo') or INV_FR['archivo'] not in INV_SUMAS:
     falla('falta datos/inventario/espacios_frentes.bin (filtro «Espacio») o sus cifras en RESUMEN.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.')
@@ -187,8 +189,10 @@ def _enteros(b):
         yield v >> 1 if not v & 1 else -((v + 1) >> 1)
         v = sh = 0
 _e = list(_enteros(gzip.decompress(open(os.path.join(ruta_inv, INV_FR['archivo']), 'rb').read())))
-_pt = [sum(1 for b in _e[3::2] if b >> t & 1) for t in range(3)]
-if _e[0] != INV_FR.get('formato') or _e[1] != INV_FR.get('frentes') or len(_e) != 2 + 2 * _e[1] or _pt != INV_FR.get('por_tipo') or sum(_e[2::2]) > N_FRENTES:
+_fr = [sum(1 for c in _e[3 + t::4] if c > 0) for t in range(3)]   # por frente: dfr, cepas, tocones, muertos
+_pt = [sum(_e[3 + t::4]) for t in range(3)]
+if (_e[0] != INV_FR.get('formato') or _e[1] != INV_FR.get('frentes') or len(_e) != 2 + 4 * _e[1] or _fr != INV_FR.get('por_tipo')
+        or _pt != INV_FR.get('puntos_por_tipo') or sum(_e[2::4]) > N_FRENTES):
     falla('datos/inventario/%s no trae las cifras de control de RESUMEN.json. Regenerar con 03_procesamiento_datos/9_inventario_espacios.py.' % INV_FR['archivo'])
 
 
@@ -278,8 +282,10 @@ for n in sorted(INV_SUMAS):
 # registros del inventario por alcaldía (árboles vivos incluidos: dicen cuánto se ha avanzado)
 INVENTARIO = {'v': inv_ver, 'corte': INV_RES['corte'], 'fuente': INV_RES['fuente'], 'dist': INV_RES['distancia_max_m'],
               'n': {c: a['puntos'] for c, a in INV_RES['por_alcaldia'].items()}, 'avance': {c: a['registros'] for c, a in INV_RES['por_alcaldia'].items()},
-              # filtro «Espacio»: archivo de tipos por frente y sus cifras de control (05_inventario.js las comprueba al leerlo)
-              'fr': {'archivo': INV_FR['archivo'], 'formato': INV_FR['formato'], 'n': INV_FR['frentes'], 'tipos': INV_FR['por_tipo']}}
+              # filtro «Espacio» y orden por cepas: archivo de puntos por tipo de cada frente y sus cifras de control (frentes con cada
+              # tipo y puntos de cada tipo; 05_inventario.js las comprueba al leerlo)
+              'fr': {'archivo': INV_FR['archivo'], 'formato': INV_FR['formato'], 'n': INV_FR['frentes'], 'tipos': INV_FR['por_tipo'],
+                     'puntos': INV_FR['puntos_por_tipo']}}
 lver = {}
 for lib in LIBS_PUBLICADAS:
     b = leer('libs/' + lib, True)
@@ -388,7 +394,7 @@ filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_D
          ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
          ('Fondo propio «Calles» (`docs/datos/fondo/`, se pide al encenderlo)', tam(sum(len(SALIDA['datos/fondo/' + n]) for n in fondo_ver))),
          ('Espacios para plantar del inventario de arbolado (`docs/datos/inventario/inv_*.bin`, se piden al acercar el mapa)', '%s · %s puntos · corte: %s' % (tam(sum(len(SALIDA['datos/inventario/' + n]) for n in inv_ver if n != INV_FR['archivo'])), format(sum(INV_RES['puntos_por_tipo']), ','), INV_RES['corte'])),
-         ('Filtro «Espacio»: tipos de punto por frente (`docs/datos/inventario/%s`, se pide al usarlo)' % INV_FR['archivo'], '%s · %s frentes' % (tam(len(SALIDA['datos/inventario/' + INV_FR['archivo']])), format(INV_FR['frentes'], ','))),
+         ('Filtro «Espacio» y orden por cepas: puntos por tipo de cada frente (`docs/datos/inventario/%s`, se pide al usarlos)' % INV_FR['archivo'], '%s · %s frentes' % (tam(len(SALIDA['datos/inventario/' + INV_FR['archivo']])), format(INV_FR['frentes'], ','))),
          ('Satélite (Esri)', 'con clave' if ESRI_KEY else 'sin clave')]
 cifras = ('# Cifras de la construcción\n\nGenerado por 02_fuente/construir.py en cada construcción. No editar aquí.' + '\n\nMedidas al construir la versión %s. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.\n\n' % VERSION
           + '| Concepto | Valor |\n|---|---|\n' + ''.join('| %s | %s |\n' % f for f in filas))
