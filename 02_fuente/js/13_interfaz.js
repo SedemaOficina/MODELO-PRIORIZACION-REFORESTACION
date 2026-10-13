@@ -53,7 +53,9 @@ function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
 const alaRespuesta = ()=>{ if (!isPhone() || PANTALLA!=='info') return; const k=$('answer'); if (k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
 $('ver-mapa').onclick = ()=> verMapa({foco:true});
 $('ver-info').onclick = ()=> verInfo({foco:true});
-matchMedia(MQ_TEL).addEventListener('change', ()=> pantalla(PANTALLA));
+matchMedia(MQ_TEL).addEventListener('change', ()=>{ pantalla(PANTALLA); if (!isPhone()) document.querySelectorAll('details.mas').forEach(d=> d.open = true); });
+// plegables de la plantilla (fuentes, archivos de mapa): abiertos en la computadora, cerrados en el celular
+if (isPhone()) document.querySelectorAll('details.mas').forEach(d=> d.open = false);
 addEventListener('popstate', e=>{ if (isPhone() && PANTALLA==='mapa' && !(e.state && e.state.pantalla==='mapa')) verInfo(); });
 // alto real de la pantalla: en iOS 26, con 100dvh o height:100%, Safari dejaba una franja vacía abajo (--alto, en 10_dos_pantallas.css);
 // --vvh es el alto visible, que se reduce con el teclado abierto
@@ -103,6 +105,7 @@ function renderActions(){
       why = `Calle consultada: ${calle.nombre}. ` + (sel===null? 'Para descargar un ámbito completo, elige primero una alcaldía.' : `Los archivos de la ${selCol!==null? 'colonia' : 'alcaldía'} completa están en la pestaña Descargas.`); }
   }
   lbl.textContent = txt; m.disabled = !main || $(main).disabled; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
+  $('panel-actions').classList.toggle('sin-descarga', m.disabled && f.hidden);   // en el celular el pie no ocupa lugar si no hay nada que descargar
   hint.hidden = !why; hint.textContent = why; }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };

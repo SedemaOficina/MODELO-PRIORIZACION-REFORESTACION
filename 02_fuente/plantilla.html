@@ -74,7 +74,7 @@
           <div class="section-title"><h2 id="bars2-title">Kilómetros de vialidad primaria por prioridad · a cargo del Gobierno Central</h2></div>
           <div class="bars" id="bars2-rows"></div>
         </div>
-        <p class="note" id="bars-note"></p>
+        <div class="note" id="bars-note"></div>
         <div class="repartobox" id="reparto" hidden></div>
       </div></div>
         <div class="tabpanel" id="tp-list" role="tabpanel" aria-labelledby="tab-list" hidden><div>
@@ -107,12 +107,12 @@
           <button class="btn secondary" id="dl-kml" title="Las calles prioritarias de la consulta como líneas, para Google Earth"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para Google Earth (KML)</button>
           <button class="btn secondary" id="dl-geojson" title="Las calles prioritarias de la consulta como líneas, para un sistema de información geográfica"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para SIG (GeoJSON)</button>
         </div>
-        <p class="note" id="geo-note">Traen las mismas calles de prioridad Muy Alta, Alta y Media que los Excel, dibujadas como líneas con su prioridad. El KML se abre en Google Earth; el GeoJSON, en QGIS, ArcGIS u otro sistema de información geográfica.</p>
+        <details class="note mas" id="geo-note" open><summary>Más detalles</summary><div>Traen las mismas calles de prioridad Muy Alta, Alta y Media que los Excel, dibujadas como líneas con su prioridad. El KML se abre en Google Earth; el GeoJSON, en QGIS, ArcGIS u otro sistema de información geográfica.</div></details>
         <div class="status" id="dl-status" role="status"></div>
       </div></div>
-        <div class="source">
+        <details class="source mas" id="fuentes" open><summary>Fuentes y versión</summary><div>
         Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
-      </div>
+      </div></details>
       </div>
     </div>
     <!-- acciones fijas al pie del panel: descarga principal y ficha PDF (js/13_interfaz.js) -->

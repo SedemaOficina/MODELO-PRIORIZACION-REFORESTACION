@@ -76,7 +76,7 @@ const ok = L.Registro('nombres del mapa');
   await page.keyboard.press('Enter');
   const punto = await hasta(page, () => { const c = document.getElementById('card'); return !c.hidden && /El punto está en/.test(c.textContent) && !!window.__MAPA.capa('pto-buscado'); });
   const ficha = await page.evaluate(() => ({ h: (document.querySelector('#card h3') || {}).textContent, lista: document.querySelectorAll('#card .loc-list li').length, colonia: document.getElementById('scope-title').textContent }));
-  ok('al elegirla: marcador en el mapa, la colonia del punto queda consultada y la ficha dice las calles prioritarias cercanas', punto && ficha.lista > 0 && ficha.h.includes(ficha.colonia), JSON.stringify(ficha));
+  ok('al elegirla: marcador en el mapa, la colonia del punto queda consultada y la ficha dice las calles prioritarias cercanas', punto && ficha.lista > 0 && ficha.h.includes(ficha.colonia.replace(/^Col\. /, '')), JSON.stringify(ficha));
   const gms = await opcion('19°14\'29.7"N 98°59\'59.1"W');
   ok('grados, minutos y segundos (19°14\'29.7"N 98°59\'59.1"W)', gms.length === 1 && /Ir a 19\.24158, −98\.99975/.test(gms[0]), gms.join(' | '));
   const liga = await opcion('https://www.google.com/maps/place/Z%C3%B3calo/@19.4326,-99.1332,17z/data=!3m1!4b1!4m6!3m5!1s0x0:0x0!8m2!3d19.4326077!4d-99.133208');

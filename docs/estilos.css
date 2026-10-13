@@ -887,10 +887,7 @@ body.con-sesion .panel-head .logo{grid-column:1}
   .btn-vista:hover{background:var(--guinda-ink)}
   .btn-vista svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btn-vista:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
-  .panel-head{grid-template-columns:minmax(0,1fr) auto}
-  .panel-head h1{grid-column:1}
-  #ver-mapa{grid-column:2;justify-self:end;align-self:center;padding:0 14px}
-  .panel-head #open-info{grid-column:1/-1;justify-self:start}
+  #ver-mapa{justify-self:end;align-self:center;padding:0 14px}
   /* las cuatro pestañas ocupan el ancho sin sobrar: en iPhone la letra sale un poco más ancha y la barra se deslizaba de lado al bajar con el dedo */
   .tabs{overscroll-behavior-x:none}
   .tabs button{flex:1 1 auto;padding-left:2px;padding-right:2px;font-size:clamp(.8rem,3.6vw,.875rem)}
@@ -917,3 +914,23 @@ body.con-sesion .panel-head .logo{grid-column:1}
 /* la página mide lo que de verdad se ve: en iOS 26, con 100dvh o height:100%, Safari dejaba una franja vacía abajo.
    --alto es window.innerHeight (lo pone 13_interfaz.js); mientras carga, 100% */
 html,body{height:var(--alto, 100%)}
+/* «Más detalles» (details.mas): en la computadora siempre abierto y sin el botón; en el celular, plegado */
+details.mas > summary{display:none}
+details.mas > summary::-webkit-details-marker{display:none}
+.univbox details.mas > div{display:grid;gap:6px}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
+  details.mas > summary{display:inline-flex;align-items:center;gap:4px;min-height:32px;cursor:pointer;list-style:none;color:var(--guinda);font:600 .8125rem/1.2 Roboto,sans-serif;text-decoration:underline;text-underline-offset:3px}
+  details.mas > summary::after{content:"▾";display:inline-block;text-decoration:none}
+  details.mas[open] > summary::after{content:"▴"}
+  details.mas[open] > summary{margin-bottom:4px}
+  .colinfo details.mas > summary{min-height:28px}
+  .colinfo.secundaria{display:none!important}   /* con colonia o avenida, el recuadro de la alcaldía no habla de lo consultado */
+  .panel-actions.sin-descarga{display:none}
+  details.source{padding-top:8px}
+  /* encabezado más bajo: el logo ya dice «Reforestación urbana»; el título queda para lectores de pantalla */
+  .panel-head h1{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .panel-head{grid-template-columns:minmax(0,1fr) auto}
+  .panel-head #open-info{grid-column:1;grid-row:2;justify-self:start;min-height:44px;font-size:.875rem}
+  .panel-head #ver-mapa{grid-column:2;grid-row:2}
+  .scope-head .eyebrow{display:none}
+}
