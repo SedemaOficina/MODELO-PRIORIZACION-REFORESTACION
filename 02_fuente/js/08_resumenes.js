@@ -178,9 +178,11 @@ function renderSummary(){
     const ambG = sel===null? 'toda la ciudad' : 'alcaldía '+META.munNames[sel];
     const avisoCol = selCol!==null? ' · sin desglose por colonia' : '';
     $('kpis').className='kpis dual';
-    $('kpis').innerHTML = `<div class="cap">Frentes de manzana · a cargo de la Alcaldía · ${ambN}</div>${kFr}${pobLine? '<div class="cap pob">'+pobLine+'</div>':''}<div class="cap">Vialidades primarias · a cargo del Gobierno Central · ${ambG}${avisoCol}</div>${kVp}`;
-    $('bars-title').textContent=`Km por prioridad · frentes de manzana (Alcaldía) · ${ambN}`;
-    if(b2t) b2t.textContent=`Km por prioridad · vialidades primarias (Gobierno Central) · ${ambG}${avisoCol}`;
+    // dos bloques seguidos: primero todo lo de las alcaldías, después todo lo del Gobierno Central (#kpis2 abre el bloque de #bars2)
+    $('kpis').innerHTML = `<div class="cap">Frentes de manzana · a cargo de la Alcaldía · ${ambN}</div>${kFr}${pobLine? '<div class="cap pob">'+pobLine+'</div>':''}`;
+    $('kpis2').innerHTML = `<div class="cap">Vialidades primarias · a cargo del Gobierno Central · ${ambG}${avisoCol}</div>${kVp}`;
+    $('bars-title').textContent='Kilómetros de frente de manzana por prioridad';
+    if(b2t) b2t.textContent='Kilómetros de vialidad primaria por prioridad';
     $('bars').innerHTML = barsHtml(fs); $('bars2').hidden=false; $('bars2-rows').innerHTML = barsHtml(vs); }
   const gcs = sel===null? META.city_gc : META.summ_gc[META.muns[sel]];
   let txt;

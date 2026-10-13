@@ -93,7 +93,8 @@
 .panel-head .logo{max-width:100%}
 /* aire entre bloques del panel: un título de sección que sigue a otro bloque se separa; el primero de la pestaña, no */
 .tabpanel .section-title:not(:first-child),.tabpanel .bars2{margin-top:16px}
-.tabpanel .bars2 .section-title{margin-top:0}
+.tabpanel .bars2 .section-title{margin-top:14px}
+.tabpanel .bars2{margin-top:28px;padding-top:20px;border-top:1px solid var(--line)}   /* con las dos redes, el bloque del Gobierno Central se separa del de las alcaldías */
 .univbox{margin-bottom:0}
 /* lo que se consulta (Colonias, Calles, Avenidas…) se destaca en el título de la lista */
 .section-title h2 b.unidad{color:var(--guinda);font-weight:700}
