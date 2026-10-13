@@ -81,7 +81,7 @@ async function abrir(browser, url, opciones = {}, errores = []) {
   if (!opciones.entrada) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); });
   return { ctx, page };
 }
-// fotografía del estado visible de la interfaz
+// fotografía del estado visible de la interfaz; la lista es la de «Dónde empezar» (#ini-list), con su título, su conteo y su filtro (#q)
 const estado = page => page.evaluate(() => {
   const T = s => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, ' ').trim() : null; };
   const vis = e => !!e && !e.hidden && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
@@ -95,8 +95,8 @@ const estado = page => page.evaluate(() => {
     kpis, kpisTxt: T('#kpis'), caps: [...document.querySelectorAll('#kpis .cap')].map(e => e.innerText.replace(/\s+/g, ' ').trim()), pob: vis(document.getElementById('pobbox')) ? T('#pobbox') : null,
     barsTitle: T('#bars-title'), bars: barras('#bars'), bars2Vis: vis(document.getElementById('bars2')), bars2Title: T('#bars2-title'), bars2: barras('#bars2-rows'), nota: T('#bars-note'),
     alcinfo: vis(document.getElementById('alcinfo')) ? T('#alcinfo') : null, colinfo: vis(document.getElementById('colinfo')) ? T('#colinfo') : null, avinfo: vis(document.getElementById('avinfo')) ? T('#avinfo') : null,
-    mapsum: T('#mapsum'), tabList: T('#tab-list'), listTitle: T('#search-title'), listCount: T('#search-count'), q: document.getElementById('q').value,
-    lista: [...document.querySelectorAll('#results li')].map(li => ({ t: li.innerText.replace(/\s+/g, ' ').trim(), act: li.classList.contains('active'), empty: li.classList.contains('empty') })),
+    mapsum: T('#mapsum'), listTitle: document.getElementById('ini-title').textContent.replace(/\s+/g, ' ').trim(), listCount: T('#ini-count'), q: document.getElementById('q').value,
+    lista: [...document.querySelectorAll('#ini-list li')].map(li => ({ t: li.innerText.replace(/\s+/g, ' ').trim(), act: li.classList.contains('active'), empty: li.classList.contains('empty') })),
     card: card && !card.hidden ? card.innerText.replace(/\s+/g, ' ').trim() : null,
     dl, dlStatus: T('#dl-status'), actMain: { ...btn('act-main'), target: document.getElementById('act-main').dataset.target }, actFicha: { ...btn('act-ficha'), target: document.getElementById('act-ficha').dataset.target }, actHint: vis(document.getElementById('act-hint')) ? T('#act-hint') : null,
     leyenda: [...document.querySelectorAll('#legend-rows .row')].map(r => ({ t: r.innerText.replace(/\s+/g, ' ').trim(), on: r.getAttribute('aria-checked') })), lgScope: T('#lg-scope'), legendVp: T('#legend-vp'),

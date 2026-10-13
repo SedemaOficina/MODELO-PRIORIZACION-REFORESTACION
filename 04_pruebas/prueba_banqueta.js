@@ -35,12 +35,18 @@ const kmDe = t => L.numEs(t);   // primera cifra de un texto
   ok('con «Todas», el km prioritario de la alcaldía es el de siempre', Math.abs(kmDe(e.kpis[0].v) - R.todas[0]) < 1, `${e.kpis[0].v} vs ${R.todas[0].toFixed(1)}`);
   const des = await page.$eval('#univbox .univline.banq', x => x.innerText).catch(() => '');
   const nums = (des.match(/[\d,]+(\.\d+)?(?= km)/g) || []).map(s => +s.replace(/,/g, ''));
+  const expl = () => page.evaluate(() => { const x = document.getElementById('banq-expl'); return x.offsetParent !== null ? x.textContent : ''; });
+  ok('con «Todas» no hay explicación de banqueta bajo los botones', (await expl()) === '');
+  { const ai = await page.evaluate(() => { const d = document.querySelector('#alcinfo details.mas.siempre'); return { plegado: !!d && !d.open, vis: document.getElementById('alcinfo').innerText }; });
+    ok('el recuadro de la alcaldía deja plegado lo que atiende el Gobierno Central (mezcla km de vialidad y de frente)', ai.plegado && !/en frentes de manzana son/.test(ai.vis) && /Lo que atiende el Gobierno Central aquí/.test(ai.vis), ai.vis.slice(0, 200)); }
   ok('el Resumen muestra el desglose con banqueta / sin banqueta / por verificar del recálculo', nums.length >= 4 && Math.abs(nums[1] - R.des[0]) < 1 && Math.abs(nums[2] - R.des[1]) < 1 && Math.abs(nums[3] - R.des[2]) < 1 && /reconocimiento en sitio/.test(des), des.slice(0, 130));
 
   // ---------- 2) «Con banqueta» y «Sin o por verificar» ----------
   for (const [op, exp] of [['con', R.con], ['sin', R.sin]]) {
     await ir(page, `&a=${CLAVE}&b=${op}`); e = await L.estado(page);
     ok(`«${op}»: el km prioritario es el del recálculo`, Math.abs(kmDe(e.kpis[0].v) - exp[0]) < 1, `${e.kpis[0].v} vs ${exp[0].toFixed(1)}`);
+    const ex = await expl();
+    ok(`«${op}»: bajo los botones se explica la opción elegida`, op === 'con' ? /registra banqueta/.test(ex) && /plantación directa/.test(ex) : /no registra banqueta o no tiene el dato/.test(ex) && /reconocimiento en sitio antes de plantar/.test(ex), ex);
     ok(`«${op}»: la cifra dice qué filtro está activo`, /solo frentes (con|sin) banqueta/.test(e.kpisTxt) && /banqueta/.test(e.mapsum || ''), (e.mapsum || '').slice(0, 90));
     const des2 = await page.$eval('#univbox .univline.banq', x => x.innerText).catch(() => '');
     ok(`«${op}»: el desglose sigue mostrando el total sin filtrar`, des2 === des, des2.slice(0, 60));
@@ -62,7 +68,14 @@ const kmDe = t => L.numEs(t);   // primera cifra de un texto
 
   // ---------- 4) Gobierno Central: la fila no aplica ----------
   await ir(page, `&r=gc&a=${CLAVE}`);
-  ok('con Gobierno Central la fila «Banqueta» no se muestra', await page.evaluate(() => document.getElementById('banq-row').hidden));
+  ok('con Gobierno Central la fila «Banqueta» y su explicación no se muestran', await page.evaluate(() => document.getElementById('banq-row').hidden && document.getElementById('banq-expl').hidden));
+  // una sola medida a la vista: los km de vialidad (sobre el eje); lo que está en km de frente queda plegado también en la computadora
+  { const g = await page.evaluate(() => { const ub = document.querySelector('#univbox details.mas'), rp = document.querySelector('#reparto details.mas'), vis = e => !!e && e.offsetParent !== null;
+      return { ub: !!ub && ub.classList.contains('siempre') && !ub.open && vis(ub.querySelector('summary')), rp: !!rp && rp.classList.contains('siempre') && !rp.open && vis(rp.querySelector('summary')) && /km de frente/.test(rp.querySelector('summary').textContent),
+        vista: document.getElementById('tp-res').innerText, kpis: document.getElementById('kpis').innerText }; });
+    ok('Gobierno Central: a la vista solo los km de vialidad; equivalencia, banqueta y «Quién atiende» (km de frente) plegados y cerrados en la computadora', g.ub && g.rp && /de vialidad primaria/.test(g.kpis) && !/Equivalen a|Banqueta, como referencia|Gobierno Central\s+Total/.test(g.vista), JSON.stringify({ ub: g.ub, rp: g.rp }));
+    await page.$eval('#univbox details.mas summary', s => s.click()); await page.waitForTimeout(200);
+    ok('Gobierno Central: «Más detalles» se abre con su botón', await page.evaluate(() => document.querySelector('#univbox details.mas').open && /Equivalen a/.test(document.getElementById('univbox').innerText))); }
   // banqueta del Gobierno Central como referencia: frentes prioritarios que dan a las vialidades primarias de la alcaldía
   { const d = [0, 0, 0]; for (const f of D.F) { if (!f.gc || f.prio < L.PRIO_MIN || f.mun !== ALC) continue; const b = banq(f); d[b === 0 ? 0 : b === 1 ? 1 : 2] += f.len / 1000; }
     const t = d[0] + d[1] + d[2];

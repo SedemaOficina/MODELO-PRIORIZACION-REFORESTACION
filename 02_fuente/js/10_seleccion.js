@@ -9,7 +9,9 @@ function renderAlcInfo(){
   box.classList.toggle('secundaria', selCol!==null || selAv!==null);   // en el celular, con colonia o avenida solo se ve el recuadro de lo consultado
   box.hidden=false; box.innerHTML = isGC()
     ? `${dot(pc)}<b>Vialidades primarias · prioridad predominante: ${META.prio[d]}</b>${masDet(`${pct(s.km[d],tot)} de los km de vialidad primaria de la alcaldía<br>${partTxt(sel,true)} · ${fmt0.format(tot)} km de vialidad primaria en toda la alcaldía`)}`
-    : `${dot(pc)}<b>Prioridad predominante: ${META.prio[d]}</b>${masDet(`${pct(s.km[d],tot)} de los km de frente de la alcaldía<br>${partTxt(sel,false)} · ${fmt0.format(tot)} km de frentes en toda la alcaldía${resp==='alc'? `<br><span class="gcline">Gobierno Central atiende en esta alcaldía ${fmt0.format(sum(vs.km))} km de vialidades primarias medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios); en frentes de manzana son ${fmt0.format(sum(gcs.km))} km.</span>`:''}`)}`;
+    : `${dot(pc)}<b>Prioridad predominante: ${META.prio[d]}</b>${masDet(`${pct(s.km[d],tot)} de los km de frente de la alcaldía<br>${partTxt(sel,false)} · ${fmt0.format(tot)} km de frentes en toda la alcaldía`)}`
+      // lo del Gobierno Central mezcla km de vialidad y km de frente: va plegado también en la computadora
+      + (resp==='alc'? masDet(`<span class="gcline">Gobierno Central atiende en esta alcaldía ${fmt0.format(sum(vs.km))} km de vialidades primarias medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios); en frentes de manzana son ${fmt0.format(sum(gcs.km))} km.</span>`, 'Lo que atiende el Gobierno Central aquí', true) : '');
 }
 function renderColInfo(){
   const box = $('colinfo'); if (selCol===null){ box.hidden=true; return; }
@@ -28,7 +30,7 @@ let anuncioT = null;
 function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
   const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
-  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); renderResults(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
+  buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito(); rotuloInfo();
   const gc = isGC();
   $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
@@ -43,7 +45,7 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta, Alta o Media: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? 'Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta, Alta o Media: el listado de tramos prioritarios estaría vacío.' : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
-  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); updTabLabel(); renderActions(); syncCalleBtns(); guardaURL(); usoConsulta(); }
+  $('dl-ficha-vpalc').hidden = !(respOn.gc && sel!==null && selAv===null); $('dl-ficha-av').hidden = !(gc && selAv!==null);  renderCrumb(); renderScopeTitle(); renderActions(); syncCalleBtns(); guardaURL(); usoConsulta(); }
 // Registro de usos (solo con sesión): una consulta es el ámbito en que la persona se detiene (1.5 s), no cada clic intermedio.
 // No se anotan toda la ciudad (vista inicial) ni los cambios que hace «Seguirme» al caminar.
 let usoUlt = '', usoT = null;
@@ -76,7 +78,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
 function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;
-  const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista para descargar su Excel o su ficha.`; }
+  const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista de «Dónde empezar» para descargar su Excel o su ficha.`; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
   alaRespuesta(); refresh();

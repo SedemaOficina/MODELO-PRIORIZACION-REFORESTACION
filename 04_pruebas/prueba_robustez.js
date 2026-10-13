@@ -35,17 +35,18 @@ const bin = n => fs.readFileSync(path.join(L.DOCS, 'datos', n));
     const fr = D.F.find(f => !f.gc && f.col === tec && f.prio >= L.PRIO_MIN); meta.names[fr.name] = meta.names[fr.name] + ' ' + malo;
     await page.route(/datos\/meta\.bin/, r => r.fulfill({ status: 200, contentType: 'application/octet-stream', body: zlib.gzipSync(Buffer.from(JSON.stringify(meta))) }));
     await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 }); await page.waitForTimeout(500);
-    await L.elegirTipo(page, 'Tecpinco', 'Col'); await page.waitForTimeout(600); await page.click('#tab-list'); await page.waitForTimeout(400);
-    const li = await page.$('#results li:not(.empty)'); if (li) await li.evaluate(n => n.click()); await page.waitForTimeout(500);
+    await L.elegirTipo(page, 'Tecpinco', 'Col'); await page.waitForTimeout(600); await page.click('#tab-ini'); await page.waitForTimeout(400);
+    const li = await page.$('#ini-list li:not(.empty)'); if (li) await li.evaluate(n => n.click()); await page.waitForTimeout(500);
     const r = await page.evaluate(() => ({ iny: window.__inyectado, imgs: document.querySelectorAll('img[src="x"]').length, titulo: document.getElementById('scope-title').textContent }));
     ok('un nombre de catálogo con marcado no ejecuta código ni inserta elementos', r.iny === undefined && r.imgs === 0 && /Tecpinco/.test(r.titulo), JSON.stringify(r).slice(0, 160)); await ctx.close(); }
 
   // ---------- sesión normal ----------
   const errores = []; const { page } = await L.abrir(browser, U, {}, errores);
   const izt = M.munNames.indexOf('Iztapalapa'), cveI = M.muns[izt];
-  // modo ligero: el listado depende de las casillas, no del zoom
+  // modo ligero: la lista de «Dónde empezar» no depende del zoom ni de las casillas (las calles no se dibujan de lejos, pero se listan)
   await page.selectOption('#alc', String(izt)); await page.waitForTimeout(600); let e = await L.estado(page);
-  ok('en modo ligero, con una alcaldía elegida la pestaña lista calles', /Calles/.test(e.tabList || '') && /Calles con más km de frente prioritario/i.test(e.listTitle || ''), `${e.tabList} · ${e.listTitle}`);
+  await page.click('#tab-ini'); await page.selectOption('#ini-orden', 'calles'); await page.waitForTimeout(400); const eC = await L.estado(page); await page.selectOption('#ini-orden', 'kmp'); await page.click('#tab-res');
+  ok('en modo ligero, con una alcaldía elegida la lista da sus colonias y, a elección, sus calles', /^Colonias de Iztapalapa/.test(e.listTitle || '') && /^Calles de Iztapalapa/.test(eC.listTitle || '') && eC.lista.filter(l => !l.empty).length === 10, `${e.listTitle} · ${eC.listTitle}`);
   // la consulta queda en la dirección
   ok('la alcaldía queda en la dirección', new URL(page.url()).searchParams.get('a') === cveI, page.url());
   await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(600); const tec = M.colonias.findIndex(c => c && c.n === 'Tecpinco');

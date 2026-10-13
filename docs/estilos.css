@@ -295,7 +295,7 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 .mapsum .st b{font-family:Cabin,sans-serif;font-size:1rem;font-weight:700;line-height:1.1;color:var(--ink);font-variant-numeric:tabular-nums}
 .mapsum .st small{font-size:.75rem;color:var(--ink-2);line-height:1.3}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
-  .mapbar{left:10px;top:10px;max-width:calc(100% - 62px)}
+  .mapbar{left:10px;top:10px;max-width:calc(100% - 74px)}   /* deja 10 px libres antes de los botones del mapa */
   .panel-toggle{display:none}
   .mapsum{padding:6px 11px;gap:10px}
   .mapsum .scope b{font-size:.875rem;max-width:14ch}
@@ -368,7 +368,9 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 /* atribución del mapa de fondo satelital (obligatoria por la licencia; también visible en teléfono) */
 .attrib.sat{max-width:min(620px,calc(100% - 320px));line-height:1.35;font-size:.75rem}
 .attrib a{color:inherit;text-decoration:underline}
-@media (max-width:860px) and (min-height:481px), (max-width:600px){.attrib.sat{display:block;max-width:none;left:12px;right:60px;bottom:auto;top:64px;font-size:.75rem}}
+/* celular: el crédito del satélite va en un renglón debajo del resumen (su alto lo mide js/06, --mapbar-alto) y se abre completo al tocarlo */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){.attrib.sat{display:block;max-width:none;left:10px;right:74px;bottom:auto;top:calc(var(--mapbar-alto, 54px) + 16px);font-size:.75rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .attrib.sat.abierta{white-space:normal}}
 
 /* panel de capas: se minimiza con su encabezado (también en escritorio) y no se sale del mapa */
 .legend-head:hover .lg-tit{color:var(--guinda)}
@@ -577,7 +579,7 @@ body.tab-dl .panel-actions{display:none}
 
 /* errores, estado de descargas, atribución del mapa de fondo */
 .card:not([hidden]) ~ .attrib.sat{right:332px;left:auto;max-width:min(520px,calc(100% - 640px))}   /* la atribución del fondo es obligatoria: se recorre, no se oculta */
-@media (max-width:860px) and (min-height:481px), (max-width:600px){ .card:not([hidden]) ~ .attrib.sat{right:60px;max-width:none} }
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .card:not([hidden]) ~ .attrib.sat{right:74px;max-width:none} }
 .panel-actions .act-status{grid-column:1/-1;margin:0;font-size:.75rem;color:var(--ink);font-weight:500}
 body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor:progress}
 .aviso-error{border-left-color:var(--guinda)}
@@ -595,6 +597,8 @@ body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor
 .loader .conex{margin-top:8px;font-size:.75rem;max-width:320px}
 /* modo ligero: etiqueta fija y aviso antes de dibujar */
 .etq-ligero{position:absolute;left:16px;top:78px;z-index:5;padding:3px 9px;border:1px solid var(--line-strong);border-radius:999px;background:var(--panel);color:var(--ink-2);font:inherit;font-size:.75rem;cursor:pointer}
+/* celular: debajo del resumen del mapa (su alto varía, --mapbar-alto) y, con satélite, también debajo del crédito */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .etq-ligero{top:calc(var(--mapbar-alto, 54px) + 16px);left:10px} body.fondo-sat .etq-ligero{top:calc(var(--mapbar-alto, 54px) + 44px)} body.credito-abierto .etq-ligero{display:none} }
 .dibujando{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;padding:8px 14px;border-radius:8px;background:var(--ink);color:#fff;font-size:.875rem;box-shadow:var(--shadow)}
 /* teléfono en horizontal y pantallas bajas: panel lateral angosto en lugar de hoja inferior */
 @media (min-width:601px) and (max-height:480px){
@@ -838,10 +842,31 @@ body.con-sesion .panel-head .logo{grid-column:1}
 @media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
 /* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css) */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
+/* ---------- «Atiende» y «Banqueta»: en la computadora, las dos filas; en el celular, una línea con lo elegido y «Cambiar» (js/07) ---------- */
+.filtros-linea{display:none}
+.filtros-ops{display:flex;flex-direction:column;gap:10px}
+/* explicación de la opción de banqueta elegida, debajo de sus botones */
+.banq-expl{margin:0;padding:6px 10px;border-left:3px solid var(--dorado);border-radius:0 6px 6px 0;background:var(--panel);font-size:.75rem;line-height:1.4;color:var(--ink-2)}
+.banq-expl[hidden]{display:none}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){
+  .filtros-linea{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px}
+  .filtros-txt{min-width:0;font-size:.875rem;line-height:1.3;color:var(--ink-2)}
+  .filtros-txt b{color:var(--ink);font-weight:600}
+  .filtros-btn{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 14px;border:1.5px solid var(--ctl);border-radius:999px;background:var(--panel);color:var(--guinda);font:600 .875rem/1 Cabin,sans-serif;cursor:pointer}
+  .filtros-btn::after{content:"▾"}
+  .filtros-btn[aria-expanded="true"]{background:var(--dorado-soft);border-color:var(--dorado);color:var(--guinda-ink)}
+  .filtros-btn[aria-expanded="true"]::after{content:"▴"}
+  .filtros:not(.abierto) .filtros-ops{display:none}
+  .filtros-ops{gap:8px;margin-top:8px}
+  .query .filtros-ops .resp-row{margin-top:0}
+}
 /* logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
 .panel-head .logo{max-width:100%}
 /* aire entre bloques del panel: un título de sección que sigue a otro bloque se separa; el primero de la pestaña, no */
 .tabpanel .section-title:not(:first-child),.tabpanel .bars2{margin-top:16px}
+/* «Dónde empezar»: los tramos de la calle consultada van arriba de la lista; el filtro por nombre, encima de los renglones */
+#tp-ini .tramosbox + .section-title{margin-top:0}
+.ini-filtro{margin-top:8px}
 .tabpanel .bars2 .section-title{margin-top:14px}
 .tabpanel .bars2{margin-top:28px;padding-top:20px;border-top:1px solid var(--line)}   /* con las dos redes, el bloque del Gobierno Central se separa del de las alcaldías */
 .univbox{margin-bottom:0}
@@ -889,7 +914,7 @@ body.con-sesion .panel-head .logo{grid-column:1}
   .btn-vista svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btn-vista:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
   #ver-mapa{justify-self:end;align-self:center;padding:0 14px}
-  /* las cuatro pestañas ocupan el ancho sin sobrar: en iPhone la letra sale un poco más ancha y la barra se deslizaba de lado al bajar con el dedo */
+  /* las pestañas ocupan el ancho sin sobrar: en iPhone la letra sale un poco más ancha y la barra se deslizaba de lado al bajar con el dedo */
   .tabs{overscroll-behavior-x:none}
   .tabs button{flex:1 1 auto;padding-left:2px;padding-right:2px;font-size:clamp(.8rem,3.6vw,.875rem)}
   .btn-info{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom, 0px));z-index:6;min-height:56px;padding:6px 20px;gap:12px}
@@ -915,9 +940,14 @@ body.con-sesion .panel-head .logo{grid-column:1}
 /* la página mide lo que de verdad se ve: en iOS 26, con 100dvh o height:100%, Safari dejaba una franja vacía abajo.
    --alto es window.innerHeight (lo pone 13_interfaz.js); mientras carga, 100% */
 html,body{height:var(--alto, 100%)}
-/* «Más detalles» (details.mas): en la computadora siempre abierto y sin el botón; en el celular, plegado */
+/* «Más detalles» (details.mas): en la computadora siempre abierto y sin el botón; en el celular, plegado.
+   details.mas.siempre: plegado también en la computadora, con el botón a la vista (lo que mezcla unidades o es de referencia) */
 details.mas > summary{display:none}
 details.mas > summary::-webkit-details-marker{display:none}
+details.mas.siempre > summary{display:inline-flex;align-items:center;gap:4px;min-height:32px;cursor:pointer;list-style:none;color:var(--guinda);font:600 .8125rem/1.2 Roboto,sans-serif;text-decoration:underline;text-underline-offset:3px}
+details.mas.siempre > summary::after{content:"▾";display:inline-block;text-decoration:none}
+details.mas.siempre[open] > summary::after{content:"▴"}
+details.mas.siempre[open] > summary{margin-bottom:4px}
 .univbox details.mas > div{display:grid;gap:6px}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   details.mas > summary{display:inline-flex;align-items:center;gap:4px;min-height:32px;cursor:pointer;list-style:none;color:var(--guinda);font:600 .8125rem/1.2 Roboto,sans-serif;text-decoration:underline;text-underline-offset:3px}

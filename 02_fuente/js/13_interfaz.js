@@ -53,7 +53,7 @@ function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
 const alaRespuesta = ()=>{ if (!isPhone() || PANTALLA!=='info') return; const k=$('answer'); if (k) setTimeout(()=>k.scrollIntoView({block:'start'}), 300); };
 $('ver-mapa').onclick = ()=> verMapa({foco:true});
 $('ver-info').onclick = ()=> verInfo({foco:true});
-matchMedia(MQ_TEL).addEventListener('change', ()=>{ pantalla(PANTALLA); if (!isPhone()) document.querySelectorAll('details.mas').forEach(d=> d.open = true); });
+matchMedia(MQ_TEL).addEventListener('change', ()=>{ pantalla(PANTALLA); if (!isPhone()) document.querySelectorAll('details.mas:not(.siempre)').forEach(d=> d.open = true); });
 // plegables de la plantilla (fuentes, archivos de mapa): abiertos en la computadora, cerrados en el celular
 if (isPhone()) document.querySelectorAll('details.mas').forEach(d=> d.open = false);
 addEventListener('popstate', e=>{ if (isPhone() && PANTALLA==='mapa' && !(e.state && e.state.pantalla==='mapa')) verInfo(); });
@@ -75,13 +75,13 @@ capasBtn.onclick = ()=> setLegend(!legendEl.classList.contains('open'));
 setLegend(false);   // el panel de capas empieza cerrado: la leyenda compacta dice los colores y lo abre
 $('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
 
-// ---------- pestañas Resumen / Listado / Descargas ----------
-function setTab(t){ document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
-  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); ['ini','res','list','dl'].forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
+// ---------- pestañas Dónde empezar / Resumen / Descargas ----------
+// La antigua pestaña del listado se fundió en «Dónde empezar»: cualquier otro nombre (por ejemplo, el «list» de antes) abre «Dónde empezar».
+const PESTANAS = ['ini','res','dl'];
+function setTab(t){ if (!PESTANAS.includes(t)) t = 'ini';
+  document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
+  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); PESTANAS.forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
-function updTabLabel(){
-  const lbl = isGC()? 'Avenidas' : (alcOnly() && sel===null)? 'Alcaldías' : (colLista() && selCol===null)? 'Colonias' : 'Calles';
-  $('tab-list').textContent = lbl; }
 function renderScopeTitle(){
   $('scope-title').textContent = selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : '')
     : selCol!==null? 'Col. '+META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México'; }   // «Col.» para que se sepa que es una colonia
@@ -115,7 +115,7 @@ if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidde
 const UNIDAD_RX = /(Colonias|Calles|Avenidas|Tramos|Alcaldías|calles)/;
 function resaltaUnidad(el){ if (!el || el.querySelector('b.unidad')) return; const t = el.textContent, m = t.match(UNIDAD_RX); if (!m) return;
   const b = document.createElement('b'); b.className = 'unidad'; b.textContent = m[1]; el.replaceChildren(t.slice(0, m.index), b, t.slice(m.index + m[1].length)); }
-for (const id of ['ini-title', 'search-title']){ const el = $(id); if (!el) continue; resaltaUnidad(el); new MutationObserver(()=>resaltaUnidad(el)).observe(el, {childList:true, characterData:true, subtree:true}); }
+for (const id of ['ini-title']){ const el = $(id); if (!el) continue; resaltaUnidad(el); new MutationObserver(()=>resaltaUnidad(el)).observe(el, {childList:true, characterData:true, subtree:true}); }
 // ---------- entrada en dos pasos ----------
 // Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
 // Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
@@ -147,6 +147,6 @@ function renderCrumb(){
   // la calle consultada es el último nivel de la ruta y se puede soltar
   const cs = calleSel(); if (cs) h += `<span class="cr-sep" aria-hidden="true">›</span><span class="cr-item"><span>${cs.nombre}</span><button type="button" class="cr-up" data-up="calle" title="Quitar la calle" aria-label="Quitar la calle consultada">×</button></span>`;
   rest.innerHTML = h; rest.querySelectorAll('.cr-up').forEach(up=>{ up.onclick = ()=>{ const k=up.dataset.up;
-    if (k==='calle'){ highlight=null; hideCard(); rerender(); renderResults(); renderActions(); syncCalleBtns(); } else if (k==='col') clearColonia(); else clearAvenida(); }; });
+    if (k==='calle'){ highlight=null; hideCard(); rerender(); renderInicio(); renderActions(); syncCalleBtns(); } else if (k==='col') clearColonia(); else clearAvenida(); }; });
 }
 $('cr-city').onclick = ()=>{ if (sel===null && selCol===null && selAv===null) return; selAv=null; highlight=null; selEl.value=''; setSel(''); };

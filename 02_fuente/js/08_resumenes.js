@@ -52,9 +52,9 @@ const gcBanqTxt = (mun, av) => { const d=gcBanq(mun, av), t=d[0]+d[1]+d[2]; if (
 const km1 = v => v>0 && v<0.05? '<0.1' : fmt1.format(v);   // cuadro de reparto: siempre en km con un decimal
 function repartoHtml(){
   const R = repStat(sel, selCol);
-  const amb = selCol!==null? 'colonia '+META.colonias[selCol].n : sel===null? 'toda la ciudad' : 'alcaldía '+META.munNames[sel];
   const fila = (lab, a, g, cls, sw) => `<tr${cls? ' class="'+cls+'"':''}><th scope="row">${sw!==undefined? `<i data-st="background:var(--p${sw})"></i>`:''}${lab}</th><td>${km1(a)}</td><td>${km1(g)}</td><td>${km1(a+g)}</td></tr>`;
-  let h = `<div class="section-title"><h2>Quién atiende · km de frente de manzana</h2><span>${amb}</span></div>
+  // el lugar ya está en el título de la respuesta: aquí basta decir de qué ámbito es el cuadro
+  let h = `<div class="section-title"><h2>Quién atiende ${selCol!==null? 'en la colonia' : sel===null? 'en la ciudad' : 'en la alcaldía'} · km de frente de manzana</h2></div>
     <table class="reparto"><thead><tr><th scope="col">Prioridad</th><th scope="col">${sel===null? 'Alcaldías':'Alcaldía'}</th><th scope="col">Gobierno Central</th><th scope="col">Total</th></tr></thead><tbody>`;
   for(let p=4;p>=0;p--) h += fila(META.prio[p], R.km[0][p], R.km[1][p], '', p);
   h += fila('Total', sum(R.km[0]), sum(R.km[1]), 'tot');
@@ -94,9 +94,10 @@ function banqDesglose(mun, col){ const key=mun+'|'+col; let r=BD_CACHE.get(key);
   if (BD_CACHE.size>40) BD_CACHE.clear(); BD_CACHE.set(key, r); return r; }
 const banqDesgloseTxt = (mun, col) => { const d=banqDesglose(mun, col), t=d[0]+d[1]+d[2];
   return `De los ${kmFull(t)} prioritarios de frente: ${kmFull(d[0])} con banqueta (${pct(d[0],t)}), ${kmFull(d[1])} sin banqueta y ${kmFull(d[2])} por verificar (conjunto habitacional o sin dato), según INEGI 2020. Sin banqueta no significa descartado: requiere reconocimiento en sitio.`; };
-// «Más detalles»: en el celular, el texto de apoyo queda plegado; en la computadora va abierto y sin el botón (css/10_dos_pantallas.css)
+// «Más detalles»: en el celular, el texto de apoyo queda plegado; en la computadora va abierto y sin el botón (css/10_dos_pantallas.css).
+// siempre = plegado también en la computadora, con su botón a la vista (lo que mezcla unidades o es solo de referencia)
 const plegado = ()=> matchMedia(MQ_TEL).matches;
-const masDet = (html, rot='Más detalles') => html? `<details class="mas"${plegado()? '' : ' open'}><summary>${rot}</summary><div>${html}</div></details>` : '';
+const masDet = (html, rot='Más detalles', siempre=false) => html? `<details class="mas${siempre? ' siempre' : ''}"${siempre || plegado()? '' : ' open'}><summary>${rot}</summary><div>${html}</div></details>` : '';
 function notaPlegable(el, txt){ el.replaceChildren(); if (!txt) return;
   const d=document.createElement('details'), s=document.createElement('summary'), t=document.createElement('div');
   d.className='mas'; d.open=!plegado(); s.textContent='Más detalles'; t.textContent=txt; d.append(s,t); el.append(d); }
@@ -112,7 +113,6 @@ function barsHtml(s){ const tot=sum(s.km); const max = Math.max(...s.km, 0.001);
     <div class="val">${kmFull(s.km[k])}<small>${pct(s.km[k],tot)}</small></div>`).reverse().join(''); }
 function renderSummary(){
   const scopeName = selAv!==null? VPC.nomenclat[selAv] : selCol!==null? META.colonias[selCol].n : sel===null? 'Ciudad de México' : META.munNames[sel];
-  $('scope-label').textContent = scopeName;
   const amb = selCol!==null?'de la colonia':sel===null?'de la ciudad':'de la alcaldía';
   const fs = frSumm(); const nprioF = sumPrio(fs.n);
   const emptyCol = selCol!==null && sum(fs.n)===0;  // colonia sin frentes a cargo de la alcaldía
@@ -134,8 +134,10 @@ function renderSummary(){
   if (ub && resp!=='gc' && !emptyCol){ ub.innerHTML += `<div class="univline banq"><span>${banqDesgloseTxt(sel, selCol)}</span></div>`; ub.hidden=false; }
   if (ub && vs && resp==='gc'){ const gb = gcBanqTxt(sel, selAv); if (gb){ ub.innerHTML += `<div class="univline banq gcbanq"><span>${gb}</span></div>`; ub.hidden=false; } }
   if (ub && vs && resp==='gc'){ ub.innerHTML += `<div class="univline eq"><span>${gcFrenteTxt(sel, selAv)}. Los kilómetros de vialidad se miden sobre el eje de la avenida; los de frente, por cada acera. Para comparar o sumar con las alcaldías se usa el kilómetro de frente.</span></div>`; ub.hidden=false; }
-  if (ub && !ub.hidden) ub.innerHTML = masDet(ub.innerHTML, resp==='gc'? 'Banqueta y equivalencia en km de frente' : 'Banqueta de lo prioritario');
-  const rp = $('reparto'); if (rp){ rp.hidden = selAv!==null; rp.innerHTML = rp.hidden? '' : masDet(repartoHtml(), 'Quién atiende, por prioridad'); }
+  // con solo Gobierno Central, a la vista queda una sola medida (km de vialidad sobre el eje): la equivalencia en km de frente, la banqueta
+  // de referencia y el cuadro «Quién atiende» (en km de frente) van plegados también en la computadora
+  if (ub && !ub.hidden) ub.innerHTML = resp==='gc'? masDet(ub.innerHTML, 'Equivalencia en km de frente y banqueta de referencia', true) : masDet(ub.innerHTML, 'Banqueta de lo prioritario');
+  const rp = $('reparto'); if (rp){ rp.hidden = selAv!==null; rp.innerHTML = rp.hidden? '' : resp==='gc'? masDet(repartoHtml(), 'Comparar con las alcaldías (en km de frente de manzana)', true) : masDet(repartoHtml(), 'Quién atiende, por prioridad'); }
   // resumen compacto sobre el mapa
   const ms = $('mapsum');
   if (ms){
@@ -181,8 +183,8 @@ function renderSummary(){
     // dos bloques seguidos: primero todo lo de las alcaldías, después todo lo del Gobierno Central (#kpis2 abre el bloque de #bars2)
     $('kpis').innerHTML = `<div class="cap">Frentes de manzana · a cargo de la Alcaldía · ${ambN}</div>${kFr}${pobLine? '<div class="cap pob">'+pobLine+'</div>':''}`;
     $('kpis2').innerHTML = `<div class="cap">Vialidades primarias · a cargo del Gobierno Central · ${ambG}${avisoCol}</div>${kVp}`;
-    $('bars-title').textContent='Kilómetros de frente de manzana por prioridad';
-    if(b2t) b2t.textContent='Kilómetros de vialidad primaria por prioridad';
+    $('bars-title').textContent=`Kilómetros de frente de manzana por prioridad ${amb}`;
+    if(b2t) b2t.textContent=`Kilómetros de vialidad primaria por prioridad ${sel===null? 'de la ciudad' : 'de la alcaldía'}`;
     $('bars').innerHTML = barsHtml(fs); $('bars2').hidden=false; $('bars2-rows').innerHTML = barsHtml(vs); }
   const gcs = sel===null? META.city_gc : META.summ_gc[META.muns[sel]];
   let txt;

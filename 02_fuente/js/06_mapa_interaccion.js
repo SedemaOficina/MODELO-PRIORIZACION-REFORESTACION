@@ -68,7 +68,7 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
   c.hidden=false; c.querySelector('.close').onclick=()=>hideCard(true); enfocaFicha();
   const b=c.querySelector('#card-av'); if(b) b.onclick=()=>pickAvenida(VP.nom[i]);
   const ba=c.querySelector('#card-alc'); if(ba) ba.onclick=()=>{ clearColonia(); };
-  const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); renderResults(); rerender(); showCard('col', i); };
+  const bc=c.querySelector('#card-calles'); if(bc) bc.onclick=()=>{ setLayer('fr',true); rerender(); showCard('col', i); };
   const bf=c.querySelector('#card-ficha'); if(bf) bf.onclick=()=>$('dl-ficha').click();
   const bcp=c.querySelector('[data-copy]'); if(bcp) bcp.onclick=()=>{ const t=bcp.dataset.copy, lab=bcp.querySelector('span');
     const ok=()=>{ lab.textContent='Coordenadas copiadas'; setTimeout(()=>{ lab.textContent='Copiar coordenadas'; }, 1800); };
@@ -119,3 +119,7 @@ function scopeView(){ const P = matchMedia(MQ_TEL).matches? 0.45 : 1;
 // quién atiende, las capas y la leyenda
 $('zcity').onclick = ()=>{ if (locFollow) stopFollow(true); hideCard();
   if (sel!==null || selCol!==null || selAv!==null){ selEl.value=''; setSel(''); } else flyTo(scopeView()); };
+// el crédito del satélite va debajo del resumen del mapa, que cambia de alto según la consulta; en el celular, un toque lo abre completo
+{ const mb = document.querySelector('.mapbar'), mw = document.querySelector('.mapwrap');
+  if (mb && mw && window.ResizeObserver) new ResizeObserver(()=> mw.style.setProperty('--mapbar-alto', mb.offsetHeight+'px')).observe(mb);
+  $('attrib').addEventListener('click', e=>{ if (!e.target.closest('a')) document.body.classList.toggle('credito-abierto', $('attrib').classList.toggle('abierta')); }); }

@@ -47,8 +47,9 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   ok('buscador reconoce abreviaturas', (await texto(page, '#omni-list li.opt')).includes('Zaragoza'), (await texto(page, '#omni-list li.opt')).slice(0, 70));
   await buscar(page, 'iztapalapa'); await page.keyboard.press('Enter'); await page.waitForTimeout(5000);
   ok('elegir alcaldía', (await texto(page, '#scope-title')).includes('Iztapalapa'), await texto(page, '#scope-title'));
-  await page.$eval('#tab-list', b => b.click()); await page.waitForTimeout(800);
-  ok('listado de calles', (await texto(page, '#tp-list')).includes('km'));
+  await page.$eval('#tab-ini', b => b.click()); await page.selectOption('#ini-orden', 'calles'); await page.waitForTimeout(800);
+  { const tit = await page.$eval('#ini-title', e => e.textContent);   // el título se ve en mayúsculas (CSS): se lee su texto
+    ok('lista de calles en «Dónde empezar»', /^Calles de Iztapalapa/.test(tit) && (await texto(page, '#tp-ini')).includes('km'), tit); }
   ok('Excel de frentes prioritarios', (await descarga(page, '#act-main')).endsWith('.xlsx'));
   ok('ficha PDF de alcaldía', (await descarga(page, '#act-ficha')).endsWith('.pdf'));
   await buscar(page, 'santa cruz meyehualco'); await page.keyboard.press('Enter'); await page.waitForTimeout(5000);
@@ -100,7 +101,7 @@ const GPS = { latitude: 19.3560, longitude: -99.0560, accuracy: 12 };           
   const escCalle = await texto(page, '#scalebar');
   ok('buscar una calle repetida acerca el mapa a esas calles', /\d m$/.test(escCalle) && (await texto(page, '#scope-title')).includes('Tláhuac'), `${escCalle} · ${await texto(page, '#scope-title')}`);
   ok('un nombre repetido no ofrece descargas «de la calle» y pide elegir una', /Elige una en la lista/.test(await texto(page, '#dl-status')) && await page.$eval('#dl-calle', b => b.hidden));
-  await page.$eval('#results li:not(.empty)', li => li.click()); await page.waitForTimeout(3000);
+  await page.$eval('#ini-list li:not(.empty)', li => li.click()); await page.waitForTimeout(3000);
   ok('con una calle consultada, los botones son los de la calle', (await page.$eval('#act-main', b => b.innerText)).includes('de la calle'));
   ok('Excel de la calle', (await descarga(page, '#act-main')).startsWith('frentes_calle_montes_de_las_cordilleras'));
   ok('ficha PDF de la calle', (await descarga(page, '#act-ficha')).startsWith('ficha_calle_montes_de_las_cordilleras'));

@@ -130,7 +130,7 @@
 
 /* errores, estado de descargas, atribución del mapa de fondo */
 .card:not([hidden]) ~ .attrib.sat{right:332px;left:auto;max-width:min(520px,calc(100% - 640px))}   /* la atribución del fondo es obligatoria: se recorre, no se oculta */
-@media (max-width:860px) and (min-height:481px), (max-width:600px){ .card:not([hidden]) ~ .attrib.sat{right:60px;max-width:none} }
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .card:not([hidden]) ~ .attrib.sat{right:74px;max-width:none} }
 .panel-actions .act-status{grid-column:1/-1;margin:0;font-size:.75rem;color:var(--ink);font-weight:500}
 body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor:progress}
 .aviso-error{border-left-color:var(--guinda)}
@@ -148,6 +148,8 @@ body.generando .panel-actions .btn,body.generando #tp-dl .btn{opacity:.55;cursor
 .loader .conex{margin-top:8px;font-size:.75rem;max-width:320px}
 /* modo ligero: etiqueta fija y aviso antes de dibujar */
 .etq-ligero{position:absolute;left:16px;top:78px;z-index:5;padding:3px 9px;border:1px solid var(--line-strong);border-radius:999px;background:var(--panel);color:var(--ink-2);font:inherit;font-size:.75rem;cursor:pointer}
+/* celular: debajo del resumen del mapa (su alto varía, --mapbar-alto) y, con satélite, también debajo del crédito */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .etq-ligero{top:calc(var(--mapbar-alto, 54px) + 16px);left:10px} body.fondo-sat .etq-ligero{top:calc(var(--mapbar-alto, 54px) + 44px)} body.credito-abierto .etq-ligero{display:none} }
 .dibujando{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;padding:8px 14px;border-radius:8px;background:var(--ink);color:#fff;font-size:.875rem;box-shadow:var(--shadow)}
 /* teléfono en horizontal y pantallas bajas: panel lateral angosto en lugar de hoja inferior */
 @media (min-width:601px) and (max-height:480px){

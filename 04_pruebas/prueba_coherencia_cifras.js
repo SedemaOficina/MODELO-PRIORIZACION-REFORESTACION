@@ -24,9 +24,9 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
   let e = await L.estado(page);
   ok('panel de Tecpinco = recálculo', num(e.kpis[2].v) === espT.length, `panel ${e.kpis[2].v} · recálculo ${espT.length}`);
-  await L.clic(page, '#tab-list'); e = await L.estado(page);
+  await L.clic(page, '#tab-ini'); e = await L.estado(page);
   const filasLista = e.lista.filter(l => !l.empty).length;
-  ok('el listado de la colonia no sale vacío', filasLista > 0, `${filasLista} calles · ${e.listCount}`);
+  ok('la lista de calles de la colonia no sale vacía', filasLista > 0, `${filasLista} calles · ${e.listCount}`);
   let d = await baja('dl-frentes'); let x = xlsx(d.ruta);
   ok('Excel de frentes: renglones = frentes prioritarios del panel', x.datos.length - 1 === espT.length, `${x.datos.length - 1} renglones · panel ${espT.length}`);
   const iAlc = x.datos[0].indexOf('alcaldia'), iLen = x.datos[0].indexOf('longitud_m');
@@ -115,7 +115,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   const nTit = +((e.listTitle || '').replace(/,/g, '').match(/^(\d+) calles (se llaman|coinciden)/i) || [])[1];
   ok('nombre repetido en toda la ciudad: se pregunta la alcaldía, con las que tienen esa calle', chips.length > 1 && chips.reduce((s, c) => s + +(c.match(/(\d+)$/) || [0, 0])[1], 0) === nTit, `${e.listTitle} · ${chips.slice(0, 4).join(' | ')}`);
   ok('los renglones para ubicar no llevan cifras de prioridad', e.lista.filter(l => !l.empty).every(l => !/frentes prioritarios|Muy Alta|km/.test(l.t)), (e.lista[0] || {}).t);
-  const li = (await page.$$('#results li:not(.empty)'))[0];
+  const li = (await page.$$('#ini-list li:not(.empty)'))[0];
   await li.evaluate(n => n.click()); await page.waitForTimeout(900); e = await L.estado(page);
   const txtLi = (e.lista.find(l => l.act) || { t: '' }).t;
   ok('al elegir, la consulta queda en la alcaldía de la calle y la calle resaltada', e.alcSel !== '' && txtLi.length > 0, `alc ${e.alcSel} · ${txtLi.slice(0, 90)}`);
@@ -190,14 +190,14 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
   R = rep(f => f.col === tec2); T = await cuadro();
   ok('colonia: el cuadro usa el mismo territorio que el panel (manda la colonia)', T[5] && T[5][1] === k1(sm(R.km[0])) && T[6][1] === k1(u3(R.km[0])), `${(T[5] || []).join(' | ')} · ${(T[6] || []).join(' | ')}`);
-  // con la colonia elegida, el listado es de calles
-  await page.click('#tab-list'); await page.waitForTimeout(400);
-  { const li = await page.$$eval('#results li', ls => ls.filter(l => l.querySelector('.desg')).map(l => ({ partes: [...l.querySelectorAll('.desg span')].map(s => s.textContent.trim()), pred: /Prioridad predominante/.test(l.textContent) })));
-    ok('el listado de calles desglosa cada calle por prioridad', li.length > 0 && li.every(l => l.partes.length >= 1 && l.partes.every(p => /^(Muy Alta|Alta|Media|Baja|Muy Baja) [\d.,]+ (km|m)$/.test(p))), JSON.stringify(li[0] || {}));
+  // con la colonia elegida, la lista de «Dónde empezar» es de calles
+  await page.click('#tab-ini'); await page.waitForTimeout(400);
+  { const li = await page.$$eval('#ini-list li', ls => ls.filter(l => l.querySelector('.desg')).map(l => ({ partes: [...l.querySelectorAll('.desg span')].map(s => s.textContent.trim()), pred: /Prioridad predominante/.test(l.textContent) })));
+    ok('la lista de calles desglosa cada calle por prioridad', li.length > 0 && li.every(l => l.partes.length >= 1 && l.partes.every(p => /^(Muy Alta|Alta|Media|Baja|Muy Baja) [\d.,]+ (km|m)$/.test(p))), JSON.stringify(li[0] || {}));
     ok('las calles con más de una prioridad declaran la predominante', li.filter(l => l.partes.length > 1).every(l => l.pred)); }
 
   // ---------- tramos de la calle consultada ----------
-  { const li0 = await page.$('#results li:not(.empty)'); const txt0 = (await li0.innerText()).replace(/\s+/g, ' '); await li0.click(); await page.waitForTimeout(700);
+  { const li0 = await page.$('#ini-list li:not(.empty)'); const txt0 = (await li0.innerText()).replace(/\s+/g, ' '); await li0.click(); await page.waitForTimeout(700);
     const nFr0 = +(txt0.match(/de (\d+) frentes prioritarios/) || [])[1];
     const tr = await page.$eval('#tramos', b => b.hidden ? null : [...b.querySelectorAll('ol.tramos li')].map(l => l.textContent.replace(/\s+/g, ' ')));
     ok('al elegir una calle se listan sus tramos', !!tr && tr.length > 0, tr ? `${tr.length} tramos · ${tr[0].slice(0, 110)}` : 'sin cuadro de tramos');
@@ -209,7 +209,7 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('la ficha de la calle trae la tabla de tramos', /TRAMOS DE LA CALLE/.test(t) && /confirman en campo/.test(t)); }
 
   // ---------- filtro de alcaldía y búsqueda de calle con su lugar ----------
-  await L.clic(page, '#zcity'); await page.waitForTimeout(400); await page.click('#tab-list'); await page.fill('#q', 'Ayuntamiento'); await page.waitForTimeout(500);
+  await L.clic(page, '#zcity'); await page.waitForTimeout(400); await page.click('#tab-ini'); await page.fill('#q', 'Ayuntamiento'); await page.waitForTimeout(500);
   { const ch = await page.$$('#locchips button'); let bi = null; for (const b of ch) if (/Iztapalapa/.test(await b.innerText())) bi = b;
     const nI = bi ? +((await bi.innerText()).match(/(\d+)\s*$/) || [])[1] : -1; const espI = new Set(D.F.filter(f => !f.gc && f.mun === izt && L.norm(M.names[f.name]).includes('ayuntamiento')).map(f => f.name * 4096 + f.col)).size;
     ok('el conteo de la alcaldía en el filtro = recálculo', nI === espI, `filtro ${nI} · recálculo ${espI}`);
@@ -219,8 +219,8 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   await L.clic(page, '#zcity'); await page.waitForTimeout(300);
   { const r = await L.buscar(page, 'ayuntamiento centro'); const op = r.find(o => /^Calle/.test(o.t) && /Centro/.test(o.t) && /Cuauht/.test(o.t));
     ok('el buscador acepta la calle con su colonia («ayuntamiento centro»)', !!op, r.map(o => o.t).slice(0, 4).join(' | ')); }
-  await page.fill('#omni', ''); await page.click('#tab-list'); await page.fill('#q', 'ayuntamiento centro'); await page.waitForTimeout(500); e = await L.estado(page);
-  ok('el filtro del listado acepta la calle con su colonia', e.lista.filter(l => !l.empty).length >= 1 && e.lista.filter(l => !l.empty).every(l => /Centro/i.test(l.t)), e.lista.slice(0, 3).map(l => l.t).join(' | '));
+  await page.fill('#omni', ''); await page.click('#tab-ini'); await page.fill('#q', 'ayuntamiento centro'); await page.waitForTimeout(500); e = await L.estado(page);
+  ok('el filtro de la lista acepta la calle con su colonia', e.lista.filter(l => !l.empty).length >= 1 && e.lista.filter(l => !l.empty).every(l => /Centro/i.test(l.t)), e.lista.slice(0, 3).map(l => l.t).join(' | '));
   await page.fill('#q', '');
 
   // ---------- km de vialidad (eje) y su equivalente en km de frente; banqueta como condición ----------
@@ -277,8 +277,8 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('una avenida cuyo nombre reúne vialidades separadas lo advierte', okAv && /vialidades separadas entre sí/.test(e.avinfo || '') && /Xochimilco/.test(e.avinfo || ''), (e.avinfo || '').slice(-260)); }
   await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(300);
   // la calle consultada aparece en la ruta y se puede soltar
-  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); await page.click('#tab-list'); await page.waitForTimeout(300);
-  { await (await page.$('#results li:not(.empty)')).evaluate(n => n.click()); await page.waitForTimeout(600); e = await L.estado(page);
+  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); await page.click('#tab-ini'); await page.waitForTimeout(300);
+  { await (await page.$('#ini-list li:not(.empty)')).evaluate(n => n.click()); await page.waitForTimeout(600); e = await L.estado(page);
     const tiene = /Quitar la calle|×/.test(await page.$eval('#cr-rest', r => r.innerHTML)) && (await page.$$('#cr-rest .cr-up[data-up="calle"]')).length === 1;
     await page.$eval('#cr-rest .cr-up[data-up="calle"]', b => b.click()); await page.waitForTimeout(400); const e2 = await L.estado(page);
     ok('la calle consultada es un nivel de la ruta y se puede soltar', tiene && !e2.dl['dl-calle'].visible && e.dl['dl-calle'].visible, e.crRest); }

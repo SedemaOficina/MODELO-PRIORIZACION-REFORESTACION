@@ -41,18 +41,18 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     ok('tras elegir en el buscador, el foco pasa al título de la respuesta', (await activo(page)) === 'scope-title', await activo(page));
     const anuncio = await page.$eval('#sr-estado', e => e.textContent);
     ok('el cambio de ámbito se anuncia en una región viva', /Iztapalapa/.test(anuncio) && /km/.test(anuncio), anuncio);
-    ok('el conteo de resultados y el estado de descargas son regiones de estado', await page.evaluate(() => ['search-count', 'dl-status', 'act-status', 'sr-estado'].every(i => document.getElementById(i).getAttribute('role') === 'status')));
-    // listado: renglones con rol, foco visible y barra espaciadora
-    await L.clic(page, '#tab-list');
-    const fila = await page.evaluate(() => { const li = document.querySelector('#results li[tabindex]'); li.focus(); const cs = getComputedStyle(li); return { rol: li.getAttribute('role'), ancho: parseFloat(cs.outlineWidth), estilo: cs.outlineStyle, color: cs.outlineColor, fondo: getComputedStyle(document.querySelector('.panel')).backgroundColor, txt: li.innerText.split('\n')[0] }; });
+    ok('el conteo de resultados y el estado de descargas son regiones de estado', await page.evaluate(() => ['ini-count', 'dl-status', 'act-status', 'sr-estado'].every(i => document.getElementById(i).getAttribute('role') === 'status')));
+    // lista de «Dónde empezar» con las calles de la alcaldía: renglones con rol, foco visible y barra espaciadora
+    await L.clic(page, '#tab-ini'); await page.selectOption('#ini-orden', 'calles'); await page.waitForTimeout(300);
+    const fila = await page.evaluate(() => { const li = document.querySelector('#ini-list li[tabindex]'); li.focus(); const cs = getComputedStyle(li); return { rol: li.getAttribute('role'), ancho: parseFloat(cs.outlineWidth), estilo: cs.outlineStyle, color: cs.outlineColor, fondo: getComputedStyle(document.querySelector('.panel')).backgroundColor, txt: li.innerText.split('\n')[0] }; });
     ok('los renglones del listado tienen rol de botón', fila.rol === 'button', fila.rol);
     ok('el renglón enfocado muestra un indicador de foco de 3:1 o más', fila.estilo !== 'none' && fila.ancho >= 2 && contraste(fila.color, 'rgb(255,255,255)') >= 3, `${fila.estilo} ${fila.ancho}px ${fila.color} · ${contraste(fila.color, 'rgb(255,255,255)').toFixed(1)}:1`);
     await page.keyboard.press(' '); await page.waitForTimeout(900);
-    const act = await page.evaluate(() => { const a = document.querySelector('#results li.active'); return { activo: a ? a.innerText.split('\n')[0] : '', titulo: document.getElementById('scope-title').innerText }; });
+    const act = await page.evaluate(() => { const a = document.querySelector('#ini-list li.active'); return { activo: a ? a.innerText.split('\n')[0] : '', titulo: document.getElementById('scope-title').innerText }; });
     ok('la barra espaciadora activa el renglón', act.activo === fila.txt || act.titulo === fila.txt, `${act.activo || act.titulo} · ${fila.txt}`);
     ok('tras activar un renglón el foco no queda en el documento', !/^(BODY|HTML)?$/.test(await activo(page)), await activo(page));
     // calle consultada y ficha de un frente solo con teclado
-    await page.evaluate(() => document.querySelector('#results li[tabindex]').focus()); await page.keyboard.press('Enter'); await page.waitForTimeout(900);
+    await page.evaluate(() => document.querySelector('#ini-list li[tabindex]').focus()); await page.keyboard.press('Enter'); await page.waitForTimeout(900);
     const hayTramos = await page.evaluate(() => { const t = document.querySelector('#tramos li[tabindex]'); if (!t) return false; t.focus(); return t.getAttribute('role') === 'button'; });
     ok('los tramos de la calle consultada son renglones con rol de botón', hayTramos);
     await page.keyboard.press('Enter'); await page.waitForTimeout(700);
@@ -98,7 +98,7 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     ok('el Excel trae título y autoría en sus propiedades', /<dc:title>[^<]+<\/dc:title>/.test(core) && /Secretaría del Medio Ambiente/.test(core), core.slice(0, 80));
     // impresión y movimiento reducido
     await page.emulateMedia({ media: 'print' });
-    const imp = await page.evaluate(() => ({ barra: getComputedStyle(document.querySelector('.toolbar')).display, acciones: getComputedStyle(document.getElementById('panel-actions')).display, panel: getComputedStyle(document.querySelector('.panel-body')).overflowY, listado: getComputedStyle(document.getElementById('tp-list')).display }));
+    const imp = await page.evaluate(() => ({ barra: getComputedStyle(document.querySelector('.toolbar')).display, acciones: getComputedStyle(document.getElementById('panel-actions')).display, panel: getComputedStyle(document.querySelector('.panel-body')).overflowY, listado: getComputedStyle(document.getElementById('tp-ini')).display }));
     ok('al imprimir se ocultan los controles y la respuesta sale completa, sin recorte', imp.barra === 'none' && imp.acciones === 'none' && imp.panel === 'visible' && imp.listado !== 'none', JSON.stringify(imp));
     await page.emulateMedia({ media: 'screen', reducedMotion: 'reduce' });
     const mov = await page.evaluate(() => [...document.querySelectorAll('.tool, .chip, .tabs button, .btn, .panel')].filter(e => parseFloat(getComputedStyle(e).transitionDuration) > 0).length);
@@ -122,7 +122,7 @@ const activo = page => page.evaluate(() => { const a = document.activeElement; r
     ok('en teléfono solo la tabla de criterios lleva las etiquetas «Fuente» y «Clase»; la del fundamento no', ay.etiquetasCriterios === 9 && ay.etiquetasFundamento === 0, JSON.stringify(ay));
     await page.keyboard.press('Escape'); await page.waitForTimeout(700);
     // foco no tapado: la ficha es de la pantalla del mapa; mientras se ve, el panel está inerte y ningún control suyo queda debajo
-    await L.elegir(page, 'vicente guerrero iztapalapa'); await L.clic(page, '#tab-list'); await page.evaluate(() => document.querySelector('#results li[tabindex]').click()); await page.waitForTimeout(600);
+    await L.elegir(page, 'vicente guerrero iztapalapa'); await L.clic(page, '#tab-ini'); await page.evaluate(() => document.querySelector('#ini-list li[tabindex]').click()); await page.waitForTimeout(600);
     const abre = await page.evaluate(() => { const t = document.querySelector('#tramos li[tabindex]'); if (!t) return 'sin tramos'; t.click(); return document.getElementById('card').hidden ? 'cerrada' : 'abierta'; }); await page.waitForTimeout(300);
     const tapado = await page.evaluate(() => ({ mapa: document.body.classList.contains('ver-mapa'), panelInerte: document.querySelector('.panel').inert }));
     ok('en teléfono, con la ficha abierta en el mapa, el panel está inerte: ningún control queda tapado por la ficha', abre === 'abierta' && tapado.mapa && tapado.panelInerte, `${abre} · ${JSON.stringify(tapado)}`);

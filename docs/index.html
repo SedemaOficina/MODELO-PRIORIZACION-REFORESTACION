@@ -1,4 +1,4 @@
-<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Modelo de priorización de reforestación urbana</title><meta name="color-scheme" content="light only"><meta name="format-detection" content="telephone=no, address=no, email=no, date=no"><link rel="preload" href="datos/data.bin?v=d7dd0a6e94" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin><link rel="preload" href="fuentes/cabin.woff2?v=51380ccf10" as="font" type="font/woff2" crossorigin><link rel="preload" href="fuentes/roboto.woff2?v=0722b859b4" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="estilos.css?v=c47116b35e"></head><body>
+<!doctype html><html lang="es-MX"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex, nofollow"><title>Modelo de priorización de reforestación urbana</title><meta name="color-scheme" content="light only"><meta name="format-detection" content="telephone=no, address=no, email=no, date=no"><link rel="preload" href="datos/data.bin?v=d7dd0a6e94" as="fetch" crossorigin><link rel="preload" href="datos/meta.bin?v=256168c7a0" as="fetch" crossorigin><link rel="preload" href="datos/vp.bin?v=953fb39b79" as="fetch" crossorigin><link rel="preload" href="fuentes/cabin.woff2?v=51380ccf10" as="font" type="font/woff2" crossorigin><link rel="preload" href="fuentes/roboto.woff2?v=0722b859b4" as="font" type="font/woff2" crossorigin><link rel="stylesheet" href="estilos.css?v=1f70fdf392"></head><body>
 <!-- Generado por 02_fuente/construir.py a partir de 02_fuente/plantilla.html, css/ y js/. No editar aquí. -->
 
 <!-- Estructura de la página. Estilos en css/, lógica en js/; construir.py arma el sitio. Lo que va antes de ESTILOS pasa al <head>. -->
@@ -16,7 +16,8 @@
       <button class="linkbtn" id="open-info" type="button" aria-label="Cómo se priorizaron las colonias y las calles, y cómo usar la herramienta">Cómo funciona</button>
     </div>
     <div class="panel-body" id="panel-body">
-      <!-- consulta: buscador único (js/14_buscador.js), fila «Atiende» y ruta de navegación; la explicación está en el panel de capas -->
+      <!-- consulta: buscador único (js/14_buscador.js), filas «Atiende» y «Banqueta» y ruta de navegación; la explicación de «Atiende» está en el panel
+           de capas. En el celular las dos filas se pliegan en una línea con lo elegido y el botón «Cambiar» (js/07_leyenda_y_capas.js) -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -24,12 +25,17 @@
           <button class="clear" id="omni-clear" type="button" aria-label="Borrar búsqueda" hidden>×</button>
           <ul class="combo-list omni-list" id="omni-list" role="listbox" hidden></ul>
         </div>
+        <div class="filtros" id="filtros">
+        <div class="filtros-linea"><span class="filtros-txt" id="filtros-txt"><b>Calles de alcaldías</b> · todas las banquetas</span><button type="button" class="filtros-btn" id="filtros-btn" aria-expanded="false" aria-controls="filtros-ops" aria-label="Cambiar quién atiende y banqueta">Cambiar</button></div>
+        <div class="filtros-ops" id="filtros-ops">
         <div class="resp-row"><span class="lab" id="resp-label">Atiende</span><div class="chips" role="group" aria-labelledby="resp-label">
           <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
           <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
         </div></div>
         <div class="resp-row banq-row" id="banq-row"><span class="lab" id="banq-label">Banqueta</span><div class="seg pills banq" role="group" aria-labelledby="banq-label">
           <button type="button" data-banq="todas" aria-pressed="true">Todas</button><button type="button" data-banq="con" aria-pressed="false" title="Frentes donde INEGI 2020 registra banqueta: plantación directa">Con banqueta</button><button type="button" data-banq="sin" aria-pressed="false" title="Sin banqueta registrada o por verificar: requieren reconocimiento en sitio">Sin o por verificar</button>
+        </div></div>
+        <p class="banq-expl" id="banq-expl" hidden></p>
         </div></div>
         <nav class="crumb" id="crumb" aria-label="Ruta de la consulta">
           <button type="button" class="cr-city" id="cr-city">Ciudad de México</button><span class="cr-sep" aria-hidden="true">›</span>
@@ -38,7 +44,7 @@
         </nav>
       </div>
 
-      <!-- respuesta: ámbito y pestañas Dónde empezar / Resumen (cifras) / Listado / Descargas (js/08, 09, 11) -->
+      <!-- respuesta: ámbito y pestañas Dónde empezar (lista, filtro y tramos) / Resumen (cifras) / Descargas (js/08, 09, 11) -->
       <div class="answer" id="answer">
         <div class="scope-head"><div><span class="eyebrow">Lo que indica el modelo de priorización</span><h2 id="scope-title" tabindex="-1">Ciudad de México</h2></div><div class="scope-acts"><button type="button" class="reset" id="reset-all" title="Quitar atribución, alcaldía, colonia, búsquedas y capas"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.7M4 4v5h5"/></svg>Reiniciar</button></div></div>
         <div class="colinfo" id="alcinfo" hidden></div>
@@ -47,27 +53,29 @@
         <div class="tabs" role="tablist" aria-label="Detalle de la consulta">
           <button type="button" role="tab" id="tab-ini" data-tab="ini" aria-selected="true" aria-controls="tp-ini">Dónde empezar</button>
           <button type="button" role="tab" id="tab-res" data-tab="res" aria-selected="false" aria-controls="tp-res">Resumen</button>
-          <button type="button" role="tab" id="tab-list" data-tab="list" aria-selected="false" aria-controls="tp-list">Listado</button>
           <button type="button" role="tab" id="tab-dl" data-tab="dl" aria-selected="false" aria-controls="tp-dl">Descargas</button>
         </div>
         <div class="tabpanel" id="tp-ini" role="tabpanel" aria-labelledby="tab-ini"><div>
+        <div class="tramosbox" id="tramos" hidden></div>
         <div class="section-title"><h2 id="ini-title">Colonias por atender primero</h2><span id="ini-count" role="status"></span></div>
-        <div class="ini-orden" id="ini-orden-box"><label for="ini-orden">Ordenar por</label>
+        <div class="ini-orden" id="ini-orden-box"><label for="ini-orden">Mostrar</label>
           <select id="ini-orden">
-            <option value="kmp">Más kilómetros prioritarios</option>
-            <option value="pct">Mayor porcentaje prioritario</option>
-            <option value="pob">Más habitantes</option>
-            <option value="pl">Más kilómetros sin arbolado y con banqueta</option>
+            <option value="kmp">Colonias con más kilómetros prioritarios</option>
           </select></div>
+        <div class="search ini-filtro">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+          <input id="q" type="search" placeholder="Buscar una calle de la ciudad" autocomplete="off" aria-label="Buscar una calle de la ciudad">
+        </div>
+        <div class="locchips" id="locchips" hidden></div>
         <ol class="results ini" id="ini-list"></ol>
         <button type="button" class="linkbtn ini-mas" id="ini-mas" hidden>Ver 10 más</button>
-        <p class="note" id="ini-note"></p>
+        <div class="note" id="ini-note"></div>
       </div></div>
         <div class="tabpanel" id="tp-res" role="tabpanel" aria-labelledby="tab-res" hidden><div>
         <div class="kpis" id="kpis"></div>
         <div class="pobbox" id="pobbox" hidden></div>
         <div class="univbox" id="univbox" hidden></div>
-        <div class="section-title"><h2 id="bars-title">Kilómetros de frente por prioridad</h2><span id="scope-label">Ciudad</span></div>
+        <div class="section-title"><h2 id="bars-title">Kilómetros de frente por prioridad</h2></div>
         <div class="bars" id="bars"></div>
         <div class="note" id="bars-note"></div>
         <div id="bars2" class="bars2" hidden>
@@ -76,17 +84,6 @@
           <div class="bars" id="bars2-rows"></div>
         </div>
         <div class="repartobox" id="reparto" hidden></div>
-      </div></div>
-        <div class="tabpanel" id="tp-list" role="tabpanel" aria-labelledby="tab-list" hidden><div>
-        <div class="tramosbox" id="tramos" hidden></div>
-        <div class="section-title"><h2 id="search-title">Calles con más frente prioritario</h2><span id="search-count" role="status"></span></div>
-        <div class="search">
-          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
-          <input id="q" type="search" placeholder="Filtrar este listado…" autocomplete="off" aria-label="Filtrar este listado">
-        </div>
-        <div class="locchips" id="locchips" hidden></div>
-        <ul class="results" id="results"></ul>
-        <p class="note">Prioritario = categorías Muy Alta, Alta y Media. Selecciona una calle o avenida para ubicarla en el mapa.</p>
       </div></div>
         <div class="tabpanel" id="tp-dl" role="tabpanel" aria-labelledby="tab-dl" hidden><div class="panel-section">
         <div class="section-title"><h2>Listado para planeación</h2><span>Excel + diccionario</span></div>
@@ -126,7 +123,7 @@
 
   <!-- ===== Mapa: barra de resumen, herramientas, leyenda-filtro y tarjeta (js/04 a 07) ===== -->
   <div class="mapwrap">
-    <div id="map" data-nombre="Mapa de prioridades de reforestación. Las flechas lo mueven; las teclas más y menos acercan y alejan. La misma información está en el listado del panel."></div>
+    <div id="map" data-nombre="Mapa de prioridades de reforestación. Las flechas lo mueven; las teclas más y menos acercan y alejan. La misma información está en la lista «Dónde empezar» del panel."></div>
     <noscript><div class="sinjs">Esta herramienta necesita JavaScript para funcionar. Actívalo en la configuración del navegador y recarga la página.</div></noscript>
     <div class="loader" id="loader"><div><div class="cabin ld-tit">Cargando frentes de manzana</div><div id="load-msg" class="ld-msg" role="status">Descargando la herramienta y sus datos (5 MB la primera vez)…</div><div class="bar indet" id="load-prog" role="progressbar" aria-label="Avance de la carga" aria-valuemin="0" aria-valuemax="100"><i id="load-bar"></i></div></div></div>
     <div class="mapbar">
@@ -210,9 +207,9 @@
       <p class="rec-cta"><button type="button" class="btn rec-abrir" id="rec-abrir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Recorrido guiado · 1 minuto</button><span>Muestra dónde buscar, cómo separar las calles por banqueta y cómo revisarlas en Street View antes de salir a campo.</span></p>
       <ol class="howto-steps">
         <li><b>Elige qué consultar y dónde.</b> Calles y colonias de las alcaldías o vialidades primarias del Gobierno Central, y en qué alcaldía. La fila «Atiende» cambia de red en cualquier momento; puedes marcar ambas.</li>
-        <li><b>Revisa «Dónde empezar».</b> Propone el orden de atención: colonias, calles de la colonia elegida o avenidas. Las colonias se ordenan por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta.</li>
+        <li><b>Revisa «Dónde empezar».</b> Propone el orden de atención: colonias, calles de la colonia elegida o avenidas. Las colonias se ordenan por kilómetros prioritarios, porcentaje prioritario, habitantes o kilómetros sin arbolado y con banqueta; también puedes ver las calles de la alcaldía o las alcaldías de la ciudad, y buscar una calle por su nombre. Al elegir una calle aparecen sus tramos.</li>
         <li><b>Busca un lugar.</b> Alcaldía, colonia, avenida o calle; bastan algunas palabras y reconoce abreviaturas («Calz.», «Av.»). También puedes pegar coordenadas (19.3000, -99.1019) o un enlace de Google Maps, como los que llegan por WhatsApp: la herramienta marca el punto y dice su colonia y las calles prioritarias cercanas.</li>
-        <li><b>Consulta y descarga.</b> «Resumen» da las cifras del ámbito; las demás pestañas, el listado y las descargas en Excel, PDF y archivos para mapa.</li>
+        <li><b>Consulta y descarga.</b> «Resumen» da las cifras del ámbito y «Descargas», los archivos en Excel, PDF y para abrir en un mapa.</li>
         <li><b>Ajusta el mapa.</b> El botón de capas controla capas, mapa de fondo, opacidad y prioridades visibles.</li>
       </ol>
       <h3 class="howto-gl">Términos</h3>
@@ -323,8 +320,8 @@
     <ul class="uses">
       <li><b>Empieza por Muy Alta, luego Alta y luego Media.</b> Las tres son prioritarias; el orden sugiere por dónde empezar. El Resumen reporta, de lo prioritario, los kilómetros sin arbolado y los que además tienen banqueta.</li>
       <li><b>Separa por banqueta, sin descartar.</b> «Con banqueta» reúne los frentes para plantación directa. «Sin o por verificar» reúne los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato; requieren reconocimiento en sitio. El dato es de INEGI 2020 y puede haber cambiado.</li>
-      <li><b>Una calle no tiene una sola prioridad.</b> El listado muestra sus kilómetros por prioridad y la predominante. Al elegir una calle, se divide en tramos de esquina a esquina; es una aproximación geométrica que se confirma en campo.</li>
-      <li><b>Di dónde está la calle.</b> Muchos nombres se repiten: elige alcaldía o escribe la calle con su colonia («Ayuntamiento Centro»). Si no aparece en el listado de la alcaldía, revisa si es vialidad primaria (en gris) y activa Gobierno Central.</li>
+      <li><b>Una calle no tiene una sola prioridad.</b> La lista de «Dónde empezar» muestra sus kilómetros por prioridad y la predominante. Al elegir una calle, se divide en tramos de esquina a esquina; es una aproximación geométrica que se confirma en campo.</li>
+      <li><b>Di dónde está la calle.</b> Muchos nombres se repiten: elige alcaldía o escribe la calle con su colonia («Ayuntamiento Centro»). Si no aparece en la lista de la alcaldía, revisa si es vialidad primaria (en gris) y activa Gobierno Central.</li>
       <li><b>No sumes unidades distintas.</b> La red de las alcaldías se mide en kilómetros de frente (uno por acera); las vialidades primarias, en kilómetros de vialidad sobre el eje. Para comparar usa el cuadro «Quién atiende», todo en kilómetros de frente.</li>
       <li><b>Las cifras son diagnóstico.</b> No son meta ni obligación de plantación, y la participación de cada alcaldía en el total no es una calificación. El modelo indica dónde es prioritario, no cuántos árboles caben: espacio, banqueta, cableado e instalaciones se confirman en sitio.</li>
       <li><b>Programa con el Excel y acuerda con la Secretaría.</b> Cada archivo trae la hoja Datos (calle, tipo de vialidad, colonia, código postal, longitud y coordenadas) y la hoja Diccionario; sin conexión se entregan dos CSV. Las especies nativas y el riego y mantenimiento por dos años se acuerdan con la Secretaría conforme al Programa.</li>
@@ -333,8 +330,8 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=c0db6bb958"></script>
+<script src="config.js?v=ec5c2f35dc"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
-<script src="app.js?v=453c84fa62"></script>
+<script src="app.js?v=33451f223b"></script>
 </body></html>

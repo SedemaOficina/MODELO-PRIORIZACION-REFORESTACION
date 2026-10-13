@@ -23,12 +23,12 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
 | `prueba_servidor_sia.js` | Instalada en `/priorizacion-reforestacion/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario; rutas de la fase 2 (acceso y API bajo `/priorizacion-reforestacion/`, sin `auth_request`) | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
-| `prueba_orientacion.js` | Entrada por territorio, pestaña «Dónde empezar», capas cerradas con leyenda compacta, «Quién atiende» en capas, sin «Compartir» | 1 min |
+| `prueba_orientacion.js` | Entrada por territorio, tres pestañas, «Dónde empezar» (orden, filtro por nombre, calles de la alcaldía, alcaldías, tramos de la calle elegida, avenidas y alcaldías que cruza una avenida), el nombre del lugar una sola vez en el Resumen, capas cerradas con leyenda compacta, «Quién atiende» en capas, sin «Compartir» | 1 min |
 | `prueba_casos_limite.js` | Casos límite: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
-| `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central | 1 min |
+| `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, explicación visible de la opción elegida, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central (una sola medida a la vista; lo que está en km de frente, plegado también en la computadora) | 1 min |
 | `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, pasos de banqueta y de Street View, en escritorio y teléfono | 1 min |
 | `prueba_nombres_mapa.js` | Nombres del mapa, gestos y búsqueda por coordenadas: nombres de alcaldía y colonia dentro de su figura, nombres de calle sobre la línea media, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta |
-| `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) |
+| `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo, «Atiende» y «Banqueta» en una línea con «Cambiar» que despliega las dos filas; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) |
 | `prueba_mapa_descargas.js` | KML y GeoJSON de las calles prioritarias: validez, mismos registros que la pantalla, límites en teléfono | 1 min |
 
 **Lote de fichas de las alcaldías** (no es una prueba; vive aquí porque usa las mismas herramientas): `node 04_pruebas/generar_fichas_alcaldias.js` descarga, por alcaldía, la ficha de la alcaldía, la de vialidades primarias y la de la colonia con más frente prioritario, en `_local/fichas_alcaldias_vX.YY/`; `python 04_pruebas/unir_fichas.py CARPETA` (requiere `pypdf`) las une en `00_todas_las_fichas.pdf` y arma el zip. Unos 5 minutos.
@@ -43,7 +43,7 @@ GitHub puede repetir las tres primeras verificaciones en cada cambio que recibe;
 
 - carga sin errores;
 - buscador (abreviaturas, alcaldía, colonia);
-- listado, Excel de frentes y de tramos, fichas PDF de alcaldía y de colonia;
+- lista de calles en «Dónde empezar», Excel de frentes y de tramos, fichas PDF de alcaldía y de colonia;
 - modo Gobierno Central y regreso a toda la ciudad;
 - Mi ubicación con un GPS simulado en la colonia Vicente Guerrero (Iztapalapa);
 - ayuda y lámina de la metodología, y que la ayuda se pueda cerrar aunque se haya bajado hasta el final;
@@ -100,7 +100,7 @@ Tarda unos 2 minutos. Las demás pruebas bloquean el proceso de servicio (`servi
 
 ## Prueba de accesibilidad
 
-`prueba_accesibilidad.js` recorre la herramienta con teclado y comprueba: `<title>` y estilos en `<head>`, `<main>` y enlace de salto; anuncio del cambio de ámbito; foco tras elegir en el buscador, al abrir y cerrar la ficha, el panel de capas y la ayuda (fondo inerte); renglones de listado con rol, foco visible y barra espaciadora; ficha de un frente abierta desde un tramo sin usar el puntero; contraste de bordes e indicador de foco; objetivos táctiles en teléfono (44 px en herramientas, pestañas y selector; 38 px en capas); ningún texto por debajo de 12 px ni tamaños en píxeles; impresión; movimiento reducido, e idioma, título y autoría en la ficha PDF y el Excel.
+`prueba_accesibilidad.js` recorre la herramienta con teclado y comprueba: `<title>` y estilos en `<head>`, `<main>` y enlace de salto; anuncio del cambio de ámbito; foco tras elegir en el buscador, al abrir y cerrar la ficha, el panel de capas y la ayuda (fondo inerte); renglones de la lista de «Dónde empezar» con rol, foco visible y barra espaciadora; ficha de un frente abierta desde un tramo sin usar el puntero; contraste de bordes e indicador de foco; objetivos táctiles en teléfono (44 px en herramientas, pestañas y selector; 38 px en capas); ningún texto por debajo de 12 px ni tamaños en píxeles; impresión; movimiento reducido, e idioma, título y autoría en la ficha PDF y el Excel.
 
 ```
 node 04_pruebas/prueba_accesibilidad.js
@@ -128,9 +128,9 @@ No sustituye la validación en el nginx real del SIA: el servidor de la prueba e
 
 ## Entrada y orientación
 
-`prueba_orientacion.js` comprueba que la primera visita pregunta el territorio y la siguiente abre en la última alcaldía consultada, que un enlace compartido no pregunta, que «Dónde empezar» lista las colonias en el orden elegido (y coincide con el listado de colonias), que elegir una colonia pasa a sus calles, que el panel de capas empieza cerrado con la leyenda compacta, que «Quién atiende» y el aviso de asignación preliminar están en el panel de capas y que no hay botón «Compartir»: la consulta queda en la dirección.
+`prueba_orientacion.js` comprueba que la primera visita pregunta el territorio y la siguiente abre en la última alcaldía consultada, que un enlace compartido no pregunta, que hay tres pestañas (la del listado se fundió en «Dónde empezar»), que «Dónde empezar» lista las colonias en el orden elegido (y coincide con un recálculo propio), que no depende de las casillas de capas, que ofrece las calles de la alcaldía con su desglose por prioridad y las alcaldías de la ciudad de diez en diez, que su campo filtra las calles por nombre, que elegir una colonia pasa a sus calles y elegir una calle muestra sus tramos arriba de la lista, que con una avenida da las alcaldías que cruza, que el nombre del lugar no se repite en el Resumen, que el panel de capas empieza cerrado con la leyenda compacta, que «Quién atiende» y el aviso de asignación preliminar están en el panel de capas y que no hay botón «Compartir»: la consulta queda en la dirección.
 
-Las demás pruebas parten de «toda la ciudad» (`L.sinEntrada`) y leen las cifras en la pestaña Resumen.
+Las demás pruebas parten de «toda la ciudad» (`L.sinEntrada`) y leen las cifras en la pestaña Resumen; `L.estado` lee la lista de «Dónde empezar» (`#ini-list`, con su título, su conteo y el filtro `#q`).
 
 ```
 node 04_pruebas/prueba_orientacion.js

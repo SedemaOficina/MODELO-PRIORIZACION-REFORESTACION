@@ -116,7 +116,7 @@ const FONDO_INICIAL = window.SIA_FONDO? 'calles' : 'no';
 let fondo = FONDO_INICIAL;
 const ZOOM_LIGERO = 13;
 const frVisibles = ()=> showFrB && !(modoLigero && viewState.zoom < ZOOM_LIGERO);
-const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), colLista = ()=> showColB && !showFrB && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
+const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> showColB && !frVisibles() && !isGC(), alcOnly = ()=> showAlcB && !showColB && !showFrB;
 // Sumas exactas por alcaldía, calculadas una sola vez de los frentes y los tramos: los resúmenes de meta.bin
 // vienen redondeados a dos decimales y volver a redondearlos movería la cifra hasta 0.1 km respecto del recálculo.
 (()=>{ const z = ()=>[0,0,0,0,0]; const A=META.muns.map(z), G=META.muns.map(z), W=META.muns.map(z);

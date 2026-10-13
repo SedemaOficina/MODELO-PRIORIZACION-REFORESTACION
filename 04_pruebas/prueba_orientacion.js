@@ -3,6 +3,7 @@
 // Uso: node 04_pruebas/prueba_orientacion.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
 const ok = L.Registro('orientación');
+const D = L.decodificar(), M = D.META;
 const num = t => +String(t).replace(/,/g, '').match(/[\d.]+/)[0];
 const noCrece = a => a.every((v, i) => i === 0 || v <= a[i - 1] + 1e-9);
 const filas = page => page.$$eval('#ini-list li[role=button]', ls => ls.map(l => ({ nombre: l.querySelector('.n').innerText.slice(l.querySelector('.pos').innerText.length).trim(), pos: l.querySelector('.pos').innerText.trim(), k: l.querySelector('.k').firstChild.textContent.trim(), small: l.querySelector('.k small').innerText.trim() })));
@@ -72,12 +73,26 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('con una alcaldía, «Dónde empezar» lista diez colonias numeradas', /Colonias de Iztapalapa/.test(est.tit) && f.length === 10 && f.map(x => x.pos).join() === '1,2,3,4,5,6,7,8,9,10' && est.orden, est.tit + ' · ' + est.cnt);
     ok('las cifras del ámbito están en la pestaña Resumen', est.kpisEnResumen && est.resumenOculto);
     ok('orden por km prioritarios: no creciente', noCrece(f.map(x => num(x.k) * (/\bm$/.test(x.k) ? 0.001 : 1))), f.map(x => x.k).join(' | '));
-    // contraste con el listado de colonias (capa Calles apagada)
-    await page.evaluate(() => document.querySelector('.seg.lvl button[data-lvl="fr"]').click()); await page.waitForTimeout(300);
-    const viejo = await page.$$eval('#results li[role=button] .n', ls => ls.map(l => l.innerText.trim()));
-    ok('coincide con el listado de colonias por km prioritarios', viejo.length === 10 && viejo.join('|') === f.map(x => x.nombre).join('|'), viejo.slice(0, 3).join(', '));
+    // contraste con un recálculo propio: colonias de Iztapalapa por km de frente prioritario a cargo de la alcaldía
+    { const izt = M.munNames.indexOf('Iztapalapa'), kmp = new Map(); for (const x of D.F) { if (x.gc || !x.col || x.prio < L.PRIO_MIN) continue; kmp.set(x.col, (kmp.get(x.col) || 0) + x.len); }
+      // los nombres de la pantalla se leen ya corregidos (acentos y abreviaturas): se comparan las cifras de cada renglón
+      const esp = [...kmp.entries()].filter(([c]) => M.colonias[c] && M.colonias[c].n && M.colonias[c].m === M.muns[izt]).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([, m]) => `${L.kmTxt(m / 1000)} ${L.kmUn(m / 1000)}`);
+      ok('coincide con el recálculo de las colonias por km prioritarios', esp.join('|') === f.map(x => x.k).join('|'), esp.slice(0, 4).join(', ') + ' · ' + f.map(x => x.k).slice(0, 4).join(', ')); }
     await page.evaluate(() => document.querySelector('.seg.lvl button[data-lvl="fr"]').click()); await page.waitForTimeout(300);
     ok('la lista no depende de las casillas de capas', (await filas(page)).map(x => x.nombre).join('|') === f.map(x => x.nombre).join('|'));
+    await page.evaluate(() => document.querySelector('.seg.lvl button[data-lvl="fr"]').click()); await page.waitForTimeout(300);
+    // tres pestañas: la del listado se fundió en «Dónde empezar»
+    const pes = await page.evaluate(() => [...document.querySelectorAll('.tabs [role=tab]')].map(b => b.textContent.trim()));
+    ok('hay tres pestañas: «Dónde empezar», «Resumen» y «Descargas»', pes.join('|') === 'Dónde empezar|Resumen|Descargas' && !(await page.$('#tab-list, #tp-list, #results')), pes.join(' | '));
+    // las calles de la alcaldía, cada una en su colonia y con su desglose por prioridad
+    f = await orden(page, 'calles');
+    const ca = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, desg: [...document.querySelectorAll('#ini-list li[role=button]')].filter(l => l.querySelector('.desg')).length, t: (document.querySelector('#ini-list li .t') || {}).textContent }));
+    ok('«Mostrar: calles» lista diez calles de la alcaldía con su colonia y su desglose por prioridad', /^Calles de Iztapalapa/.test(ca.tit) && f.length === 10 && ca.desg === 10 && noCrece(f.map(x => num(x.k) * (/\bm$/.test(x.k) ? 0.001 : 1))), JSON.stringify(ca));
+    // filtro por nombre dentro de «Dónde empezar»
+    await page.fill('#q', 'ayuntamiento'); await page.waitForTimeout(400);
+    const fl = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, todas: [...document.querySelectorAll('#ini-list li[role=button] .n')].every(n => /ayuntamiento/i.test(n.textContent)), orden: document.getElementById('ini-orden-box').hidden, ph: document.getElementById('q').placeholder }));
+    ok('el campo de «Dónde empezar» filtra las calles de la alcaldía por nombre', /^Calles encontradas en la alcaldía Iztapalapa/.test(fl.tit) && fl.n > 0 && fl.todas && fl.orden && /Buscar una calle de la alcaldía/.test(fl.ph), JSON.stringify(fl));
+    await page.fill('#q', ''); await page.waitForTimeout(300);
     f = await orden(page, 'pct'); ok('orden por porcentaje prioritario: no creciente', f.length === 10 && noCrece(f.map(x => num(x.k))) && f.every(x => /%/.test(x.k)), f.map(x => x.k).join(' | '));
     f = await orden(page, 'pob'); ok('orden por habitantes: no creciente', f.length === 10 && noCrece(f.map(x => num(x.k))) && f.every(x => /hab/.test(x.k)), f.map(x => x.k).join(' | '));
     f = await orden(page, 'pl'); ok('orden por km sin arbolado y con banqueta: no creciente y con su advertencia', f.length === 10 && noCrece(f.map(x => num(x.k) * (/\bm$/.test(x.k) ? 0.001 : 1))) && /verificarse en campo/.test(await page.$eval('#ini-note', x => x.textContent)), f.map(x => x.k).join(' | '));
@@ -87,8 +102,12 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await page.waitForTimeout(600);
     const col = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, orden: document.getElementById('ini-orden-box').hidden }));
     ok('elegir una colonia la consulta y la pestaña pasa a sus calles', col.titulo === 'Col. ' + primera && col.ini.includes('Calles de ' + primera) && col.n > 0 && col.orden, JSON.stringify(col));
+    const una = await page.evaluate(n => ({ rotulo: !!document.getElementById('scope-label'), span: !!document.querySelector('#reparto .section-title span'), res: document.getElementById('tp-res').textContent.includes(n), barras: document.getElementById('bars-title').textContent, cuadro: (document.querySelector('#reparto .section-title h2') || {}).textContent }), primera);
+    ok('el nombre de la colonia no se repite en el Resumen: los títulos dicen «de la colonia»', !una.rotulo && !una.span && !una.res && /de la colonia$/.test(una.barras) && /en la colonia/.test(una.cuadro || ''), JSON.stringify(una));
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await page.waitForTimeout(500);
     ok('elegir una calle la deja como calle consultada', await page.evaluate(() => /Quitar la calle/.test(document.getElementById('cr-rest').innerHTML)));
+    const tr = await page.evaluate(() => { const b = document.getElementById('tramos'); return { dentro: !!b.closest('#tp-ini'), visible: !b.hidden, n: b.querySelectorAll('ol.tramos li').length, activa: !!document.querySelector('#ini-list li.active'), antes: b.compareDocumentPosition(document.getElementById('ini-list')) === Node.DOCUMENT_POSITION_FOLLOWING }; });
+    ok('los tramos de la calle están en «Dónde empezar», arriba de la lista, y la calle queda marcada', tr.dentro && tr.visible && tr.n > 0 && tr.activa && tr.antes, JSON.stringify(tr));
     ok('sin NaN, undefined ni negativos en la pestaña', !L.MALOS.test(await page.$eval('#tp-ini', x => x.innerText)) && L.negativos(await page.$eval('#tp-ini', x => x.innerText)).length === 0);
     // compartir
     ok('no hay botón «Compartir»; la dirección guarda la consulta', !(await page.$('#share')) && /c=\d+/.test(await page.evaluate(() => location.href)));
@@ -98,9 +117,16 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     await L.clic(page, '#zcity'); await page.waitForTimeout(400);
     const cd = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, sub: document.querySelector('#ini-list li .t').textContent }));
     ok('en toda la ciudad lista colonias con su alcaldía', /Colonias de la ciudad/.test(cd.tit) && cd.n === 10 && / · Prioridad de colonia/.test(cd.sub), cd.tit + ' · ' + cd.sub);
+    f = await orden(page, 'alc');
+    ok('en toda la ciudad, «Mostrar: alcaldías» da las 16 alcaldías de diez en diez', /^Alcaldías por kilómetros de frente prioritario/.test(await page.$eval('#ini-title', x => x.textContent)) && f.length === 10 && await page.$eval('#ini-mas', b => !b.hidden && /Ver 6 más/.test(b.textContent)), f.map(x => x.nombre).slice(0, 3).join(', '));
+    await orden(page, 'kmp');
     await L.ponResp(page, 'gc'); await page.waitForTimeout(400);
     const gc = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, orden: document.getElementById('ini-orden-box').hidden }));
-    ok('con Gobierno Central lista avenidas', /^Avenidas de la ciudad/.test(gc.tit) && gc.n === 10 && gc.orden, JSON.stringify(gc));
+    ok('con Gobierno Central lista avenidas; en toda la ciudad se pueden ver también las alcaldías', /^Avenidas de la ciudad/.test(gc.tit) && gc.n === 10 && !gc.orden && (await page.$$eval('#ini-orden option', o => o.map(x => x.value).join())) === 'av,alc', JSON.stringify(gc));
+    await page.evaluate(() => document.querySelector('#ini-list li').click()); await page.waitForTimeout(600);
+    const av = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length }));
+    ok('con una avenida elegida, la lista da las alcaldías que cruza', /^Tramos de .+ por alcaldía$/.test(av.tit) && av.n > 0, JSON.stringify(av));
+    await L.clic(page, '#zcity');
     await L.ponResp(page, 'alc');
 
     // ---------- capas, leyenda compacta y «Quién atiende» ----------
@@ -122,7 +148,7 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('en teléfono, el segundo paso tampoco se desborda', t2.desborde <= 0 && t2.chico === 0 && t2.fuera === 0 && t2.n === 17, JSON.stringify(t2));
     await page.evaluate(() => document.getElementById('entrada-cdmx').click()); await page.waitForTimeout(400);
     const tb = await page.evaluate(() => { const ts = document.querySelector('.tabs'); const m = document.getElementById('leymini').getBoundingClientRect(), s = document.getElementById('scalebar').getBoundingClientRect(); return { tabs: ts.scrollWidth - ts.clientWidth, pagina: document.documentElement.scrollWidth - innerWidth, cruza: !(m.right <= s.left || s.right <= m.left || m.bottom <= s.top || s.bottom <= m.top) }; });
-    ok('en teléfono caben las cuatro pestañas, la página no se desborda y la leyenda compacta no tapa la escala', tb.tabs <= 0 && tb.pagina <= 0 && !tb.cruza, JSON.stringify(tb));
+    ok('en teléfono caben las tres pestañas, la página no se desborda y la leyenda compacta no tapa la escala', tb.tabs <= 0 && tb.pagina <= 0 && !tb.cruza, JSON.stringify(tb));
     await ctx.close(); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));
