@@ -844,9 +844,6 @@ body.con-sesion .panel-head .logo{grid-column:1}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
 /* «Atiende» y «Banqueta»: las dos filas, con la explicación de la banqueta elegida debajo */
 .filtros-ops{display:flex;flex-direction:column;gap:10px}
-/* explicación de la opción de banqueta elegida, debajo de sus botones */
-.banq-expl{margin:0;padding:6px 10px;border-left:3px solid var(--dorado);border-radius:0 6px 6px 0;background:var(--panel);font-size:.75rem;line-height:1.4;color:var(--ink-2)}
-.banq-expl[hidden]{display:none}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){ .filtros-ops{gap:8px} .query .filtros-ops .resp-row{margin-top:0} }
 /* logotipo institucional en una sola fila (Gobierno · SEDEMA · SIA · Reforestación Urbana): ocupa el ancho del encabezado */
 .panel-head .logo{max-width:100%}
@@ -860,6 +857,14 @@ body.con-sesion .panel-head .logo{grid-column:1}
 .univbox{margin-bottom:0}
 /* lo que se consulta (Colonias, Calles, Avenidas…) se destaca en el título de la lista */
 .section-title h2 b.unidad{color:var(--guinda);font-weight:700}
+/* Descargas: sin nada que descargar, solo el motivo (#dl-status, arriba) */
+#tp-dl.sin-descarga .btns,#tp-dl.sin-descarga .section-title,#tp-dl.sin-descarga #geo-archivos{display:none}
+#tp-dl #dl-status:empty{display:none}
+#tp-dl #dl-status:not(:empty){margin-bottom:10px}
+#tp-dl .section-title:first-child,#tp-dl #dl-status + .section-title{margin-top:0}
+#tp-dl.sin-descarga #dl-status{font-size:.875rem;color:var(--ink)}
+/* el título del ámbito recibe el foco al elegir (para lectores de pantalla); sin marco, para que no parezca un campo de texto */
+#scope-title:focus{outline:none}
 
 /* Recorrido guiado (js/17_recorrido.js): un velo que oscurece la página, un foco que deja ver el control y un globo que lo explica */
 .rec-velo{position:fixed;inset:0;z-index:2000;background:transparent}

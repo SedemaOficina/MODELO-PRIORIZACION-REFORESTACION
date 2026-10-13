@@ -28,7 +28,7 @@ function setResp(v, sinRefresh){
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
   if (resp===v) return; resp=v;
-  document.body.dataset.resp = v; explicaBanq();
+  document.body.dataset.resp = v;
   if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; }
   else { selAv=null; if (colBefore && !showColB && !showAlcB) setLayer('col',true); colBefore=false; if(!showAlcB && !showColB && !showFrB) setLayer('col',true); }
   highlight=null; hideCard(); $('q').value='';
@@ -46,15 +46,9 @@ function setResp(v, sinRefresh){
 // ---------- fila «Banqueta»: filtra los frentes de las alcaldías según INEGI 2020; ver filtroBanq en 03_estado.js ----------
 const banqBtns = document.querySelectorAll('button[data-banq]');
 function setBanq(v){ if (v!=='con' && v!=='sin') v = 'todas'; if (filtroBanq===v) return; filtroBanq = v;
-  banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v))); explicaBanq();
+  banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v)));
   highlight = null; hideCard(); refresh(); }   // la calle resaltada se arma con el filtro anterior: se suelta
 banqBtns.forEach(b=>{ b.onclick = ()=> setBanq(b.dataset.banq); });
-// Explicación corta y visible de la opción de banqueta elegida (la de «Todas» no hace falta); se basa en el registro de INEGI 2020 (banqTxt).
-const BANQ_EXPL = { con:'Frentes donde INEGI 2020 registra banqueta: los de plantación directa. El ancho y los obstáculos se confirman en sitio.',
-  sin:'Frentes donde INEGI 2020 no registra banqueta o no tiene el dato. Requieren reconocimiento en sitio antes de plantar.' };
-// con Gobierno Central la banqueta no aplica
-function explicaBanq(){ const ex = $('banq-expl'), t = resp==='gc'? '' : (BANQ_EXPL[filtroBanq] || ''); ex.hidden = !t; ex.textContent = t; }
-explicaBanq();
 
 const LAY = { alc: ()=>showAlcB, col: ()=>showColB, fr: ()=>showFrB };
 function setLayer(k, v){ if(k==='alc') showAlcB=v; else if(k==='col') showColB=v; else showFrB=v; document.querySelector(`.seg.lvl button[data-lvl="${k}"]`).setAttribute('aria-pressed', String(v)); }

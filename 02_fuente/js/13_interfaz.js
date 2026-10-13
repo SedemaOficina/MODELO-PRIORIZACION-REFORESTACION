@@ -106,7 +106,10 @@ function renderActions(){
   }
   lbl.textContent = txt; m.disabled = !main || $(main).disabled; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
   $('panel-actions').classList.toggle('sin-descarga', m.disabled && f.hidden);   // en el celular el pie no ocupa lugar si no hay nada que descargar
-  hint.hidden = !why; hint.textContent = why; }
+  hint.hidden = !why; hint.textContent = why;
+  // Descargas: si nada se puede descargar (toda la ciudad con «Alcaldías»), queda solo el motivo, arriba, sin botones apagados
+  const dls = [...document.querySelectorAll('#tp-dl .btns button')].filter(b=> !b.hidden);
+  $('tp-dl').classList.toggle('sin-descarga', dls.length>0 && dls.every(b=> b.disabled)); }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // cierre de sesión: solo aparece si la instalación define su dirección

@@ -18,7 +18,7 @@
     </div>
     <div class="panel-body" id="panel-body">
       <!-- consulta: buscador único (js/14_buscador.js), filas «Atiende» y «Banqueta» y ruta de navegación; la explicación de «Atiende» está en el panel
-           de capas; la de la banqueta elegida, debajo de sus botones (js/07_leyenda_y_capas.js) -->
+           de capas (js/07_leyenda_y_capas.js) -->
       <div class="query" id="query">
         <div class="omni combo">
           <svg class="ic-s" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
@@ -33,9 +33,8 @@
           <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
         </div></div>
         <div class="resp-row banq-row" id="banq-row"><span class="lab" id="banq-label">Banqueta</span><div class="seg pills banq" role="group" aria-labelledby="banq-label">
-          <button type="button" data-banq="todas" aria-pressed="true">Todas</button><button type="button" data-banq="con" aria-pressed="false" title="Frentes donde INEGI 2020 registra banqueta: plantación directa">Con banqueta</button><button type="button" data-banq="sin" aria-pressed="false" title="Sin banqueta registrada o por verificar: requieren reconocimiento en sitio">Sin o por verificar</button>
+          <button type="button" data-banq="todas" aria-pressed="true">Todas</button><button type="button" data-banq="con" aria-pressed="false" title="Frentes donde INEGI 2020 registra banqueta: plantación directa">Con banqueta</button><button type="button" data-banq="sin" aria-pressed="false" title="Sin banqueta registrada o sin dato (por verificar): requieren reconocimiento en sitio">Sin banqueta</button>
         </div></div>
-        <p class="banq-expl" id="banq-expl" hidden></p>
         </div></div>
         <nav class="crumb" id="crumb" aria-label="Ruta de la consulta">
           <button type="button" class="cr-city" id="cr-city">Ciudad de México</button><span class="cr-sep" aria-hidden="true">›</span>
@@ -86,6 +85,7 @@
         <div class="repartobox" id="reparto" hidden></div>
       </div></div>
         <div class="tabpanel" id="tp-dl" role="tabpanel" aria-labelledby="tab-dl" hidden><div class="panel-section">
+        <div class="status" id="dl-status" role="status"></div>
         <div class="section-title"><h2>Listado para planeación</h2><span>Excel + diccionario</span></div>
         <div class="btns">
           <button class="btn" id="dl-frentes" title="Frentes Muy Alta, Alta y Media del ámbito seleccionado (alcaldía o colonia)"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0l-5-5m5 5l5-5M4 20h16"/></svg>Descargar frentes prioritarios (Excel)</button>
@@ -99,13 +99,14 @@
           <button class="btn secondary" id="dl-ficha-alc" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la alcaldía (PDF)</button>
           <button class="btn secondary" id="dl-ficha" hidden><svg viewBox="0 0 24 24"><path d="M6 3h9l5 5v13H6zM15 3v5h5M9 13h8M9 17h8"/></svg>Ficha de la colonia (PDF)</button>
         </div>
+        <details class="mas geo" id="geo-archivos" open><summary>Archivos para abrir en un mapa (Google Earth o SIG)</summary><div>
         <div class="section-title geo-title"><h2>Para abrir en un mapa</h2><span>Líneas de las calles</span></div>
         <div class="btns">
           <button class="btn secondary" id="dl-kml" title="Las calles prioritarias de la consulta como líneas, para Google Earth"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para Google Earth (KML)</button>
           <button class="btn secondary" id="dl-geojson" title="Las calles prioritarias de la consulta como líneas, para un sistema de información geográfica"><svg viewBox="0 0 24 24"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4zM9 4v13.5M15 6.5V20"/></svg>Calles prioritarias para SIG (GeoJSON)</button>
         </div>
         <details class="note mas" id="geo-note" open><summary>Más detalles</summary><div>Traen las mismas calles de prioridad Muy Alta, Alta y Media que los Excel, dibujadas como líneas con su prioridad. El KML se abre en Google Earth; el GeoJSON, en QGIS, ArcGIS u otro sistema de información geográfica.</div></details>
-        <div class="status" id="dl-status" role="status"></div>
+        </div></details>
       </div></div>
         <details class="source mas" id="fuentes" open><summary>Fuentes y versión</summary><div>
         Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
@@ -220,6 +221,7 @@
         <dt>Atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía (red local) o el Gobierno de la Ciudad (vialidades primarias).</dd>
       </dl>
     </section>
+    <details class="mas metodo" id="metodologia" open><summary>Metodología: cómo se calculó la prioridad</summary><div>
     <div class="eyebrow">Metodología · Programa de Reforestación Urbana</div>
     <h2 id="info-title" class="sr">Metodología</h2>
     <p class="lead">La prioridad indica dónde plantar primero: colonias con más calor, mayor rezago social y menos sombra y, dentro de ellas, las calles con menos vegetación. El modelo va de la colonia a la calle.</p>
@@ -316,10 +318,11 @@
       </tbody>
     </table></div>
 
+    </div></details>
     <h3><span class="step">4</span>Criterios de lectura</h3>
     <ul class="uses">
       <li><b>Empieza por Muy Alta, luego Alta y luego Media.</b> Las tres son prioritarias; el orden sugiere por dónde empezar. El Resumen reporta, de lo prioritario, los kilómetros sin arbolado y los que además tienen banqueta.</li>
-      <li><b>Separa por banqueta, sin descartar.</b> «Con banqueta» reúne los frentes para plantación directa. «Sin o por verificar» reúne los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato; requieren reconocimiento en sitio. El dato es de INEGI 2020 y puede haber cambiado.</li>
+      <li><b>Separa por banqueta, sin descartar.</b> «Con banqueta» reúne los frentes para plantación directa. «Sin banqueta» reúne los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato; requieren reconocimiento en sitio. El dato es de INEGI 2020 y puede haber cambiado.</li>
       <li><b>Una calle no tiene una sola prioridad.</b> La lista de «Dónde empezar» muestra sus kilómetros por prioridad y la predominante. Al elegir una calle, se divide en tramos de esquina a esquina; es una aproximación geométrica que se confirma en campo.</li>
       <li><b>Di dónde está la calle.</b> Muchos nombres se repiten: elige alcaldía o escribe la calle con su colonia («Ayuntamiento Centro»). Si no aparece en la lista de la alcaldía, revisa si es vialidad primaria (en gris) y activa Gobierno Central.</li>
       <li><b>No sumes unidades distintas.</b> La red de las alcaldías se mide en kilómetros de frente (uno por acera); las vialidades primarias, en kilómetros de vialidad sobre el eje. Para comparar usa el cuadro «Quién atiende», todo en kilómetros de frente.</li>

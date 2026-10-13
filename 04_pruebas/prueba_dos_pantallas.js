@@ -43,15 +43,13 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
       // qué acción lleva a qué pantalla
       await L.elegirTipo(page, 'Iztapalapa', 'Alc'); await page.waitForTimeout(500);
       let e = await estado(page); ok(t + 'elegir una alcaldía se queda en la información; el botón dirá «Iztapalapa»', e.info && e.rotulo === 'Iztapalapa', JSON.stringify(e));
-      // «Atiende» y «Banqueta»: las dos filas siempre a la vista, con la explicación de la banqueta elegida
-      const fl = () => page.evaluate(() => { const v = e => !!e && e.offsetParent !== null, ex = document.getElementById('banq-expl');
-        return { atiende: v(document.querySelector('.resp-row')), banq: v(document.getElementById('banq-row')), expl: v(ex) ? ex.textContent : '', desborde: document.documentElement.scrollWidth - innerWidth }; });
+      // «Atiende» y «Banqueta»: las dos filas siempre a la vista, sin botón para desplegarlas
+      const fl = () => page.evaluate(() => { const v = e => !!e && e.offsetParent !== null;
+        return { atiende: v(document.querySelector('.resp-row')), banq: v(document.getElementById('banq-row')), desborde: document.documentElement.scrollWidth - innerWidth }; });
       let f = await fl();
-      ok(t + '«Atiende» y «Banqueta» se ven siempre, sin botón para desplegarlas y sin desbordarse', f.atiende && f.banq && !f.expl && f.desborde <= 0 && !(await page.$('#filtros-btn')), JSON.stringify(f));
-      await L.clic(page, 'button[data-banq="sin"]'); await page.waitForTimeout(500); f = await fl();
-      ok(t + 'al elegir una opción de banqueta se explica debajo', /reconocimiento en sitio/.test(f.expl), JSON.stringify(f));
-      await L.clic(page, 'button[data-banq="todas"]'); await L.ponResp(page, 'gc'); await page.waitForTimeout(500); f = await fl();
-      ok(t + 'con Gobierno Central la banqueta no aplica: sin su fila ni explicación', !f.banq && !f.expl, JSON.stringify(f));
+      ok(t + '«Atiende» y «Banqueta» se ven siempre, sin botón para desplegarlas y sin desbordarse', f.atiende && f.banq && f.desborde <= 0 && !(await page.$('#filtros-btn')), JSON.stringify(f));
+      await L.ponResp(page, 'gc'); await page.waitForTimeout(500); f = await fl();
+      ok(t + 'con Gobierno Central la banqueta no aplica: sin su fila', f.atiende && !f.banq, JSON.stringify(f));
       await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
       await L.elegirTipo(page, 'Progreso Tizapan', 'Col'); await page.waitForTimeout(500);
       e = await estado(page); ok(t + 'elegir una colonia se queda en la información; «Col. …»', e.info && /^Col\. Progreso Tizap/.test(e.rotulo), JSON.stringify(e));

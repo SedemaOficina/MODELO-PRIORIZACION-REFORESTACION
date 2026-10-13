@@ -915,7 +915,7 @@ function setResp(v, sinRefresh){
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
   if (resp===v) return; resp=v;
-  document.body.dataset.resp = v; explicaBanq();
+  document.body.dataset.resp = v;
   if (isGC()){ colBefore = showColB; if (showColB && !showFrB){ setLayer('col',false); setLayer('fr',true); } else if (showColB) setLayer('col',false); selCol=null; }
   else { selAv=null; if (colBefore && !showColB && !showAlcB) setLayer('col',true); colBefore=false; if(!showAlcB && !showColB && !showFrB) setLayer('col',true); }
   highlight=null; hideCard(); $('q').value='';
@@ -933,15 +933,9 @@ function setResp(v, sinRefresh){
 // ---------- fila «Banqueta»: filtra los frentes de las alcaldías según INEGI 2020; ver filtroBanq en 03_estado.js ----------
 const banqBtns = document.querySelectorAll('button[data-banq]');
 function setBanq(v){ if (v!=='con' && v!=='sin') v = 'todas'; if (filtroBanq===v) return; filtroBanq = v;
-  banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v))); explicaBanq();
+  banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq===v)));
   highlight = null; hideCard(); refresh(); }   // la calle resaltada se arma con el filtro anterior: se suelta
 banqBtns.forEach(b=>{ b.onclick = ()=> setBanq(b.dataset.banq); });
-// Explicación corta y visible de la opción de banqueta elegida (la de «Todas» no hace falta); se basa en el registro de INEGI 2020 (banqTxt).
-const BANQ_EXPL = { con:'Frentes donde INEGI 2020 registra banqueta: los de plantación directa. El ancho y los obstáculos se confirman en sitio.',
-  sin:'Frentes donde INEGI 2020 no registra banqueta o no tiene el dato. Requieren reconocimiento en sitio antes de plantar.' };
-// con Gobierno Central la banqueta no aplica
-function explicaBanq(){ const ex = $('banq-expl'), t = resp==='gc'? '' : (BANQ_EXPL[filtroBanq] || ''); ex.hidden = !t; ex.textContent = t; }
-explicaBanq();
 
 const LAY = { alc: ()=>showAlcB, col: ()=>showColB, fr: ()=>showFrB };
 function setLayer(k, v){ if(k==='alc') showAlcB=v; else if(k==='col') showColB=v; else showFrB=v; document.querySelector(`.seg.lvl button[data-lvl="${k}"]`).setAttribute('aria-pressed', String(v)); }
@@ -2315,7 +2309,10 @@ function renderActions(){
   }
   lbl.textContent = txt; m.disabled = !main || $(main).disabled; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
   $('panel-actions').classList.toggle('sin-descarga', m.disabled && f.hidden);   // en el celular el pie no ocupa lugar si no hay nada que descargar
-  hint.hidden = !why; hint.textContent = why; }
+  hint.hidden = !why; hint.textContent = why;
+  // Descargas: si nada se puede descargar (toda la ciudad con «Alcaldías»), queda solo el motivo, arriba, sin botones apagados
+  const dls = [...document.querySelectorAll('#tp-dl .btns button')].filter(b=> !b.hidden);
+  $('tp-dl').classList.toggle('sin-descarga', dls.length>0 && dls.every(b=> b.disabled)); }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // cierre de sesión: solo aparece si la instalación define su dirección
@@ -2720,7 +2717,7 @@ const REC_PASOS = [
   { titulo:'Modelo de priorización de reforestación urbana', texto:'En un minuto te mostramos cómo encontrar las calles que conviene reforestar primero, cómo separar las que tienen banqueta y cómo revisarlas antes de salir a campo.' },
   { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle. Bastan algunas palabras y se reconocen abreviaturas como «Av.» o «Calz.».' },
   { sel:'.resp-row', panel:true, titulo:'Quién atiende', texto:'Alcaldías: las calles y frentes de manzana que planta cada alcaldía. Gobierno Central: las vialidades primarias. Puedes activar las dos.' },
-  { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta» reúne los frentes donde INEGI 2020 registra banqueta: son los de plantación directa. «Sin o por verificar» reúne los que no la registran o no tienen dato: no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen la opción que elijas; el Resumen muestra siempre el desglose completo.' },
+  { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta» reúne los frentes donde INEGI 2020 registra banqueta: son los de plantación directa. «Sin banqueta» reúne los que no la registran o no tienen dato: no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen la opción que elijas; el Resumen muestra siempre el desglose completo.' },
   { sel:'#crumb', panel:true, titulo:'Tu territorio', texto:'Aquí cambias de alcaldía o vuelves a toda la ciudad. Cuando eliges una colonia o una calle, aparece en esta ruta y puedes quitarla con la ×.' },
   { sel:'.tabs', panel:true, titulo:'Dónde empezar, cifras y descargas', texto:'«Dónde empezar» propone un orden de atención: colonias, calles o avenidas del lugar, con un campo para buscar una calle por su nombre. Al elegir una calle aparecen sus tramos. «Resumen» da las cifras y el desglose por banqueta. «Descargas» tiene los archivos.' },
   { sel:'#leymini, #zcapas', mapa:true, titulo:'Colores del mapa y capas', texto:'Del rojo oscuro (Muy Alta) al crema (Muy Baja): es la prioridad de reforestación de cada colonia y de cada calle. Toca esta barra o el botón de capas para elegir qué ver (alcaldías, colonias o calles), ocultar prioridades y encender un mapa de fondo de calles o satélite.' },
