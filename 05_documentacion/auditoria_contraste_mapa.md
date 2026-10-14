@@ -4,13 +4,13 @@ Mapa de la herramienta «Modelo de priorización de reforestación urbana». Gen
 
 Cada par se mide sobre el fondo donde aparece en el mapa. Texto: 4.5:1; líneas, puntos, aros, contornos y foco: 3:1 (WCAG 2.2, criterios 1.4.3 y 1.4.11). La razón se calcula con la luminancia relativa de WCAG 2.2, y herramientas/contraste.mjs la calcula por su lado leyendo los colores de 02_fuente/css y 02_fuente/js. Lo que se dibuja con transparencia (opacidad de la capa, `opPrio`, rellenos con alfa, halos al 92 %) se compone sobre su fondo antes de medir; el hex que se muestra es el color ya compuesto. La opacidad de la prioridad se mide en su valor de inicio (100 %). «Pendiente de decisión» es un par que se exige, que hoy no cumple y que espera la decisión de Liber. «Informativo» es un par que no se exige pero conviene ver; las razones se truncan a dos decimales (4.499 se muestra 4.49).
 
-**243 pares medidos: 171 cumplen, 15 pendientes de decisión y 57 informativos** (186 exigidos).
+**253 pares medidos: 188 cumplen, 5 pendientes de decisión y 60 informativos** (193 exigidos).
 
 Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 
 ## Lo principal
 
-- Rampa de prioridad (frentes y, con Gobierno Central, vialidades primarias): Muy Baja, Baja, Media no llegan a 3:1 sobre ningún fondo claro (Muy Baja 1.09:1 a 1.22:1; Baja 1.19:1 a 1.60:1; Media 1.93:1 a 2.59:1); Alta y Muy Alta sí. La prioridad no depende solo del color de la línea: la dicen la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar». El grosor no la distingue: todos los frentes miden 4 m (de 1 a 6 px), sin importar la clase.
+- Rampa de prioridad (frentes y, con Gobierno Central, vialidades primarias): Muy Baja, Baja y Media no llegan a 3:1 sobre ningún fondo claro (Muy Baja 1.00:1 a 1.22:1; Baja 1.12:1 a 1.60:1; Media 1.81:1 a 2.59:1). Desde el zoom 14 llevan un filete --map-filete de 1 px a cada lado, que contra los fondos da de 3.63:1 a 5.45:1; la línea contra su filete: Muy Baja 4.47:1, Baja 3.39:1 y Media 2.10:1 (Media no llega a 3:1: pendiente de decisión). Por debajo del zoom 14 van sin filete, a propósito, para que a escala de ciudad se lea la rampa. Alta y Muy Alta no llevan filete y cumplen. La prioridad no depende solo del color de la línea: la dicen la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar». El grosor no la distingue: todos los frentes miden 4 m (de 1 a 6 px), sin importar la clase.
 - Nombres del mapa: cumplen sobre suelo, manzana, verde, agua y «Sin fondo», y contra su halo (6.41:1 los de alcaldía y colonia; 11.92:1 los de calle). Sobre los rellenos fuertes y el satélite los sostiene el halo (ver MI).
 - Textos (nombres del mapa e interfaz sobre el mapa): todos los textos cumplen. «Seguirme» encendido (4.50:1) queda justo en el mínimo: cualquier cambio de --loc lo tira.
 - Inventario: los tres símbolos cumplen contra su contorno blanco sobre todos los fondos y las cinco clases (el más bajo, MN76, 3.83:1). Entre ellos el color casi no los separa (1.49:1, 2.36:1, 1.58:1): los distingue la forma (anillo hueco, círculo lleno, círculo con ×).
@@ -81,29 +81,29 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MC59 | --ink-3 #666A6D sobre --panel #FFFFFF | 5.45:1 | 4.5:1 | Cumple | Leyenda: km de una prioridad apagada |
 | MC60 | --ink #24262A sobre --panel #FFFFFF | 15.15:1 | 4.5:1 | Cumple | Filtros «Atiende», «Banqueta» y «Espacio»: texto de un chip sin elegir |
 | MC61 | #fff #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 4.5:1 | Cumple | Filtros «Atiende», «Banqueta» y «Espacio»: texto del chip elegido (blanco sobre guinda) |
-| MN01 | --p0 Muy Baja #F9E7BF sobre --fondo-calle #FFFFFF | 1.22:1 | 3:1 | Pendiente de decisión | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles» |
-| MN02 | --p1 Baja #F4C56E sobre --fondo-calle #FFFFFF | 1.60:1 | 3:1 | Pendiente de decisión | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles» |
-| MN03 | --p2 Media #E88A2E sobre --fondo-calle #FFFFFF | 2.59:1 | 3:1 | Pendiente de decisión | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles» |
+| MN01 | --p0 Muy Baja #F9E7BF sobre --map-filete #666A6D | 4.47:1 | 3:1 | Cumple | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN02 | --p1 Baja #F4C56E sobre --map-filete #666A6D | 3.39:1 | 3:1 | Cumple | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN03 | --p2 Media #E88A2E sobre --map-filete #666A6D | 2.10:1 | 3:1 | Pendiente de decisión | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN04 | --p3 Alta #C2421B sobre --fondo-calle #FFFFFF | 5.13:1 | 3:1 | Cumple | Línea de prioridad Alta (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles» |
 | MN05 | --p4 Muy Alta #7F1D12 sobre --fondo-calle #FFFFFF | 10.06:1 | 3:1 | Cumple | Línea de prioridad Muy Alta (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles» |
-| MN06 | --p0 Muy Baja #F9E7BF sobre --fondo-manzana #E2DED6 | 1.09:1 | 3:1 | Pendiente de decisión | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles» |
-| MN07 | --p1 Baja #F4C56E sobre --fondo-manzana #E2DED6 | 1.19:1 | 3:1 | Pendiente de decisión | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles» |
-| MN08 | --p2 Media #E88A2E sobre --fondo-manzana #E2DED6 | 1.93:1 | 3:1 | Pendiente de decisión | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles» |
+| MN06 | --p0 Muy Baja #F9E7BF sobre --map-filete #666A6D | 4.47:1 | 3:1 | Cumple | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN07 | --p1 Baja #F4C56E sobre --map-filete #666A6D | 3.39:1 | 3:1 | Cumple | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN08 | --p2 Media #E88A2E sobre --map-filete #666A6D | 2.10:1 | 3:1 | Pendiente de decisión | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN09 | --p3 Alta #C2421B sobre --fondo-manzana #E2DED6 | 3.82:1 | 3:1 | Cumple | Línea de prioridad Alta (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles» |
 | MN10 | --p4 Muy Alta #7F1D12 sobre --fondo-manzana #E2DED6 | 7.50:1 | 3:1 | Cumple | Línea de prioridad Muy Alta (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles» |
-| MN11 | --p0 Muy Baja #F9E7BF sobre --ground #F4F2EE | 1.09:1 | 3:1 | Pendiente de decisión | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo» |
-| MN12 | --p1 Baja #F4C56E sobre --ground #F4F2EE | 1.43:1 | 3:1 | Pendiente de decisión | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo» |
-| MN13 | --p2 Media #E88A2E sobre --ground #F4F2EE | 2.31:1 | 3:1 | Pendiente de decisión | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo» |
+| MN11 | --p0 Muy Baja #F9E7BF sobre --map-filete #666A6D | 4.47:1 | 3:1 | Cumple | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN12 | --p1 Baja #F4C56E sobre --map-filete #666A6D | 3.39:1 | 3:1 | Cumple | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN13 | --p2 Media #E88A2E sobre --map-filete #666A6D | 2.10:1 | 3:1 | Pendiente de decisión | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN14 | --p3 Alta #C2421B sobre --ground #F4F2EE | 4.59:1 | 3:1 | Cumple | Línea de prioridad Alta (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo» |
 | MN15 | --p4 Muy Alta #7F1D12 sobre --ground #F4F2EE | 9.00:1 | 3:1 | Cumple | Línea de prioridad Muy Alta (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo» |
-| MN16 | --p0 Muy Baja #F9E7BF sobre relleno de colonia --p3 (Alta) al 14 % sobre --fondo-calle #F7E5E0 | 1.00:1 | 3:1 | Pendiente de decisión | Línea Muy Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %) |
-| MN17 | --p1 Baja #F4C56E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE | 1.24:1 | 3:1 | Pendiente de decisión | Línea Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %) |
-| MN18 | --p2 Media #E88A2E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE | 2.01:1 | 3:1 | Pendiente de decisión | Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %) |
+| MN16 | --p0 Muy Baja #F9E7BF sobre --map-filete #666A6D | 4.47:1 | 3:1 | Cumple | Línea Muy Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN17 | --p1 Baja #F4C56E sobre --map-filete #666A6D | 3.39:1 | 3:1 | Cumple | Línea Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN18 | --p2 Media #E88A2E sobre --map-filete #666A6D | 2.10:1 | 3:1 | Pendiente de decisión | Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN19 | --p3 Alta #C2421B sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE | 3.99:1 | 3:1 | Cumple | Línea Alta sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %) |
 | MN20 | --p4 Muy Alta #7F1D12 sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE | 7.81:1 | 3:1 | Cumple | Línea Muy Alta sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %) |
-| MN21 | --p0 Muy Baja #F9E7BF sobre relleno de colonia --p2 (Media) al 14 % sobre --ground #F2E4D4 | 1.02:1 | 3:1 | Pendiente de decisión | Línea Muy Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %) |
-| MN22 | --p1 Baja #F4C56E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 1.12:1 | 3:1 | Pendiente de decisión | Línea Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %) |
-| MN23 | --p2 Media #E88A2E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 1.81:1 | 3:1 | Pendiente de decisión | Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %) |
+| MN21 | --p0 Muy Baja #F9E7BF sobre --map-filete #666A6D | 4.47:1 | 3:1 | Cumple | Línea Muy Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN22 | --p1 Baja #F4C56E sobre --map-filete #666A6D | 3.39:1 | 3:1 | Cumple | Línea Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
+| MN23 | --p2 Media #E88A2E sobre --map-filete #666A6D | 2.10:1 | 3:1 | Pendiente de decisión | Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN24 | --p3 Alta #C2421B sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 3.60:1 | 3:1 | Cumple | Línea Alta sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %) |
 | MN25 | --p4 Muy Alta #7F1D12 sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 7.05:1 | 3:1 | Cumple | Línea Muy Alta sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %) |
 | MN26 | --map-vp al 100 % #666A6D sobre --fondo-calle #FFFFFF | 5.45:1 | 3:1 | Cumple | Vialidades primarias en gris (contexto con «Alcaldías») sobre el suelo |
@@ -206,6 +206,13 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MN123 | --guinda #9D2148 sobre --panel #FFFFFF | 7.65:1 | 3:1 | Cumple | Filtros: borde del chip elegido sobre el panel |
 | MN124 | #fff #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 3:1 | Cumple | Filtros: casilla o círculo blanco del chip elegido sobre el guinda |
 | MN125 | --guinda #9D2148 sobre #fff #FFFFFF | 7.65:1 | 3:1 | Cumple | Filtros: palomita o punto guinda dentro de la casilla o el círculo blanco |
+| MN126 | --map-filete #666A6D sobre --fondo-calle #FFFFFF | 5.45:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre suelo |
+| MN127 | --map-filete #666A6D sobre --fondo-manzana #E2DED6 | 4.06:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre manzana |
+| MN128 | --map-filete #666A6D sobre --fondo-verde #D9EAD0 | 4.32:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre verde (parques, ANP y AVA) |
+| MN129 | --map-filete #666A6D sobre --fondo-agua #BCD7E6 | 3.63:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre agua |
+| MN130 | --map-filete #666A6D sobre --ground #F4F2EE | 4.88:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre «Sin fondo» |
+| MN131 | --map-filete #666A6D sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE | 4.24:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre el relleno de colonia que menos contrasta (fondo «Calles») |
+| MN132 | --map-filete #666A6D sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 3.82:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre el relleno de colonia que menos contrasta («Sin fondo») |
 | MI01 | --fondo-manzana #E2DED6 sobre --fondo-calle #FFFFFF | 1.34:1 | 3:1 (ref.) | Informativo | Fondo «Calles»: manzana contra suelo (suave a propósito) |
 | MI02 | --fondo-verde #D9EAD0 sobre --fondo-calle #FFFFFF | 1.26:1 | 3:1 (ref.) | Informativo | Fondo «Calles»: verde contra suelo |
 | MI03 | --fondo-agua #BCD7E6 sobre --fondo-calle #FFFFFF | 1.49:1 | 3:1 (ref.) | Informativo | Fondo «Calles»: agua contra suelo |
@@ -263,54 +270,25 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MI55 | --guinda #9D2148 sobre --p2 Media #E88A2E | 2.95:1 | 3:1 (ref.) | Informativo | Calle consultada: halo --guinda directo contra una línea Media vecina, sin la franja blanca |
 | MI56 | --guinda #9D2148 sobre --p3 Alta #C2421B | 1.48:1 | 3:1 (ref.) | Informativo | Calle consultada: halo --guinda directo contra una línea Alta vecina, sin la franja blanca |
 | MI57 | --guinda #9D2148 sobre --p4 Muy Alta #7F1D12 | 1.31:1 | 3:1 (ref.) | Informativo | Calle consultada: halo --guinda directo contra una línea Muy Alta vecina, sin la franja blanca |
+| MI58 | --p0 Muy Baja #F9E7BF sobre relleno de colonia --p3 (Alta) al 14 % sobre --fondo-calle #F7E5E0 | 1.00:1 | 3:1 (ref.) | Informativo | Línea Muy Baja por debajo del zoom 14: va sin filete, a propósito, para que a escala de ciudad se lea la rampa (con filete, las zonas claras se ven grises); de 1.00:1 a 1.22:1 sobre los fondos claros, el más bajo sobre el relleno de colonia que menos contrasta (fondo «Calles») |
+| MI59 | --p1 Baja #F4C56E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 1.12:1 | 3:1 (ref.) | Informativo | Línea Baja por debajo del zoom 14: va sin filete, a propósito, para que a escala de ciudad se lea la rampa (con filete, las zonas claras se ven grises); de 1.12:1 a 1.60:1 sobre los fondos claros, el más bajo sobre el relleno de colonia que menos contrasta («Sin fondo») |
+| MI60 | --p2 Media #E88A2E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 1.81:1 | 3:1 (ref.) | Informativo | Línea Media por debajo del zoom 14: va sin filete, a propósito, para que a escala de ciudad se lea la rampa (con filete, las zonas claras se ven grises); de 1.81:1 a 2.59:1 sobre los fondos claros, el más bajo sobre el relleno de colonia que menos contrasta («Sin fondo») |
 
 ## Pendientes de decisión
 
-### MN01, MN06, MN11, MN16, MN21
-
-- MN01 · --p0 Muy Baja #F9E7BF sobre --fondo-calle #FFFFFF · **1.22:1** (mínimo 3:1) · Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»
-- MN06 · --p0 Muy Baja #F9E7BF sobre --fondo-manzana #E2DED6 · **1.09:1** (mínimo 3:1) · Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles»
-- MN11 · --p0 Muy Baja #F9E7BF sobre --ground #F4F2EE · **1.09:1** (mínimo 3:1) · Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo»
-- MN16 · --p0 Muy Baja #F9E7BF sobre relleno de colonia --p3 (Alta) al 14 % sobre --fondo-calle #F7E5E0 · **1.00:1** (mínimo 3:1) · Línea Muy Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)
-- MN21 · --p0 Muy Baja #F9E7BF sobre relleno de colonia --p2 (Media) al 14 % sobre --ground #F2E4D4 · **1.02:1** (mínimo 3:1) · Línea Muy Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)
-
-Opciones (razón resultante de cada renglón de arriba, en el mismo orden):
-
-1. Oscurecer --p0 hasta #867D67 (cambia la rampa en todo: mapa, leyenda, barras y fichas PDF; se pierde el paso claro → oscuro) → 4.08:1 / 3.04:1 / 3.65:1 / 3.35:1 / 3.27:1
-2. Filete de 1 px en --ink-3 #666A6D a cada lado de las líneas de esta clase (la línea conserva su color) → 5.45:1 / 4.06:1 / 4.88:1 / 4.48:1 / 4.37:1
-3. Dejarlo así y documentarlo: la prioridad se lee también en la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar»; el grosor no la distingue (todas las líneas de frente miden lo mismo) → 1.22:1 / 1.09:1 / 1.09:1 / 1.00:1 / 1.02:1
-
-Decide Liber.
-
-### MN02, MN07, MN12, MN17, MN22
-
-- MN02 · --p1 Baja #F4C56E sobre --fondo-calle #FFFFFF · **1.60:1** (mínimo 3:1) · Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»
-- MN07 · --p1 Baja #F4C56E sobre --fondo-manzana #E2DED6 · **1.19:1** (mínimo 3:1) · Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles»
-- MN12 · --p1 Baja #F4C56E sobre --ground #F4F2EE · **1.43:1** (mínimo 3:1) · Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo»
-- MN17 · --p1 Baja #F4C56E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE · **1.24:1** (mínimo 3:1) · Línea Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)
-- MN22 · --p1 Baja #F4C56E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 · **1.12:1** (mínimo 3:1) · Línea Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)
-
-Opciones (razón resultante de cada renglón de arriba, en el mismo orden):
-
-1. Oscurecer --p1 hasta #927642 (cambia la rampa en todo: mapa, leyenda, barras y fichas PDF; se pierde el paso claro → oscuro) → 4.29:1 / 3.19:1 / 3.83:1 / 3.33:1 / 3.01:1
-2. Filete de 1 px en --ink-3 #666A6D a cada lado de las líneas de esta clase (la línea conserva su color) → 5.45:1 / 4.06:1 / 4.88:1 / 4.24:1 / 3.82:1
-3. Dejarlo así y documentarlo: la prioridad se lee también en la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar»; el grosor no la distingue (todas las líneas de frente miden lo mismo) → 1.60:1 / 1.19:1 / 1.43:1 / 1.24:1 / 1.12:1
-
-Decide Liber.
-
 ### MN03, MN08, MN13, MN18, MN23
 
-- MN03 · --p2 Media #E88A2E sobre --fondo-calle #FFFFFF · **2.59:1** (mínimo 3:1) · Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»
-- MN08 · --p2 Media #E88A2E sobre --fondo-manzana #E2DED6 · **1.93:1** (mínimo 3:1) · Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles»
-- MN13 · --p2 Media #E88A2E sobre --ground #F4F2EE · **2.31:1** (mínimo 3:1) · Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo»
-- MN18 · --p2 Media #E88A2E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE · **2.01:1** (mínimo 3:1) · Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)
-- MN23 · --p2 Media #E88A2E sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 · **1.81:1** (mínimo 3:1) · Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)
+- MN03 · --p2 Media #E88A2E sobre --map-filete #666A6D · **2.10:1** (mínimo 3:1) · Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)
+- MN08 · --p2 Media #E88A2E sobre --map-filete #666A6D · **2.10:1** (mínimo 3:1) · Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)
+- MN13 · --p2 Media #E88A2E sobre --map-filete #666A6D · **2.10:1** (mínimo 3:1) · Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)
+- MN18 · --p2 Media #E88A2E sobre --map-filete #666A6D · **2.10:1** (mínimo 3:1) · Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)
+- MN23 · --p2 Media #E88A2E sobre --map-filete #666A6D · **2.10:1** (mínimo 3:1) · Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)
 
 Opciones (razón resultante de cada renglón de arriba, en el mismo orden):
 
-1. Oscurecer --p2 hasta #B06923 (cambia la rampa en todo: mapa, leyenda, barras y fichas PDF; se pierde el paso claro → oscuro) → 4.29:1 / 3.20:1 / 3.84:1 / 3.33:1 / 3.01:1
-2. Filete de 1 px en --ink-3 #666A6D a cada lado de las líneas de esta clase (la línea conserva su color) → 5.45:1 / 4.06:1 / 4.88:1 / 4.24:1 / 3.82:1
-3. Dejarlo así y documentarlo: la prioridad se lee también en la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar»; el grosor no la distingue (todas las líneas de frente miden lo mismo) → 2.59:1 / 1.93:1 / 2.31:1 / 2.01:1 / 1.81:1
+1. Filete en --ink #24262A (el del filete oscuro de la calle consultada; contra los fondos claros, de 10.10:1 en adelante) → 5.84:1 / 5.84:1 / 5.84:1 / 5.84:1 / 5.84:1
+2. Oscurecer --map-filete hasta #4F5254 (contra los fondos claros, de 5.24:1 en adelante) → 3.03:1 / 3.03:1 / 3.03:1 / 3.03:1 / 3.03:1
+3. Dejarlo así: el filete es lo que separa la línea del fondo (pares «Filete de las clases claras», todos de 3:1 o más); la prioridad se lee también en la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar»; el grosor no la distingue (todas las líneas de frente miden lo mismo) → 2.10:1 / 2.10:1 / 2.10:1 / 2.10:1 / 2.10:1
 
 Decide Liber.
 
@@ -319,9 +297,10 @@ Decide Liber.
 - .chip[aria-pressed="true"] i { background } se declara 2 veces con valores distintos: transparent en css/02_base.css; #fff en css/03_controles.css. Se mide el último, que es el que gana.
 - Mismo color con dos nombres: --panel y --fondo-calle y --map-halo (#FFFFFF).
 - Mismo color con dos nombres: --ink-2 y --map-label (#55585A).
-- Mismo color con dos nombres: --ink-3 y --map-alc y --map-vp (#666A6D).
+- Mismo color con dos nombres: --ink-3 y --map-alc y --map-vp y --map-filete (#666A6D).
 - ANP y AVA se pintan con el mismo verde que parques y jardines (--fondo-verde #D9EAD0): en el mapa no se distinguen entre sí.
 - Los nombres de alcaldía y colonia usan de halo --ground (#F4F2EE), no el suelo del fondo «Calles» (--fondo-calle #FFFFFF): sobre el suelo blanco el halo se ve como una sombra beige muy tenue.
+- Filete de las clases claras: se mide como se ve desde el zoom 14. Dos excepciones a propósito: por debajo de ese zoom no se dibuja (lectura de la rampa a escala de ciudad; ver los informativos «por debajo del zoom 14») y, en modo ligero (sin tarjeta gráfica), los frentes solo lo llevan con una alcaldía o colonia elegida, porque el de toda la ciudad hacía cada cuadro un 55 % más lento.
 - El satélite no tiene color propio: se mide contra sus extremos (imagen negra y blanca, al 90 % sobre --ground).
 
 ## Cómo se usa

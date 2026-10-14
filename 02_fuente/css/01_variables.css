@@ -12,6 +12,7 @@ img{max-width:100%}
   --p0:#F9E7BF; --p1:#F4C56E; --p2:#E88A2E; --p3:#C2421B; --p4:#7F1D12;
   --fondo-calle:#FFFFFF; --fondo-manzana:#E2DED6; --fondo-verde:#D9EAD0; --fondo-agua:#BCD7E6;
   --map-alc:var(--ink-3); --map-col:#7A766F; --map-label:#55585A; --map-sel:#273A45; --map-vp:var(--ink-3);
+  --map-filete:var(--ink-3);   /* filete de 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14 (04_mapa_capas.js, FILETE_Z) */
   --map-halo:#FFFFFF;   /* franjas y halos blancos del mapa: nombres de calle, contorno de lo elegido, resalte de la calle o avenida consultada, marcadores */
   --focus:#5A1029;   /* anillo de foco del teclado (con halo blanco, 07_accesibilidad.css) */
   --shadow: 0 8px 28px rgba(36,38,42,.14);

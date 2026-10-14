@@ -123,7 +123,7 @@ function colocarNombres(){
       for(const cc of COLS){ if (sel!==null && munIndex[cc.mun]!==sel) continue; const bb=colBB(cc.i); if (bb[2]<b[0]-ex||bb[0]>b[2]+ex||bb[3]<b[1]-ey||bb[1]>b[3]+ey) continue;
         const ts = tramosDe(cc.i); if (ts) for(const t of ts) if (visible[t.prio]) tramos.push(t); } }
     for(const t of tramosVP()) if (!isGC() || visible[t.prio]) tramos.push(t);
-    const nidSel = highlight && highlight.nameId!==undefined? highlight.nameId : null;
+    const nidSel = nidResaltado();
     const cands = [];
     for(const t of tramos){
       const texto = t.vp? t.texto : META.names[t.nid]; const w = anchoTexto(texto, FUENTE_CALLE);

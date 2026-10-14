@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.30 (14 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.31 (14 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -196,7 +196,7 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md` (el inventario, paso 9).
 | Quiero… | Dónde |
 |---|---|
 | Cambiar un texto del panel o de la ayuda | `plantilla.html` (fijos) o el módulo que lo genera (`08_resumenes.js`, `13_interfaz.js`) |
-| Cambiar un color | `css/01_variables.css` (ahí viven también `--focus`, `--map-halo`, `--map-alc`, `--map-vp` y `--map-col`; en JS se leen con `readTokens`: `T.ink`, `T.guinda`, `T.halo`, `T.prioClara`); después, `node herramientas/contraste.mjs` (auditoría de contraste del mapa, `05_documentacion/auditoria_contraste_mapa.md`; la prueba `prueba_contraste.js` avisa si un par deja de cumplir) |
+| Cambiar un color | `css/01_variables.css` (ahí viven también `--focus`, `--map-halo`, `--map-alc`, `--map-vp`, `--map-col` y `--map-filete`; en JS se leen con `readTokens`: `T.ink`, `T.guinda`, `T.halo`, `T.prioClara`, `T.filete`). Filete de las clases claras de la rampa desde el zoom 14 (`FILETE_Z`, `FILETE_PX`, `FileteExt` en `04_mapa_capas.js`; la capa se conserva oculta debajo del 14; en modo ligero, los frentes solo lo llevan con alcaldía o colonia elegida); después, `node herramientas/contraste.mjs` (auditoría de contraste del mapa, `05_documentacion/auditoria_contraste_mapa.md`; la prueba `prueba_contraste.js` avisa si un par deja de cumplir) |
 | Cambiar el contenido de una ficha PDF | `js/12_fichas_pdf.js` |
 | Agregar una columna a un Excel | `js/11_descargas.js` (datos y diccionario van juntos) |
 | Cambiar qué muestra la tarjeta de un frente | `js/05_mapa_tarjetas.js` |

@@ -24,21 +24,11 @@ const RAIZ_DEF = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // «dónde» acompaña al id para que un cambio de numeración no esconda un par: si no coinciden, la prueba falla.
 // Para rehacer la lista después de una decisión: node herramientas/contraste.mjs --pendientes
 export const PENDIENTES_CONOCIDOS = [
-  ["MN01", "Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»"],
-  ["MN02", "Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»"],
-  ["MN03", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»"],
-  ["MN06", "Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles»"],
-  ["MN07", "Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles»"],
-  ["MN08", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles»"],
-  ["MN11", "Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo»"],
-  ["MN12", "Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo»"],
-  ["MN13", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo»"],
-  ["MN16", "Línea Muy Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)"],
-  ["MN17", "Línea Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)"],
-  ["MN18", "Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)"],
-  ["MN21", "Línea Muy Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)"],
-  ["MN22", "Línea Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)"],
-  ["MN23", "Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)"],
+  ["MN03", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
+  ["MN08", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
+  ["MN13", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
+  ["MN18", "Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
+  ["MN23", "Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
 ];
 
 // ---------------------------------------------------------------- color
@@ -78,6 +68,7 @@ function aclararHasta(fg, fondos, min) {
 function alfaMinimo(fg, bg, min) { for (let a = 0.3; a <= 1.0001; a += 0.01) if (razon(sobre(fg, bg, a), bg) >= min) return Math.min(1, a); return 1; }
 const r2 = r => Math.floor(r * 100) / 100;   // se trunca: 4.499 no se muestra como 4.50
 export const fmtR = r => r2(r).toFixed(2) + ':1';
+const yLista = a => a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1];   // «Muy Baja, Baja y Media»
 
 // ---------------------------------------------------------------- lectura de las fuentes
 function leer(raiz, rel) { const p = path.join(raiz, rel); if (!fs.existsSync(p)) throw new Error('no existe ' + rel); return fs.readFileSync(p, 'utf8'); }
@@ -188,6 +179,16 @@ export function leerFuentes(raiz = RAIZ_DEF) {
     // clases claras: las que no llegan a cierta razón contra un color (03_estado.js); llevan el filete oscuro
     const c = tomar('03_estado.js', /T\.prioClara = T\.prio\.map\(c=> \(lum\((T\.\w+)\)\+0\.05\)\/\(lum\(c\)\+0\.05\) < ([\d.]+)\)/, 'T.prioClara');
     F.claraRef = tk(c[1]); F.claraMin = +c[2]; }
+  // filete de las clases claras (las mismas de T.prioClara): fileteBajo() de 04_mapa_capas.js, desde el zoom FILETE_Z, FILETE_PX a cada lado
+  { const m = tomar('04_mapa_capas.js', /const FILETE_Z = ([\d.]+), FILETE_PX = ([\d.]+);/, 'FILETE_Z y FILETE_PX'); F.fileteZ = +m[1]; F.filetePx = +m[2];
+    F.filete = tk(tomar('04_mapa_capas.js', /function fileteDatos\([\s\S]*?const g = (T\.\w+);/, 'el color del filete (fileteDatos)')[1]);
+    tomar('04_mapa_capas.js', /'vs:DECKGL_FILTER_SIZE'[^\n]*FILETE_PX/, 'el ensanche del filete (FileteExt)');
+    tomar('04_mapa_capas.js', /fileteDatos\(clave[\s\S]*?T\.prioClara\[clase\(k\)\]/, 'que el filete lleve solo las clases de T.prioClara');
+    for (const q of ["fileteBajo(fr, 'frSub'", "fileteBajo(fr, 'fr'", "fileteBajo(vias, 'vp'"]) if (!js['04_mapa_capas.js'].includes(q)) throw new Error(`los frentes o las vialidades ya no llevan filete: falta ${q} en 04_mapa_capas.js`);
+    if (!/fileteBajo\(fr, 'frSub', [^;]*?, z>=FILETE_Z\) : fileteBajo\(fr, 'fr', [^;]*?, z>=FILETE_Z && !modoLigero\)/.test(js['04_mapa_capas.js']) || !/fileteBajo\(vias, 'vp', [^;]*?resp!=='alc' && z>=FILETE_Z\)/.test(js['04_mapa_capas.js']))
+      throw new Error('el filete de los frentes o de las vialidades ya no depende de FILETE_Z: revisar contraste.mjs');
+    const cortes = tomar('06_mapa_interaccion.js', /const ZOOM_CORTES = \[([^\]]+)\]/, 'ZOOM_CORTES')[1].split(',').map(Number);
+    if (!cortes.includes(F.fileteZ)) throw new Error(`FILETE_Z (${F.fileteZ}) no está en ZOOM_CORTES (06_mapa_interaccion.js): el filete no aparecería ni se quitaría al cruzarlo`); }
   // inventario (05_inventario.js)
   { const m = tomar('05_inventario.js', /blanco = \[(\d+),(\d+),(\d+),(\d+)\]/, 'contorno blanco del inventario'); const n = nums(m); F.invContorno = C(`blanco [${n.slice(0, 3)}] (escrito en 05_inventario.js)`, n.slice(0, 3), n[3] / 255); }
   { const m = tomar('05_inventario.js', /id:'inv-muerto-x'[\s\S]*?getColor:\[(\d+),(\d+),(\d+),(\d+)\]/, '× del árbol muerto'); const n = nums(m); F.invX = C(`× [${n.slice(0, 3)}] (escrito en 05_inventario.js)`, n.slice(0, 3), n[3] / 255); }
@@ -360,15 +361,28 @@ export function auditar(raiz = RAIZ_DEF) {
     return [opF(`Oscurecer ${F.prio[k].n} hasta ${hex(osc)} (cambia la rampa en todo: mapa, leyenda, barras y fichas PDF; se pierde el paso claro → oscuro)`, osc),
       opF(`Filete de 1 px en ${U.ink3.n} ${hex(U.ink3)} a cada lado de las líneas de esta clase (la línea conserva su color)`, U.ink3),
       actual(`Dejarlo así y documentarlo: ${otraVia}`)]; };
-  // 2. rampa sobre suelo, manzana, sin fondo y rellenos
+  // 2. rampa sobre suelo, manzana, sin fondo y rellenos. Las clases claras (T.prioClara: las que no llegan a 3:1 contra el blanco) llevan filete
+  // desde el zoom F.fileteZ: ahí se mide la línea contra su filete; el filete contra cada fondo va en los pares «Filete de las clases claras»
+  // (al final de MN) y la línea sin filete, por debajo de ese zoom, en los informativos.
+  const clara = k => razon(F.prio[k], F.claraRef) < F.claraMin;
+  const filSobre = b => sobre(conA(F.filete, aFr), b, aFr, aFr < 1 ? `filete ${F.filete.n} al ${pct(aFr)} sobre ${b.n}` : F.filete.n);   // el filete lleva la transparencia de su línea
+  const conFil = `desde el zoom ${F.fileteZ}, contra su filete ${F.filete.n} de ${F.filetePx} px a cada lado`;
+  const opFilete = k => () => { const osc = oscurecerHasta(F.filete, [F.prio[k]], NO_TEXTO);
+    return [opB(`Filete en ${U.ink.n} ${hex(U.ink)} (el del filete oscuro de la calle consultada; contra los fondos claros, de ${fmtR(Math.min(...B5.map(([, b]) => razon(U.ink, b))))} en adelante)`, U.ink),
+      opB(`Oscurecer ${F.filete.n} hasta ${hex(osc)} (contra los fondos claros, de ${fmtR(Math.min(...B5.map(([, b]) => razon(osc, b))))} en adelante)`, osc),
+      actual(`Dejarlo así: el filete es lo que separa la línea del fondo (pares «Filete de las clases claras», todos de 3:1 o más); ${otraVia}`)]; };
+  const rampa = (k, b, donde) => {
+    if (!clara(k)) return par(mn(), 'linea', sobre(linea(k), b), b, donde, { grupo: 'rampa' + k, opciones: opLinea(k) });
+    const fb = filSobre(b); par(mn(), 'linea', sobre(linea(k), fb), fb, `${donde}, ${conFil} (el filete contra el fondo, en los pares «Filete de las clases claras»)`, { grupo: 'filete' + k, opciones: opFilete(k) }); };
   const bases = [['el suelo del fondo «Calles»', F.suelo], ['una manzana del fondo «Calles»', F.manzana], ['«Sin fondo»', F.sinfondo]];
   for (const [txt, b] of bases) for (let k = 0; k < 5; k++)
-    par(mn(), 'linea', sobre(linea(k), b), b, `Línea de prioridad ${NOM[k]} (frentes de manzana; también vialidades primarias con Gobierno Central) sobre ${txt}`, { grupo: 'rampa' + k, opciones: opLinea(k) });
-  for (let k = 0; k < 5; k++) { const rellenos = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.calles, F.suelo)); const p = peor(sobre(linea(k), F.suelo), rellenos);
-    par(mn(), 'linea', sobre(linea(k), p), p, `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al ${pct(F.aCol.calles / 255 * F.opPrio)})`, { grupo: 'rampa' + k, opciones: opLinea(k) }); }
+    rampa(k, b, `Línea de prioridad ${NOM[k]} (frentes de manzana; también vialidades primarias con Gobierno Central) sobre ${txt}`);
+  // rellenos de colonia: el que menos contrasta con la línea o, en las clases claras, con su filete
+  const rellenosCalles = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.calles, F.suelo)), rellenosSinf = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.sinf, F.sinfondo));
+  const peorRelleno = (k, base, rellenos) => clara(k) ? peor(filSobre(base), rellenos) : peor(sobre(linea(k), base), rellenos);
+  for (let k = 0; k < 5; k++) rampa(k, peorRelleno(k, F.suelo, rellenosCalles), `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al ${pct(F.aCol.calles / 255 * F.opPrio)})`);
   // con «Sin fondo» el relleno de colonia es igual de tenue que con «Calles» (v1.30): lo que quede abajo es de la misma clase de la rampa
-  for (let k = 0; k < 5; k++) { const rellenos = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.sinf, F.sinfondo)); const p = peor(sobre(linea(k), F.sinfondo), rellenos);
-    par(mn(), 'linea', sobre(linea(k), p), p, `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al ${pct(F.aCol.sinf / 255 * F.opPrio)})`, { grupo: 'rampa' + k, opciones: opLinea(k) }); }
+  for (let k = 0; k < 5; k++) rampa(k, peorRelleno(k, F.sinfondo, rellenosSinf), `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al ${pct(F.aCol.sinf / 255 * F.opPrio)})`);
   // vialidades primarias en gris (modo Alcaldías)
   const vpG = conA(F.vpGris, F.aVP.ctx / 255 * F.opPrio, `${F.vpGris.n} al ${pct(F.aVP.ctx / 255 * F.opPrio)}`);
   for (const [txt, b] of [['el suelo', F.suelo], ['una manzana', F.manzana], ['«Sin fondo»', F.sinfondo]])
@@ -393,7 +407,6 @@ export function auditar(raiz = RAIZ_DEF) {
     par(mn(), 'linea', F.sel, p, `Contorno de la colonia elegida sobre su propio relleno (al ${pct(F.aCol.selFr / 255)}), el que menos contrasta`); }
   // calle y avenida consultadas: resalte() de 04_mapa_capas.js. De fuera hacia dentro: franja (F.rsFranja), halo (F.rsHalo), filete (F.rsFilete),
   // filete oscuro (F.rsOscuro) solo bajo las clases claras y, al centro, la prioridad. Todo opaco.
-  const clara = k => razon(F.prio[k], F.claraRef) < F.claraMin;
   for (const [txt, b] of B5) par(mn(), 'linea', F.rsHalo, b, `Calle consultada: halo ${F.rsHalo.n} sobre ${txt}`);
   for (let k = 0; k < 5; k++) par(mn(), 'linea', F.rsHalo, F.rsFranja, `Calle consultada: halo junto a una línea ${NOM[k]} vecina: contra la franja ${F.rsFranja.n} que los separa`);
   par(mn(), 'linea', F.rsFilete, F.rsHalo, `Calle consultada: filete ${F.rsFilete.n} sobre el halo ${F.rsHalo.n}`);
@@ -439,6 +452,9 @@ export function auditar(raiz = RAIZ_DEF) {
   par(mn(), 'linea', U.chipOnBorde, U.panel, 'Filtros: borde del chip elegido sobre el panel');
   par(mn(), 'punto', U.chipOnIcono, U.chipOnBg, 'Filtros: casilla o círculo blanco del chip elegido sobre el guinda');
   par(mn(), 'punto', U.chipOnMarca, U.chipOnIcono, 'Filtros: palomita o punto guinda dentro de la casilla o el círculo blanco');
+  // filete de las clases claras contra cada fondo (desde el zoom F.fileteZ); al final de MN para no mover la numeración anterior
+  const fondosFilete = [...B5, ['el relleno de colonia que menos contrasta (fondo «Calles»)', peor(filSobre(F.suelo), rellenosCalles)], ['el relleno de colonia que menos contrasta («Sin fondo»)', peor(filSobre(F.sinfondo), rellenosSinf)]];
+  for (const [txt, b] of fondosFilete) par(mn(), 'linea', filSobre(b), b, `Filete de las clases claras (${F.filete.n}, ${F.filetePx} px a cada lado de las líneas ${yLista(NOM.filter((_, k) => clara(k)))}, desde el zoom ${F.fileteZ}) sobre ${txt}`);
 
   // ===== MI · informativos =====
   let m = 0; const mi = () => 'MI' + String(++m).padStart(2, '0'); const inf = (tipo, fg, bg, d) => par(mi(), tipo, fg, bg, d, { exige: false });
@@ -478,6 +494,11 @@ export function auditar(raiz = RAIZ_DEF) {
   // por qué llevan franja blanca el contorno de lo elegido y el resalte de lo consultado (v1.30)
   inf('linea', F.sel, F.prio[4], 'Contorno de lo elegido directo sobre una línea Muy Alta, sin su franja blanca');
   for (let k = 0; k < 5; k++) inf('linea', F.rsHalo, sobre(linea(k), F.suelo), `Calle consultada: halo ${F.rsHalo.n} directo contra una línea ${NOM[k]} vecina, sin la franja blanca`);
+  // clases claras por debajo del zoom del filete: sin filete, a propósito (v1.31)
+  const sinFilete = k => [...bases, ['el relleno de colonia que menos contrasta (fondo «Calles»)', peor(sobre(linea(k), F.suelo), rellenosCalles)], ['el relleno de colonia que menos contrasta («Sin fondo»)', peor(sobre(linea(k), F.sinfondo), rellenosSinf)]]
+    .map(([t, b]) => ({ t, b, r: razon(sobre(linea(k), b), b) })).sort((a, b) => a.r - b.r);
+  for (let k = 0; k < 5; k++) if (clara(k)) { const s = sinFilete(k), m0 = s[0];
+    inf('linea', sobre(linea(k), m0.b), m0.b, `Línea ${NOM[k]} por debajo del zoom ${F.fileteZ}: va sin filete, a propósito, para que a escala de ciudad se lea la rampa (con filete, las zonas claras se ven grises); de ${fmtR(m0.r)} a ${fmtR(s[s.length - 1].r)} sobre los fondos claros, el más bajo sobre ${m0.t}`); }
 
   const pend = P.filter(p => p.resultado === 'Pendiente de decisión');
   return { pares: P, pendientes: pend, fuentes: S, notas: notas(S) };
@@ -500,6 +521,7 @@ function notas(S) {
     else if (cerca) out.push(`${c.n} = ${hex(c)} casi igual a ${cerca[0].n} (${hex(cerca[0])}) pero distinto: probablemente quiso ser ${cerca[0].n}.`); }
   if (F.protegidaMismoVerde) out.push(`ANP y AVA se pintan con el mismo verde que parques y jardines (${F.verde.n} ${hex(F.verde)}): en el mapa no se distinguen entre sí.`);
   out.push(`Los nombres de alcaldía y colonia usan de halo ${F.haloCol.n} (${hex(F.haloCol)}), no el suelo del fondo «Calles» (${F.suelo.n} ${hex(F.suelo)}): sobre el suelo blanco el halo se ve como una sombra beige muy tenue.`);
+  out.push(`Filete de las clases claras: se mide como se ve desde el zoom ${F.fileteZ}. Dos excepciones a propósito: por debajo de ese zoom no se dibuja (lectura de la rampa a escala de ciudad; ver los informativos «por debajo del zoom ${F.fileteZ}») y, en modo ligero (sin tarjeta gráfica), los frentes solo lo llevan con una alcaldía o colonia elegida, porque el de toda la ciudad hacía cada cuadro un 55 % más lento.`);
   out.push(`El satélite no tiene color propio: se mide contra sus extremos (imagen negra y blanca, al ${pct(F.opSat)} sobre ${F.sinfondo.n}).`);
   return out;
 }
@@ -518,15 +540,20 @@ const CRITERIO = 'Cada par se mide sobre el fondo donde aparece en el mapa. Text
 export function hallazgos(A) {
   const P = A.pares, by = id => P.find(p => p.id === id), F = A.fuentes.F;
   const NOM = ['Muy Baja', 'Baja', 'Media', 'Alta', 'Muy Alta'];
-  const rampa = P.filter(p => p.donde.startsWith('Línea de prioridad'));
-  const clasesMal = NOM.filter(nm => rampa.some(p => p.donde.startsWith(`Línea de prioridad ${nm} (`) && p.resultado !== 'Cumple'));
-  const clasesBien = NOM.filter(nm => !clasesMal.includes(nm));
-  const rango = nm => { const rs = rampa.filter(p => p.donde.startsWith(`Línea de prioridad ${nm} (`)).map(p => p.razon); return `${fmtR(Math.min(...rs))} a ${fmtR(Math.max(...rs))}`; };
+  // rampa: clases con filete (las claras), su informativo sin filete, la línea contra su filete y el filete contra los fondos
+  const conFil = NOM.filter(nm => P.some(p => p.donde.startsWith(`Línea de prioridad ${nm} (`) && p.donde.includes(', desde el zoom ')));
+  const sinFil = NOM.filter(nm => !conFil.includes(nm));
+  const infSin = nm => P.find(p => p.donde.startsWith(`Línea ${nm} por debajo del zoom `));
+  const rangoSin = nm => { const m = (infSin(nm) || { donde: '' }).donde.match(/de ([\d.]+:1) a ([\d.]+:1) sobre los fondos claros/); return m ? `${m[1]} a ${m[2]}` : '¿?'; };
+  const contraFil = nm => P.find(p => p.donde.startsWith(`Línea de prioridad ${nm} (`) && p.donde.includes(', desde el zoom '));
+  const filFondos = P.filter(p => p.donde.startsWith('Filete de las clases claras'));
+  const malFil = conFil.filter(nm => contraFil(nm).resultado !== 'Cumple');
+  const malSin = sinFil.filter(nm => P.some(p => p.donde.startsWith(`Línea de prioridad ${nm} (`) && p.resultado !== 'Cumple'));
   const mc = P.filter(p => p.id.startsWith('MC')), mcMal = mc.filter(p => p.resultado !== 'Cumple');
   const inv = P.filter(p => /^(Cepa vacante|Tocón|Árbol muerto)/.test(p.donde) && p.exige), invMin = inv.reduce((m, p) => p.razon < m.razon ? p : m, inv[0]);
   const entre = P.filter(p => p.donde.startsWith('Entre símbolos'));
   const L = [];
-  L.push(`Rampa de prioridad (frentes y, con Gobierno Central, vialidades primarias): ${clasesMal.join(', ')} no llegan a 3:1 sobre ningún fondo claro (${clasesMal.map(nm => `${nm} ${rango(nm)}`).join('; ')}); ${clasesBien.join(' y ')} sí${(() => { const r = P.filter(p => /^Línea (Alta|Muy Alta) sobre el relleno/.test(p.donde) && p.resultado !== 'Cumple'); return r.length ? `, salvo ${r.map(p => `${p.donde.split(' sobre')[0].replace('Línea ', '')} sobre el relleno de colonia con «Sin fondo» (${p.id}, ${fmtR(p.razon)})`).join(' y ')}` : ''; })()}. La prioridad no depende solo del color de la línea: la dicen la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar». El grosor no la distingue: todos los frentes miden ${F.anchoFr[0]} m (de ${F.anchoFr[1]} a ${F.anchoFr[2]} px), sin importar la clase.`);
+  L.push(`Rampa de prioridad (frentes y, con Gobierno Central, vialidades primarias): ${yLista(conFil)} no llegan a 3:1 sobre ningún fondo claro (${conFil.map(nm => `${nm} ${rangoSin(nm)}`).join('; ')}). Desde el zoom ${F.fileteZ} llevan un filete ${F.filete.n} de ${F.filetePx} px a cada lado, que contra los fondos da de ${fmtR(Math.min(...filFondos.map(p => p.razon)))} a ${fmtR(Math.max(...filFondos.map(p => p.razon)))}; la línea contra su filete: ${yLista(conFil.map(nm => `${nm} ${fmtR(contraFil(nm).razon)}`))}${malFil.length ? ` (${malFil.join(' y ')} no llega${malFil.length > 1 ? 'n' : ''} a 3:1: pendiente de decisión)` : ''}. Por debajo del zoom ${F.fileteZ} van sin filete, a propósito, para que a escala de ciudad se lea la rampa. ${sinFil.join(' y ')} no llevan filete y ${malSin.length ? `no siempre cumplen (${malSin.join(', ')})` : 'cumplen'}${(() => { const r = P.filter(p => /^Línea (Alta|Muy Alta) sobre el relleno/.test(p.donde) && p.resultado !== 'Cumple'); return r.length ? `, salvo ${r.map(p => `${p.donde.split(' sobre')[0].replace('Línea ', '')} sobre el relleno de colonia con «Sin fondo» (${p.id}, ${fmtR(p.razon)})`).join(' y ')}` : ''; })()}. La prioridad no depende solo del color de la línea: la dicen la leyenda (muestra y nombre), la descripción al pasar el ratón, la ficha del frente y «Dónde empezar». El grosor no la distingue: todos los frentes miden ${F.anchoFr[0]} m (de ${F.anchoFr[1]} a ${F.anchoFr[2]} px), sin importar la clase.`);
   L.push(`Nombres del mapa: ${mc.filter(p => /^(Nombres|Nombre de calle|Satélite: nombre)/.test(p.donde)).every(p => p.resultado === 'Cumple') ? 'cumplen' : 'no todos cumplen'} sobre suelo, manzana, verde, agua y «Sin fondo», y contra su halo (${fmtR(by('MC01').razon)} los de alcaldía y colonia; ${fmtR(by('MC07').razon)} los de calle). Sobre los rellenos fuertes y el satélite los sostiene el halo (ver MI).`);
   L.push(`Textos (nombres del mapa e interfaz sobre el mapa): ${mcMal.length ? `${mc.length - mcMal.length} de ${mc.length} cumplen; no cumple ${mcMal.map(p => `${p.id} (${p.donde.split(':')[0]}, ${fmtR(p.razon)})`).join(', ')}` : 'todos los textos cumplen'}.${by('MC41').razon < 4.6 ? ` «Seguirme» encendido (${fmtR(by('MC41').razon)}) queda justo en el mínimo: cualquier cambio de --loc lo tira.` : ''}`);
   L.push(`Inventario: los tres símbolos cumplen contra su contorno blanco sobre todos los fondos y las cinco clases (el más bajo, ${invMin.id}, ${fmtR(invMin.razon)}). Entre ellos el color casi no los separa (${entre.map(p => fmtR(p.razon)).join(', ')}): los distingue la forma (anillo hueco, círculo lleno, círculo con ×).`);

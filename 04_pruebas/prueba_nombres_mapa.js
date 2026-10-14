@@ -1,6 +1,7 @@
 // Nombres del mapa y gestos: nombres de alcaldía y de colonia dentro de su figura, nombres de calle en medio de la calle,
 // juego de letras completo (con «Ñ» en mayúsculas), contraste de los nombres de colonia, nombres de calle al día después de un salto sin animación y
-// dedos «fantasma» que el mapa suelta, y búsqueda por coordenadas (decimales, grados-minutos-segundos y enlaces de Google Maps).
+// dedos «fantasma» que el mapa suelta, búsqueda por coordenadas (decimales, grados-minutos-segundos y enlaces de Google Maps) y filete de las
+// clases claras de la rampa (solo desde el zoom 14).
 // Lee el estado del mapa con window.__MAPA, que solo existe con window.SIA_PRUEBA.
 // Uso: node 04_pruebas/prueba_nombres_mapa.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
@@ -40,6 +41,32 @@ const ok = L.Registro('nombres del mapa');
     const L1 = lum(t), L2 = lum(g); return { color: c, razon: (Math.max(L1, L2) + 0.05) / (Math.min(L1, L2) + 0.05) };
   });
   ok('los nombres de colonia van en color sólido, con contraste de 4.5:1 o más sobre el suelo del mapa', con && (con.color[3] ?? 255) === 255 && con.razon >= 4.5, con ? `${con.color.join(',')} · ${con.razon.toFixed(2)}:1` : 'sin capa de nombres de colonia');
+
+  // ---------- filete de las clases claras: solo desde el zoom 14 (v1.31) ----------
+  // Muy Baja, Baja y Media (T.prioClara) llevan debajo una copia de su línea en --map-filete, 1 px más ancha por lado; Alta y Muy Alta, no.
+  // Por debajo del zoom 14 la capa se conserva oculta. En modo ligero, los frentes solo lo llevan con una alcaldía o colonia elegida.
+  const filete = () => page.evaluate(() => { const M = window.__MAPA, p = M.capa('fronts-filete'), fr = M.capa('fronts'), ids = M.capas(), f = M.filete('fronts');
+    if (!p || !fr) return { ...f, ligero: M.ligero() };
+    return { ...f, ligero: M.ligero(), debajo: ids.indexOf('fronts-filete') === ids.indexOf('fronts') - 1, ensancha: (p.extensions || []).some(e => e.constructor.extensionName === 'FileteExt'),
+      mismoAncho: p.getWidth === fr.getWidth && p.widthMinPixels === fr.widthMinPixels && p.widthMaxPixels === fr.widthMaxPixels && p.widthUnits === fr.widthUnits,
+      opacidad: p.opacity === fr.opacity, pickable: p.pickable }; });
+  const visible = () => { const p = window.__MAPA.capa('fronts-filete'); return !!p && p.visible !== false; };
+  const oculto = () => { const p = window.__MAPA.capa('fronts-filete'); return !!window.__MAPA.capa('fronts') && (!p || p.visible === false); };
+  const ciudad = await page.evaluate(() => window.__MAPA.ligero());
+  if (ciudad) ok('modo ligero, toda la ciudad: los frentes van sin filete (rendimiento)', await hasta(page, oculto), JSON.stringify(await filete()));
+  // con una alcaldía elegida (en modo ligero, solo se dibujan sus frentes)
+  await page.evaluate(() => { const s = document.getElementById('alc'); s.value = [...s.options].find(o => /Benito Ju/.test(o.text)).value; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.waitForTimeout(1500);
+  await page.evaluate(() => window.__MAPA.ir({ longitude: -99.1555, latitude: 19.3955, zoom: 14.2 }, 0));
+  await hasta(page, visible);
+  const f14 = await filete();
+  ok('con el zoom 14 o más, las líneas Muy Baja, Baja y Media llevan filete y Alta y Muy Alta no', f14.hay && f14.visible !== false && f14.clases === '0,1,2' && f14.n === f14.claras && f14.n > 1000 && f14.otroColor === 0 && f14.debajo && f14.ensancha && f14.mismoAncho && f14.opacidad && f14.pickable === false, JSON.stringify(f14));
+  await page.evaluate(() => window.__MAPA.ir({ longitude: -99.1555, latitude: 19.3955, zoom: 13.9 }, 0));
+  ok('por debajo del zoom 14 se dibujan sin filete (lectura de la rampa a escala de ciudad)', await hasta(page, oculto), JSON.stringify(await page.evaluate(() => { const p = window.__MAPA.capa('fronts-filete'); return { capas: window.__MAPA.capas(), visible: p && p.visible }; })));
+  await page.evaluate(() => window.__MAPA.ir({ longitude: -99.1555, latitude: 19.3955, zoom: 14.2 }, 0));
+  ok('al volver al zoom 14, el filete vuelve', await hasta(page, visible));
+  await page.evaluate(() => { const s = document.getElementById('alc'); s.value = ''; s.dispatchEvent(new Event('change', { bubbles: true })); });
+  await page.waitForTimeout(1500);
 
   // ---------- nombres de calle al día después de un salto sin animación ----------
   const en = ([x, y]) => { const c = window.__MAPA.lblCenter(); return !!c && Math.abs(c[0] - x) < 1e-6 && Math.abs(c[1] - y) < 1e-6; };
@@ -107,6 +134,13 @@ const ok = L.Registro('nombres del mapa');
   ok('el mapa ve los dedos puestos', dedos.inicio === 0 && dedos.dosPuestos === 2, JSON.stringify(dedos));
   ok('un toque nuevo como primer dedo suelta los dedos cuyo aviso se perdió', dedos.trasToqueNuevo === 1 && dedos.alSoltar === 0, JSON.stringify(dedos));
   ok('al quedar la pantalla sin dedos, el mapa suelta los que siguieran anotados', dedos.trasTouchend === 0, JSON.stringify(dedos));
+
+  // ---------- filete de las vialidades primarias con Gobierno Central (zoom ≥ 14) ----------
+  await L.ponResp(page, 'gc'); await page.evaluate(() => window.__MAPA.ir({ longitude: -99.1555, latitude: 19.3955, zoom: 14.5 }, 0));
+  const fv = await hasta(page, () => { const p = window.__MAPA.capa('vias-filete'); return !!p && p.visible !== false; }) && await page.evaluate(() => { const M = window.__MAPA, p = M.capa('vias-filete'), v = M.capa('vias'), ids = M.capas();
+    return { ...M.filete('vias'), debajo: ids.indexOf('vias-filete') < ids.indexOf('vias'), sinFrentes: !M.capa('fronts-filete'), ensancha: (p.extensions || []).some(e => e.constructor.extensionName === 'FileteExt'),
+      mismoAncho: p.getWidth === v.getWidth && p.widthMinPixels === v.widthMinPixels && p.widthMaxPixels === v.widthMaxPixels && p.capRounded === v.capRounded }; });
+  ok('con Gobierno Central, las vialidades primarias Muy Baja, Baja y Media llevan filete desde el zoom 14', fv && fv.visible !== false && fv.clases === '0,1,2' && fv.otroColor === 0 && fv.n === fv.claras && fv.n > 50 && fv.debajo && fv.sinFrentes && fv.ensancha && fv.mismoAncho, JSON.stringify(fv));
 
   ok('sin errores de JavaScript', errores.length === 0, errores.slice(0, 3).join(' | '));
   await ctx.close(); await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);

@@ -177,7 +177,9 @@ function readTokens(){
   T.inv = ['--inv-cepa','--inv-tocon','--inv-muerto'].map(v=>hex(css(v)));   // espacios para plantar (05_inventario.js)
   T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
   T.ink = hex(css('--ink')); T.guinda = hex(css('--guinda')); T.halo = hex(css('--map-halo'));   // nombres de calle, contornos y resaltes (04_mapa_capas.js)
-  // clases de la rampa que no llegan a 3:1 contra el blanco (WCAG 2.2): en el resalte de la calle o avenida consultada llevan filete oscuro
+  T.filete = hex(css('--map-filete'));   // filete de las clases claras desde el zoom 14 (fileteBajo, 04_mapa_capas.js)
+  // clases de la rampa que no llegan a 3:1 contra el blanco (WCAG 2.2): desde el zoom 14 sus líneas llevan filete (T.filete) y, en el resalte
+  // de la calle o avenida consultada, filete oscuro
   const lum = c=> c.slice(0,3).reduce((s, v, k)=>{ v/=255; return s + [0.2126,0.7152,0.0722][k]*(v<=0.04045? v/12.92 : Math.pow((v+0.055)/1.055, 2.4)); }, 0);
   T.prioClara = T.prio.map(c=> (lum(T.halo)+0.05)/(lum(c)+0.05) < 3);
 }
@@ -529,6 +531,46 @@ function resalte(id, idx, st0, pos, prio, m){
   if (claras.length) L.push(capa('-oscuro', trazos(claras, st0, pos), m.oscuro, T.ink));
   return L; }
 
+// ---------- filete de las clases claras (desde el zoom FILETE_Z) ----------
+// Muy Baja, Baja y Media (T.prioClara) no llegan a 3:1 sobre los fondos claros. Desde el zoom FILETE_Z, debajo de sus líneas (frentes y, con
+// Gobierno Central, vialidades primarias) va un filete --map-filete (T.filete) de FILETE_PX a cada lado: una copia de la capa de la línea, con
+// solo esas clases, que el sombreador ensancha FILETE_PX por lado (FileteExt). Así el filete sigue el ancho de la línea en cualquier zoom sin
+// rehacer la capa. Más lejos no se dibuja, a propósito: a escala de ciudad agrisaría las zonas claras y se perdería la lectura de la rampa.
+// FILETE_Z es uno de los ZOOM_CORTES (06_mapa_interaccion.js): la capa se muestra o se oculta solo al cruzarlo. Alta y Muy Alta no llevan filete.
+// Rendimiento: la capa se arma la primera vez que hace falta (con tarjeta gráfica, unas décimas de segundo, casi todo en preparar el sombreador)
+// y después se conserva oculta por debajo de FILETE_Z, con sus datos de entonces: volver a acercarse no la rehace y las consultas hechas de lejos
+// no la tocan. En modo ligero los frentes llevan filete solo con una alcaldía o colonia elegida (frParcial): sin tarjeta gráfica, el filete de
+// toda la ciudad (216 mil frentes más) hacía cada cuadro un 55 % más lento; con el ámbito elegido, un 16 % en Iztapalapa, la más grande.
+// Auditoría de contraste: MN01 a MN23 y los pares «Filete de las clases claras».
+const FILETE_Z = 14, FILETE_PX = 1;
+// en la capa de líneas, la media anchura (en unidades comunes) pasa por el gancho DECKGL_FILTER_SIZE: se le suma FILETE_PX en píxeles
+class FileteExt extends deck.LayerExtension {
+  getShaders(){ return {inject:{'vs:DECKGL_FILTER_SIZE': `size.xy += path.billboard? vec2(${FILETE_PX.toFixed(1)}) : project_pixel_size(vec2(${FILETE_PX.toFixed(1)}));`}}; } }
+FileteExt.extensionName = 'FileteExt';
+const FILETE_EXT = new FileteExt();
+// Datos del filete: de los datos de la capa de la línea, solo los objetos de las clases claras (clase(k) = clase del objeto k), en T.filete y
+// con la transparencia y el filtro de su línea. La geometría se copia una vez por fuente; color y filtro, cuando cambian los de la línea.
+const FIL = {};
+function fileteDatos(clave, fuente, clase){
+  const A = fuente.attributes, P = A.getPath.value, C = A.getColor.value, Fv = A.getFilterValue.value, st = fuente.startIndices, claras = T.prioClara.join();
+  let c = FIL[clave];
+  if (!c || c.P!==P || c.claras!==claras){ const idx = []; let nv = 0;
+    for(let k=0;k<fuente.length;k++) if (T.prioClara[clase(k)]){ idx.push(k); nv += st[k+1]-st[k]; }
+    const s = new Uint32Array(idx.length+1), pos = new Float64Array(2*nv), vs = new Uint32Array(nv); let v = 0;
+    idx.forEach((k,j)=>{ s[j]=v; for(let q=st[k]; q<st[k+1]; q++){ vs[v]=q; pos[2*v]=P[2*q]; pos[2*v+1]=P[2*q+1]; v++; } }); s[idx.length]=v;
+    c = FIL[clave] = {P, claras, n:idx.length, st:s, pos, vs, C:null, Fv:null, g:''}; }
+  const g = T.filete;
+  if (c.C!==C || c.Fv!==Fv || c.g!==g.join()){ const nv = c.vs.length, Cs = new Uint8Array(4*nv), Fs = new Float32Array(2*nv);
+    for(let v=0; v<nv; v++){ const q=c.vs[v]; Cs[4*v]=g[0]; Cs[4*v+1]=g[1]; Cs[4*v+2]=g[2]; Cs[4*v+3]=C[4*q+3]; Fs[2*v]=Fv[2*q]; Fs[2*v+1]=Fv[2*q+1]; }
+    c.C = C; c.Fv = Fv; c.g = g.join();
+    c.data = {length:c.n, startIndices:c.st, attributes:{getPath:{value:c.pos,size:2}, getColor:{value:Cs,size:4,normalized:true}, getFilterValue:{value:Fs,size:2}}}; }
+  return c.data; }
+// capa del filete: la misma capa de la línea (anchos, uniones, opacidad, filtro), con los datos del filete y el ensanche. ver = false: oculta,
+// con los datos que ya tenía (null si nunca se armó con esa fuente)
+function fileteBajo(linea, clave, clase, ver){
+  const c = FIL[clave], data = ver? fileteDatos(clave, linea.props.data, clase) : c && c.P===linea.props.data.attributes.getPath.value && c.data;
+  return data? linea.clone({id:linea.id+'-filete', data, visible:ver, extensions:[...linea.props.extensions, FILETE_EXT], pickable:false, autoHighlight:false, updateTriggers:{}}) : null; }
+
 function layers(){
   const z = viewState.zoom;
   const L = [];
@@ -542,21 +584,26 @@ function layers(){
   // frentes de manzana (responsabilidad de las alcaldías)
   // los frentes solo responden al cursor desde el zoom 12: más lejos son demasiado finos y revisar 372 mil tramos
   // en cada movimiento del ratón vuelve lento el mapa (se consultan las colonias)
-  if (frVisibles() && showsFrontsMode()) L.push(new PathLayer({id:'fronts', opacity:opPrio, data: frParcial()? frontsSub().data : frontsData(), _pathType:'open', widthUnits:'meters', getWidth:4, widthMinPixels:1, widthMaxPixels:6,
+  if (frVisibles() && showsFrontsMode()){ const parcial = frParcial();
+    const fr = new PathLayer({id:'fronts', opacity:opPrio, data: parcial? frontsSub().data : frontsData(), _pathType:'open', widthUnits:'meters', getWidth:4, widthMinPixels:1, widthMaxPixels:6,
     pickable: z>=12, autoHighlight: z>=12, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
-    updateTriggers:{getColor:[COLORS, frParcial()? sel+'|'+selCol : ''], getFilterValue:[FILTER, frParcial()? sel+'|'+selCol : '']}}));
+    updateTriggers:{getColor:[COLORS, parcial? sel+'|'+selCol : ''], getFilterValue:[FILTER, parcial? sel+'|'+selCol : '']}});
+    L.push(parcial? fileteBajo(fr, 'frSub', k=>F.prio[FR_SUB.idx[k]], z>=FILETE_Z) : fileteBajo(fr, 'fr', k=>F.prio[k], z>=FILETE_Z && !modoLigero), fr); }
+  // vialidades primarias (Gobierno Central): contexto en gris en modo Alcaldía; coloreadas por prioridad en los otros modos. Su filete va antes
+  // del resalte de la avenida consultada, que queda encima
+  const vias = (showFr() || isGC())? new PathLayer({id:'vias', opacity:opPrio, data:vpData(), _pathType:'open', widthUnits:'meters', getWidth: resp==='alc'? 7 : 14, widthMinPixels: resp==='alc'? 1.2 : 2.2, widthMaxPixels: resp==='alc'? 5 : 12, capRounded:true, jointRounded:true,
+    pickable:true, autoHighlight:true, highlightColor:T.gold,
+    extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
+    updateTriggers:{getColor:[VCOLORS], getFilterValue:[VFILTER], getWidth:[resp]}}) : null;
+  if (vias) L.push(fileteBajo(vias, 'vp', k=>VP.prio[k], resp!=='alc' && z>=FILETE_Z));
   if (highlight && highlight.avId!==undefined){
     // con alcaldía seleccionada, el tramo que sí cuentan las cifras lleva el resalte; el resto de la avenida, solo un halo tenue
     const dentro = sel===null? highlight.idx : highlight.idx.filter(i=>VP.mun[i]===sel), fuera = sel===null? [] : highlight.idx.filter(i=>VP.mun[i]!==sel);
     if (fuera.length) L.push(new PathLayer({id:'av-halo-out', data:trazos(fuera, vstart, VPOS), _pathType:'open', widthUnits:'meters', getWidth:RESALTE.avenida.halo[0], widthMinPixels:RESALTE.avenida.halo[1], widthMaxPixels:RESALTE.avenida.halo[2], capRounded:true, jointRounded:true, getColor:[...T.guinda.slice(0,3), 40], pickable:false}));
     if (dentro.length) L.push(...resalte('av-halo', dentro, vstart, VPOS, VP.prio, RESALTE.avenida));   // la línea de la avenida va encima (capa 'vias')
   }
-  // vialidades primarias (Gobierno Central): contexto en gris en modo Alcaldía; coloreadas por prioridad en los otros modos
-  if (showFr() || isGC()) L.push(new PathLayer({id:'vias', opacity:opPrio, data:vpData(), _pathType:'open', widthUnits:'meters', getWidth: resp==='alc'? 7 : 14, widthMinPixels: resp==='alc'? 1.2 : 2.2, widthMaxPixels: resp==='alc'? 5 : 12, capRounded:true, jointRounded:true,
-    pickable:true, autoHighlight:true, highlightColor:T.gold,
-    extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
-    updateTriggers:{getColor:[VCOLORS], getFilterValue:[VFILTER], getWidth:[resp]}}));
+  if (vias) L.push(vias);
   if (sel!==null) L.push(...contornoElegido('alc-sel', ALC_PARTS.filter(d=>d.i===sel), 2.2, 3));
   if (selCol!==null) L.push(...contornoElegido('col-sel', COL_PARTS.filter(d=>d.i===selCol), 2.5, 4));
   if (highlight && highlight.avId===undefined){
@@ -708,7 +755,7 @@ function colocarNombres(){
       for(const cc of COLS){ if (sel!==null && munIndex[cc.mun]!==sel) continue; const bb=colBB(cc.i); if (bb[2]<b[0]-ex||bb[0]>b[2]+ex||bb[3]<b[1]-ey||bb[1]>b[3]+ey) continue;
         const ts = tramosDe(cc.i); if (ts) for(const t of ts) if (visible[t.prio]) tramos.push(t); } }
     for(const t of tramosVP()) if (!isGC() || visible[t.prio]) tramos.push(t);
-    const nidSel = highlight && highlight.nameId!==undefined? highlight.nameId : null;
+    const nidSel = nidResaltado();
     const cands = [];
     for(const t of tramos){
       const texto = t.vp? t.texto : META.names[t.nid]; const w = anchoTexto(texto, FUENTE_CALLE);
@@ -985,7 +1032,7 @@ function colHtml(id){
 // Instancia del mapa (DeckGL), clic y descripción emergente, mostrar u ocultar tarjetas y botones de acercamiento.
 // Las capas solo cambian al cruzar estos niveles de zoom (tamaño de nombres de alcaldía, límites y nombres
 // de colonias, nombres de calle); entre ellos no hace falta rehacerlas, lo que mantiene fluido el zoom.
-const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15, 16];   // 15 y 16: espacios para plantar (INV_Z e INV_Z_LIGERO)
+const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15, 16];   // 14: también el filete de las clases claras (FILETE_Z); 15 y 16: espacios para plantar (INV_Z e INV_Z_LIGERO)
 const zoomBand = z => ZOOM_CORTES.filter(c => z >= c).length;
 const dk = new DeckGL({
   container: mapEl, views: new MapView({repeat:false}), controller:{dragRotate:false, touchRotate:false, minZoom:9.4, maxZoom:18.5},
@@ -1020,7 +1067,12 @@ for (const t of ['touchend', 'touchcancel']) addEventListener(t, e=>{ if (!e.tou
 addEventListener('blur', ()=>soltarDedos()); document.addEventListener('visibilitychange', ()=>{ if (document.hidden) soltarDedos(); });
 // Solo para las pruebas automáticas (04_pruebas/prueba_nombres_mapa.js): con window.SIA_PRUEBA se puede leer el estado del mapa.
 if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMapa(); return st? st.length : -1; }, etiquetas: ()=>({ALC, ALC_LABELS, COLS, COL_LABELS, charset}),
-  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0),
+  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, capas: ()=>dk.props.layers.filter(Boolean).map(l=>l.id), vista: ()=>({...viewState}), ligero: ()=>modoLigero,
+  // filete de las clases claras bajo la capa id ('fronts' o 'vias'): cuántos objetos lleva, cuántos de la línea son de clase clara y si todo va en T.filete
+  filete: id=>{ const l=dk.props.layers.find(x=>x && x.id===id+'-filete'), b=dk.props.layers.find(x=>x && x.id===id); if (!l || !b) return {hay:!!l, linea:!!b};
+    const n=b.props.data.length; let claras=0; for(let k=0;k<n;k++) if (T.prioClara[id==='fronts'? F.prio[frReal(k)] : VP.prio[k]]) claras++;
+    const C=l.props.data.attributes.getColor.value; let otroColor=0; for(let v=0;v<C.length/4;v++) if (C[4*v]!==T.filete[0] || C[4*v+1]!==T.filete[1] || C[4*v+2]!==T.filete[2]) otroColor++;
+    return {hay:true, visible:l.props.visible, n:l.props.data.length, claras, clases:T.prioClara.map((c,k)=>c? k : -1).filter(k=>k>=0).join(','), otroColor}; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0),
   clavesCalles: ()=>[...streetIdx.keys()], kmCalle: k=>{ const s=streetIdx.get(k); return s? s.km : null; }, tramosDe: k=>{ const s=streetIdx.get(k); return s? tramosDeCalle(s.idx).map(t=>({n:t.n, largo:t.largo, lados:t.lados, lado:t.lado||'', entre:entreTxt(t), texto:tramoTxt(t), m:t.m})) : null; } };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;
@@ -1540,6 +1592,8 @@ function renderUbicar(ul, items, qRaw){
 function calleSel(){ if (!highlight || highlight.avId!==undefined || isGC() || !highlight.idx.length) return null;
   if (callesHomonimas()) return null; // un nombre repetido no es una calle: se elige una en la lista
   return {nombre: META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre', idx: highlight.idx}; }
+// índice del nombre de la calle resaltada (el de su primer frente, como calleSel); null si no hay calle resaltada
+function nidResaltado(){ return highlight && highlight.avId===undefined && highlight.idx && highlight.idx.length? F.name[highlight.idx[0]] : null; }
 // número de colonias distintas entre los frentes resaltados cuando el resaltado reúne calles homónimas; 0 si es una sola calle
 function callesHomonimas(){ if (!highlight || highlight.avId!==undefined || !highlight.idx || !highlight.idx.length) return 0;
   const cols = new Set(); for (const i of highlight.idx) cols.add(F.col[i]); return cols.size>1 ? cols.size : 0; }

@@ -53,10 +53,16 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
       await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
       await L.elegirTipo(page, 'Progreso Tizapan', 'Col'); await page.waitForTimeout(500);
       e = await estado(page); ok(t + 'elegir una colonia se queda en la información; «Col. …»', e.info && /^Col\. Progreso Tizap/.test(e.rotulo), JSON.stringify(e));
-      await L.clic(page, '#tab-ini'); const fila = await page.$('#ini-list li[tabindex]'); if (fila) { await fila.click(); await page.waitForTimeout(800); }
-      e = await estado(page); ok(t + 'elegir una calle de la lista lleva al mapa; el botón dice su nombre', !!fila && e.mapa && !!e.rotulo && !/^Col\./.test(e.rotulo), JSON.stringify(e));
+      await L.clic(page, '#tab-ini'); const fila = await page.$('#ini-list li[tabindex]');
+      const nomFila = fila ? await fila.evaluate(li => [...li.querySelector('.n').childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').trim()) : '';
+      if (fila) { await fila.click(); await page.waitForTimeout(800); }
+      e = await estado(page); ok(t + 'elegir una calle de la lista lleva al mapa; el botón dice su nombre', !!fila && e.mapa && !!nomFila && e.rotulo === nomFila, `${nomFila} · ${JSON.stringify(e)}`);
       await page.goBack(); await page.waitForTimeout(600);
       e = await estado(page); ok(t + '«atrás» del navegador desde el mapa regresa a la información', e.info, JSON.stringify(e));
+      // una calle buscada por su nombre (se repite en varias colonias de Tláhuac): el botón de abajo dice el nombre, no «Calle sin nombre»
+      const okCalle = await L.elegirTipo(page, 'Montes de las Cordilleras', 'Calle', 'Montes de las Cordilleras'); await page.waitForTimeout(800);
+      e = await estado(page); ok(t + 'buscar «Montes de las Cordilleras» lleva al mapa y el botón dice el nombre de la calle', okCalle && e.mapa && /^Montes de las Cordilleras$/i.test(e.rotulo), JSON.stringify(e));
+      await L.clic(page, '#ver-info'); await page.waitForTimeout(400);
       await page.fill('#omni', '19.300011294985545, -99.10193871074827'); await page.waitForTimeout(400); await page.keyboard.press('Enter'); await page.waitForTimeout(1200);
       e = await estado(page); ok(t + 'coordenadas: llevan al mapa con la ficha del punto a la vista', e.mapa && await page.evaluate(() => { const c = document.getElementById('card'); return !c.hidden && getComputedStyle(c).visibility === 'visible'; }), JSON.stringify(e));
       const enc2 = await encimados(page); ok(t + 'con la ficha abierta, nada queda encimado con el botón de abajo', enc2.length === 0, enc2.join(' | '));

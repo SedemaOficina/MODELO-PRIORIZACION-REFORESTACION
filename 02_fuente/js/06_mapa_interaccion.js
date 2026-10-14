@@ -1,7 +1,7 @@
 // Instancia del mapa (DeckGL), clic y descripción emergente, mostrar u ocultar tarjetas y botones de acercamiento.
 // Las capas solo cambian al cruzar estos niveles de zoom (tamaño de nombres de alcaldía, límites y nombres
 // de colonias, nombres de calle); entre ellos no hace falta rehacerlas, lo que mantiene fluido el zoom.
-const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15, 16];   // 15 y 16: espacios para plantar (INV_Z e INV_Z_LIGERO)
+const ZOOM_CORTES = [11.5, 12, 12.2, 13, 13.6, 14, 15, 16];   // 14: también el filete de las clases claras (FILETE_Z); 15 y 16: espacios para plantar (INV_Z e INV_Z_LIGERO)
 const zoomBand = z => ZOOM_CORTES.filter(c => z >= c).length;
 const dk = new DeckGL({
   container: mapEl, views: new MapView({repeat:false}), controller:{dragRotate:false, touchRotate:false, minZoom:9.4, maxZoom:18.5},
@@ -36,7 +36,12 @@ for (const t of ['touchend', 'touchcancel']) addEventListener(t, e=>{ if (!e.tou
 addEventListener('blur', ()=>soltarDedos()); document.addEventListener('visibilitychange', ()=>{ if (document.hidden) soltarDedos(); });
 // Solo para las pruebas automáticas (04_pruebas/prueba_nombres_mapa.js): con window.SIA_PRUEBA se puede leer el estado del mapa.
 if (window.SIA_PRUEBA===true) window.__MAPA = { dedos: ()=>{ const st=dedosDelMapa(); return st? st.length : -1; }, etiquetas: ()=>({ALC, ALC_LABELS, COLS, COL_LABELS, charset}),
-  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0),
+  capa: id=>{ const l=dk.props.layers.find(x=>x && x.id===id); return l? l.props : null; }, capas: ()=>dk.props.layers.filter(Boolean).map(l=>l.id), vista: ()=>({...viewState}), ligero: ()=>modoLigero,
+  // filete de las clases claras bajo la capa id ('fronts' o 'vias'): cuántos objetos lleva, cuántos de la línea son de clase clara y si todo va en T.filete
+  filete: id=>{ const l=dk.props.layers.find(x=>x && x.id===id+'-filete'), b=dk.props.layers.find(x=>x && x.id===id); if (!l || !b) return {hay:!!l, linea:!!b};
+    const n=b.props.data.length; let claras=0; for(let k=0;k<n;k++) if (T.prioClara[id==='fronts'? F.prio[frReal(k)] : VP.prio[k]]) claras++;
+    const C=l.props.data.attributes.getColor.value; let otroColor=0; for(let v=0;v<C.length/4;v++) if (C[4*v]!==T.filete[0] || C[4*v+1]!==T.filete[1] || C[4*v+2]!==T.filete[2]) otroColor++;
+    return {hay:true, visible:l.props.visible, n:l.props.data.length, claras, clases:T.prioClara.map((c,k)=>c? k : -1).filter(k=>k>=0).join(','), otroColor}; }, ir: (vs, ms=0)=>flyTo(vs, ms), lblCenter: ()=>lblCenter, colPosListas: ()=>colPosListas, etqPendientes: ()=>ETQ_COLA.length + (etqTrabajando? 1 : 0),
   clavesCalles: ()=>[...streetIdx.keys()], kmCalle: k=>{ const s=streetIdx.get(k); return s? s.km : null; }, tramosDe: k=>{ const s=streetIdx.get(k); return s? tramosDeCalle(s.idx).map(t=>({n:t.n, largo:t.largo, lados:t.lados, lado:t.lado||'', entre:entreTxt(t), texto:tramoTxt(t), m:t.m})) : null; } };
 mapEl.addEventListener('click', e=>{
   if (pdown && Math.hypot(e.clientX-pdown[0], e.clientY-pdown[1])>5) return;

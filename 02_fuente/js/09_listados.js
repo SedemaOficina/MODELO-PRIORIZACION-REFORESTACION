@@ -77,6 +77,8 @@ function renderUbicar(ul, items, qRaw){
 function calleSel(){ if (!highlight || highlight.avId!==undefined || isGC() || !highlight.idx.length) return null;
   if (callesHomonimas()) return null; // un nombre repetido no es una calle: se elige una en la lista
   return {nombre: META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre', idx: highlight.idx}; }
+// índice del nombre de la calle resaltada (el de su primer frente, como calleSel); null si no hay calle resaltada
+function nidResaltado(){ return highlight && highlight.avId===undefined && highlight.idx && highlight.idx.length? F.name[highlight.idx[0]] : null; }
 // número de colonias distintas entre los frentes resaltados cuando el resaltado reúne calles homónimas; 0 si es una sola calle
 function callesHomonimas(){ if (!highlight || highlight.avId!==undefined || !highlight.idx || !highlight.idx.length) return 0;
   const cols = new Set(); for (const i of highlight.idx) cols.add(F.col[i]); return cols.size>1 ? cols.size : 0; }

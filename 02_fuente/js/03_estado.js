@@ -10,7 +10,9 @@ function readTokens(){
   T.inv = ['--inv-cepa','--inv-tocon','--inv-muerto'].map(v=>hex(css(v)));   // espacios para plantar (05_inventario.js)
   T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
   T.ink = hex(css('--ink')); T.guinda = hex(css('--guinda')); T.halo = hex(css('--map-halo'));   // nombres de calle, contornos y resaltes (04_mapa_capas.js)
-  // clases de la rampa que no llegan a 3:1 contra el blanco (WCAG 2.2): en el resalte de la calle o avenida consultada llevan filete oscuro
+  T.filete = hex(css('--map-filete'));   // filete de las clases claras desde el zoom 14 (fileteBajo, 04_mapa_capas.js)
+  // clases de la rampa que no llegan a 3:1 contra el blanco (WCAG 2.2): desde el zoom 14 sus líneas llevan filete (T.filete) y, en el resalte
+  // de la calle o avenida consultada, filete oscuro
   const lum = c=> c.slice(0,3).reduce((s, v, k)=>{ v/=255; return s + [0.2126,0.7152,0.0722][k]*(v<=0.04045? v/12.92 : Math.pow((v+0.055)/1.055, 2.4)); }, 0);
   T.prioClara = T.prio.map(c=> (lum(T.halo)+0.05)/(lum(c)+0.05) < 3);
 }
