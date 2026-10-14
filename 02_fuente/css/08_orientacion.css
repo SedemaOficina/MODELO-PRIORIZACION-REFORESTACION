@@ -147,3 +147,7 @@
 .reparto{table-layout:fixed}
 .reparto thead > tr > :first-child{width:42%}
 .reparto thead td{border-top:0}
+/* metodología: las disposiciones legales, plegadas */
+details.fund>summary{cursor:pointer;color:var(--guinda);font-weight:600;text-decoration:underline;text-underline-offset:3px;padding:6px 0}
+details.fund[open]>summary{margin-bottom:8px}
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ details.fund>summary{min-height:44px;display:flex;align-items:center} }

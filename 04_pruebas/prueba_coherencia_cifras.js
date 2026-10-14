@@ -257,7 +257,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
   { x = xlsx((await baja('dl-frentes')).ruta);
     ok('el diccionario trata la banqueta como condición por verificar', /condición por verificar/.test((x.dic.find(r => r[0] === 'banqueta_inegi') || [])[1] || '')); }
-  ok('la ayuda explica las dos unidades', /No sumes? unidades distintas/.test(await page.content()));
+  ok('la ayuda explica las dos unidades', /No sumes kilómetros de calles con los de avenidas/.test(await page.content()) && /por acera y las avenidas por su línea central/.test(await page.content()));
 
   // ---------- nombres de calle, identificadores y coordenadas del Excel; avisos de cobertura, leyenda, colonias sin frentes, avenidas homónimas y ruta ----------
   const generico = n => { n = L.norm(n); return n === '' || n === 'sin referencia' || n === 'sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion'); };
