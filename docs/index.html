@@ -243,22 +243,21 @@
     <section class="howto" aria-labelledby="howto-title">
       <div class="eyebrow">Ayuda</div>
       <h2 id="howto-title">Cómo usar la herramienta</h2>
-      <p class="rec-cta"><button type="button" class="btn rec-abrir" id="rec-abrir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Recorrido guiado · 2 minutos</button><span>Muestra dónde buscar, cómo separar las calles por banqueta y por espacio para plantar, y cómo revisarlas en Street View antes de salir a campo.</span></p>
+      <p class="rec-cta"><button type="button" class="btn rec-abrir" id="rec-abrir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Recorrido guiado · 2 minutos</button><span>Te muestra cada parte de la herramienta, paso a paso.</span></p>
       <ol class="howto-steps">
-        <li><b>Elige qué consultar y dónde.</b> Calles y colonias de las alcaldías, vialidades primarias del Gobierno Central o las dos, y en qué alcaldía. La fila «Atiende» lo cambia en cualquier momento.</li>
-        <li><b>Busca un lugar.</b> Alcaldía, colonia, avenida o calle; bastan algunas palabras y reconoce abreviaturas («Calz.», «Av.»). También puedes pegar coordenadas (19.3000, -99.1019) o un enlace de Google Maps, como los que llegan por WhatsApp: la herramienta marca el punto y dice su colonia y las calles prioritarias cercanas.</li>
-        <li><b>Filtra por banqueta y por espacio.</b> «Con banqueta» deja las calles para plantar directo; «Sin banqueta», las que requieren reconocimiento en sitio. «Espacio» deja solo las calles con cepa vacante, tocón o árbol muerto del inventario de arbolado, que va en curso.</li>
-        <li><b>Revisa «Dónde empezar».</b> Propone un orden de atención. En «Mostrar» eliges qué ver (colonias, calles, avenidas o alcaldías) y cómo ordenarlas: por kilómetros prioritarios, por cepas vacantes o, las colonias, por habitantes. El orden por cepas cuenta las de calles prioritarias y cada renglón dice también el total. Al elegir una calle aparecen sus tramos.</li>
-        <li><b>Consulta y descarga.</b> «Resumen» da las cifras de la alcaldía y del Gobierno Central, con una tabla para compararlas. «Descargas» tiene los archivos en Excel, PDF y para abrir en un mapa.</li>
-        <li><b>Ajusta el mapa.</b> El botón de capas controla qué se ve, el mapa de fondo, la opacidad y las prioridades. Al acercarte aparecen los espacios para plantar; toca uno para ver su ficha y abrir Street View.</li>
+        <li><b>Elige qué consultar.</b> En «Atiende»: calles de las alcaldías, vialidades primarias del Gobierno Central o las dos. Después, la alcaldía o la colonia.</li>
+        <li><b>Busca un lugar.</b> Escribe una colonia, calle o avenida, o pega coordenadas o un enlace de Google Maps.</li>
+        <li><b>Filtra.</b> «Banqueta» separa las calles con y sin banqueta; «Espacio» deja solo las que tienen cepa vacante, tocón o árbol muerto.</li>
+        <li><b>Decide por dónde empezar.</b> En «Dónde empezar», «Mostrar» ordena colonias, calles o avenidas por km prioritarios, cepas vacantes o habitantes.</li>
+        <li><b>Revisa y descarga.</b> En el mapa, toca una calle o un espacio para plantar para ver su ficha y abrir Street View. «Resumen» da las cifras y «Descargas», los archivos.</li>
       </ol>
       <h3 class="howto-gl">Términos</h3>
       <dl class="howto-terms">
-        <dt>Frente de manzana</dt><dd>Lado de una manzana que da a la calle. Es la unidad que se prioriza: una calle tiene dos frentes, uno por acera.</dd>
-        <dt>Tramo</dt><dd>Segmento de calle o avenida con prioridad propia; por eso una misma calle puede verse en varios colores.</dd>
-        <dt>Espacio para plantar</dt><dd>Cepa vacante, tocón o árbol muerto registrado en el inventario de arbolado: ahí ya hubo un árbol.</dd>
-        <dt>Prioritario</dt><dd>Categorías Muy Alta, Alta y Media: donde conviene plantar.</dd>
-        <dt>Atiende</dt><dd>Quién tiene la atribución de plantar: la alcaldía (red local) o el Gobierno de la Ciudad (vialidades primarias).</dd>
+        <dt>Prioritario</dt><dd>Prioridad Muy Alta, Alta o Media: donde conviene plantar primero.</dd>
+        <dt>Frente de manzana</dt><dd>Cada lado de la calle frente a una manzana; se prioriza por separado.</dd>
+        <dt>Tramo</dt><dd>Parte de una calle entre dos esquinas, con su propia prioridad.</dd>
+        <dt>Espacio para plantar</dt><dd>Cepa vacante, tocón o árbol muerto del inventario de arbolado (en curso): ahí ya hubo un árbol.</dd>
+        <dt>Atiende</dt><dd>Quién planta: la alcaldía (calles y colonias) o el Gobierno de la Ciudad (vialidades primarias).</dd>
       </dl>
     </section>
     <details class="mas metodo" id="metodologia" open><summary>Metodología: cómo se calculó la prioridad</summary><div>
@@ -374,7 +373,7 @@
     <button class="btn modal-back" id="info-back" type="button">Volver al mapa</button>
   </div>
 </div>
-<script src="config.js?v=a53a874cd2"></script>
+<script src="config.js?v=6abc080679"></script>
 <script src="libs/deck.js?v=39eac2ebde"></script>
 <script src="libs/pako.js?v=f0b2d4965e"></script>
 <script src="app.js?v=d8c3cfdeac"></script>

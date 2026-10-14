@@ -97,7 +97,7 @@ const desdeAyuda = async page => { await page.evaluate(() => { document.getEleme
     const cta = await page.evaluate(() => { const b = document.getElementById('rec-abrir'); return b && b.getBoundingClientRect().height > 0 ? b.innerText.trim() : ''; });
     ok('«Cómo funciona» ofrece el recorrido guiado, con su duración', cta === 'Recorrido guiado · 2 minutos', cta);
     const ayuda = await page.$eval('.howto', e => e.innerText);
-    ok('la ayuda de «Cómo funciona» nombra «Las dos», los filtros «Banqueta» y «Espacio», «Mostrar» y los espacios para plantar', /o las dos/.test(ayuda) && /«Espacio»/.test(ayuda) && /«Con banqueta»/.test(ayuda) && /«Mostrar»/.test(ayuda) && /espacios para plantar/.test(ayuda));
+    ok('la ayuda de «Cómo funciona» nombra las dos redes, los filtros «Banqueta» y «Espacio», «Mostrar» y los espacios para plantar', /o las dos/.test(ayuda) && /«Espacio»/.test(ayuda) && /«Banqueta»/.test(ayuda) && /«Mostrar»/.test(ayuda) && /espacio para plantar/i.test(ayuda));
     await page.$eval('#rec-abrir', b => b.click()); await page.waitForTimeout(1200);
     const m = await enPantalla(page); ok('desde «Cómo funciona» arranca en el paso 1, con la ayuda cerrada', !!m && /^Paso 1 /.test(m.paso) && await page.evaluate(() => document.getElementById('info-modal').hidden), m && m.paso);
     await page.$eval('.rec-sig', b => b.click()); await page.waitForTimeout(500); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(500);
