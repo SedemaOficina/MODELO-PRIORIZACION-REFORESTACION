@@ -13,7 +13,8 @@
 //  · las dos redes, «Reiniciar», celular de 390 px y sin errores de JavaScript.
 // Además compara contra la versión anterior (v1.23, tomada de Git; REF_ANTERIOR=<commit> para otra, REF_ANTERIOR=no para omitirlo):
 // con el filtro apagado todo queda igual, y con «Alcaldías» el filtro y el orden por cepas dan exactamente las mismas cifras; los puntos del
-// inventario conservan su frente.
+// inventario conservan su frente. Desde la v1.27, del Resumen se comparan las cifras sin sus rótulos y, en el orden por cepas, lo que la v1.23
+// ya listaba (L.comparable).
 // Uso: node 04_pruebas/prueba_espacio_gobierno_central.js   · termina con código ≠ 0 si algo falla.
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib'), cp = require('child_process');
 const L = require('./lib_pruebas.js');
@@ -58,15 +59,16 @@ function vpCalc(BV, m, terr) { const r = { km: [0, 0, 0, 0, 0], recs: new Set(),
 // frentes a cargo de la alcaldía (con las dos redes)
 function frCalc(BF, m, terr) { let km = 0, n = 0; D.F.forEach((f, i) => { if (f.gc || f.prio < L.PRIO_MIN || !terr(f) || (m && !(BF[i] & m))) return; km += f.len / 1000; n++; }); return { km, n }; }
 // avenidas por cepas vacantes de sus partes prioritarias en el ámbito (con el filtro m); con el mismo número, por km prioritarios y km
+// (v1.27) cvt: las cepas de todas sus partes, el total que acompaña al renglón; las avenidas sin km prioritarios con cepas van al final, por ese total
 function avCepas(BV, CNT, m, mun) { const S = new Map();
-  D.VP.forEach((v, i) => { if ((mun !== null && v.mun !== mun) || (m && !(BV[i] & m))) return; let s = S.get(v.nom); if (!s) { s = { a: v.nom, km: 0, kmp: 0, cv: 0, recs: new Set(), recsp: new Set() }; S.set(v.nom, s); }
-    s.km += v.len / 1000; s.recs.add(v.rec); if (v.prio >= L.PRIO_MIN) { s.kmp += v.len / 1000; s.recsp.add(v.rec); s.cv += (CNT.get(i) || [0])[0]; } });
-  return [...S.values()].filter(s => s.kmp > 0).map(s => ({ ...s, n: M.vp.nomenclat[s.a] })).sort((a, b) => b.cv - a.cv || b.kmp - a.kmp || b.km - a.km); }
-const cepasTxt = n => n ? `${L.fN.format(n)} cepa${n === 1 ? '' : 's'} vacante${n === 1 ? '' : 's'}` : 'sin cepas registradas';
-const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]*) cepas? vacantes?|sin cepas registradas/); return m ? m[0].trim() : ''; };
+  D.VP.forEach((v, i) => { if ((mun !== null && v.mun !== mun) || (m && !(BV[i] & m))) return; let s = S.get(v.nom); if (!s) { s = { a: v.nom, km: 0, kmp: 0, cv: 0, cvt: 0, recs: new Set(), recsp: new Set() }; S.set(v.nom, s); }
+    const c = (CNT.get(i) || [0])[0]; s.km += v.len / 1000; s.cvt += c; s.recs.add(v.rec); if (v.prio >= L.PRIO_MIN) { s.kmp += v.len / 1000; s.recsp.add(v.rec); s.cv += c; } });
+  return [...S.values()].filter(s => s.kmp > 0 || s.cvt > 0).map(s => ({ ...s, n: M.vp.nomenclat[s.a] })).sort((a, b) => b.cv - a.cv || b.kmp - a.kmp || (a.kmp ? 0 : b.cvt - a.cvt) || b.km - a.km); }
+const cepasTxt = (cv, cvt) => cv ? `${L.fN.format(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt ? ` · ${L.fN.format(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${L.fN.format(cvt)} en total` : 'sin cepas registradas';
+const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]* cepas? vacantes?(?: · [\d,]+ en total)?|sin cepas en lo prioritario · [\d,]+ en total|sin cepas registradas)/); return m ? m[1].trim() : ''; };
 function comparaAv(filas, exp) { const malas = [];
   filas.forEach((r, k) => { const e = exp[k], t = L.norm(r.t);
-    if (!e || !t.includes(L.norm(e.n)) || cepasDe(r.t) !== cepasTxt(e.cv) || !t.includes(`${L.kmTxt(e.kmp)} ${L.kmUn(e.kmp)} prioritarios`)) malas.push(`${k + 1}: «${r.t.slice(0, 90)}» vs ${e ? `${e.n} ${cepasTxt(e.cv)} ${L.kmTxt(e.kmp)}` : '—'}`); });
+    if (!e || !t.includes(L.norm(e.n)) || cepasDe(r.t) !== cepasTxt(e.cv, e.cvt) || !t.includes(`${L.kmTxt(e.kmp)} ${L.kmUn(e.kmp)} prioritarios`)) malas.push(`${k + 1}: «${r.t.slice(0, 90)}» vs ${e ? `${e.n} ${cepasTxt(e.cv, e.cvt)} ${L.kmTxt(e.kmp)}` : '—'}`); });
   return malas; }
 const kpiVP = (kp, exp) => kp.length > 0 && kp[0].v.replace(/\s+/g, '').startsWith(L.kmTxt(exp.kmp)) && (exp.recsp.size >= 10000 || L.numEs(kp[2].v) === exp.recsp.size);
 // las tres cifras de la ficha (km prioritarios, porcentaje y tramos prioritarios) salen seguidas en el texto del PDF
@@ -130,7 +132,8 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
   const pedidos = [];
   const { page, ctx } = await L.abrir(browser, base + '#nomap', {}, errores);
   page.on('request', r => { if (/espacios_(vp|frentes)\.bin/.test(r.url())) pedidos.push(r.url()); });
-  const ir = async (p, q) => { await p.goto('about:blank'); await p.goto(base + q + '#nomap'); await p.waitForSelector('#loader[hidden]', { state: 'attached' }); await p.waitForTimeout(700); await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
+  // ir: la consulta, en el Resumen (que pide el inventario para su comparación, v1.27); res = false: se queda en «Dónde empezar», sin bajar nada
+  const ir = async (p, q, res = true) => { await p.goto('about:blank'); await p.goto(base + q + '#nomap'); await p.waitForSelector('#loader[hidden]', { state: 'attached' }); await p.waitForTimeout(700); if (res) await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
   const casillas = () => page.$$eval('button[data-esp]', bs => bs.map(b => b.getAttribute('aria-pressed') === 'true'));
   const aviso = () => page.$eval('#esp-aviso', x => ({ vis: !x.hidden && x.offsetParent !== null, t: x.textContent }));
   const clicEsp = async t => { await page.$eval(`button[data-esp="${t}"]`, b => b.click()); await page.waitForFunction(() => window.__INV.esp().filtro === window.__INV.esp().casillas, null, { timeout: 60000 }); await page.waitForTimeout(400); };
@@ -216,9 +219,9 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
   const RUTA = '**/espacios_vp.bin*'; const top = {};
   // carga diferida (el archivo se retrasa 2.5 s): aviso, el selector dice lo pedido y la lista no se vacía
   await ctx.route(RUTA, async r => { await new Promise(s => setTimeout(s, 2500)); await r.continue().catch(() => {}); });
-  await ir(page, `&r=gc&a=${M.muns[IZT]}`); await tabIni(page); pedidos.length = 0;
+  pedidos.length = 0; await ir(page, `&r=gc&a=${M.muns[IZT]}`, false); await tabIni(page);
   { const ops = await opciones(page), antes = await L.estado(page);
-    ok('Gobierno Central en una alcaldía: «Mostrar» ofrece «Avenidas con más cepas (prioritarias)» (y «(todas)», v1.25), sin bajar nada al abrir', ops.join('|') === 'av=Avenidas con más kilómetros prioritarios|avcv=Avenidas con más cepas (prioritarias)|avcvt=Avenidas con más cepas (todas)' && pedidos.length === 0, ops.join(' | '));
+    ok('Gobierno Central en una alcaldía: «Mostrar» ofrece «Avenidas · más km prioritarios» y «Avenidas · más cepas vacantes», sin bajar nada al abrir «Dónde empezar»', ops.join('|') === 'av=Avenidas · más km prioritarios|avcv=Avenidas · más cepas vacantes' && pedidos.length === 0, ops.join(' | '));
     await page.selectOption('#ini-orden', 'avcv'); await page.waitForTimeout(300);
     const a = await carga(page), d = await L.estado(page), sv = await page.$eval('#ini-orden', s => s.value);
     ok('mientras baja el archivo: aviso, el selector dice lo pedido y la lista sigue con el orden anterior', a.vis && !a.warn && a.t === 'Cargando las cepas vacantes del inventario de arbolado…' && sv === 'avcv' && JSON.stringify(d.lista) === JSON.stringify(antes.lista) && !d.lista.some(l => /cepa/.test(l.t)), a.t);
@@ -229,13 +232,13 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
     top.izt = exp.slice(0, 5);
     ok('Iztapalapa, avenidas por cepas vacantes: todas, en orden (con el mismo número, por km prioritarios) y con su número = recálculo propio', !malas.length && filas.length === exp.length && L.numEs(e.listCount) === exp.length && filas.every((r, k) => r.t.startsWith(String(k + 1))),
       malas.slice(0, 3).join(' | ') || `${exp.length} avenidas · ${exp.slice(0, 3).map(x => `${x.n} ${x.cv}`).join(', ')}`);
-    ok('Iztapalapa: las avenidas sin cepas van al final y dicen «sin cepas registradas»; nota del corte en «Más detalles»', (c0 < 0 || (c0 > 0 && filas.slice(c0).every(r => cepasDe(r.t) === 'sin cepas registradas'))) && filas.slice(0, c0 < 0 ? filas.length : c0).every(r => /cepas? vacantes?$/.test(cepasDe(r.t))) && (await nota(page)).includes(NOTA_AV),
+    ok('Iztapalapa: las avenidas sin cepas en lo prioritario van al final y lo dicen («sin cepas…»); nota del corte en «Más detalles»', (c0 < 0 || (c0 > 0 && filas.slice(c0).every(r => /^sin cepas/.test(cepasDe(r.t))))) && filas.slice(0, c0 < 0 ? filas.length : c0).every(r => /^\d/.test(cepasDe(r.t))) && (await nota(page)).includes(NOTA_AV),
       c0 < 0 ? 'todas tienen cepas' : `${exp.length - c0} sin cepas, desde el renglón ${c0 + 1}`); }
   { await orden(page, 'av'); ok('la nota del corte aparece solo con el orden por cepas', !(await nota(page)).includes('inventariado') && !(await L.estado(page)).lista.some(l => /cepa/.test(l.t))); }
   // toda la ciudad, y con el filtro «Tocón»
   { await ir(page, '&r=gc'); await tabIni(page); const ops = await opciones(page); await orden(page, 'avcv');
     const exp = avCepas(BV, CNT, 0, null), e = await L.estado(page), malas = comparaAv(e.lista, exp); top.cdmx = exp.slice(0, 5);
-    ok('toda la ciudad, avenidas por cepas vacantes: las 10 primeras y el número de avenidas = recálculo propio; la vista «Alcaldías» no se ordena por cepas', !malas.length && e.lista.length === 10 && L.numEs(e.listCount) === exp.length && ops.map(o => o.split('=')[0]).join() === 'av,avcv,avcvt,alc',
+    ok('toda la ciudad, avenidas por cepas vacantes: las 10 primeras y el número de avenidas = recálculo propio; la vista «Alcaldías» no se ordena por cepas', !malas.length && e.lista.length === 10 && L.numEs(e.listCount) === exp.length && ops.map(o => o.split('=')[0]).join() === 'av,avcv,alc',
       malas.slice(0, 2).join(' | ') || `${exp.length} avenidas · ${exp.slice(0, 5).map(x => `${x.n} ${x.cv}`).join(', ')}`); }
   { await ir(page, `&r=gc&a=${M.muns[IZT]}&e=to`); await tabIni(page); await orden(page, 'avcv');
     const exp = avCepas(BV, CNT, 2, IZT), filas = await verTodo(page), malas = comparaAv(filas, exp);
@@ -317,11 +320,14 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
       const sAnt = await L.servidor(0, ANT); const errAnt = [];
       const pA = await L.abrir(browser, sAnt.url + '?modo=ligero#nomap', {}, errAnt), pN = await L.abrir(browser, base + '#nomap', {}, errores);
       const irA = async (p, url) => { await p.goto('about:blank'); await p.goto(url); await p.waitForSelector('#loader[hidden]', { state: 'attached' }); await p.waitForTimeout(700); await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
-      const CAMPOS = ['titulo', 'kpis', 'kpisTxt', 'caps', 'pob', 'barsTitle', 'bars', 'bars2Vis', 'bars2Title', 'bars2', 'nota', 'alcinfo', 'colinfo', 'avinfo', 'mapsum', 'listTitle', 'listCount', 'lista', 'dl', 'dlStatus', 'leyenda', 'lgScope', 'legendVp', 'capas'];
+      // v1.27: del Resumen se comparan las cifras sin sus rótulos (cambiaron a propósito); en el orden por cepas, lo que la versión anterior
+      // listaba, en el mismo orden y con sus cifras (la v1.27 agrega el total de cada renglón y, al final, lo que no tiene km prioritarios)
+      const CAMPOS = ['titulo', 'kpis', 'bars', 'bars2Vis', 'bars2', 'nota', 'alcinfo', 'colinfo', 'avinfo', 'mapsum', 'listTitle', 'listCount', 'lista', 'dl', 'dlStatus', 'leyenda', 'lgScope', 'legendVp', 'capas'];
       const quitaVer = s => String(s).replace(/Versión \d+\.\d+[^.]*\./g, 'Versión X.').replace(/_\d{8}\./g, '.');
-      const compara = async (q, accion) => { await irA(pA.page, sAnt.url + '?modo=ligero' + q + '#nomap'); await irA(pN.page, base + q + '#nomap');
+      const compara = async (q, accion, cepas) => { await irA(pA.page, sAnt.url + '?modo=ligero' + q + '#nomap'); await irA(pN.page, base + q + '#nomap');
         if (accion) { await accion(pA.page); await accion(pN.page); }
-        const a = await L.estado(pA.page), b = await L.estado(pN.page); return CAMPOS.filter(k => quitaVer(JSON.stringify(a[k])) !== quitaVer(JSON.stringify(b[k]))); };
+        const a = L.comparable(await L.estado(pA.page)), b = L.comparable(await L.estado(pN.page)); if (cepas) b.lista = b.lista.slice(0, a.lista.length);
+        return CAMPOS.filter(k => !(cepas && k === 'listCount') && quitaVer(JSON.stringify(a[k])) !== quitaVer(JSON.stringify(b[k]))); };
       const AV = AVI, COLT = (() => { const S = new Map(); D.F.forEach((f, i) => { if (!f.gc && f.mun === TLA && f.col && f.prio >= L.PRIO_MIN && (BF[i] & 1)) S.set(f.col, (S.get(f.col) || 0) + f.len); }); return [...S].sort((a, b) => b[1] - a[1])[0][0]; })();
       // con el filtro apagado: Gobierno Central, las dos redes y alcaldías
       const apagado = [['&r=gc', 'GC ciudad'], [`&r=gc&a=${M.muns[IZT]}`, 'GC Iztapalapa'], [`&r=gc&a=${M.muns[AO]}`, 'GC Álvaro Obregón'], [`&r=gc&v=${AV}`, 'GC avenida'], [`&r=gc&a=${M.muns[IZT]}&v=${AV}`, 'GC avenida en Iztapalapa'],
@@ -345,7 +351,7 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
       const ordena = v => async p => { await tabI(p); await p.selectOption('#ini-orden', v); await p.waitForFunction(v2 => window.__INV.esp().orden === v2 && window.__INV.esp().pendiente === null, v, { timeout: 60000 }); await p.waitForTimeout(300); await verTodo(p); };
       const difO = [];
       for (const [q, n, v] of [[`&a=${M.muns[TLA]}`, 'colonias de Tláhuac', 'cv'], [`&a=${M.muns[TLA]}`, 'calles de Tláhuac', 'callescv'], [`&a=${M.muns[IZT]}&e=to`, 'colonias de Iztapalapa con tocón', 'cv'], ['&r=alc', 'colonias de la ciudad', 'cv'], [`&c=${COLT}`, 'calles de una colonia', 'cv']]) {
-        const d = await compara(q, ordena(v)); if (d.length) difO.push(`${n}: ${d.join(', ')}`); }
+        const d = await compara(q, ordena(v), true); if (d.length) difO.push(`${n}: ${d.join(', ')}`); }
       ok(`con «Alcaldías», el orden por cepas vacantes (listas completas) igual que en ${REF}`, !difO.length, difO.join(' | '));
       { await irA(pA.page, sAnt.url + `?modo=ligero&c=${COLT}&e=cv#nomap`); await irA(pN.page, base + `&c=${COLT}&e=cv#nomap`);
         const a = await L.descargar(pA.page, '#dl-frentes', SAL, 240000), b = await L.descargar(pN.page, '#dl-frentes', SAL, 240000);

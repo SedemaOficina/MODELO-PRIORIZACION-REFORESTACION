@@ -21,8 +21,10 @@
 /* ----- pestaña «Dónde empezar» ----- */
 .ini-orden{display:flex;align-items:center;gap:8px;margin:8px 0 0;flex-wrap:wrap}
 .ini-orden label{font:600 .8125rem Cabin,sans-serif;color:var(--ink-2)}
-.ini-orden select{flex:1 1 180px;min-width:0;min-height:36px;padding:6px 8px;border:1.5px solid var(--ctl);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:.875rem}
+.ini-orden select{flex:1 1 180px;min-width:0;max-width:100%;min-height:36px;padding:6px 8px;border:1.5px solid var(--ctl);border-radius:6px;background:var(--panel);color:var(--ink);font:inherit;font-size:.875rem}
 .results.ini{padding:0}
+/* orden por cepas: «48 cepas vacantes · 62 en total» puede ocupar dos renglones; cada cifra con su texto no se parte */
+.results .k .cep{display:block;white-space:normal}
 .results.ini li:first-child{border-top:0}
 .results .pos{display:inline-block;min-width:1.5em;margin-right:6px;padding:0 4px;border-radius:4px;background:var(--panel-2);color:var(--ink-2);font:700 .75rem/1.5 Cabin,sans-serif;text-align:center;font-variant-numeric:tabular-nums}
 .ini-mas{display:block;margin:10px 0 0}
@@ -123,3 +125,16 @@
 #tp-dl.sin-descarga #dl-status{font-size:.875rem;color:var(--ink)}
 /* el título del ámbito recibe el foco al elegir (para lectores de pantalla); sin marco, para que no parezca un campo de texto */
 #scope-title:focus{outline:none}
+/* ---------- Resumen en bloques (v1.27): «Prioritario = …» una vez, un bloque por red (encabezado en guinda y unidad) y la comparación al final ---------- */
+.res-def{margin:10px 0 0;font-size:.75rem;color:var(--ink-3)}
+.res-cab{margin:14px 0 0;font:700 .9375rem/1.2 Cabin,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--guinda)}
+.res-sub{margin:2px 0 0;font-size:.75rem;line-height:1.35;color:var(--ink-2)}
+#tp-res .res-sub + .kpis{margin-top:8px}
+.section-title h3{margin:0;font:600 .8125rem/1.3 Cabin,sans-serif;color:var(--ink-2)}
+.tabpanel .bars2 .res-cab,.repartobox > .res-cab{margin-top:0}
+.repartobox{margin-top:28px;padding-top:20px;border-top:1px solid var(--line)}
+.repartobox .reparto{margin-top:8px}
+.repartobox > .note{margin-top:8px}
+.reparto{table-layout:fixed}
+.reparto thead > tr > :first-child{width:42%}
+.reparto thead td{border-top:0}

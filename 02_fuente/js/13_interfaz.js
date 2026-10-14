@@ -80,7 +80,8 @@ $('leymini').onclick = ()=>{ setLegend(true); legendBtn.focus(); };
 const PESTANAS = ['ini','res','dl'];
 function setTab(t){ if (!PESTANAS.includes(t)) t = 'ini';
   document.body.classList.toggle('tab-dl', t==='dl');   // en Descargas la barra inferior sobra: repite los mismos botones
-  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); PESTANAS.forEach(k=>{ $('tp-'+k).hidden = k!==t; }); }
+  document.querySelectorAll('.tabs [role=tab]').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.tab===t))); PESTANAS.forEach(k=>{ $('tp-'+k).hidden = k!==t; });
+  if (t==='res') espCompPide(); }   // el Resumen pide el inventario para su comparación (sin bloquear)
 document.querySelectorAll('.tabs [role=tab]').forEach(b=>{ b.onclick=()=>setTab(b.dataset.tab); });
 function renderScopeTitle(){
   $('scope-title').textContent = selAv!==null? VPC.nomenclat[selAv] + (sel!==null? ' · '+META.munNames[sel] : '')
@@ -112,8 +113,20 @@ function renderActions(){
   $('tp-dl').classList.toggle('sin-descarga', dls.length>0 && dls.every(b=> b.disabled)); }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
-// cierre de sesión: solo aparece si la instalación define su dirección
-if (SESION.cierre){ const a = $('sesion-salir'); a.href = SESION.cierre; a.hidden = false; document.body.classList.add('con-sesion'); }
+// «Mi cuenta»: solo aparece si la instalación define el cierre de sesión. Abre un menú pequeño (botón con aria-expanded; Esc lo cierra y
+// regresa el foco al botón; un clic fuera o salir con el tabulador lo cierra) con «Cambiar contraseña» (la pantalla de acceso con ?cambiar=1,
+// que con la sesión abierta pide la actual y la nueva y, al terminar, regresa a esta misma consulta: volver=…) y «Cerrar sesión».
+if (SESION.cierre){ const c = $('cuenta'), b = $('cuenta-btn'), m = $('cuenta-menu'), clave = $('cuenta-clave');
+  $('cuenta-salir').href = SESION.cierre;
+  if (!SESION.inicio) clave.parentElement.remove();
+  // volver va al final: la pantalla de acceso toma como dirección de regreso todo lo que sigue a «volver=»
+  const claveHref = ()=> SESION.inicio + (SESION.inicio.includes('?')? '&' : '?') + 'cambiar=1&volver=' + encodeURIComponent(location.pathname + location.search);
+  const abre = si => { m.hidden = !si; b.setAttribute('aria-expanded', String(si)); if (si && SESION.inicio) clave.href = claveHref(); };
+  b.onclick = ()=> abre(m.hidden);
+  document.addEventListener('keydown', e=>{ if (e.key==='Escape' && !m.hidden){ e.stopPropagation(); abre(false); b.focus(); } }, true);
+  document.addEventListener('pointerdown', e=>{ if (!m.hidden && !c.contains(e.target)) abre(false); }, true);
+  c.addEventListener('focusout', e=>{ if (!m.hidden && e.relatedTarget && !c.contains(e.relatedTarget)) abre(false); });
+  c.hidden = false; document.body.classList.add('con-sesion'); }
 // ---------- títulos de lista: la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------
 const UNIDAD_RX = /(Colonias|Calles|Avenidas|Tramos|Alcaldías|calles)/;
 function resaltaUnidad(el){ if (!el || el.querySelector('b.unidad')) return; const t = el.textContent, m = t.match(UNIDAD_RX); if (!m) return;

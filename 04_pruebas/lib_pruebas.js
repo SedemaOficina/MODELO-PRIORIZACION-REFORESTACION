@@ -106,6 +106,13 @@ const estado = page => page.evaluate(() => {
     panelTxt: document.querySelector('.panel') ? document.querySelector('.panel').innerText : document.body.innerText,
   };
 });
+// Para comparar con una versión anterior lo que no cambió en la v1.27: el Resumen se reordenó en bloques (rótulos de las cifras, encabezados,
+// población y títulos de las barras son otros; las cifras, no) y el orden por cepas dice además el total de cualquier prioridad y lista al
+// final lo que no tiene km prioritarios. comparable() deja las cifras del Resumen sin sus rótulos y los renglones sin ese total.
+const ROTULOS_V127 = ['kpisTxt', 'caps', 'pob', 'barsTitle', 'bars2Title'];
+const sinTotal = t => String(t).replace(/ · [\d,]+ en total/, '').replace(/sin cepas en lo prioritario/, 'sin cepas registradas');
+function comparable(e) { const c = { ...e }; for (const k of ROTULOS_V127) delete c[k];
+  c.kpis = (e.kpis || []).map(k => k.v); c.lista = (e.lista || []).map(l => ({ ...l, t: sinTotal(l.t) })); return c; }
 const MALOS = /\bNaN\b|undefined|Infinity|\bnull\b|(^|[\s(])-0(?![\d.,])|\[object/;
 const negativos = t => (String(t).match(/(^|[\s(])[-−]\d[\d,.]*\s*(km|m|%|hab|frentes|tramos)/g) || []);
 async function buscar(page, q, espera = 500) { await page.fill('#omni', ''); await page.fill('#omni', q); await page.waitForTimeout(espera); return page.$$eval('#omni-list li', ls => ls.map(l => ({ c: l.className, t: l.innerText.replace(/\s+/g, ' ').trim() }))); }
@@ -130,4 +137,4 @@ function Registro(nombre) {
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { PRIO_MIN, sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { PRIO_MIN, sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

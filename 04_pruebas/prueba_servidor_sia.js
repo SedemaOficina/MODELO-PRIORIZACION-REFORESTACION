@@ -19,6 +19,8 @@ const MAPA = (() => { const b = (conf.match(/map "\$uri\|\$arg_v" \$priorizacion
 const cacheDe = (uri, v) => { const k = uri + '|' + (v || ''); const r = MAPA.reglas.find(([re]) => re.test(k)); return r ? r[1] : MAPA.def; };
 const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.bin': 'application/octet-stream' };
 // modo: normal | sesion401 (datos y librerías responden 401) | login200 (responden la página de inicio de sesión con 200) | descomprime (los .bin llegan ya descomprimidos)
+//       | sesion (config.js con las direcciones de la sesión, como el paquete del SIA: «Mi cuenta»)
+const SESION_SIA = { inicio: PRE + 'acceso/', cierre: PRE + 'api/salir', uso: PRE + 'api/uso' };
 function servidor(modo) { const pedidas = [];
   const s = http.createServer((req, res) => { const u = req.url.split('?')[0]; pedidas.push(req.url);
     if (u === PRE.slice(0, -1)) { res.writeHead(301, { Location: PRE + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '') }); return res.end(); }   // como la regla del ejemplo: redirección relativa
@@ -31,6 +33,7 @@ function servidor(modo) { const pedidas = [];
     const v = new URLSearchParams(req.url.split('?')[1] || '').get('v');
     const cab = { 'Content-Type': TIPOS[path.extname(ruta)] || 'application/octet-stream', 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Cache-Control': cacheDe(PRE + rel, v) };
     if (modo === 'descomprime' && rel.endsWith('.bin')) { res.writeHead(200, cab); return res.end(zlib.gunzipSync(fs.readFileSync(ruta))); }
+    if (modo === 'sesion' && rel === 'config.js') { res.writeHead(200, cab); return res.end(fs.readFileSync(ruta, 'utf8').replace(/window\.SIA_SESION = \{[^;]*\};/, 'window.SIA_SESION = ' + JSON.stringify(SESION_SIA) + ';')); }
     res.writeHead(200, cab); fs.createReadStream(ruta).pipe(res); });
   return new Promise(r => s.listen(0, () => { s.url = `http://localhost:${s.address().port}`; s.pedidas = pedidas; r(s); })); }
 // Fase 2 (inicio de sesión): los bloques location del ejemplo de nginx (van comentados) y cuál atiende cada dirección,
@@ -135,7 +138,37 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     ok('el programa no inserta atributos style ni usa cssText', !/style="/.test(app) && !/cssText/.test(app) && !/cssText/.test(fs.readFileSync(path.join(L.DOCS, 'config.js'), 'utf8')), `${(app.match(/style="/g) || []).length} patrones`);
     ok('las librerías de Excel y PDF se piden con huella de versión', srv.pedidas.filter(q => /libs\/(xlsx|jspdf|excel_worker)\.js/.test(q)).every(q => /\?v=[0-9a-f]{10}/.test(q)) && srv.pedidas.some(q => /libs\/jspdf\.js\?v=/.test(q)), srv.pedidas.filter(q => /libs\/(xlsx|jspdf|excel_worker)/.test(q)).map(q => q.split('/').pop()).join(' '));
     ok('los enlaces a terceros no envían la dirección de la consulta', await page.evaluate(() => [...document.querySelectorAll('a[target="_blank"]')].every(a => /noreferrer/.test(a.rel))));
+    ok('sin sesión configurada no se muestra «Mi cuenta» (ni el antiguo «Salir»)', await page.evaluate(() => document.getElementById('cuenta').hidden && getComputedStyle(document.getElementById('cuenta')).display === 'none' && !document.getElementById('sesion-salir') && !document.body.classList.contains('con-sesion')));
     await ctx.close(); srv.close(); }
+
+  // ---------- 1 bis) «Mi cuenta», con la sesión configurada (v1.27; sustituye a «Salir») ----------
+  { const srv = await servidor('sesion'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero&a=010');
+    const est = p => p.evaluate(() => { const b = document.getElementById('cuenta-btn'), m = document.getElementById('cuenta-menu'), r = b.getBoundingClientRect(), u = m.getBoundingClientRect();
+      return { vis: !document.getElementById('cuenta').hidden && r.width > 0, exp: b.getAttribute('aria-expanded'), ctrl: b.getAttribute('aria-controls'), abierto: !m.hidden, foco: document.activeElement === b, nombre: b.getAttribute('aria-label'), txt: b.innerText.trim(),
+        alto: Math.round(r.height), ancho: Math.round(r.width), texto: getComputedStyle(b.querySelector('span')).display !== 'none', dentro: m.hidden || (u.left >= 0 && u.right <= innerWidth + 0.5),
+        enlaces: [...m.querySelectorAll('a')].map(a => [a.textContent, a.getAttribute('href'), Math.round(a.getBoundingClientRect().height)]) }; });
+    let e = await est(page);
+    ok('con sesión, el encabezado muestra «Mi cuenta» (ícono y texto), cerrado, con aria-expanded y aria-controls', e.vis && e.txt === 'Mi cuenta' && e.nombre === 'Mi cuenta' && e.exp === 'false' && e.ctrl === 'cuenta-menu' && !e.abierto, JSON.stringify(e));
+    await page.click('#cuenta-btn'); await page.waitForTimeout(150); e = await est(page);
+    const volver = encodeURIComponent(PRE + '?modo=ligero&a=010');
+    ok('al abrirlo: «Cambiar contraseña» (pantalla de acceso con ?cambiar=1 y la consulta para volver) y «Cerrar sesión» (api/salir), dentro de la pantalla', e.abierto && e.exp === 'true' && e.dentro && e.enlaces.length === 2
+      && e.enlaces[0][0] === 'Cambiar contraseña' && e.enlaces[0][1] === `${PRE}acceso/?cambiar=1&volver=${volver}` && e.enlaces[1][0] === 'Cerrar sesión' && e.enlaces[1][1] === PRE + 'api/salir', JSON.stringify(e.enlaces));
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150); e = await est(page);
+    ok('Esc cierra el menú y regresa el foco al botón', !e.abierto && e.exp === 'false' && e.foco);
+    await page.keyboard.press('Enter'); await page.waitForTimeout(150); const conTeclado = (await est(page)).abierto; await page.keyboard.press('Tab');
+    const primero = await page.evaluate(() => document.activeElement.id); await page.click('#scope-title'); await page.waitForTimeout(150); e = await est(page);
+    ok('con el teclado se abre y Tab llega a la primera opción; un clic fuera lo cierra', conTeclado && primero === 'cuenta-clave' && !e.abierto && e.exp === 'false', `${conTeclado} · ${primero}`);
+    // la dirección de regreso sigue a la consulta del momento
+    await L.elegir(page, 'iztapalapa'); await page.click('#cuenta-btn'); await page.waitForTimeout(150); e = await est(page);
+    ok('el regreso de «Cambiar contraseña» es la consulta del momento', new URLSearchParams(e.enlaces[0][1].split('?')[1]).get('volver') === new URL(page.url()).pathname + new URL(page.url()).search, e.enlaces[0][1]);
+    const v = await page.evaluate(() => window.__csp);
+    ok('«Mi cuenta» funciona sin violaciones de la política de seguridad de contenido', v.length === 0, v.slice(0, 3).join(' | '));
+    await ctx.close();
+    const ctxM = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'es-MX', serviceWorkers: 'block' }); await L.sinEntrada(ctxM);
+    const pm = await ctxM.newPage(); pm.on('pageerror', x => errores.push(x.message)); await pm.goto(srv.url + PRE + '?modo=ligero&a=010'); await pm.waitForSelector('#loader[hidden]', { state: 'attached' }); await pm.waitForTimeout(500);
+    await pm.tap('#cuenta-btn'); await pm.waitForTimeout(200); const m = await est(pm), des = await pm.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+    ok('celular de 390 px: solo el ícono, de 44 px, con nombre accesible; el menú cabe en la pantalla y sus opciones miden 44 px', m.alto >= 44 && m.ancho >= 44 && !m.texto && m.nombre === 'Mi cuenta' && m.abierto && m.dentro && m.enlaces.every(x => x[2] >= 44) && des <= 0, JSON.stringify(m));
+    await ctxM.close(); srv.close(); }
 
   // ---------- 2) sesión vencida ----------
   for (const [modo, nombre] of [['sesion401', 'el servidor responde 401'], ['login200', 'el servidor responde la página de inicio de sesión']]) {

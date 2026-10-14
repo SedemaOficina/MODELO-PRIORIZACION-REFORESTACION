@@ -46,7 +46,7 @@ const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.m
 // espCargar() (05_inventario.js) la primera vez que se pide el filtro: filtroEsp solo cambia cuando ESP_FR ya está. Igual que la banqueta,
 // forma parte del filtro único y se combina con ella. El inventario está en curso: donde no hay puntos puede que aún no se haya inventariado.
 // ESP_CV (Uint16Array de N), del mismo archivo, trae las cepas vacantes de cada frente: las cuenta el orden «más cepas vacantes» de
-// «Dónde empezar» (09_listados.js) en los frentes que pasan enAmbito(i): solo los prioritarios, o los de cualquier prioridad (v1.25).
+// «Dónde empezar» (09_listados.js) en los frentes que pasan enAmbito(i): las de los prioritarios ordenan y las de cualquier prioridad dan el total del renglón.
 // ESP_FRN (Uint16Array de 3·N), también de ese archivo, trae cuántas cepas vacantes, tocones y árboles muertos tiene cada frente: las
 // columnas de los Excel, el GeoJSON y el KML (11_descargas.js).
 let filtroEsp = 0, ESP_FR = null, ESP_CV = null, ESP_FRN = null;

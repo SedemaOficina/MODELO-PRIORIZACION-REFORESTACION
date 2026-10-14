@@ -79,7 +79,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.26'
+VERSION = '1.27'
 ACTUALIZACION = '14 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -300,7 +300,9 @@ INVENTARIO = {'v': inv_ver, 'corte': INV_RES['corte'], 'fuente': INV_RES['fuente
                      'puntos': INV_FR['puntos_por_tipo']},
               # lo mismo para las partes de vialidad primaria del Gobierno Central (espacios_vp.bin), con la distancia del camellón
               'vp': {'archivo': INV_VP['archivo'], 'formato': INV_VP['formato'], 'n': INV_VP['partes'], 'tipos': INV_VP['por_tipo'],
-                     'puntos': INV_VP['puntos_por_tipo'], 'dist': INV_VP['distancia_camellon_m']}}
+                     'puntos': INV_VP['puntos_por_tipo'], 'dist': INV_VP['distancia_camellon_m']},
+              # puntos que no cuentan para nadie (sin frente a 20 m ni vialidad primaria a 25 m): la nota de la comparación del Resumen
+              'sinc': INV_RES['sin_frente'] - INV_VP['sin_frente_recuperados']}
 lver = {}
 for lib in LIBS_PUBLICADAS:
     b = leer('libs/' + lib, True)

@@ -50,27 +50,30 @@ const kpi = (e, exp) => e.kpis.length > 0 && e.kpis[0].v.replace(/\s+/g, '').sta
 
 // ---------- orden «más cepas vacantes»: recálculo propio ----------
 const pasaB = (f, banq) => banq === 'todas' || (banq === 'con') === (((f.flags >> 3) & 7) === 0);
-// colonias de una alcaldía (o de la ciudad) con frente prioritario a cargo de la alcaldía, por cepas vacantes en esos frentes y, con el
-// mismo número, por km prioritarios (cuenta todos los frentes de la colonia, como la lista de colonias)
-function colCepas(CV, mun, banq = 'todas') { const S = new Map();
-  for (let i = 0; i < D.N; i++) { const f = D.F[i]; if (!f.col || f.gc || !pasaB(f, banq)) continue; let s = S.get(f.col); if (!s) { s = { kmp: 0, cv: 0 }; S.set(f.col, s); }
-    if (f.prio >= L.PRIO_MIN) { s.kmp += f.len / 1000; s.cv += CV[i]; } }
+// colonias de una alcaldía (o de la ciudad) a cargo de la alcaldía, por cepas vacantes en sus frentes prioritarios y, con el mismo número,
+// por km prioritarios; cvt: las de todos sus frentes (el total del renglón, v1.27); al final, las que no tienen km prioritarios pero sí cepas
+// (cuenta todos los frentes de la colonia, como la lista de colonias). terr2 (opcional): solo esos frentes (el filtro «Espacio»)
+const ordenCep = (a, b, km) => b.cv - a.cv || b.kmp - a.kmp || (a.kmp ? 0 : b.cvt - a.cvt) || (km ? b.km - a.km : 0);
+function colCepas(CV, mun, banq = 'todas', terr2 = () => true) { const S = new Map();
+  for (let i = 0; i < D.N; i++) { const f = D.F[i]; if (!f.col || f.gc || !pasaB(f, banq) || !terr2(i)) continue; let s = S.get(f.col); if (!s) { s = { kmp: 0, cv: 0, cvt: 0 }; S.set(f.col, s); }
+    s.cvt += CV[i]; if (f.prio >= L.PRIO_MIN) { s.kmp += f.len / 1000; s.cv += CV[i]; } }
   const cve = mun === null ? null : M.muns[mun], out = [];
-  for (let c = 1; c < M.colonias.length; c++) { const k = M.colonias[c]; if (!k.n || (cve && k.m !== cve)) continue; const s = S.get(c); if (s && s.kmp > 0) out.push({ c, n: k.n, cv: s.cv, kmp: s.kmp }); }
-  return out.sort((a, b) => b.cv - a.cv || b.kmp - a.kmp); }
+  for (let c = 1; c < M.colonias.length; c++) { const k = M.colonias[c]; if (!k.n || (cve && k.m !== cve)) continue; const s = S.get(c); if (s && (s.kmp > 0 || s.cvt > 0)) out.push({ c, n: k.n, cv: s.cv, cvt: s.cvt, kmp: s.kmp }); }
+  return out.sort((a, b) => ordenCep(a, b, false)); }
 // calles de una colonia con frente prioritario (sin los nombres genéricos de INEGI), por cepas vacantes en sus frentes prioritarios
 const generico = nm => { const n = L.norm(nm); return n === '' || n === 'sin referencia' || n === 'sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion'); };
 // (terr: la colonia, o la alcaldía; en la alcaldía cada calle cuenta una vez en cada colonia por la que pasa)
 function callesCepas(CV, terr) { const S = new Map();
-  for (let i = 0; i < D.N; i++) { const f = D.F[i]; if (f.gc || !terr(f) || generico(M.names[f.name])) continue; const key = f.name * 4096 + f.col; let s = S.get(key); if (!s) { s = { nid: f.name, km: 0, kmp: 0, cv: 0 }; S.set(key, s); }
-    s.km += f.len / 1000; if (f.prio >= L.PRIO_MIN) { s.kmp += f.len / 1000; s.cv += CV[i]; } }
-  return [...S.values()].filter(s => s.kmp > 0 && M.names[s.nid]).map(s => ({ n: M.names[s.nid], ...s })).sort((a, b) => b.cv - a.cv || b.kmp - a.kmp || b.km - a.km); }
-const cepasTxt = n => n ? `${L.fN.format(n)} cepa${n === 1 ? '' : 's'} vacante${n === 1 ? '' : 's'}` : 'sin cepas registradas';
-const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]*) cepas? vacantes?|sin cepas registradas/); return m ? m[0].trim() : ''; };
-// renglones contra el recálculo: nombre, número de cepas (con su texto) y km prioritarios, en el mismo orden
+  for (let i = 0; i < D.N; i++) { const f = D.F[i]; if (f.gc || !terr(f) || generico(M.names[f.name])) continue; const key = f.name * 4096 + f.col; let s = S.get(key); if (!s) { s = { nid: f.name, km: 0, kmp: 0, cv: 0, cvt: 0 }; S.set(key, s); }
+    s.km += f.len / 1000; s.cvt += CV[i]; if (f.prio >= L.PRIO_MIN) { s.kmp += f.len / 1000; s.cv += CV[i]; } }
+  return [...S.values()].filter(s => (s.kmp > 0 || s.cvt > 0) && M.names[s.nid]).map(s => ({ n: M.names[s.nid], ...s })).sort((a, b) => ordenCep(a, b, true)); }
+// el renglón: las cepas de lo prioritario y el total de cualquier prioridad (v1.27)
+const cepasTxt = (cv, cvt) => cv ? `${L.fN.format(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt ? ` · ${L.fN.format(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${L.fN.format(cvt)} en total` : 'sin cepas registradas';
+const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]* cepas? vacantes?(?: · [\d,]+ en total)?|sin cepas en lo prioritario · [\d,]+ en total|sin cepas registradas)/); return m ? m[1].trim() : ''; };
+// renglones contra el recálculo: nombre, número de cepas con su total y km prioritarios, en el mismo orden
 function comparaFilas(filas, exp) { const malas = [];
   filas.forEach((r, k) => { const e = exp[k], t = L.norm(r.t);
-    if (!e || !t.includes(L.norm(e.n)) || cepasDe(r.t) !== cepasTxt(e.cv) || !t.includes(`${L.kmTxt(e.kmp)} ${L.kmUn(e.kmp)} de frente prioritario`)) malas.push(`${k + 1}: «${r.t.slice(0, 90)}» vs ${e ? `${e.n} ${cepasTxt(e.cv)} ${L.kmTxt(e.kmp)}` : '—'}`); });
+    if (!e || !t.includes(L.norm(e.n)) || cepasDe(r.t) !== cepasTxt(e.cv, e.cvt) || !t.includes(`${L.kmTxt(e.kmp)} ${L.kmUn(e.kmp)} de frente prioritario`)) malas.push(`${k + 1}: «${r.t.slice(0, 90)}» vs ${e ? `${e.n} ${cepasTxt(e.cv, e.cvt)} ${L.kmTxt(e.kmp)}` : '—'}`); });
   return malas; }
 const NOTA_COL = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario en curso): una colonia con 0 puede no estar inventariada todavía.`;
 const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario en curso): una calle con 0 puede no estar inventariada todavía.`;
@@ -91,7 +94,8 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
 
   const srv = await L.servidor(0); const browser = await L.lanzar(); const errores = []; const base = srv.url + '?modo=ligero';
   // siempre se recarga la página: una dirección igual a la actual (la consulta ya anotada en el historial) solo cambiaría el ancla
-  const ir = async (page, q) => { await page.goto('about:blank'); await page.goto(base + q + '#nomap'); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(700); await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
+  // ir: la consulta, en el Resumen (que pide el inventario para su comparación, v1.27); res = false: se queda en «Dónde empezar», sin bajar nada
+  const ir = async (page, q, res = true) => { await page.goto('about:blank'); await page.goto(base + q + '#nomap'); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(700); if (res) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
   const pedidos = [];
   const { page, ctx } = await L.abrir(browser, base + '#nomap', {}, errores);
   page.on('request', r => { if (r.url().includes('espacios_frentes')) pedidos.push(r.url()); });
@@ -100,9 +104,12 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   const clicEsp = async t => { await page.$eval(`button[data-esp="${t}"]`, b => b.click()); await page.waitForFunction(() => window.__INV.esp().filtro === window.__INV.esp().casillas, null, { timeout: 60000 }); await page.waitForTimeout(400); };
 
   // ---------- 2) apagado: abre sin filtro, sin pedir el archivo; con las casillas se recorren las siete combinaciones (Tláhuac) ----------
-  await ir(page, `&a=${M.muns[TLA]}`); const e0 = await L.estado(page);
+  await ir(page, `&a=${M.muns[TLA]}`, false);
   const fila = await page.evaluate(() => ({ vis: !document.getElementById('esp-row').hidden, lab: document.getElementById('esp-label').textContent }));
   ok('la fila «Espacio» se ve debajo de «Banqueta» y abre con las tres casillas apagadas, sin pedir el archivo', fila.vis && fila.lab === 'Espacio' && (await casillas()).every(v => !v) && pedidos.length === 0 && await page.evaluate(() => { const b = document.getElementById('banq-row').getBoundingClientRect(), e = document.getElementById('esp-row').getBoundingClientRect(); return e.top >= b.bottom - 1; }));
+  await page.evaluate(() => document.getElementById('tab-res').click()); await page.waitForFunction(() => !/cargando/.test(document.getElementById('rp-esp').textContent), null, { timeout: 60000 }).catch(() => {});
+  ok('al abrir el Resumen se pide el archivo una vez, para los espacios de su comparación; el filtro sigue apagado', pedidos.length === 1 && (await casillas()).every(v => !v) && await page.evaluate(() => window.__INV.esp().filtro === 0), `${pedidos.length} pedido(s)`);
+  const e0 = await L.estado(page);
   const T0 = calc(B, f => f.mun === TLA, 0);
   ok('apagado: el km prioritario de Tláhuac es el de siempre y no hay aviso del inventario', kpi(e0, T0) && !(await aviso()).vis && !/inventario de arbolado/.test(e0.kpisTxt), `${e0.kpis[0].v} vs ${L.kmTxt(T0.km)}`);
   const cifrasTla = {};
@@ -192,9 +199,9 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   // carga diferida: el archivo se pide solo al elegir el orden; mientras llega (aquí se retrasa 2.5 s), aviso y la lista anterior
   const RUTA = '**/espacios_frentes.bin*';
   await ctx.route(RUTA, async r => { await new Promise(s => setTimeout(s, 2500)); await r.continue().catch(() => {}); });
-  await ir(page, `&a=${M.muns[TLA]}`); await tabIni(page); pedidos.length = 0;
+  pedidos.length = 0; await ir(page, `&a=${M.muns[TLA]}`, false); await tabIni(page);
   { const ops = await opciones(page), antes = await L.estado(page);
-    ok('alcaldía: «Mostrar» ofrece «Colonias con más cepas (prioritarias)» y «Calles con más cepas (prioritarias)», sin bajar nada al abrir', ops.includes('cv=Colonias con más cepas (prioritarias)') && ops.includes('callescv=Calles con más cepas (prioritarias)') && pedidos.length === 0, ops.map(o => o.split('=')[0]).join(', '));
+    ok('alcaldía: «Mostrar» ofrece «Colonias · más cepas vacantes» y «Calles · más cepas vacantes», sin bajar nada al abrir «Dónde empezar»', ops.includes('cv=Colonias · más cepas vacantes') && ops.includes('callescv=Calles · más cepas vacantes') && pedidos.length === 0, ops.map(o => o.split('=')[0]).join(', '));
     await page.selectOption('#ini-orden', 'cv'); await page.waitForTimeout(300);
     const a = await carga(page), d = await L.estado(page), sv = await page.$eval('#ini-orden', s => s.value);
     ok('mientras baja el archivo: aviso breve, el selector dice lo pedido y la lista sigue con el orden anterior y sus cifras reales (no se vacía ni muestra cepas)', a.vis && !a.warn && a.t === 'Cargando las cepas vacantes del inventario de arbolado…' && sv === 'cv' && antes.lista.length === 10 && JSON.stringify(d.lista) === JSON.stringify(antes.lista) && d.listCount === antes.listCount && !d.lista.some(l => /cepa/.test(l.t)) && pedidos.length === 1, `${a.t} · ${d.listCount}`);
@@ -207,7 +214,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
     top.tla = exp.slice(0, 5);
     ok('Tláhuac por cepas vacantes: todas las colonias, en orden (con el mismo número, por km prioritarios) y con su número = recálculo propio', !malas.length && filas.length === exp.length && L.numEs(e.listCount) === exp.length && e.listTitle === 'Colonias de Tláhuac por atender primero',
       malas.slice(0, 3).join(' | ') || `${exp.length} colonias · ${empates} empates resueltos por km · ${exp.slice(0, 5).map(x => `${x.n} ${x.cv}`).join(', ')}`);
-    ok('Tláhuac: las colonias sin cepas van al final y dicen «sin cepas registradas»', c0 > 0 && filas.slice(c0).every(r => cepasDe(r.t) === 'sin cepas registradas') && filas.slice(0, c0).every(r => /cepas? vacantes?$/.test(cepasDe(r.t))), `${exp.length - c0} sin cepas, desde el renglón ${c0 + 1}`); }
+    ok('Tláhuac: las colonias sin cepas en lo prioritario van al final y lo dicen («sin cepas…»)', c0 > 0 && filas.slice(c0).every(r => /^sin cepas/.test(cepasDe(r.t))) && filas.slice(0, c0).every(r => /^\d/.test(cepasDe(r.t))), `${exp.length - c0} sin cepas en lo prioritario, desde el renglón ${c0 + 1}`); }
   { const n1 = await nota(page); await orden(page, 'kmp'); const n0 = await nota(page);
     ok('la nota del corte («Cuenta solo lo inventariado hasta …») aparece solo con el orden por cepas', n1.includes(NOTA_COL) && !n0.includes('inventariado') && !(await L.estado(page)).lista.some(l => /cepa/.test(l.t)), n1.slice(0, 120)); }
   // calles de la alcaldía por cepas
@@ -217,7 +224,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   const COLC = colCepas(CV, TLA)[0].c;
   { await orden(page, 'cv'); await page.$eval('#ini-list li', li => li.click()); await page.waitForTimeout(1200); await tabIni(page);
     const ops = await opciones(page), sv = await page.$eval('#ini-orden', s => s.value), exp = callesCepas(CV, f => f.col === COLC), filas = await verTodo(page), e = await L.estado(page), malas = comparaFilas(filas, exp);
-    ok(`colonia ${M.colonias[COLC].n} elegida desde la lista por cepas: el selector ofrece km prioritarios y cepas, y sigue en cepas`, ops.join('|') === 'calles=Calles con más kilómetros prioritarios|cv=Calles con más cepas (prioritarias)|cvt=Calles con más cepas (todas)' && sv === 'cv' && new URL(e.url).searchParams.get('c') === String(COLC), `${ops.join(' | ')} · ${sv}`);
+    ok(`colonia ${M.colonias[COLC].n} elegida desde la lista por cepas: el selector ofrece km prioritarios y cepas, y sigue en cepas`, ops.join('|') === 'calles=Calles · más km prioritarios|cv=Calles · más cepas vacantes' && sv === 'cv' && new URL(e.url).searchParams.get('c') === String(COLC), `${ops.join(' | ')} · ${sv}`);
     ok('las calles de la colonia por cepas vacantes: todas, en orden y con su número = recálculo propio; nota del corte', !malas.length && filas.length === exp.length && L.numEs(e.listCount) === exp.length && /por cepas vacantes/.test(e.listCount) && (await nota(page)).includes(NOTA_CALLE),
       malas.slice(0, 3).join(' | ') || `${exp.length} calles · ${exp.slice(0, 3).map(x => `${x.n} ${x.cv}`).join(', ')}`); }
   // una colonia abierta desde la dirección: lo predeterminado son los km prioritarios
@@ -236,9 +243,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   { await ir(page, `&a=${M.muns[TLA]}&e=to`); await tabIni(page); await orden(page, 'cv');
     const e = await L.estado(page);
     // con «Tocón», solo cuentan los frentes con tocón: el recálculo usa solo esos frentes
-    const S = new Map(); for (let i = 0; i < D.N; i++) { const f = D.F[i]; if (!f.col || f.gc || !(B[i] & 2)) continue; let s = S.get(f.col); if (!s) { s = { kmp: 0, cv: 0 }; S.set(f.col, s); } if (f.prio >= L.PRIO_MIN) { s.kmp += f.len / 1000; s.cv += CV[i]; } }
-    const exp2 = []; for (let c = 1; c < M.colonias.length; c++) { const k = M.colonias[c]; if (!k.n || k.m !== M.muns[TLA]) continue; const s = S.get(c); if (s && s.kmp > 0) exp2.push({ c, n: k.n, cv: s.cv, kmp: s.kmp }); } exp2.sort((a, b) => b.cv - a.cv || b.kmp - a.kmp);
-    const malas = comparaFilas(e.lista, exp2);
+    const exp2 = colCepas(CV, TLA, 'todas', i => B[i] & 2), malas = comparaFilas(e.lista, exp2);
     ok('Tláhuac con el filtro «Tocón», por cepas vacantes: solo cuentan los frentes con tocón (enAmbito) = recálculo propio', !malas.length && L.numEs(e.listCount) === exp2.length, malas.slice(0, 2).join(' | ') || `${exp2.length} colonias · ${exp2.slice(0, 3).map(x => `${x.n} ${x.cv}`).join(', ')}`); }
   // si la carga falla: mensaje, el selector vuelve al orden anterior y la lista queda como estaba; elegirlo otra vez lo vuelve a intentar
   { await ctx.route(RUTA, r => r.abort()); await ir(page, `&a=${M.muns[TLA]}`); await tabIni(page); const antes = await L.estado(page);
@@ -250,7 +255,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   // Gobierno Central: no se ofrecen las colonias por cepas, sino las avenidas (v1.24); con las dos redes, las colonias (cuenta solo los frentes a cargo de la alcaldía)
   { await ir(page, `&r=gc&a=${M.muns[IZT]}`); await tabIni(page); const g = await opciones(page);
     await ir(page, `&r=both&a=${M.muns[IZT]}`); await tabIni(page); const b2 = await opciones(page);
-    ok('Gobierno Central: «Mostrar» no ofrece las colonias ni las calles por cepas, sí las avenidas; con las dos redes, las colonias', !g.some(o => /^(cv|callescv|cvt|callescvt)=/.test(o)) && g.includes('avcv=Avenidas con más cepas (prioritarias)') && b2.some(o => o.startsWith('cv=')), `${g.map(o => o.split('=')[0]).join(',')} · ${b2.map(o => o.split('=')[0]).join(',')}`); }
+    ok('Gobierno Central: «Mostrar» no ofrece las colonias ni las calles por cepas, sí las avenidas; con las dos redes, las colonias y las calles', g.join('|') === 'av=Avenidas · más km prioritarios|avcv=Avenidas · más cepas vacantes' && b2.join('|') === 'kmp=Colonias · más km prioritarios|cv=Colonias · más cepas vacantes|pob=Colonias · más habitantes|calles=Calles · más km prioritarios|callescv=Calles · más cepas vacantes', `${g.map(o => o.split('=')[0]).join(',')} · ${b2.map(o => o.split('=')[0]).join(',')}`); }
   await ctx.close();
 
   // ---------- 8) celular de 390 × 844 ----------

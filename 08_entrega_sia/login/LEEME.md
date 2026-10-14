@@ -108,7 +108,7 @@ Validar con `nginx -t`.
 En `deploy/verificar.sh` conviene agregar una comprobación: `GET /priorizacion-reforestacion/api/sesion` sin cookie debe responder `401` (la puerta funciona, nginx llega al módulo y el módulo está montado).
 
 **7. La herramienta.** La carpeta `sitio/` del paquete ya viene construida con la sesión: acceso en `/priorizacion-reforestacion/acceso/`, cierre en `/priorizacion-reforestacion/api/salir` y registro de usos en `/priorizacion-reforestacion/api/uso`. Con eso la herramienta:
-- muestra «Salir» junto a los logotipos;
+- muestra «Mi cuenta» junto a los logotipos, con «Cambiar contraseña» (`acceso/?cambiar=1`, regresa a la misma consulta) y «Cerrar sesión»;
 - reconoce la sesión vencida;
 - no guarda copia sin conexión;
 - registra consultas y descargas.
@@ -128,7 +128,7 @@ En el repositorio, `python 08_entrega_sia/empaquetar.py` arma el paquete con esa
 | 5 | En la herramienta, elegir una alcaldía y descargar un Excel | En el panel, pestaña «Usos», aparecen la consulta y la descarga |
 | 6 | Dar de baja una cuenta con la sesión abierta en otro navegador | Esa sesión deja de funcionar al instante |
 | 7 | Cinco contraseñas equivocadas seguidas | La cuenta se detiene 15 minutos: aun con la contraseña correcta responde «El correo o la contraseña no son correctos…», igual que con una equivocada |
-| 8 | «Salir» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión» |
+| 8 | «Mi cuenta» → «Cerrar sesión» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión». «Mi cuenta» → «Cambiar contraseña» pide la actual y la nueva, y regresa a la consulta |
 
 <!-- solo-repositorio -->
 ## Ensayo antes de instalar

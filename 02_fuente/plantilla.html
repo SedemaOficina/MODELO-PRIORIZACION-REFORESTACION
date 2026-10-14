@@ -10,7 +10,14 @@
   <aside class="panel">
     <div class="panel-head">
       <img class="logo" src="img/logo_institucional.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Sistema de Información Ambiental de la Ciudad de México · Reforestación Urbana">
-      <a class="sesion-salir" id="sesion-salir" title="Cerrar sesión" aria-label="Cerrar sesión" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/></svg><span>Salir</span></a>
+      <!-- «Mi cuenta» (js/13_interfaz.js): solo con sesión; abre un menú con «Cambiar contraseña» y «Cerrar sesión» -->
+      <div class="cuenta" id="cuenta" hidden>
+        <button type="button" class="cuenta-btn" id="cuenta-btn" aria-label="Mi cuenta" aria-expanded="false" aria-controls="cuenta-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span>Mi cuenta</span><svg class="flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+        <ul class="cuenta-menu" id="cuenta-menu" hidden>
+          <li><a id="cuenta-clave" href="#">Cambiar contraseña</a></li>
+          <li><a id="cuenta-salir" href="#">Cerrar sesión</a></li>
+        </ul>
+      </div>
       <h1>Modelo de priorización de reforestación urbana</h1>
       <button class="btn-vista" id="ver-mapa" type="button"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3 6.5v13.5l6-2.5 6 2.5 6-2.5V4l-6 2.5L9 4z"/><path d="M9 4v13.5M15 6.5V20"/></svg><span>Ver el mapa</span></button>
       
@@ -65,7 +72,7 @@
         <div class="section-title"><h2 id="ini-title">Colonias por atender primero</h2><span id="ini-count" role="status"></span></div>
         <div class="ini-orden" id="ini-orden-box"><label for="ini-orden">Mostrar</label>
           <select id="ini-orden">
-            <option value="kmp">Colonias con más kilómetros prioritarios</option>
+            <option value="kmp">Colonias · más km prioritarios</option>
           </select>
           <p class="esp-aviso ini-carga" id="ini-carga" role="status" hidden></p></div>
         <div class="search ini-filtro">
@@ -78,18 +85,27 @@
         <div class="note" id="ini-note"></div>
       </div></div>
         <div class="tabpanel" id="tp-res" role="tabpanel" aria-labelledby="tab-res" hidden><div>
-        <div class="kpis" id="kpis"></div>
-        <div class="pobbox" id="pobbox" hidden></div>
-        <div class="univbox" id="univbox" hidden></div>
-        <div class="section-title"><h2 id="bars-title">Kilómetros de frente por prioridad</h2></div>
-        <div class="bars" id="bars"></div>
-        <div class="note" id="bars-note"></div>
-        <div id="bars2" class="bars2" hidden>
-          <div class="kpis dual" id="kpis2"></div>
-          <div class="section-title"><h2 id="bars2-title">Kilómetros de vialidad primaria por prioridad · a cargo del Gobierno Central</h2></div>
+        <!-- Resumen en bloques (js/08_resumenes.js): la definición de «prioritario» una vez; un bloque por red y, al final, la comparación -->
+        <p class="res-def">Prioritario = Muy Alta, Alta y Media.</p>
+        <section class="res-bloque" aria-labelledby="res-cab">
+          <h2 class="res-cab" id="res-cab">Alcaldías</h2>
+          <p class="res-sub" id="res-sub">Frentes de manzana · km por cada acera</p>
+          <div class="kpis" id="kpis"></div>
+          <div class="pobbox" id="pobbox" hidden></div>
+          <div class="univbox" id="univbox" hidden></div>
+          <div class="section-title"><h3 id="bars-title">Por prioridad</h3></div>
+          <div class="bars" id="bars"></div>
+          <div class="note" id="bars-note"></div>
+        </section>
+        <section id="bars2" class="bars2 res-bloque" aria-labelledby="res-cab2" hidden>
+          <h2 class="res-cab" id="res-cab2">Gobierno Central</h2>
+          <p class="res-sub" id="res-sub2">Vialidades primarias · km sobre el eje</p>
+          <div class="kpis" id="kpis2"></div>
+          <div class="univbox" id="univbox2" hidden></div>
+          <div class="section-title"><h3 id="bars2-title">Por prioridad</h3></div>
           <div class="bars" id="bars2-rows"></div>
-        </div>
-        <div class="repartobox" id="reparto" hidden></div>
+        </section>
+        <section class="repartobox" id="reparto" aria-label="Comparación de la alcaldía y el Gobierno Central" hidden></section>
       </div></div>
         <div class="tabpanel" id="tp-dl" role="tabpanel" aria-labelledby="tab-dl" hidden><div class="panel-section">
         <div class="status" id="dl-status" role="status"></div>
@@ -226,7 +242,7 @@
       <p class="rec-cta"><button type="button" class="btn rec-abrir" id="rec-abrir"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>Recorrido guiado · 1 minuto</button><span>Muestra dónde buscar, cómo separar las calles por banqueta y cómo revisarlas en Street View antes de salir a campo.</span></p>
       <ol class="howto-steps">
         <li><b>Elige qué consultar y dónde.</b> Calles y colonias de las alcaldías o vialidades primarias del Gobierno Central, y en qué alcaldía. La fila «Atiende» cambia de red en cualquier momento; puedes marcar ambas.</li>
-        <li><b>Revisa «Dónde empezar».</b> Propone el orden de atención: colonias, calles de la colonia elegida o avenidas. Las colonias se ordenan por kilómetros prioritarios, porcentaje prioritario, habitantes, kilómetros sin arbolado y con banqueta o cepas vacantes en frentes prioritarios (del inventario de arbolado, en curso; con una colonia elegida, también sus calles); también puedes ver las calles de la alcaldía o las alcaldías de la ciudad, y buscar una calle por su nombre. Las avenidas del Gobierno Central se ordenan por kilómetros prioritarios o por cepas vacantes en sus tramos prioritarios. Al elegir una calle aparecen sus tramos.</li>
+        <li><b>Revisa «Dónde empezar».</b> Propone el orden de atención: colonias, calles de la colonia elegida o avenidas. Las colonias se ordenan por kilómetros prioritarios, cepas vacantes en frentes prioritarios (del inventario de arbolado, en curso; cada renglón dice también el total de cualquier prioridad) o habitantes; también puedes ver las calles de la alcaldía o de la colonia, por kilómetros prioritarios o por cepas vacantes, o las alcaldías de la ciudad, y buscar una calle por su nombre. Las avenidas del Gobierno Central se ordenan por kilómetros prioritarios o por cepas vacantes en sus tramos prioritarios. Al elegir una calle aparecen sus tramos.</li>
         <li><b>Busca un lugar.</b> Alcaldía, colonia, avenida o calle; bastan algunas palabras y reconoce abreviaturas («Calz.», «Av.»). También puedes pegar coordenadas (19.3000, -99.1019) o un enlace de Google Maps, como los que llegan por WhatsApp: la herramienta marca el punto y dice su colonia y las calles prioritarias cercanas.</li>
         <li><b>Consulta y descarga.</b> «Resumen» da las cifras del ámbito y «Descargas», los archivos en Excel, PDF y para abrir en un mapa.</li>
         <li><b>Ajusta el mapa.</b> El botón de capas controla capas, mapa de fondo, opacidad y prioridades visibles.</li>
@@ -344,7 +360,7 @@
       <li><b>Separa por banqueta, sin descartar.</b> «Con banqueta» reúne los frentes para plantación directa. «Sin banqueta» reúne los que no registran banqueta, los de conjuntos habitacionales y los que no tienen dato; requieren reconocimiento en sitio. El dato es de INEGI 2020 y puede haber cambiado.</li>
       <li><b>Una calle no tiene una sola prioridad.</b> La lista de «Dónde empezar» muestra sus kilómetros por prioridad y la predominante. Al elegir una calle, se divide en tramos de esquina a esquina; es una aproximación geométrica que se confirma en campo.</li>
       <li><b>Di dónde está la calle.</b> Muchos nombres se repiten: elige alcaldía o escribe la calle con su colonia («Ayuntamiento Centro»). Si no aparece en la lista de la alcaldía, revisa si es vialidad primaria (en gris) y activa Gobierno Central.</li>
-      <li><b>No sumes unidades distintas.</b> La red de las alcaldías se mide en kilómetros de frente (uno por acera); las vialidades primarias, en kilómetros de vialidad sobre el eje. Para comparar usa el cuadro «Quién atiende», todo en kilómetros de frente.</li>
+      <li><b>No sumes unidades distintas.</b> La red de las alcaldías se mide en kilómetros de frente (uno por acera); las vialidades primarias, en kilómetros de vialidad sobre el eje. Para comparar usa la tabla «Alcaldía y Gobierno Central», al final del Resumen, en kilómetros de frente.</li>
       <li><b>Las cifras son diagnóstico.</b> No son meta ni obligación de plantación, y la participación de cada alcaldía en el total no es una calificación. El modelo indica dónde es prioritario, no cuántos árboles caben: espacio, banqueta, cableado e instalaciones se confirman en sitio.</li>
       <li><b>Programa con el Excel y acuerda con la Secretaría.</b> Cada archivo trae la hoja Datos (calle, tipo de vialidad, colonia, código postal, longitud y coordenadas) y la hoja Diccionario; sin conexión se entregan dos CSV. Las especies nativas y el riego y mantenimiento por dos años se acuerdan con la Secretaría conforme al Programa.</li>
     </ul>

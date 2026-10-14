@@ -12,6 +12,12 @@ wb = openpyxl.load_workbook(sys.argv[1], read_only=True)
 print(json.dumps({'datos': [list(r) for r in wb['Datos'].iter_rows(values_only=True)], 'dic': [list(r) for r in wb['Diccionario'].iter_rows(values_only=True)]}, default=str))`, ruta], { maxBuffer: 1 << 28 }).toString());
 const dicVal = (x, k) => (x.dic.find(r => r[0] === k) || [])[1];
 const num = t => +String(t).replace(/[^\d.]/g, '');
+// espacios para plantar (v1.27, tabla de comparación del Resumen): puntos de cada tipo por frente y por parte de vialidad primaria, con un
+// decodificador propio de espacios_frentes.bin y espacios_vp.bin
+const espacios = nombre => { const raw = require('zlib').gunzipSync(fs.readFileSync(path.join(L.DOCS, 'datos', 'inventario', nombre))); let rp = 0;
+  const rv = () => { let res = 0, sh = 0, b; do { b = raw[rp++]; res += (b & 0x7f) * Math.pow(2, sh); sh += 7; } while (b & 0x80); return (res % 2) ? -((res + 1) / 2) : res / 2; };
+  rv(); const n = rv(), C = new Map(); let f = -1; for (let k = 0; k < n; k++) { f += rv(); C.set(f, [rv(), rv(), rv()]); } return C; };
+const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bin');
 
 (async () => {
   const srv = await L.servidor(0); const browser = await L.lanzar(); const errores = [];
@@ -147,11 +153,11 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   const totP = kmpAlc.reduce((a, b) => a + b, 0); const ord = kmpAlc.map((v, i) => [i, v]).sort((a, b) => b[1] - a[1]);
   const frase = `${M.munNames[ord[0][0]]} y ${M.munNames[ord[1][0]]} concentran ${L.f1.format(100 * (ord[0][1] + ord[1][1]) / totP)} %`;
   ok('las dos alcaldías con más km prioritarios se calculan de los datos', (e.nota || '').includes(frase), `${frase} · nota: ${(e.nota || '').slice(0, 160)}`);
-  ok('la población se rotula como residente y no como atendida', /residen en colonias de prioridad Muy Alta, Alta o Media/.test(e.pob || '') && /no equivale a población atendida/.test(e.pob || ''), e.pob);
+  ok('la población, en una línea («… habitantes en colonias prioritarias (N %)»), se rotula como residente y no como atendida', /habitantes en colonias prioritarias \([\d.,]+ %\)/.test(e.pob || '') && /Población residente \(Censo 2020\); no equivale a población atendida/.test(e.pob || ''), e.pob);
   await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500); e = await L.estado(page);
   const part = `${L.f1.format(100 * kmpAlc[izt] / totP)} % de los km prioritarios de la ciudad`;
   ok('el panel no ordena a la alcaldía por «lugar»', !/lugar de 16|º de 16/.test(e.panelTxt));
-  ok('el panel da la participación de la alcaldía en los km prioritarios de la ciudad', (e.alcinfo || '').includes(part) && e.kpisTxt.includes(part), `${part} · ${(e.alcinfo || '').slice(0, 140)}`);
+  ok('el panel da la participación de la alcaldía en los km prioritarios de la ciudad en su recuadro, no en las cifras principales del Resumen', (e.alcinfo || '').includes(part) && !e.kpisTxt.includes(part) && !/de la ciudad|de la alcaldía/.test(e.kpisTxt), `${part} · ${(e.alcinfo || '').slice(0, 140)} · ${e.kpisTxt.slice(0, 120)}`);
   const ay = await page.evaluate(() => ({ fr: document.getElementById('m-n-fr').textContent, alc: document.getElementById('m-n-alc').textContent, t: document.querySelector('.modal-card') ? document.querySelector('.modal-card').textContent : '' }));
   ok('la ayuda toma de los datos el total de frentes y los de alcaldías', num(ay.fr) === D.F.length && num(ay.alc) === D.F.filter(f => !f.gc).length, `${ay.fr} · ${ay.alc}`);
   ok('la ayuda nombra los controles como aparecen en pantalla', !/<b>Atribución<\/b>|casilla en Atribución/.test(await page.content()));
@@ -162,25 +168,36 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
   // recálculo independiente: km de frente por responsable y prioridad; sin arbolado = (flags & 7) === 1; con banqueta = ((flags >> 3) & 7) === 0
   const rep = (filtro) => { const r = { km: [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]], sa: [0, 0], sb: [0, 0] };
     for (const f of D.F) { if (!filtro(f)) continue; r.km[f.gc][f.prio] += f.len / 1000; if (f.prio >= L.PRIO_MIN && (f.flags & 7) === 1) { r.sa[f.gc] += f.len / 1000; if (((f.flags >> 3) & 7) === 0) r.sb[f.gc] += f.len / 1000; } } return r; };
-  const u3 = a => a.slice(L.PRIO_MIN).reduce((x, y) => x + y, 0), k1 = v => L.f1.format(v);   // km prioritarios
-  const cuadro = () => page.$$eval('#reparto table.reparto tbody tr', trs => trs.map(tr => [...tr.children].map(c => c.textContent.replace(/\s+/g, ' ').trim())));
-  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(500);
-  let R = rep(() => true), T = await cuadro();
-  ok('cuadro de reparto: nueve renglones (5 prioridades, total, prioritario y dos condiciones)', T.length === 9, String(T.length));
-  ok('ciudad: Muy Alta por responsable = recálculo', T[0] && T[0][1] === k1(R.km[0][4]) && T[0][2] === k1(R.km[1][4]) && T[0][3] === k1(R.km[0][4] + R.km[1][4]), (T[0] || []).join(' | '));
+  const u3 = a => a.slice(L.PRIO_MIN).reduce((x, y) => x + y, 0);   // km prioritarios
+  // tabla de comparación «Alcaldía(s) y Gobierno Central» (v1.27): km de frente sin decimales (prioritario, de lo prioritario sin arbolado,
+  // todos los frentes) y espacios para plantar (puntos de frentes de la alcaldía; del Gobierno Central, de las partes de vialidad del ámbito)
+  const k0 = v => v > 0 && v < 0.5 ? '<1' : L.f0.format(v), fN = v => L.fN.format(v);
+  const cuadro = async () => { await page.waitForFunction(() => { const b = document.getElementById('rp-esp'); return !b || !/cargando/.test(b.textContent); }, null, { timeout: 60000 }).catch(() => {});
+    return page.$$eval('#reparto table.reparto tbody tr', trs => trs.map(tr => [...tr.children].map(c => c.textContent.replace(/\s+/g, ' ').trim()))); };
+  const espRep = (frente, parte) => { const a = [0, 0, 0], g = [0, 0, 0]; D.F.forEach((f, i) => { if (f.gc || !frente(f)) return; const c = ESP_F.get(i); if (c) for (let t = 0; t < 3; t++) a[t] += c[t]; });
+    D.VP.forEach((v, i) => { if (!parte(v)) return; const c = ESP_V.get(i); if (c) for (let t = 0; t < 3; t++) g[t] += c[t]; }); return { a, g }; };
+  const filaKm = (r, lab, a, g) => !!r && r[0] === lab && r[1] === k0(a) && r[2] === k0(g) && r[3] === k0(a + g);
+  const filaEsp = (r, lab, a, g) => !!r && r[0] === lab && r[1] === fN(a) && r[2] === fN(g) && r[3] === fN(a + g);
   const sm = a => a.reduce((x, y) => x + y, 0);
-  ok('ciudad: total por responsable = recálculo', T[5] && T[5][1] === k1(sm(R.km[0])) && T[5][2] === k1(sm(R.km[1])), (T[5] || []).join(' | '));
-  ok('ciudad: renglón «Prioritario» = Muy Alta + Alta + Media del recálculo', T[6] && /^Prioritario/.test(T[6][0]) && T[6][1] === k1(u3(R.km[0])) && T[6][2] === k1(u3(R.km[1])) && T[6][3] === k1(u3(R.km[0]) + u3(R.km[1])), (T[6] || []).join(' | '));
-  ok('ciudad: sin arbolado, y sin arbolado con banqueta = recálculo', T[8] && T[7][1] === k1(R.sa[0]) && T[7][2] === k1(R.sa[1]) && T[8][1] === k1(R.sb[0]) && T[8][2] === k1(R.sb[1]), `${(T[7] || []).join(' | ')} · ${(T[8] || []).join(' | ')}`);
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(500);
+  let R = rep(() => true), T = await cuadro(), E = espRep(() => true, () => true);
+  ok('tabla de comparación: grupo de km (3 renglones) y grupo de espacios para plantar (3 renglones), sin desglose por prioridad', T.length === 8 && T[0][0] === 'Km de frente de manzana' && T[4][0] === 'Espacios para plantar (inventario en curso)' && (await page.$$eval('#reparto thead th', t => t.map(x => x.textContent).join('|'))) === 'Alcaldías|Gobierno Central|Total', T.map(r => r[0]).join(' | '));
+  ok('ciudad: «Prioritario» por responsable = Muy Alta + Alta + Media del recálculo (km sin decimales)', filaKm(T[1], 'Prioritario', u3(R.km[0]), u3(R.km[1])), (T[1] || []).join(' | '));
+  ok('ciudad: «De lo prioritario, sin arbolado» = recálculo', filaKm(T[2], 'De lo prioritario, sin arbolado', R.sa[0], R.sa[1]), (T[2] || []).join(' | '));
+  ok('ciudad: «Todos los frentes» por responsable = recálculo', filaKm(T[3], 'Todos los frentes', sm(R.km[0]), sm(R.km[1])), (T[3] || []).join(' | '));
+  ok('ciudad: cepas vacantes, tocones y árboles muertos por responsable = recálculo propio (frentes de las alcaldías; partes de vialidad primaria, por sus frentes y el camellón)', filaEsp(T[5], 'Cepas vacantes', E.a[0], E.g[0]) && filaEsp(T[6], 'Tocones', E.a[1], E.g[1]) && filaEsp(T[7], 'Árboles muertos', E.a[2], E.g[2]), T.slice(5).map(r => r.join(' ')).join(' | '));
+  { const nota = await page.$eval('#reparto', x => x.innerText.replace(/\s+/g, ' ')), RES = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '02_fuente', 'datos', 'inventario', 'RESUMEN.json'), 'utf8')), sinc = RES.sin_frente - RES.vialidades_con_espacio.sin_frente_recuperados;
+    ok(`nota de la tabla: «Inventario en curso (corte: …)» y, en «Más detalles», que los km de frente cuentan cada acera, que no se suman con los de vialidad y los ${fN(sinc)} puntos de la ciudad que no se cuentan`, nota.includes(`Inventario en curso (corte: ${RES.corte}).`) && /cuentan cada acera por separado; no se suman con los km de vialidad primaria/.test(nota) && nota.includes(`Los ${fN(sinc)} puntos de la ciudad que no tienen un frente de manzana`), `${sinc} = ${RES.sin_frente} − ${RES.vialidades_con_espacio.sin_frente_recuperados}`); }
   ok('la herramienta no habla de «universo de intervención»', !/universo de intervención/i.test(await page.$eval('.panel', x => x.textContent)));
   e = await L.estado(page);
-  ok('la cifra principal de la ciudad = Muy Alta + Alta + Media del recálculo y lo dice', e.kpisTxt.includes(`${L.kmTxt(u3(R.km[0]))}`) && /Muy Alta, Alta y Media/.test(e.kpisTxt), e.kpisTxt.slice(0, 160));
+  ok('la cifra principal de la ciudad = Muy Alta + Alta + Media del recálculo; el Resumen lo dice una vez, arriba', e.kpisTxt.includes(`${L.kmTxt(u3(R.km[0]))}`) && /^km prioritarios$/.test(e.kpis[0].l) && await page.$eval('#tp-res .res-def', x => x.textContent) === 'Prioritario = Muy Alta, Alta y Media.', e.kpisTxt.slice(0, 160));
   e = await L.estado(page);
   const pobU = M.colonias.filter(c => c && c.n && c.p >= L.PRIO_MIN && M.muns.includes(c.m)).reduce((t, c) => t + (c.pob || 0), 0);
-  ok('población en colonias prioritarias (Muy Alta, Alta y Media) = recálculo', (e.pob || '').includes(L.f1.format(pobU / 1e6) + ' millones de habitantes') && /prioridad Muy Alta, Alta o Media/.test(e.pob || ''), (e.pob || '').slice(0, 260));
+  ok('población en colonias prioritarias (Muy Alta, Alta y Media) = recálculo', (e.pob || '').includes(L.f1.format(pobU / 1e6) + ' millones de habitantes en colonias prioritarias') && /prioridad Muy Alta, Alta o Media/.test(e.pob || ''), (e.pob || '').slice(0, 260));
   await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500);
-  R = rep(f => f.mun === izt); T = await cuadro();
-  ok('alcaldía: prioritario y condiciones = recálculo', T[8] && T[6][1] === k1(u3(R.km[0])) && T[6][2] === k1(u3(R.km[1])) && T[8][1] === k1(R.sb[0]), `${(T[6] || []).join(' | ')} · ${(T[8] || []).join(' | ')}`);
+  R = rep(f => f.mun === izt); T = await cuadro(); E = espRep(f => f.mun === izt, v => v.mun === izt);
+  ok('alcaldía: km (prioritario, sin arbolado, todos) y espacios por responsable = recálculo', filaKm(T[1], 'Prioritario', u3(R.km[0]), u3(R.km[1])) && filaKm(T[2], 'De lo prioritario, sin arbolado', R.sa[0], R.sa[1]) && filaKm(T[3], 'Todos los frentes', sm(R.km[0]), sm(R.km[1]))
+    && filaEsp(T[5], 'Cepas vacantes', E.a[0], E.g[0]) && filaEsp(T[6], 'Tocones', E.a[1], E.g[1]) && filaEsp(T[7], 'Árboles muertos', E.a[2], E.g[2]) && /Algunos puntos que no tienen un frente/.test(await page.$eval('#reparto', x => x.innerText)), T.map(r => r.join(' ')).join(' | '));
   x = xlsx((await baja('dl-calles')).ruta);
   ok('el diccionario del Excel trae lo prioritario del ámbito', Math.abs(+dicVal(x, 'Prioritario del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía') - u3(R.km[0])) < 0.006 && Math.abs(+dicVal(x, 'De lo prioritario, km de frente sin arbolado y con banqueta (INEGI)') - R.sb[0]) < 0.006);
   { const h = x.datos[0], ima = h.indexOf('km_muy_alta'), ia = h.indexOf('km_alta'), im = h.indexOf('km_media'), ip = h.indexOf('km_prioritario');
@@ -189,7 +206,8 @@ const num = t => +String(t).replace(/[^\d.]/g, '');
     ok('la ficha de alcaldía da el prioritario (Muy Alta, Alta y Media) = recálculo y no habla de universo', t.includes(`${L.kmTxt(u3(R.km[0]))} ${L.kmUn(u3(R.km[0]))}`) && /Muy Alta, Alta y Media/.test(t) && !/niverso de intervención/.test(t) && /Versión/.test(t), (t.match(/prioritario.{0,160}/) || [''])[0]); }
   await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
   R = rep(f => f.col === tec2); T = await cuadro();
-  ok('colonia: el cuadro usa el mismo territorio que el panel (manda la colonia)', T[5] && T[5][1] === k1(sm(R.km[0])) && T[6][1] === k1(u3(R.km[0])), `${(T[5] || []).join(' | ')} · ${(T[6] || []).join(' | ')}`);
+  { const a = [0, 0, 0], g = [0, 0, 0]; D.F.forEach((f, i) => { if (f.col !== tec2) return; const c = ESP_F.get(i); if (c) for (let t = 0; t < 3; t++) (f.gc ? g : a)[t] += c[t]; });
+    ok('colonia: la tabla usa el mismo territorio que el panel (manda la colonia); del Gobierno Central, los puntos de sus frentes en la colonia', filaKm(T[1], 'Prioritario', u3(R.km[0]), u3(R.km[1])) && filaKm(T[3], 'Todos los frentes', sm(R.km[0]), sm(R.km[1])) && filaEsp(T[5], 'Cepas vacantes', a[0], g[0]) && filaEsp(T[7], 'Árboles muertos', a[2], g[2]), T.map(r => r.join(' ')).join(' | ')); }
   // con la colonia elegida, la lista de «Dónde empezar» es de calles
   await page.click('#tab-ini'); await page.waitForTimeout(400);
   { const li = await page.$$eval('#ini-list li', ls => ls.filter(l => l.querySelector('.desg')).map(l => ({ partes: [...l.querySelectorAll('.desg span')].map(s => s.textContent.trim()), pred: /Prioridad predominante/.test(l.textContent) })));
