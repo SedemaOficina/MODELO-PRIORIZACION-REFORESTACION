@@ -39,8 +39,10 @@
           <button type="button" class="chip" data-resp="alc" aria-pressed="true"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Alcaldías</b><small>Calles y frentes de manzana</small><i></i></button>
           <button type="button" class="chip" data-resp="gc" aria-pressed="false"><svg class="ic" viewBox="0 0 24 24"><path d="M8 3.5 4 20.5M16 3.5l4 17M12 4v3M12 10.5v3M12 17v3"/></svg><b>Gobierno Central</b><small>Vialidades primarias</small><i></i></button>
         </div></div>
-        <div class="resp-row banq-row" id="banq-row"><span class="lab" id="banq-label">Banqueta</span><div class="seg pills banq" role="group" aria-labelledby="banq-label">
-          <button type="button" data-banq="todas" aria-pressed="true">Todas</button><button type="button" data-banq="con" aria-pressed="false" title="Frentes donde INEGI 2020 registra banqueta: plantación directa">Con banqueta</button><button type="button" data-banq="sin" aria-pressed="false" title="Sin banqueta registrada o sin dato (por verificar): requieren reconocimiento en sitio">Sin banqueta</button>
+        <div class="resp-row banq-row" id="banq-row"><span class="lab" id="banq-label">Banqueta</span><div class="chips banq" role="group" aria-labelledby="banq-label">
+          <button type="button" class="chip radio" data-banq="todas" aria-pressed="true"><b>Todas</b><i></i></button>
+          <button type="button" class="chip radio" data-banq="con" aria-pressed="false" aria-label="Con banqueta" title="Frentes donde INEGI 2020 registra banqueta: plantación directa"><b>Con</b><i></i></button>
+          <button type="button" class="chip radio" data-banq="sin" aria-pressed="false" aria-label="Sin banqueta" title="Sin banqueta registrada o sin dato (por verificar): requieren reconocimiento en sitio"><b>Sin</b><i></i></button>
         </div></div>
         <div class="resp-row esp-row" id="esp-row"><span class="lab" id="esp-label">Espacio</span><div class="chips" role="group" aria-labelledby="esp-label">
           <button type="button" class="chip" data-esp="0" aria-pressed="false" title="Frentes con al menos una cepa vacante del inventario de arbolado: se puede plantar directo"><b>Cepa vacante</b><i></i></button>

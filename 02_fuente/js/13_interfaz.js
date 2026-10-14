@@ -46,7 +46,7 @@ function pantalla(p, op={}){
 const verMapa = op=> pantalla('mapa', op), verInfo = op=> pantalla('info', op);
 // el botón del mapa dice «Volver a la información» y, abajo, el lugar consultado
 function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
-  const s = highlight && highlight.avId!==undefined? VPC.nomenclat[highlight.avId] : highlight? (META.names[highlight.nameId] || 'Calle sin nombre')
+  const s = highlight && highlight.avId!==undefined? VPC.nomenclat[highlight.avId] : highlight? (META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre')
     : selAv!==null? VPC.nomenclat[selAv] : selCol!==null? 'Col. '+META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México';
   if (t.textContent!==s) t.textContent = s; }
 // al elegir desde el panel en el celular, la respuesta queda a la vista (sin cambiar de pantalla: desde el mapa, se sigue en el mapa)
@@ -116,15 +116,18 @@ $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t)
 // «Mi cuenta»: solo aparece si la instalación define el cierre de sesión. Abre un menú pequeño (botón con aria-expanded; Esc lo cierra y
 // regresa el foco al botón; un clic fuera o salir con el tabulador lo cierra) con «Cambiar contraseña» (la pantalla de acceso con ?cambiar=1,
 // que con la sesión abierta pide la actual y la nueva y, al terminar, regresa a esta misma consulta: volver=…) y «Cerrar sesión».
+// cuentaMenu(true|false) abre o cierra el menú desde fuera: el recorrido guiado lo abre en su paso «Mi cuenta» (17_recorrido.js).
+let cuentaMenu = ()=>{};
 if (SESION.cierre){ const c = $('cuenta'), b = $('cuenta-btn'), m = $('cuenta-menu'), clave = $('cuenta-clave');
   $('cuenta-salir').href = SESION.cierre;
   if (!SESION.inicio) clave.parentElement.remove();
   // volver va al final: la pantalla de acceso toma como dirección de regreso todo lo que sigue a «volver=»
   const claveHref = ()=> SESION.inicio + (SESION.inicio.includes('?')? '&' : '?') + 'cambiar=1&volver=' + encodeURIComponent(location.pathname + location.search);
   const abre = si => { m.hidden = !si; b.setAttribute('aria-expanded', String(si)); if (si && SESION.inicio) clave.href = claveHref(); };
-  b.onclick = ()=> abre(m.hidden);
-  document.addEventListener('keydown', e=>{ if (e.key==='Escape' && !m.hidden){ e.stopPropagation(); abre(false); b.focus(); } }, true);
-  document.addEventListener('pointerdown', e=>{ if (!m.hidden && !c.contains(e.target)) abre(false); }, true);
+  b.onclick = ()=> abre(m.hidden); cuentaMenu = abre;
+  document.addEventListener('keydown', e=>{ if (e.key==='Escape' && !m.hidden){ e.stopPropagation(); abre(false); if (!document.body.classList.contains('recorrido')) b.focus(); } }, true);
+  // un toque en el globo del recorrido no lo cierra: el recorrido lo cierra al cambiar de paso
+  document.addEventListener('pointerdown', e=>{ if (!m.hidden && !c.contains(e.target) && !(e.target.closest && e.target.closest('.rec-globo'))) abre(false); }, true);
   c.addEventListener('focusout', e=>{ if (!m.hidden && e.relatedTarget && !c.contains(e.relatedTarget)) abre(false); });
   c.hidden = false; document.body.classList.add('con-sesion'); }
 // ---------- títulos de lista: la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------

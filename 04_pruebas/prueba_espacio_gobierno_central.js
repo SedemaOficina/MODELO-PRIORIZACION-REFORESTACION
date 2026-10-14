@@ -133,7 +133,13 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
   const { page, ctx } = await L.abrir(browser, base + '#nomap', {}, errores);
   page.on('request', r => { if (/espacios_(vp|frentes)\.bin/.test(r.url())) pedidos.push(r.url()); });
   // ir: la consulta, en el Resumen (que pide el inventario para su comparación, v1.27); res = false: se queda en «Dónde empezar», sin bajar nada
-  const ir = async (p, q, res = true) => { await p.goto('about:blank'); await p.goto(base + q + '#nomap'); await p.waitForSelector('#loader[hidden]', { state: 'attached' }); await p.waitForTimeout(700); if (res) await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
+  // No espera un tiempo fijo: con «e=» la consulta se aplica cuando llega el inventario, y con el equipo cargado 700 ms no alcanzaban.
+  // Espera a que la red (body.dataset.resp) y el filtro de espacio (aplicado y en las casillas) sean los de la dirección.
+  const ir = async (p, q, res = true) => { const u = new URLSearchParams(q.replace(/^&/, ''));
+    const red = u.get('r') === 'gc' ? 'gc' : u.get('r') === 'both' ? 'both' : 'alc', m = String(u.get('e') || '').split(',').reduce((s, k) => COD.includes(k) ? s | (1 << COD.indexOf(k)) : s, 0);
+    await p.goto('about:blank'); await p.goto(base + q + '#nomap'); await p.waitForSelector('#loader[hidden]', { state: 'attached' });
+    await p.waitForFunction(([red, m]) => document.body.dataset.resp === red && !!window.__INV && window.__INV.esp().filtro === m && window.__INV.esp().casillas === m, [red, m], { timeout: 60000 });
+    await p.waitForTimeout(150); if (res) await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
   const casillas = () => page.$$eval('button[data-esp]', bs => bs.map(b => b.getAttribute('aria-pressed') === 'true'));
   const aviso = () => page.$eval('#esp-aviso', x => ({ vis: !x.hidden && x.offsetParent !== null, t: x.textContent }));
   const clicEsp = async t => { await page.$eval(`button[data-esp="${t}"]`, b => b.click()); await page.waitForFunction(() => window.__INV.esp().filtro === window.__INV.esp().casillas, null, { timeout: 60000 }); await page.waitForTimeout(400); };

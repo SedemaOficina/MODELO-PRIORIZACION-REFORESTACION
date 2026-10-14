@@ -176,6 +176,10 @@ function readTokens(){
   T.ground = css('--ground');
   T.inv = ['--inv-cepa','--inv-tocon','--inv-muerto'].map(v=>hex(css(v)));   // espacios para plantar (05_inventario.js)
   T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
+  T.ink = hex(css('--ink')); T.guinda = hex(css('--guinda')); T.halo = hex(css('--map-halo'));   // nombres de calle, contornos y resaltes (04_mapa_capas.js)
+  // clases de la rampa que no llegan a 3:1 contra el blanco (WCAG 2.2): en el resalte de la calle o avenida consultada llevan filete oscuro
+  const lum = c=> c.slice(0,3).reduce((s, v, k)=>{ v/=255; return s + [0.2126,0.7152,0.0722][k]*(v<=0.04045? v/12.92 : Math.pow((v+0.055)/1.055, 2.4)); }, 0);
+  T.prioClara = T.prio.map(c=> (lum(T.halo)+0.05)/(lum(c)+0.05) < 3);
 }
 readTokens();
 
@@ -264,7 +268,7 @@ function buildVP(){
   for(let i=0;i<NV;i++){
     const c = ctx? T.vpctx : T.prio[VP.prio[i]];
     const inS = enAmbitoVP(i);
-    const a = ctx? 200 : (inS? 255 : 40);
+    const a = ctx? 255 : (inS? 255 : 40);   // en gris (contexto) van opacas: --map-vp contra manzana y «Sin fondo» llega a 3:1
     const v = visible[VP.prio[i]]? 1 : 0;
     for(let k=vstart[i];k<vstart[i+1];k++){ const o=4*k; VCOLORS[o]=c[0]; VCOLORS[o+1]=c[1]; VCOLORS[o+2]=c[2]; VCOLORS[o+3]=a; VFILTER[2*k]=VP.mun[i]; VFILTER[2*k+1]=v; }
   }
@@ -497,15 +501,44 @@ function capasFondo(){ const f = FONDOS[fondo]; if (f.propio) return fondoPropio
   if (f.ref) L.push(capaTeselas('fondo-'+fondo+'-vias', f.ref, f, 1, false));
   return L; }
 
+// ---------- lo elegido y lo consultado: contornos y resaltes ----------
+// trazos de los frentes o tramos idx (st0: inicio de cada uno en pos) como datos de un PathLayer
+function trazos(idx, st0, pos){ const st = new Uint32Array(idx.length+1); let n=0;
+  for(let i=0;i<idx.length;i++){ st[i]=n; n += st0[idx[i]+1]-st0[idx[i]]; }
+  st[idx.length]=n; const p = new Float64Array(n*2); let o=0;
+  for(const i of idx){ for(let k=st0[i];k<st0[i+1];k++){ p[o++]=pos[2*k]; p[o++]=pos[2*k+1]; } }
+  return {length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}}; }
+// Contorno de la alcaldía o colonia elegida (--map-sel) sobre una franja blanca de FRANJA_PX a cada lado: donde cruza una línea Alta o
+// Muy Alta, tan oscuras como el contorno, la franja los separa (auditoría de contraste, MN44 a MN48).
+const FRANJA_PX = 2;
+const contornoElegido = (id, data, min, max)=> [
+  new PolygonLayer({id:id+'-franja', data, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.halo, lineWidthMinPixels:min+2*FRANJA_PX, lineWidthMaxPixels:max+2*FRANJA_PX, updateTriggers:{getLineColor:[T.halo]}}),
+  new PolygonLayer({id, data, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.sel, lineWidthMinPixels:min, lineWidthMaxPixels:max, updateTriggers:{getLineColor:[T.sel]}})];
+// Resalte de la calle o la avenida consultada, de fuera hacia dentro: franja blanca, halo guinda, filete blanco y, solo bajo las clases que
+// no contrastan con el blanco (T.prioClara: Muy Baja, Baja y Media), filete oscuro; al centro va la prioridad de cada tramo (la dibuja quien
+// llama). La franja separa el halo de las líneas vecinas Alta y Muy Alta, del mismo rojo que el guinda; con los filetes, cada clase del
+// centro queda junto a un color con el que contrasta (auditoría de contraste, MN50 a MN67). Medidas: [metros, px mínimo, px máximo];
+// el halo conserva el ancho que tenía el dorado.
+const RESALTE = {
+  calle:   {franja:[36, 17, 38], halo:[30, 13, 34], filete:[18, 9, 21], oscuro:[14, 6.5, 16]},
+  avenida: {franja:[52, 13, 34], halo:[44, 9, 30], filete:[26, 6.2, 18], oscuro:[20, 4.2, 15]} };
+function resalte(id, idx, st0, pos, prio, m){
+  const capa = (sufijo, data, w, color)=> new PathLayer({id:id+sufijo, data, _pathType:'open', widthUnits:'meters', getWidth:w[0], widthMinPixels:w[1], widthMaxPixels:w[2], capRounded:true, jointRounded:true, getColor:color, pickable:false});
+  const d = trazos(idx, st0, pos), claras = idx.filter(i=>T.prioClara[prio[i]]);
+  const L = [capa('-franja', d, m.franja, T.halo), capa('', d, m.halo, T.guinda), capa('-filete', d, m.filete, T.halo)];
+  if (claras.length) L.push(capa('-oscuro', trazos(claras, st0, pos), m.oscuro, T.ink));
+  return L; }
+
 function layers(){
   const z = viewState.zoom;
   const L = [];
   if (fondo!=='no') L.push(...capasFondo());
   if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', opacity:opPrio, data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
-  // con el fondo propio, el tinte de prioridad de las colonias va más tenue: si no, cubre el hueco blanco de las calles
-  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : fondo==='calles'? 35 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol, fondo]}}));
+  // el tinte de prioridad de las colonias va tenue (35) con cualquier fondo: más fuerte cubre el hueco blanco de las calles y, con «Sin fondo»,
+  // les quita contraste a las líneas de prioridad (auditoría de contraste, MN21 a MN24)
+  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 35)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
   L.push(new PolygonLayer({id:'alc', data:ALC_PARTS, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.alc, lineWidthMinPixels:1, lineWidthMaxPixels:1.5, updateTriggers:{getLineColor:[T.alc]}}));
-  if ((z>=12.2 && !isGC()) || colOnly()) L.push(new PathLayer({id:'cols', data:COL_PATHS, getPath:d=>d.path, getColor:T.col, widthMinPixels:0.7, widthMaxPixels:1, opacity:.7, updateTriggers:{getColor:[T.col]}}));
+  if ((z>=12.2 && !isGC()) || colOnly()) L.push(new PathLayer({id:'cols', data:COL_PATHS, getPath:d=>d.path, getColor:T.col, widthMinPixels:0.7, widthMaxPixels:1, updateTriggers:{getColor:[T.col]}}));   // opaco: --map-col llega a 3:1 sobre todos los fondos claros
   // frentes de manzana (responsabilidad de las alcaldías)
   // los frentes solo responden al cursor desde el zoom 12: más lejos son demasiado finos y revisar 372 mil tramos
   // en cada movimiento del ratón vuelve lento el mapa (se consultan las colonias)
@@ -514,36 +547,25 @@ function layers(){
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[COLORS, frParcial()? sel+'|'+selCol : ''], getFilterValue:[FILTER, frParcial()? sel+'|'+selCol : '']}}));
   if (highlight && highlight.avId!==undefined){
-    // con alcaldía seleccionada, el tramo que sí cuentan las cifras va marcado; el resto de la avenida, tenue
-    const mk = (idx, alpha, id)=>{ if(!idx.length) return; const st=new Uint32Array(idx.length+1); let n=0;
-      for(let i=0;i<idx.length;i++){ st[i]=n; n += vstart[idx[i]+1]-vstart[idx[i]]; }
-      st[idx.length]=n; const p=new Float64Array(n*2); let o=0;
-      for(const i of idx){ for(let k=vstart[i];k<vstart[i+1];k++){ p[o++]=VPOS[2*k]; p[o++]=VPOS[2*k+1]; } }
-      L.push(new PathLayer({id, data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}}, _pathType:'open', widthUnits:'meters', getWidth:44, widthMinPixels:9, widthMaxPixels:30, capRounded:true, jointRounded:true, getColor:[T.gold[0],T.gold[1],T.gold[2],alpha], pickable:false})); };
-    if (sel===null) mk(highlight.idx, 95, 'av-halo');
-    else { mk(highlight.idx.filter(i=>VP.mun[i]!==sel), 32, 'av-halo-out'); mk(highlight.idx.filter(i=>VP.mun[i]===sel), 120, 'av-halo'); }
+    // con alcaldía seleccionada, el tramo que sí cuentan las cifras lleva el resalte; el resto de la avenida, solo un halo tenue
+    const dentro = sel===null? highlight.idx : highlight.idx.filter(i=>VP.mun[i]===sel), fuera = sel===null? [] : highlight.idx.filter(i=>VP.mun[i]!==sel);
+    if (fuera.length) L.push(new PathLayer({id:'av-halo-out', data:trazos(fuera, vstart, VPOS), _pathType:'open', widthUnits:'meters', getWidth:RESALTE.avenida.halo[0], widthMinPixels:RESALTE.avenida.halo[1], widthMaxPixels:RESALTE.avenida.halo[2], capRounded:true, jointRounded:true, getColor:[...T.guinda.slice(0,3), 40], pickable:false}));
+    if (dentro.length) L.push(...resalte('av-halo', dentro, vstart, VPOS, VP.prio, RESALTE.avenida));   // la línea de la avenida va encima (capa 'vias')
   }
   // vialidades primarias (Gobierno Central): contexto en gris en modo Alcaldía; coloreadas por prioridad en los otros modos
   if (showFr() || isGC()) L.push(new PathLayer({id:'vias', opacity:opPrio, data:vpData(), _pathType:'open', widthUnits:'meters', getWidth: resp==='alc'? 7 : 14, widthMinPixels: resp==='alc'? 1.2 : 2.2, widthMaxPixels: resp==='alc'? 5 : 12, capRounded:true, jointRounded:true,
     pickable:true, autoHighlight:true, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[VCOLORS], getFilterValue:[VFILTER], getWidth:[resp]}}));
-  if (sel!==null) L.push(new PolygonLayer({id:'alc-sel', data:ALC_PARTS.filter(d=>d.i===sel), getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.sel, lineWidthMinPixels:2.2, lineWidthMaxPixels:3, updateTriggers:{getLineColor:[T.sel]}}));
-  if (selCol!==null) L.push(new PolygonLayer({id:'col-sel', data:COL_PARTS.filter(d=>d.i===selCol), getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.sel, lineWidthMinPixels:2.5, lineWidthMaxPixels:4, updateTriggers:{getLineColor:[T.sel]}}));
+  if (sel!==null) L.push(...contornoElegido('alc-sel', ALC_PARTS.filter(d=>d.i===sel), 2.2, 3));
+  if (selCol!==null) L.push(...contornoElegido('col-sel', COL_PARTS.filter(d=>d.i===selCol), 2.5, 4));
   if (highlight && highlight.avId===undefined){
-    const src = {st:start, pos:POS};
-    const idx = highlight.idx; const st = new Uint32Array(idx.length+1); let n=0;
-    for(let i=0;i<idx.length;i++){ st[i]=n; n += src.st[idx[i]+1]-src.st[idx[i]]; }
-    st[idx.length]=n; const p = new Float64Array(n*2); let o=0;
-    for(const i of idx){ for(let k=src.st[i];k<src.st[i+1];k++){ p[o++]=src.pos[2*k]; p[o++]=src.pos[2*k+1]; } }
-    // calle buscada: halo dorado, filete oscuro y, al centro, el color de prioridad de cada frente (el resaltado
-    // no debe tapar la prioridad, y se ve aunque la capa de calles esté apagada)
-    const hd = {length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}};
-    L.push(new PathLayer({id:'hl', data:hd, _pathType:'open', widthUnits:'meters', getWidth:30, widthMinPixels:13, widthMaxPixels:34, getColor:[T.gold[0],T.gold[1],T.gold[2],235], pickable:false}));
-    L.push(new PathLayer({id:'hl-borde', data:hd, _pathType:'open', widthUnits:'meters', getWidth:16, widthMinPixels:7, widthMaxPixels:18, getColor:[36,38,42,255], pickable:false}));
-    if (highlight.avId===undefined){ const cc = new Uint8Array(n*4); let q=0;
-      for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=src.st[i];k<src.st[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
-      L.push(new PathLayer({id:'hl-prio', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false})); }
+    // calle buscada: el resalte y, al centro, el color de prioridad de cada frente (el resalte no tapa la prioridad, y se ve aunque la capa
+    // de calles esté apagada)
+    const idx = highlight.idx, hd = trazos(idx, start, POS), cc = new Uint8Array(hd.startIndices[idx.length]*4); let q=0;
+    for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=start[i];k<start[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
+    L.push(...resalte('hl', idx, start, POS, F.prio, RESALTE.calle));
+    L.push(new PathLayer({id:'hl-prio', data:{...hd, attributes:{...hd.attributes, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false}));
   }
   L.push(...invCapas());   // espacios para plantar del inventario de arbolado (05_inventario.js), debajo de los nombres
   const E = NOMAP? {alc:[], col:[], st:[]} : colocarNombres();
@@ -551,13 +573,13 @@ function layers(){
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
   if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data:E.col, getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:T.label, characterSet:ETQ_LETRAS,
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.label]}}));
-  if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[34,38,42,235], characterSet:ETQ_LETRAS,
-    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center'}));
+  if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[...T.ink.slice(0,3),235], characterSet:ETQ_LETRAS,
+    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:[...T.halo.slice(0,3),235], getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.ink]}}));
   if (ptoBuscado) L.push(new deck.ScatterplotLayer({id:'pto-buscado', data:[ptoBuscado], getPosition:d=>[d.lon,d.lat], getRadius:8, radiusUnits:'pixels', filled:true, stroked:true,
-    getFillColor:hex(css('--guinda')), getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:3, pickable:false, updateTriggers:{getPosition:[ptoBuscado.lon, ptoBuscado.lat]}}));
+    getFillColor:hex(css('--guinda')), getLineColor:T.halo, lineWidthUnits:'pixels', getLineWidth:3, pickable:false, updateTriggers:{getPosition:[ptoBuscado.lon, ptoBuscado.lat]}}));
   if (myPos){ const P=[myPos];
     L.push(new deck.ScatterplotLayer({id:'loc-acc', data:P, getPosition:d=>[d.lon,d.lat], getRadius:d=>Math.max(d.acc,4), radiusUnits:'meters', filled:true, stroked:true, getFillColor:[...LOC_BLUE,38], getLineColor:[...LOC_BLUE,120], lineWidthMinPixels:1, pickable:false, updateTriggers:{getPosition:[myPos.t], getRadius:[myPos.t]}}));
-    L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }
+    L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:T.halo, lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }
   return L;
 }
 
@@ -2648,7 +2670,7 @@ function pantalla(p, op={}){
 const verMapa = op=> pantalla('mapa', op), verInfo = op=> pantalla('info', op);
 // el botón del mapa dice «Volver a la información» y, abajo, el lugar consultado
 function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
-  const s = highlight && highlight.avId!==undefined? VPC.nomenclat[highlight.avId] : highlight? (META.names[highlight.nameId] || 'Calle sin nombre')
+  const s = highlight && highlight.avId!==undefined? VPC.nomenclat[highlight.avId] : highlight? (META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre')
     : selAv!==null? VPC.nomenclat[selAv] : selCol!==null? 'Col. '+META.colonias[selCol].n : sel!==null? META.munNames[sel] : 'Ciudad de México';
   if (t.textContent!==s) t.textContent = s; }
 // al elegir desde el panel en el celular, la respuesta queda a la vista (sin cambiar de pantalla: desde el mapa, se sigue en el mapa)
@@ -2718,15 +2740,18 @@ $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t)
 // «Mi cuenta»: solo aparece si la instalación define el cierre de sesión. Abre un menú pequeño (botón con aria-expanded; Esc lo cierra y
 // regresa el foco al botón; un clic fuera o salir con el tabulador lo cierra) con «Cambiar contraseña» (la pantalla de acceso con ?cambiar=1,
 // que con la sesión abierta pide la actual y la nueva y, al terminar, regresa a esta misma consulta: volver=…) y «Cerrar sesión».
+// cuentaMenu(true|false) abre o cierra el menú desde fuera: el recorrido guiado lo abre en su paso «Mi cuenta» (17_recorrido.js).
+let cuentaMenu = ()=>{};
 if (SESION.cierre){ const c = $('cuenta'), b = $('cuenta-btn'), m = $('cuenta-menu'), clave = $('cuenta-clave');
   $('cuenta-salir').href = SESION.cierre;
   if (!SESION.inicio) clave.parentElement.remove();
   // volver va al final: la pantalla de acceso toma como dirección de regreso todo lo que sigue a «volver=»
   const claveHref = ()=> SESION.inicio + (SESION.inicio.includes('?')? '&' : '?') + 'cambiar=1&volver=' + encodeURIComponent(location.pathname + location.search);
   const abre = si => { m.hidden = !si; b.setAttribute('aria-expanded', String(si)); if (si && SESION.inicio) clave.href = claveHref(); };
-  b.onclick = ()=> abre(m.hidden);
-  document.addEventListener('keydown', e=>{ if (e.key==='Escape' && !m.hidden){ e.stopPropagation(); abre(false); b.focus(); } }, true);
-  document.addEventListener('pointerdown', e=>{ if (!m.hidden && !c.contains(e.target)) abre(false); }, true);
+  b.onclick = ()=> abre(m.hidden); cuentaMenu = abre;
+  document.addEventListener('keydown', e=>{ if (e.key==='Escape' && !m.hidden){ e.stopPropagation(); abre(false); if (!document.body.classList.contains('recorrido')) b.focus(); } }, true);
+  // un toque en el globo del recorrido no lo cierra: el recorrido lo cierra al cambiar de paso
+  document.addEventListener('pointerdown', e=>{ if (!m.hidden && !c.contains(e.target) && !(e.target.closest && e.target.closest('.rec-globo'))) abre(false); }, true);
   c.addEventListener('focusout', e=>{ if (!m.hidden && e.relatedTarget && !c.contains(e.relatedTarget)) abre(false); });
   c.hidden = false; document.body.classList.add('con-sesion'); }
 // ---------- títulos de lista: la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------
@@ -3117,7 +3142,7 @@ if (preguntaEntrada) abreEntrada();
 const CLAVE_REC = 'cp_recorrido';
 const recVisto = ()=>{ try { return !!localStorage.getItem(CLAVE_REC); } catch(e){ return true; } };   // sin almacenamiento no se impone en cada visita
 const recMarca = ()=>{ try { localStorage.setItem(CLAVE_REC, 'visto'); } catch(e){} };
-let REC = null;   // recorrido en curso: {k, velo, foco, globo, origen, ficha, punto, leyenda, lista}
+let REC = null;   // recorrido en curso: {k, velo, foco, globo, origen, ficha, punto, leyenda, cuenta, lista}
 
 // frente prioritario de la consulta para mostrar una ficha real: con nombre de calle, el de mayor prioridad, con banqueta si hay, y el más largo
 function recFrente(){ let b = -1, bs = -1;
@@ -3170,13 +3195,18 @@ async function recEspacios(){ if (pinned) hideCard();
   el.dataset.clave = invClave(p); el.dataset.tipo = INV_TIPOS[p.t].n; el.dataset.alc = p.a; document.body.append(el);
   REC.punto = {p, el}; recMarcaPunto(); }
 
-// pasos: sel = control que se ilumina (el primero visible de la lista); panel/mapa = qué debe verse en teléfono; si = condición;
+// «Mi cuenta»: el menú se abre para que se vean sus opciones; recDeshace lo cierra (siguiente, anterior o salir)
+function recCuenta(){ cuentaMenu(true); REC.cuenta = true; }
+
+// pasos: sel = control que se ilumina (el primero visible de la lista); con = lo que se ilumina junto con él (el menú de «Mi cuenta»);
+// panel/mapa = qué debe verse en teléfono; si = condición;
 // prep = lo que se prepara antes (puede ser asíncrono: el globo se recoloca al terminar); texto puede depender de la consulta (función).
 const REC_PASOS = [
   { titulo:'Modelo de priorización de reforestación urbana', texto:'En dos minutos te mostramos cómo encontrar las calles que conviene reforestar primero, dónde ya hay espacio para plantar y cómo revisarlas antes de salir a campo.' },
-  { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle; bastan algunas palabras. También puedes pegar coordenadas o un enlace de Google Maps. Más abajo, la ruta «Ciudad de México ›» cambia de alcaldía o regresa a toda la ciudad.' },
+  { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle; bastan algunas palabras. También puedes pegar coordenadas o un enlace de Google Maps.' },
+  { sel:'#crumb', panel:true, titulo:'Tu territorio', texto:'Aquí cambias de alcaldía o regresas a toda la ciudad. Cuando eliges una colonia, una calle o una avenida, aparece en esta ruta y la quitas con la ×.' },
   { sel:'.resp-row', panel:true, titulo:'Quién atiende', texto:'En «Atiende», «Alcaldías» muestra las calles y frentes de manzana que planta cada alcaldía, y «Gobierno Central», las vialidades primarias. Puedes marcar las dos.' },
-  { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta»: frentes donde INEGI 2020 registra banqueta; ahí se planta directo. «Sin banqueta»: no la registran o no hay dato; no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen lo que elijas.' },
+  { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'En «Banqueta», «Con» deja los frentes donde INEGI 2020 registra banqueta; ahí se planta directo. «Sin» deja los que no la registran o no tienen dato; no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen lo que elijas.' },
   { sel:'#esp-row', panel:true, si:()=>!!INV, titulo:'Espacio: dónde ya hay lugar', texto:'Marca «Cepa vacante», «Tocón» o «Árbol muerto» para dejar solo las calles donde el inventario de arbolado ya registró alguno: ahí ya hubo un árbol. Puedes marcar varios. El inventario va en curso: una calle sin registro puede no haberse revisado todavía.' },
   { sel:'.tabs', panel:true, titulo:'Dónde empezar, cifras y descargas', texto:()=> (isGC()
       ? '«Dónde empezar» propone un orden. En «Mostrar» eliges cómo: «Avenidas · más km prioritarios» o «Avenidas · más cepas vacantes», que pone primero las que ya tienen cepas en tramos prioritarios.'
@@ -3191,7 +3221,7 @@ const REC_PASOS = [
       : 'Elige una alcaldía o una colonia y descarga su listado en Excel y su ficha en PDF.')
       + ' En «Descargas» también están los archivos para Google Earth (KML). Todos respetan los filtros y traen las cepas vacantes, los tocones y los árboles muertos de cada calle.' },
   { sel:'#zloc', mapa:true, titulo:'En campo', texto:'«Mi ubicación» dice en qué colonia estás y qué calles prioritarias tienes cerca. Tu ubicación no sale del teléfono.' },
-  { sel:'#cuenta-btn', panel:true, si:()=>!!SESION.cierre, titulo:'Mi cuenta', texto:()=> SESION.inicio
+  { sel:'#cuenta-btn', con:'#cuenta-menu', panel:true, si:()=>!!SESION.cierre, prep:recCuenta, titulo:'Mi cuenta', texto:()=> SESION.inicio
       ? 'En «Mi cuenta» puedes cambiar tu contraseña o cerrar sesión. Al cambiarla regresas a la misma consulta.'
       : 'En «Mi cuenta» puedes cerrar sesión.' },
   { sel:'#open-info, #info-btn', panel:true, titulo:'Cuando lo necesites', texto:'En «Cómo funciona» están la ayuda, la metodología del modelo y el botón para repetir este recorrido.' },
@@ -3207,7 +3237,10 @@ function recColoca(){ if (!REC) return; const p = REC.lista[REC.k], g = REC.glob
   REC.velo.classList.toggle('sin-foco', !e); f.hidden = !e; f.classList.toggle('redondo', !!e && e.classList.contains('rec-punto'));
   const gw = Math.min(380, W - 2*M); g.style.width = gw + 'px'; const gh = g.offsetHeight;
   if (!e){ g.style.left = Math.round((W-gw)/2) + 'px'; g.style.top = Math.round(Math.max(M, (H-gh)/2)) + 'px'; return; }
-  const r = e.getBoundingClientRect(), pad = 6;
+  let r = e.getBoundingClientRect(); const pad = 6;
+  const junto = p.con? document.querySelector(p.con) : null;   // el foco abarca también lo que va junto (y el globo no lo tapa)
+  if (junto && recVisible(junto)){ const q = junto.getBoundingClientRect(), x = Math.min(r.left, q.left), y = Math.min(r.top, q.top);
+    r = {left:x, top:y, right:Math.max(r.right, q.right), bottom:Math.max(r.bottom, q.bottom), width:Math.max(r.right, q.right)-x, height:Math.max(r.bottom, q.bottom)-y}; }
   f.style.left = (r.left-pad) + 'px'; f.style.top = (r.top-pad) + 'px'; f.style.width = (r.width+2*pad) + 'px'; f.style.height = (r.height+2*pad) + 'px';
   // junto a un bloque que debe verse completo (la ficha del paso de Street View): a su izquierda, si hay espacio
   const c = p.lado? document.querySelector(p.lado) : null;
@@ -3218,8 +3251,9 @@ function recColoca(){ if (!REC) return; const p = REC.lista[REC.k], g = REC.glob
   const left = Math.min(Math.max(M, r.left + r.width/2 - gw/2), W - gw - M);
   g.style.left = Math.round(left) + 'px'; g.style.top = Math.round(top) + 'px'; }
 
-// lo que dejó preparado el paso anterior: la ficha abierta, la marca del punto y el panel de capas
+// lo que dejó preparado el paso anterior: la ficha abierta, la marca del punto, el panel de capas y el menú de «Mi cuenta»
 function recDeshace(){ if (REC.ficha){ hideCard(); REC.ficha = false; }
+  if (REC.cuenta){ cuentaMenu(false); REC.cuenta = false; }
   if (REC.punto){ REC.punto.el.remove(); REC.punto = null; }
   if (REC.leyenda){ setLegend(false); REC.leyenda = false; } }
 function recPaso(k){ const L = REC.lista; REC.k = k = Math.max(0, Math.min(k, L.length-1)); const p = L[k];
@@ -3243,7 +3277,7 @@ function recorrido(){ if (REC) return; if (!entradaEl.hidden || !infoModal.hidde
   globo.innerHTML = `<div class="rec-paso"></div><h3 id="rec-titulo" tabindex="-1"></h3><p aria-live="polite"></p>
     <div class="rec-acc"><button type="button" class="rec-salir">Salir del recorrido</button><button type="button" class="btn secondary rec-ant">Anterior</button><button type="button" class="btn rec-sig">Siguiente</button></div>`;
   document.body.append(velo, foco, globo);
-  REC = { k:0, velo, foco, globo, origen:document.activeElement, ficha:false, punto:null, leyenda:false, lista:recPasos() };
+  REC = { k:0, velo, foco, globo, origen:document.activeElement, ficha:false, punto:null, leyenda:false, cuenta:false, lista:recPasos() };
   appEl.inert = true; document.body.classList.add('recorrido');
   globo.querySelector('.rec-salir').onclick = recFin;
   globo.querySelector('.rec-ant').onclick = ()=> recPaso(REC.k-1);

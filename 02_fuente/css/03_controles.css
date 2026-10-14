@@ -1,6 +1,6 @@
 /* Refinamiento de controles: foco, campos, menús, barra de herramientas, barra de resumen sobre el mapa, leyenda plegable y casillas. */
 /* --- refinamiento de controles --- */
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+:focus-visible{border-radius:4px}
 .combo input,.search input{border-color:var(--line);box-shadow:0 1px 2px rgba(36,38,42,.05);transition:border-color .12s ease,box-shadow .12s ease}
 .combo input:hover,.search input:hover{border-color:var(--ink-3)}
 .combo input:focus,.search input:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(178,142,92,.22);outline:none}

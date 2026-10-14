@@ -24,7 +24,6 @@ const RAIZ_DEF = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // «dónde» acompaña al id para que un cambio de numeración no esconda un par: si no coinciden, la prueba falla.
 // Para rehacer la lista después de una decisión: node herramientas/contraste.mjs --pendientes
 export const PENDIENTES_CONOCIDOS = [
-  ["MC23", "Leyenda: nombre de una prioridad apagada (casilla sin marcar; sigue siendo un control que se puede volver a encender)"],
   ["MN01", "Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»"],
   ["MN02", "Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»"],
   ["MN03", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles»"],
@@ -37,35 +36,9 @@ export const PENDIENTES_CONOCIDOS = [
   ["MN16", "Línea Muy Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)"],
   ["MN17", "Línea Baja sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)"],
   ["MN18", "Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %)"],
-  ["MN21", "Línea Muy Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 31 %)"],
-  ["MN22", "Línea Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 31 %)"],
-  ["MN23", "Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 31 %)"],
-  ["MN24", "Línea Alta sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 31 %)"],
-  ["MN27", "Vialidades primarias en gris (contexto con «Alcaldías») sobre una manzana"],
-  ["MN28", "Vialidades primarias en gris (contexto con «Alcaldías») sobre «Sin fondo»"],
-  ["MN30", "Límite de alcaldía (--map-alc, 1 a 1.5 px) sobre manzana"],
-  ["MN31", "Límite de alcaldía (--map-alc, 1 a 1.5 px) sobre verde (parques, ANP y AVA)"],
-  ["MN32", "Límite de alcaldía (--map-alc, 1 a 1.5 px) sobre agua"],
-  ["MN34", "Límite de colonia (0.7 a 1 px, opacidad 0.7) sobre suelo"],
-  ["MN35", "Límite de colonia (0.7 a 1 px, opacidad 0.7) sobre manzana"],
-  ["MN36", "Límite de colonia (0.7 a 1 px, opacidad 0.7) sobre verde (parques, ANP y AVA)"],
-  ["MN37", "Límite de colonia (0.7 a 1 px, opacidad 0.7) sobre agua"],
-  ["MN38", "Límite de colonia (0.7 a 1 px, opacidad 0.7) sobre «Sin fondo»"],
-  ["MN47", "Contorno de la colonia o alcaldía elegida donde cruza una línea Alta"],
-  ["MN48", "Contorno de la colonia o alcaldía elegida donde cruza una línea Muy Alta"],
-  ["MN50", "Calle consultada: halo dorado exterior sobre suelo"],
-  ["MN51", "Calle consultada: halo dorado exterior sobre manzana"],
-  ["MN52", "Calle consultada: halo dorado exterior sobre verde (parques, ANP y AVA)"],
-  ["MN53", "Calle consultada: halo dorado exterior sobre agua"],
-  ["MN54", "Calle consultada: halo dorado exterior sobre «Sin fondo»"],
-  ["MN55", "Calle consultada: halo dorado donde toca una línea Muy Baja vecina"],
-  ["MN56", "Calle consultada: halo dorado donde toca una línea Baja vecina"],
-  ["MN57", "Calle consultada: halo dorado donde toca una línea Media vecina"],
-  ["MN58", "Calle consultada: halo dorado donde toca una línea Alta vecina"],
-  ["MN64", "Calle consultada: prioridad Alta al centro, sobre el filete oscuro"],
-  ["MN65", "Calle consultada: prioridad Muy Alta al centro, sobre el filete oscuro"],
-  ["MN66", "Avenida consultada (Gobierno Central, toda la ciudad): halo dorado sobre el suelo"],
-  ["MN67", "Avenida consultada (Gobierno Central, con alcaldía elegida): halo dorado sobre el suelo"],
+  ["MN21", "Línea Muy Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)"],
+  ["MN22", "Línea Baja sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)"],
+  ["MN23", "Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %)"],
 ];
 
 // ---------------------------------------------------------------- color
@@ -179,14 +152,15 @@ export function leerFuentes(raiz = RAIZ_DEF) {
     F.lblAlc = tk(m[1]); F.haloAlc = tk(m[2]); }
   { const m = tomar('04_mapa_capas.js', /id:'col-labels'[\s\S]*?getColor:(T\.\w+)[\s\S]*?outlineColor:hex\((T\.\w+)\)/, 'color y halo de col-labels');
     F.lblCol = tk(m[1]); F.haloCol = tk(m[2]); }
-  { const m = tomar('04_mapa_capas.js', /id:'st-labels'[\s\S]*?getColor:\[(\d+),(\d+),(\d+),(\d+)\][\s\S]*?outlineColor:\[(\d+),(\d+),(\d+),(\d+)\]/, 'color y halo de st-labels'); const n = nums(m);
-    F.lblCalle = C(`[${n.slice(0, 3)}] (escrito en 04_mapa_capas.js)`, n.slice(0, 3), n[3] / 255); F.haloCalle = C(`[${n.slice(4, 7)}] (escrito en 04_mapa_capas.js)`, n.slice(4, 7), n[7] / 255); }
+  { const m = tomar('04_mapa_capas.js', /id:'st-labels'[\s\S]*?getColor:\[\.\.\.(T\.\w+)\.slice\(0,3\),(\d+)\][\s\S]*?outlineColor:\[\.\.\.(T\.\w+)\.slice\(0,3\),(\d+)\]/, 'color y halo de st-labels');
+    F.lblCalle = conA(tk(m[1]), +m[2] / 255); F.haloCalle = conA(tk(m[3]), +m[4] / 255); }
   F.etqContorno = +tomar('04_nombres_mapa.js', /ETQ_CONTORNO\s*=\s*([\d.]+)/, 'ETQ_CONTORNO')[1];
   F.etqRadio = +tomar('04_nombres_mapa.js', /ETQ_LETRA\s*=\s*\{[^}]*radius:([\d.]+)/, 'radius de ETQ_LETRA')[1];
   F.etqTam = +tomar('04_nombres_mapa.js', /ETQ_TAM\s*=\s*([\d.]+)/, 'ETQ_TAM')[1];
   // rellenos de colonia y alcaldía (transparencias escritas en getFillColor)
-  { const m = tomar('04_mapa_capas.js', /id:'col-fill'[\s\S]*?selCol!==null\? \(d\.i===selCol\? \(frVisibles\(\)\? (\d+) : (\d+)\) : \(frVisibles\(\)\? (\d+) : (\d+)\)\) : \(colOnly\(\)\? (\d+) : fondo==='calles'\? (\d+) : (\d+)\)/, 'transparencias de col-fill');
-    const [selFr, selSolo, otrasFr, otrasSolo, soloCol, calles, sinf] = nums(m); F.aCol = { selFr, selSolo, otrasFr, otrasSolo, soloCol, calles, sinf }; }
+  // desde la v1.30 el relleno es igual de tenue con «Calles» y con «Sin fondo» (calles = sinf)
+  { const m = tomar('04_mapa_capas.js', /id:'col-fill'[\s\S]*?selCol!==null\? \(d\.i===selCol\? \(frVisibles\(\)\? (\d+) : (\d+)\) : \(frVisibles\(\)\? (\d+) : (\d+)\)\) : \(colOnly\(\)\? (\d+) : (\d+)\)\]/, 'transparencias de col-fill');
+    const [selFr, selSolo, otrasFr, otrasSolo, soloCol, tenue] = nums(m); F.aCol = { selFr, selSolo, otrasFr, otrasSolo, soloCol, calles: tenue, sinf: tenue }; }
   { const m = tomar('04_mapa_capas.js', /id:'alcaldias'[\s\S]*?\(sel===null \|\| d\.i===sel\)\? (\d+) : (\d+)/, 'transparencias de alcaldias'); F.aAlc = { todas: +m[1], otras: +m[2] }; }
   // líneas de prioridad: transparencia por vértice (03_estado.js) × opacidad de la capa (opPrio)
   { const m = tomar('03_estado.js', /function buildColors\(\)\{[\s\S]*?enAmbito\(i\)\? (\d+) : (\d+)/, 'transparencia de los frentes (buildColors)'); F.aFr = { dentro: +m[1], fuera: +m[2] }; }
@@ -197,13 +171,23 @@ export function leerFuentes(raiz = RAIZ_DEF) {
   F.anchoFr = tomar('04_mapa_capas.js', /id:'fronts'[\s\S]*?getWidth:([\d.]+), widthMinPixels:([\d.]+), widthMaxPixels:([\d.]+)/, 'grosor de los frentes').slice(1).map(Number);
   // límites y lo elegido
   { const m = tomar('04_mapa_capas.js', /id:'alc', data:ALC_PARTS[\s\S]*?getLineColor:(T\.\w+)/, 'límite de alcaldía'); F.limAlc = tk(m[1]); }
-  { const m = tomar('04_mapa_capas.js', /id:'cols'[\s\S]*?getColor:(T\.\w+)[\s\S]*?opacity:([\d.]+)/, 'límite de colonia'); F.limCol = tk(m[1]); F.aLimCol = +m[2]; }
-  { const m = tomar('04_mapa_capas.js', /id:'col-sel'[\s\S]*?getLineColor:(T\.\w+)/, 'contorno de la colonia elegida'); F.sel = tk(m[1]); }
-  { const m = tomar('04_mapa_capas.js', /id:'alc-sel'[\s\S]*?getLineColor:(T\.\w+)/, 'contorno de la alcaldía elegida'); if (tk(m[1]).n !== F.sel.n) F.selAlcDistinto = tk(m[1]); }
-  { const m = tomar('04_mapa_capas.js', /id:'hl', [\s\S]*?getColor:\[T\.gold\[0\],T\.gold\[1\],T\.gold\[2\],(\d+)\]/, 'halo de la calle consultada'); F.hlHalo = conA(T('gold'), +m[1] / 255); }
-  { const m = tomar('04_mapa_capas.js', /id:'hl-borde'[\s\S]*?getColor:\[(\d+),(\d+),(\d+),(\d+)\]/, 'filete de la calle consultada'); const n = nums(m);
-    F.hlFilete = C(`[${n.slice(0, 3)}] (escrito en 04_mapa_capas.js)`, n.slice(0, 3), n[3] / 255); }
-  { const m = tomar('04_mapa_capas.js', /if \(sel===null\) mk\(highlight\.idx, (\d+), 'av-halo'\);\s*else \{ mk\([^;]*?, (\d+), 'av-halo-out'\); mk\([^;]*?, (\d+), 'av-halo'\)/, 'halo de la avenida'); F.aAv = { ciudad: +m[1], fuera: +m[2], alcaldia: +m[3] }; }
+  // límite de colonia: su capa (hasta el cierre del PathLayer) y su opacidad, si la tiene
+  { const m = tomar('04_mapa_capas.js', /id:'cols'[^\n]*?getColor:(T\.\w+)[^\n]*?\}\)\);/, 'límite de colonia'); F.limCol = tk(m[1]); const op = m[0].match(/opacity:([\d.]+)/); F.aLimCol = op ? +op[1] : 1; }
+  // contorno de la alcaldía o colonia elegida: contornoElegido() con su franja blanca debajo
+  { const m = tomar('04_mapa_capas.js', /const contornoElegido = [\s\S]*?id:id\+'-franja'[^\n]*?getLineColor:(T\.\w+)[\s\S]*?\{id, data[^\n]*?getLineColor:(T\.\w+)/, 'contornoElegido()');
+    F.selFranja = tk(m[1]); F.sel = tk(m[2]);
+    for (const id of ['alc-sel', 'col-sel']) tomar('04_mapa_capas.js', new RegExp(`contornoElegido\\('${id}'`), `contornoElegido('${id}', …)`);
+    F.franjaPx = +tomar('04_mapa_capas.js', /const FRANJA_PX\s*=\s*([\d.]+)/, 'FRANJA_PX')[1]; }
+  // resalte de la calle y la avenida consultadas: resalte() (franja, halo, filete y, bajo las clases claras, filete oscuro)
+  { const t = tomar('04_mapa_capas.js', /function resalte\(id[\s\S]*?return L; \}/, 'resalte()')[0];
+    const g = (re, q) => { const m = t.match(re); if (!m) throw new Error('no se encontró ' + q + ' en resalte() de 04_mapa_capas.js'); return tk(m[1]); };
+    if (/getColor:color[^}]*opacity/.test(t)) throw new Error('el resalte ya no es opaco: medirlo con su opacidad en contraste.mjs');
+    F.rsFranja = g(/capa\('-franja', d, m\.franja, (T\.\w+)\)/, 'la franja'); F.rsHalo = g(/capa\('', d, m\.halo, (T\.\w+)\)/, 'el halo');
+    F.rsFilete = g(/capa\('-filete', d, m\.filete, (T\.\w+)\)/, 'el filete'); F.rsOscuro = g(/capa\('-oscuro', [^;]*?m\.oscuro, (T\.\w+)\)/, 'el filete oscuro');
+    for (const q of ["resalte('hl'", "resalte('av-halo'"]) if (!js['04_mapa_capas.js'].includes(q)) throw new Error(`la calle o la avenida ya no usan resalte(): falta ${q} en 04_mapa_capas.js`);
+    // clases claras: las que no llegan a cierta razón contra un color (03_estado.js); llevan el filete oscuro
+    const c = tomar('03_estado.js', /T\.prioClara = T\.prio\.map\(c=> \(lum\((T\.\w+)\)\+0\.05\)\/\(lum\(c\)\+0\.05\) < ([\d.]+)\)/, 'T.prioClara');
+    F.claraRef = tk(c[1]); F.claraMin = +c[2]; }
   // inventario (05_inventario.js)
   { const m = tomar('05_inventario.js', /blanco = \[(\d+),(\d+),(\d+),(\d+)\]/, 'contorno blanco del inventario'); const n = nums(m); F.invContorno = C(`blanco [${n.slice(0, 3)}] (escrito en 05_inventario.js)`, n.slice(0, 3), n[3] / 255); }
   { const m = tomar('05_inventario.js', /id:'inv-muerto-x'[\s\S]*?getColor:\[(\d+),(\d+),(\d+),(\d+)\]/, '× del árbol muerto'); const n = nums(m); F.invX = C(`× [${n.slice(0, 3)}] (escrito en 05_inventario.js)`, n.slice(0, 3), n[3] / 255); }
@@ -212,12 +196,12 @@ export function leerFuentes(raiz = RAIZ_DEF) {
     F.invGeo = { cepaR: g(/'inv-cepa', D\[0\], \{getRadius:([\d.]+)/, 'radio de la cepa')[0], cepaHalo: g(/'inv-cepa-halo'[^}]*getLineWidth:([\d.]+)/, 'halo de la cepa')[0], cepaAro: g(/'inv-cepa', D\[0\][^}]*getLineWidth:([\d.]+)/, 'aro de la cepa')[0],
       toconContorno: g(/'inv-tocon'[^}]*getLineWidth:([\d.]+)/, 'contorno del tocón')[0], muertoContorno: g(/'inv-muerto', D\[2\][^}]*getLineWidth:([\d.]+)/, 'contorno del árbol muerto')[0] }; }
   // marcadores
-  { const m = tomar('04_mapa_capas.js', /id:'pto-buscado'[\s\S]*?getFillColor:hex\(css\('(--[\w-]+)'\)\)[\s\S]*?getLineColor:\[(\d+),(\d+),(\d+),(\d+)\][\s\S]*?getLineWidth:([\d.]+)/, 'punto buscado');
-    F.pto = variable(m[1]); F.ptoContorno = C(`blanco [${m.slice(2, 5)}]`, nums(m).slice(1, 4), +m[5] / 255); F.ptoAncho = +m[6]; }
+  { const m = tomar('04_mapa_capas.js', /id:'pto-buscado'[\s\S]*?getFillColor:hex\(css\('(--[\w-]+)'\)\)[\s\S]*?getLineColor:(T\.\w+)[\s\S]*?getLineWidth:([\d.]+)/, 'punto buscado');
+    F.pto = variable(m[1]); F.ptoContorno = tk(m[2]); F.ptoAncho = +m[3]; }
   F.loc = variable(tomar('03_estado.js', /const LOC_BLUE = hex\(css\('(--[\w-]+)'\)\)/, 'LOC_BLUE')[1]);
   { const m = tomar('04_mapa_capas.js', /id:'loc-acc'[\s\S]*?getFillColor:\[\.\.\.LOC_BLUE,(\d+)\][\s\S]*?getLineColor:\[\.\.\.LOC_BLUE,(\d+)\]/, 'círculo de precisión'); F.aLocAcc = { relleno: +m[1], borde: +m[2] }; }
-  { const m = tomar('04_mapa_capas.js', /id:'loc-dot'[\s\S]*?getLineColor:\[(\d+),(\d+),(\d+),(\d+)\][\s\S]*?getLineWidth:([\d.]+)/, 'contorno de Mi ubicación');
-    F.locContorno = C(`blanco [${m.slice(1, 4)}]`, nums(m).slice(0, 3), +m[4] / 255); F.locAncho = +m[5]; }
+  { const m = tomar('04_mapa_capas.js', /id:'loc-dot'[\s\S]*?getLineColor:(T\.\w+)[\s\S]*?getLineWidth:([\d.]+)/, 'contorno de Mi ubicación');
+    F.locContorno = tk(m[1]); F.locAncho = +m[2]; }
   // satélite: teselas con opacidad op sobre el fondo del mapa (--ground)
   { const m = tomar('04_mapa_capas.js', /sat: ESRI_KEY[\s\S]*?op:([\d.]+)[\s\S]*?op:([\d.]+)/, 'opacidad del satélite'); F.opSat = Math.min(+m[1], +m[2]); }
   F.satOscuro = sobre(C('imagen negra', [0, 0, 0]), F.sinfondo, F.opSat, `satélite, extremo oscuro (negro al ${pct(F.opSat)} sobre ${F.sinfondo.n})`);
@@ -233,7 +217,8 @@ export function leerFuentes(raiz = RAIZ_DEF) {
   U.mapsumStB = colorCSS('.mapsum .st b', 'color'); U.mapsumSmall = colorCSS('.mapsum .st small', 'color');
   U.legendBg = colorCSS('.legend', 'background'); U.lgTit = colorCSS('.legend .lg-tit', 'color'); U.lgCap = colorCSS('.legend .lg-cap', 'color');
   U.lgNote = colorCSS('.legend .lg-note', 'color'); U.lgKm = colorCSS('.legend .lg-km', 'color'); U.lgWarn = colorCSS('#lg-filter-note.warn', 'color');
-  U.rowOff = numCSS('.legend .row.off', 'opacity');
+  U.rowOff = colorCSS('.legend .row.off', 'color'); U.rowOffKm = colorCSS('.legend .row.off .lg-km', 'color');
+  if (R.some(r => r.sels.some(s => s === '.legend .row.off') && r.decl.has('opacity'))) throw new Error('el renglón apagado de la leyenda volvió a llevar opacity: medir el texto compuesto en contraste.mjs');
   U.pill = colorCSS('.seg button', 'color'); U.pillBg = colorCSS('.seg.pills button', 'background');
   U.pillOn = colorCSS('.seg.pills button[aria-pressed="true"]', 'color'); U.pillOnBg = colorCSS('.seg.pills button[aria-pressed="true"]', 'background');
   U.lgCbBorde = colorCSS('.legend .row .lg-cb', 'border-color'); U.lgCbOn = colorCSS('#legend-rows .row[aria-checked="true"] .lg-cb', 'background');
@@ -257,6 +242,10 @@ export function leerFuentes(raiz = RAIZ_DEF) {
   U.vistaT = numCSS('#ver-info-t', 'opacity', 'max-width:860px'); U.vistaFoco = colorCSS('.btn-vista:focus-visible', 'outline', 'max-width:860px');
   U.tip = colorCSS('.tip', 'color'); U.tipBg = colorCSS('.tip', 'background'); U.tipM = colorCSS('.tip .m', 'color');
   U.escala = colorCSS('.scalebar', 'color'); U.escalaBg = colorCSS('.scalebar', 'background'); U.escalaBarra = colorCSS('.scalebar i', 'border');
+  // chips de los filtros «Atiende», «Banqueta» y «Espacio» (panel): mismo estilo en las tres filas desde la v1.30
+  U.chipBg = colorCSS('.chip', 'background'); U.chipBorde = colorCSS('.chip', 'border-color'); U.chipCasilla = colorCSS('.chip i', 'border-color');
+  U.chipOnBg = colorCSS('.resp-row .chip[aria-pressed="true"]', 'background'); U.chipOnBorde = colorCSS('.resp-row .chip[aria-pressed="true"]', 'border-color');
+  U.chipOn = colorCSS('.chip[aria-pressed="true"]', 'color'); U.chipOnIcono = colorCSS('.chip[aria-pressed="true"] i', 'background'); U.chipOnMarca = colorCSS('.chip[aria-pressed="true"] i::after', 'background');
   U.foco = colorCSS(':focus-visible', 'outline'); U.focoHalo = colorCSS(':focus-visible', 'box-shadow');
 
   return { F, U, variable, historia, TK, js, R, redefinidos };
@@ -354,13 +343,12 @@ export function auditar(raiz = RAIZ_DEF) {
   ];
   for (const [id, fg, bg, d] of ui) par(id, 'texto', fg, bg, d, { opciones: g => [opF(`Usar ${U.ink2.n}`, U.ink2), opF(`Usar ${U.ink.n}`, U.ink),
     opF(`Oscurecer hasta ${hex(oscurecerHasta(fg, g.map(p => p.bg), TEXTO))}`, oscurecerHasta(fg, g.map(p => p.bg), TEXTO))] });
-  // renglón apagado de la leyenda: el texto se atenúa con opacity
-  const off = sobre(U.body, U.legendBg, U.rowOff, `${U.body.n} al ${pct(U.rowOff)} (renglón apagado, opacity ${U.rowOff})`);
-  const aOff = alfaMinimo(U.body, U.legendBg, TEXTO);
-  par('MC23', 'texto', off, U.legendBg, 'Leyenda: nombre de una prioridad apagada (casilla sin marcar; sigue siendo un control que se puede volver a encender)', { opciones: () => [
-    opR(`Subir la opacidad del renglón apagado de ${U.rowOff} a ${aOff.toFixed(2)}`, () => razon(sobre(U.body, U.legendBg, aOff), U.legendBg)),
-    opF('Atenuar solo la muestra de color y dejar el texto en su color; el estado lo dice la casilla', U.body),
-    opF(`Texto del renglón apagado en ${U.ink3.n}, sin opacity`, U.ink3)] });
+  // renglón apagado de la leyenda: el texto cambia de color, sin opacity (solo la muestra de color se atenúa)
+  par('MC23', 'texto', U.rowOff, U.legendBg, 'Leyenda: nombre de una prioridad apagada (casilla sin marcar; sigue siendo un control que se puede volver a encender)');
+  par('MC59', 'texto', U.rowOffKm, U.legendBg, 'Leyenda: km de una prioridad apagada');
+  // filtros del panel (heredan el color del texto: button{color:inherit})
+  par('MC60', 'texto', U.body, U.chipBg, 'Filtros «Atiende», «Banqueta» y «Espacio»: texto de un chip sin elegir');
+  par('MC61', 'texto', U.chipOn, U.chipOnBg, 'Filtros «Atiende», «Banqueta» y «Espacio»: texto del chip elegido (blanco sobre guinda)');
   P.sort((a, b) => a.id.localeCompare(b.id));
 
   // ===== MN · no texto =====
@@ -378,11 +366,9 @@ export function auditar(raiz = RAIZ_DEF) {
     par(mn(), 'linea', sobre(linea(k), b), b, `Línea de prioridad ${NOM[k]} (frentes de manzana; también vialidades primarias con Gobierno Central) sobre ${txt}`, { grupo: 'rampa' + k, opciones: opLinea(k) });
   for (let k = 0; k < 5; k++) { const rellenos = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.calles, F.suelo)); const p = peor(sobre(linea(k), F.suelo), rellenos);
     par(mn(), 'linea', sobre(linea(k), p), p, `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al ${pct(F.aCol.calles / 255 * F.opPrio)})`, { grupo: 'rampa' + k, opciones: opLinea(k) }); }
+  // con «Sin fondo» el relleno de colonia es igual de tenue que con «Calles» (v1.30): lo que quede abajo es de la misma clase de la rampa
   for (let k = 0; k < 5; k++) { const rellenos = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.sinf, F.sinfondo)); const p = peor(sobre(linea(k), F.sinfondo), rellenos);
-    par(mn(), 'linea', sobre(linea(k), p), p, `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al ${pct(F.aCol.sinf / 255 * F.opPrio)})`, { grupo: 'rellenoSF', opciones: g => [
-      opR(`Con «Sin fondo», relleno de colonia tan tenue como con «Calles» (${F.aCol.calles} en vez de ${F.aCol.sinf})`, p2 => { const k2 = NOM.findIndex(x => p2.donde.startsWith('Línea ' + x + ' ')); const rs = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.calles, F.sinfondo)); return razon(F.prio[k2], peor(F.prio[k2], rs)); }),
-      opF(`Filete de 1 px en ${U.ink3.n} a cada lado de las líneas`, U.ink3),
-      actual(`Dejarlo así: con «Sin fondo» el relleno es más fuerte a propósito (no hay manzanas que den contexto); ${otraVia}`)] }); }
+    par(mn(), 'linea', sobre(linea(k), p), p, `Línea ${NOM[k]} sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al ${pct(F.aCol.sinf / 255 * F.opPrio)})`, { grupo: 'rampa' + k, opciones: opLinea(k) }); }
   // vialidades primarias en gris (modo Alcaldías)
   const vpG = conA(F.vpGris, F.aVP.ctx / 255 * F.opPrio, `${F.vpGris.n} al ${pct(F.aVP.ctx / 255 * F.opPrio)}`);
   for (const [txt, b] of [['el suelo', F.suelo], ['una manzana', F.manzana], ['«Sin fondo»', F.sinfondo]])
@@ -394,46 +380,27 @@ export function auditar(raiz = RAIZ_DEF) {
     const osc = oscurecerHasta(F.limAlc, g.map(p => p.bg), NO_TEXTO);
     return [opF(`Oscurecer ${F.limAlc.n} hasta ${hex(osc)}`, osc), opF(`Usar ${U.ink3.n} ${hex(U.ink3)}`, U.ink3),
       actual('Dejarlo así: el límite de alcaldía es contexto; el nombre de la alcaldía y el contorno de la elegida (MN39 a MN43) sí cumplen')]; } });
-  const limCol = conA(F.limCol, F.aLimCol, `${F.limCol.n} al ${pct(F.aLimCol)}`);
-  for (const [txt, b] of B5) par(mn(), 'linea', sobre(limCol, b), b, `Límite de colonia (0.7 a 1 px, opacidad ${F.aLimCol}) sobre ${txt}`, { grupo: 'limcol', opciones: g => {
+  const limCol = F.aLimCol < 1 ? conA(F.limCol, F.aLimCol, `${F.limCol.n} al ${pct(F.aLimCol)}`) : F.limCol;
+  for (const [txt, b] of B5) par(mn(), 'linea', sobre(limCol, b), b, `Límite de colonia (${F.limCol.n}, 0.7 a 1 px${F.aLimCol < 1 ? ', opacidad ' + F.aLimCol : ''}) sobre ${txt}`, { grupo: 'limcol', opciones: g => {
     const osc = oscurecerHasta(F.limCol, g.map(p => p.bg), NO_TEXTO);
     return [opF(`Oscurecer ${F.limCol.n} hasta ${hex(osc)} y dibujarlo opaco (se vería tan fuerte como el de alcaldía)`, osc), opF(`Usar el gris del límite de alcaldía (${F.limAlc.n} ${hex(F.limAlc)}) opaco`, F.limAlc),
       actual('Dejarlo así: el límite de colonia es contexto; la colonia se reconoce por su nombre, su relleno y, al elegirla, por su contorno (MN39 a MN49)')]; } });
   // contorno de la colonia o alcaldía elegida (va encima de las líneas de prioridad)
   for (const [txt, b] of B5) par(mn(), 'linea', F.sel, b, `Contorno de la colonia o alcaldía elegida (${F.sel.n}, 2.2 a 4 px) sobre ${txt}`);
-  for (let k = 0; k < 5; k++) par(mn(), 'linea', F.sel, sobre(linea(k), F.suelo), `Contorno de la colonia o alcaldía elegida donde cruza una línea ${NOM[k]}`, { grupo: 'selrampa', opciones: () => [
-    opR(`Franja blanca de 2 px bajo el contorno, como el halo de los nombres (contorno contra la franja: ${fmtR(razon(F.sel, U.blanco))})`, p => razon(F.sel, U.blanco)),
-    actual('Dejarlo así: el contorno corre casi siempre sobre suelo y manzana; donde cruza una línea oscura se interrumpe unos píxeles')] });
+  // donde cruza una línea de prioridad, el contorno va sobre su franja blanca (contornoElegido en 04_mapa_capas.js)
+  for (let k = 0; k < 5; k++) par(mn(), 'linea', F.sel, F.selFranja, `Contorno de la colonia o alcaldía elegida donde cruza una línea ${NOM[k]}: contra su franja blanca de ${F.franjaPx} px (${F.selFranja.n})`);
   { const rel = [0, 1, 2, 3, 4].map(j => relleno(j, F.aCol.selFr, F.suelo)); const p = peor(F.sel, rel);
     par(mn(), 'linea', F.sel, p, `Contorno de la colonia elegida sobre su propio relleno (al ${pct(F.aCol.selFr / 255)}), el que menos contrasta`); }
-  // calle consultada: halo dorado, filete oscuro y la prioridad al centro
-  const haloHl = b => sobre(F.hlHalo, b, F.hlHalo.a, `halo ${F.hlHalo.n} al ${pct(F.hlHalo.a)}`);
-  const filHalo = fmtR(razon(F.hlFilete, haloHl(F.suelo)));
-  for (const [txt, b] of B5) par(mn(), 'linea', haloHl(b), b, `Calle consultada: halo dorado exterior sobre ${txt}`, { grupo: 'hl', opciones: () => [
-    opR(`Halo dorado opaco (hoy al ${pct(F.hlHalo.a)})`, p => razon(conA(F.hlHalo, 1), p.bg)),
-    opF(`Halo en ${U.guinda.n}`, U.guinda),
-    opR(`Filete oscuro de 1 px también por fuera del halo (filete contra el fondo)`, p => razon(F.hlFilete, p.bg)),
-    actual(`Dejarlo así: lo que marca la calle es el filete oscuro de dentro, que contra el halo da ${filHalo}`)] });
-  for (let k = 0; k < 5; k++) par(mn(), 'linea', haloHl(F.suelo), sobre(linea(k), F.suelo), `Calle consultada: halo dorado donde toca una línea ${NOM[k]} vecina`, { grupo: 'hlrampa', opciones: () => [
-    opR('Filete oscuro de 1 px también por fuera del halo (filete contra la línea vecina)', p => razon(F.hlFilete, p.bg)),
-    opF(`Halo en ${U.guinda.n}`, U.guinda),
-    actual(`Dejarlo así: la calle se reconoce por el filete oscuro de dentro (${filHalo} contra el halo)`)] });
-  par(mn(), 'linea', F.hlFilete, haloHl(F.suelo), 'Calle consultada: filete oscuro sobre el halo dorado');
-  for (let k = 0; k < 5; k++) par(mn(), 'linea', F.prio[k], F.hlFilete, `Calle consultada: prioridad ${NOM[k]} al centro, sobre el filete oscuro`, { grupo: 'hlcentro', opciones: g => {
-    const ks = g.map(p => F.prio.findIndex(c => hex(c) === hex(p.fg))); const cl = aclararHasta(F.hlFilete, ks.map(k2 => F.prio[k2]), NO_TEXTO);
-    const caen = (c) => F.prio.map((x, k2) => [k2, razon(x, c)]).filter(([, r]) => r < NO_TEXTO).map(([k2, r]) => `${NOM[k2]} ${fmtR(r)}`);
-    return [opB(`Filete blanco en lugar del oscuro (entonces quedarían abajo: ${caen(U.blanco).join(', ') || 'ninguna'})`, U.blanco),
-      opB(`Filete gris ${hex(cl)}, lo mínimo para estas clases (entonces quedarían abajo: ${caen(cl).join(', ') || 'ninguna'})`, cl),
-      actual('Dejarlo así: la prioridad de cada tramo de la calle consultada se lee en «Dónde empezar» (tramos) y en la ficha')]; } });
-  // avenida resaltada (Gobierno Central)
-  const gold = T_gold(S);
-  for (const [txt, a] of [['toda la ciudad', F.aAv.ciudad], ['con alcaldía elegida', F.aAv.alcaldia]]) {
-    const h = sobre(gold, F.suelo, a / 255, `halo ${gold.n} al ${pct(a / 255)}`);
-    par(mn(), 'linea', h, F.suelo, `Avenida consultada (Gobierno Central, ${txt}): halo dorado sobre el suelo`, { grupo: 'av', opciones: () => {
-      const ag = alfaMinimo(U.guinda, F.suelo, NO_TEXTO);
-      return [opR('Halo dorado opaco', p => razon(gold, p.bg)), opR(`Halo en ${U.guinda.n} al ${pct(ag)}`, p => razon(sobre(U.guinda, p.bg, ag), p.bg)),
-        opR(`Filete oscuro de 1 px (${hex(F.hlFilete)}) por fuera del halo, como el que lleva por dentro la calle consultada (filete contra el suelo)`, p => razon(F.hlFilete, p.bg)),
-        actual('Dejarlo así: la avenida va además en el color de su prioridad, con línea más gruesa que los frentes, y la nombra el resumen del mapa')]; } }); }
+  // calle y avenida consultadas: resalte() de 04_mapa_capas.js. De fuera hacia dentro: franja (F.rsFranja), halo (F.rsHalo), filete (F.rsFilete),
+  // filete oscuro (F.rsOscuro) solo bajo las clases claras y, al centro, la prioridad. Todo opaco.
+  const clara = k => razon(F.prio[k], F.claraRef) < F.claraMin;
+  for (const [txt, b] of B5) par(mn(), 'linea', F.rsHalo, b, `Calle consultada: halo ${F.rsHalo.n} sobre ${txt}`);
+  for (let k = 0; k < 5; k++) par(mn(), 'linea', F.rsHalo, F.rsFranja, `Calle consultada: halo junto a una línea ${NOM[k]} vecina: contra la franja ${F.rsFranja.n} que los separa`);
+  par(mn(), 'linea', F.rsFilete, F.rsHalo, `Calle consultada: filete ${F.rsFilete.n} sobre el halo ${F.rsHalo.n}`);
+  for (let k = 0; k < 5; k++) { const fil = clara(k) ? F.rsOscuro : F.rsFilete;
+    par(mn(), 'linea', F.prio[k], fil, `Calle o avenida consultada: prioridad ${NOM[k]} al centro, sobre el filete ${clara(k) ? `oscuro (${F.rsOscuro.n}, que va sobre el filete ${F.rsFilete.n}: ${fmtR(razon(F.rsOscuro, F.rsFilete))})` : F.rsFilete.n}`); }
+  // avenida resaltada (Gobierno Central): el mismo resalte, más ancho
+  for (const txt of ['toda la ciudad', 'con alcaldía elegida']) par(mn(), 'linea', F.rsHalo, F.suelo, `Avenida consultada (Gobierno Central, ${txt}): halo ${F.rsHalo.n} sobre el suelo`);
   // 4. inventario: el símbolo contra su contorno blanco (compuesto sobre cada fondo); el contorno lo rodea siempre
   const SIM = [['Cepa vacante (anillo)', 'aro', F.inv[0]], ['Tocón (círculo)', 'punto', F.inv[1]], ['Árbol muerto (círculo con ×)', 'punto', F.inv[2]]];
   const fondosSim = [...B4, ...[0, 1, 2, 3, 4].map(k => [`la línea ${NOM[k]}`, sobre(linea(k), F.suelo)])];
@@ -465,6 +432,13 @@ export function auditar(raiz = RAIZ_DEF) {
   par(mn(), 'linea', bordeMuestra, U.legendBg, 'Leyenda: borde de la muestra Muy Baja (lo que la separa del panel)');
   const bordeMini = sobre(U.leyminiBorde, F.prio[0], U.leyminiBorde.a, `borde ${U.leyminiBorde.n} sobre ${F.prio[0].n}`);
   par(mn(), 'linea', bordeMini, U.leyminiBg, 'Leyenda compacta: borde de la muestra Muy Baja');
+  // chips de los filtros del panel: lo que los separa del panel y el icono (casilla ☐/☑ en «Atiende» y «Espacio», radio ○/◉ en «Banqueta»)
+  par(mn(), 'linea', U.chipBorde, U.panel, `Filtros: borde de un chip sin elegir (${U.chipBorde.n}) sobre el panel`);
+  par(mn(), 'linea', U.chipCasilla, U.chipBg, `Filtros: borde de la casilla o del círculo de un chip sin elegir (${U.chipCasilla.n})`);
+  par(mn(), 'punto', U.chipOnBg, U.panel, 'Filtros: relleno del chip elegido sobre el panel');
+  par(mn(), 'linea', U.chipOnBorde, U.panel, 'Filtros: borde del chip elegido sobre el panel');
+  par(mn(), 'punto', U.chipOnIcono, U.chipOnBg, 'Filtros: casilla o círculo blanco del chip elegido sobre el guinda');
+  par(mn(), 'punto', U.chipOnMarca, U.chipOnIcono, 'Filtros: palomita o punto guinda dentro de la casilla o el círculo blanco');
 
   // ===== MI · informativos =====
   let m = 0; const mi = () => 'MI' + String(++m).padStart(2, '0'); const inf = (tipo, fg, bg, d) => par(mi(), tipo, fg, bg, d, { exige: false });
@@ -501,11 +475,13 @@ export function auditar(raiz = RAIZ_DEF) {
   inf('foco', U.foco, F.satOscuro, 'Anillo de foco sobre el satélite (peor caso: imagen negra; el halo blanco va de por medio)');
   for (let k = 0; k < 5; k++) inf('punto', F.prio[k], U.legendBg, `Leyenda: muestra ${NOM[k]} contra el panel (sin su borde)`);
   inf('linea', U.vistaFoco, U.vistaBg, 'Celular: foco de «Volver a la información» contra el botón guinda (hay 2 px de mapa en medio)');
+  // por qué llevan franja blanca el contorno de lo elegido y el resalte de lo consultado (v1.30)
+  inf('linea', F.sel, F.prio[4], 'Contorno de lo elegido directo sobre una línea Muy Alta, sin su franja blanca');
+  for (let k = 0; k < 5; k++) inf('linea', F.rsHalo, sobre(linea(k), F.suelo), `Calle consultada: halo ${F.rsHalo.n} directo contra una línea ${NOM[k]} vecina, sin la franja blanca`);
 
   const pend = P.filter(p => p.resultado === 'Pendiente de decisión');
   return { pares: P, pendientes: pend, fuentes: S, notas: notas(S) };
 }
-const T_gold = S => S.variable(S.TK.gold);
 
 // ---------------------------------------------------------------- notas: colores repetidos o definidos en dos lugares
 function notas(S) {
@@ -518,7 +494,7 @@ function notas(S) {
   for (const [hx, ks] of porHex) if (ks.length > 1) out.push(`Mismo color con dos nombres: ${ks.join(' y ')} (${hx}).`);
   // colores escritos a mano en el JS
   const vars = [...historia.keys()].map(k => { try { return S.variable(k); } catch (e) { return null; } }).filter(Boolean);
-  for (const c of [F.lblCalle, F.hlFilete]) { const igual = vars.find(v => hex(v) === hex(c));
+  for (const c of Object.values(F).filter(c => c && c.rgb && /escrito en 04_mapa_capas/.test(c.n))) { const igual = vars.find(v => hex(v) === hex(c));
     const cerca = vars.map(v => [v, Math.max(...v.rgb.map((x, i) => Math.abs(x - c.rgb[i])))]).filter(([, d]) => d > 0 && d <= 6).sort((a, b) => a[1] - b[1])[0];
     if (igual) out.push(`${c.n} = ${hex(c)} es el mismo valor que ${igual.n}, pero escrito a mano: si cambia ${igual.n}, este no cambia.`);
     else if (cerca) out.push(`${c.n} = ${hex(c)} casi igual a ${cerca[0].n} (${hex(cerca[0])}) pero distinto: probablemente quiso ser ${cerca[0].n}.`); }
@@ -555,7 +531,7 @@ export function hallazgos(A) {
   L.push(`Textos (nombres del mapa e interfaz sobre el mapa): ${mcMal.length ? `${mc.length - mcMal.length} de ${mc.length} cumplen; no cumple ${mcMal.map(p => `${p.id} (${p.donde.split(':')[0]}, ${fmtR(p.razon)})`).join(', ')}` : 'todos los textos cumplen'}.${by('MC41').razon < 4.6 ? ` «Seguirme» encendido (${fmtR(by('MC41').razon)}) queda justo en el mínimo: cualquier cambio de --loc lo tira.` : ''}`);
   L.push(`Inventario: los tres símbolos cumplen contra su contorno blanco sobre todos los fondos y las cinco clases (el más bajo, ${invMin.id}, ${fmtR(invMin.razon)}). Entre ellos el color casi no los separa (${entre.map(p => fmtR(p.razon)).join(', ')}): los distingue la forma (anillo hueco, círculo lleno, círculo con ×).`);
   const cuenta = re => { const g = P.filter(p => p.exige && re.test(p.donde)); const b = g.filter(p => p.resultado === 'Cumple').length; return `${b} de ${g.length}`; };
-  L.push(`Límites y resaltados (cumplen / medidos): límite de alcaldía ${cuenta(/^Límite de alcaldía/)}; límite de colonia ${cuenta(/^Límite de colonia/)}; vialidades primarias en gris ${cuenta(/^Vialidades primarias en gris/)}; contorno de la colonia o alcaldía elegida ${cuenta(/^Contorno de la colonia/)} (falla donde cruza líneas Alta y Muy Alta); calle consultada ${cuenta(/^Calle consultada/)} (el filete oscuro sí destaca contra el halo dorado: ${fmtR(P.find(p => p.donde.startsWith('Calle consultada: filete')).razon)}); avenida consultada ${cuenta(/^Avenida consultada/)}.`);
+  L.push(`Límites y resaltados (cumplen / medidos): límite de alcaldía ${cuenta(/^Límite de alcaldía/)}; límite de colonia ${cuenta(/^Límite de colonia/)}; vialidades primarias en gris ${cuenta(/^Vialidades primarias en gris/)}; contorno de la colonia o alcaldía elegida ${cuenta(/^Contorno de la colonia/)} (sobre una franja blanca de ${F.franjaPx} px donde cruza las líneas); calle consultada ${cuenta(/^Calle (o avenida )?consultada/)}; avenida consultada ${cuenta(/^Avenida consultada/)}. El resalte de la calle o avenida consultada va, de fuera hacia dentro, en franja ${F.rsFranja.n}, halo ${F.rsHalo.n}, filete ${F.rsFilete.n} y, bajo las clases claras, filete ${F.rsOscuro.n}: el halo directo contra una línea Alta vecina daría ${fmtR(razon(F.rsHalo, F.prio[3]))}.`);
   return L;
 }
 

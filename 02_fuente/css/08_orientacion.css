@@ -93,13 +93,12 @@
 /* ---------- fila «Banqueta»: filtro de los frentes de las alcaldías según INEGI 2020 ---------- */
 .query .banq-row{margin-top:6px}
 .banq-row[hidden]{display:none}
-.banq-row .seg.pills{flex-wrap:nowrap;gap:5px}
-.banq-row .seg.pills button{padding:5px 10px;white-space:nowrap}
+/* mismos chips que «Atiende» y «Espacio» (05_panel_y_hoja_inferior.css); como se elige una sola opción, el icono es un círculo de radio (○ / ◉).
+   Su rótulo «Banqueta» solo lo oyen los lectores de pantalla (clase sr): con él a la vista, «Sin banqueta» no cabía en el renglón */
+.resp-row .chip.radio i{border-radius:50%}
+.resp-row .chip.radio i::after{-webkit-mask:none;mask:none;left:2.5px;top:2.5px;right:2.5px;bottom:2.5px;border-radius:50%}
 .banq-tag{color:var(--guinda-ink);font-weight:600}
 .univline.banq span{font-size:.8125rem}
-@media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
-/* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css) */
-@media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
 /* ---------- fila «Espacio»: casillas como las de «Atiende»; si no caben en un renglón, pasan al siguiente sin cortarse ---------- */
 .esp-row[hidden],.esp-aviso[hidden]{display:none}
 .esp-row{align-items:flex-start}
@@ -110,7 +109,8 @@
 .esp-aviso.warn{color:var(--guinda-ink)}
 /* aviso bajo «Mostrar» mientras bajan las cepas vacantes del orden por cepas (o si fallan) */
 .ini-carga{flex:1 0 100%;margin:0}
-@media (max-width:860px) and (min-height:481px), (max-width:600px){ .esp-row .chip{min-height:44px} .esp-row .lab{padding-top:15px} }
+/* objetivo táctil de 44 px en teléfono, igual en las tres filas («Atiende», «Banqueta» y «Espacio») */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .resp-row .chip{min-height:44px} .esp-row .lab{padding-top:15px} }
 /* «Atiende» y «Banqueta»: las dos filas, con la explicación de la banqueta elegida debajo */
 .filtros-ops{display:flex;flex-direction:column;gap:10px}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){ .filtros-ops{gap:8px} .query .filtros-ops .resp-row{margin-top:0} }

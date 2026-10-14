@@ -7,7 +7,7 @@
 #scope-title:focus{outline:none}
 #scope-title:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
 /* indicador de foco de dos tonos: anillo oscuro con halo claro, visible sobre blanco, sobre el mapa y sobre el botón guinda */
-:root{--focus:#5A1029; --ctl:#8A8478}
+:root{--ctl:#8A8478}   /* --focus está en 01_variables.css */
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 2px #fff!important}
 .combo input:focus,.search input:focus{border-color:var(--focus);box-shadow:0 0 0 2px #fff,0 0 0 5px var(--focus)!important;outline:none}
 /* los renglones de los listados muestran dónde está el foco */

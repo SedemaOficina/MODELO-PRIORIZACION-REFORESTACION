@@ -5,7 +5,7 @@
 const CLAVE_REC = 'cp_recorrido';
 const recVisto = ()=>{ try { return !!localStorage.getItem(CLAVE_REC); } catch(e){ return true; } };   // sin almacenamiento no se impone en cada visita
 const recMarca = ()=>{ try { localStorage.setItem(CLAVE_REC, 'visto'); } catch(e){} };
-let REC = null;   // recorrido en curso: {k, velo, foco, globo, origen, ficha, punto, leyenda, lista}
+let REC = null;   // recorrido en curso: {k, velo, foco, globo, origen, ficha, punto, leyenda, cuenta, lista}
 
 // frente prioritario de la consulta para mostrar una ficha real: con nombre de calle, el de mayor prioridad, con banqueta si hay, y el más largo
 function recFrente(){ let b = -1, bs = -1;
@@ -58,13 +58,18 @@ async function recEspacios(){ if (pinned) hideCard();
   el.dataset.clave = invClave(p); el.dataset.tipo = INV_TIPOS[p.t].n; el.dataset.alc = p.a; document.body.append(el);
   REC.punto = {p, el}; recMarcaPunto(); }
 
-// pasos: sel = control que se ilumina (el primero visible de la lista); panel/mapa = qué debe verse en teléfono; si = condición;
+// «Mi cuenta»: el menú se abre para que se vean sus opciones; recDeshace lo cierra (siguiente, anterior o salir)
+function recCuenta(){ cuentaMenu(true); REC.cuenta = true; }
+
+// pasos: sel = control que se ilumina (el primero visible de la lista); con = lo que se ilumina junto con él (el menú de «Mi cuenta»);
+// panel/mapa = qué debe verse en teléfono; si = condición;
 // prep = lo que se prepara antes (puede ser asíncrono: el globo se recoloca al terminar); texto puede depender de la consulta (función).
 const REC_PASOS = [
   { titulo:'Modelo de priorización de reforestación urbana', texto:'En dos minutos te mostramos cómo encontrar las calles que conviene reforestar primero, dónde ya hay espacio para plantar y cómo revisarlas antes de salir a campo.' },
-  { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle; bastan algunas palabras. También puedes pegar coordenadas o un enlace de Google Maps. Más abajo, la ruta «Ciudad de México ›» cambia de alcaldía o regresa a toda la ciudad.' },
+  { sel:'.omni', panel:true, titulo:'Busca un lugar', texto:'Escribe una alcaldía, una colonia, una avenida o una calle; bastan algunas palabras. También puedes pegar coordenadas o un enlace de Google Maps.' },
+  { sel:'#crumb', panel:true, titulo:'Tu territorio', texto:'Aquí cambias de alcaldía o regresas a toda la ciudad. Cuando eliges una colonia, una calle o una avenida, aparece en esta ruta y la quitas con la ×.' },
   { sel:'.resp-row', panel:true, titulo:'Quién atiende', texto:'En «Atiende», «Alcaldías» muestra las calles y frentes de manzana que planta cada alcaldía, y «Gobierno Central», las vialidades primarias. Puedes marcar las dos.' },
-  { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'«Con banqueta»: frentes donde INEGI 2020 registra banqueta; ahí se planta directo. «Sin banqueta»: no la registran o no hay dato; no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen lo que elijas.' },
+  { sel:'#banq-row', panel:true, si:()=>!isGC(), titulo:'Banqueta: decide qué visitar', texto:'En «Banqueta», «Con» deja los frentes donde INEGI 2020 registra banqueta; ahí se planta directo. «Sin» deja los que no la registran o no tienen dato; no se descartan, requieren reconocimiento en sitio. El mapa, las cifras y las descargas siguen lo que elijas.' },
   { sel:'#esp-row', panel:true, si:()=>!!INV, titulo:'Espacio: dónde ya hay lugar', texto:'Marca «Cepa vacante», «Tocón» o «Árbol muerto» para dejar solo las calles donde el inventario de arbolado ya registró alguno: ahí ya hubo un árbol. Puedes marcar varios. El inventario va en curso: una calle sin registro puede no haberse revisado todavía.' },
   { sel:'.tabs', panel:true, titulo:'Dónde empezar, cifras y descargas', texto:()=> (isGC()
       ? '«Dónde empezar» propone un orden. En «Mostrar» eliges cómo: «Avenidas · más km prioritarios» o «Avenidas · más cepas vacantes», que pone primero las que ya tienen cepas en tramos prioritarios.'
@@ -79,7 +84,7 @@ const REC_PASOS = [
       : 'Elige una alcaldía o una colonia y descarga su listado en Excel y su ficha en PDF.')
       + ' En «Descargas» también están los archivos para Google Earth (KML). Todos respetan los filtros y traen las cepas vacantes, los tocones y los árboles muertos de cada calle.' },
   { sel:'#zloc', mapa:true, titulo:'En campo', texto:'«Mi ubicación» dice en qué colonia estás y qué calles prioritarias tienes cerca. Tu ubicación no sale del teléfono.' },
-  { sel:'#cuenta-btn', panel:true, si:()=>!!SESION.cierre, titulo:'Mi cuenta', texto:()=> SESION.inicio
+  { sel:'#cuenta-btn', con:'#cuenta-menu', panel:true, si:()=>!!SESION.cierre, prep:recCuenta, titulo:'Mi cuenta', texto:()=> SESION.inicio
       ? 'En «Mi cuenta» puedes cambiar tu contraseña o cerrar sesión. Al cambiarla regresas a la misma consulta.'
       : 'En «Mi cuenta» puedes cerrar sesión.' },
   { sel:'#open-info, #info-btn', panel:true, titulo:'Cuando lo necesites', texto:'En «Cómo funciona» están la ayuda, la metodología del modelo y el botón para repetir este recorrido.' },
@@ -95,7 +100,10 @@ function recColoca(){ if (!REC) return; const p = REC.lista[REC.k], g = REC.glob
   REC.velo.classList.toggle('sin-foco', !e); f.hidden = !e; f.classList.toggle('redondo', !!e && e.classList.contains('rec-punto'));
   const gw = Math.min(380, W - 2*M); g.style.width = gw + 'px'; const gh = g.offsetHeight;
   if (!e){ g.style.left = Math.round((W-gw)/2) + 'px'; g.style.top = Math.round(Math.max(M, (H-gh)/2)) + 'px'; return; }
-  const r = e.getBoundingClientRect(), pad = 6;
+  let r = e.getBoundingClientRect(); const pad = 6;
+  const junto = p.con? document.querySelector(p.con) : null;   // el foco abarca también lo que va junto (y el globo no lo tapa)
+  if (junto && recVisible(junto)){ const q = junto.getBoundingClientRect(), x = Math.min(r.left, q.left), y = Math.min(r.top, q.top);
+    r = {left:x, top:y, right:Math.max(r.right, q.right), bottom:Math.max(r.bottom, q.bottom), width:Math.max(r.right, q.right)-x, height:Math.max(r.bottom, q.bottom)-y}; }
   f.style.left = (r.left-pad) + 'px'; f.style.top = (r.top-pad) + 'px'; f.style.width = (r.width+2*pad) + 'px'; f.style.height = (r.height+2*pad) + 'px';
   // junto a un bloque que debe verse completo (la ficha del paso de Street View): a su izquierda, si hay espacio
   const c = p.lado? document.querySelector(p.lado) : null;
@@ -106,8 +114,9 @@ function recColoca(){ if (!REC) return; const p = REC.lista[REC.k], g = REC.glob
   const left = Math.min(Math.max(M, r.left + r.width/2 - gw/2), W - gw - M);
   g.style.left = Math.round(left) + 'px'; g.style.top = Math.round(top) + 'px'; }
 
-// lo que dejó preparado el paso anterior: la ficha abierta, la marca del punto y el panel de capas
+// lo que dejó preparado el paso anterior: la ficha abierta, la marca del punto, el panel de capas y el menú de «Mi cuenta»
 function recDeshace(){ if (REC.ficha){ hideCard(); REC.ficha = false; }
+  if (REC.cuenta){ cuentaMenu(false); REC.cuenta = false; }
   if (REC.punto){ REC.punto.el.remove(); REC.punto = null; }
   if (REC.leyenda){ setLegend(false); REC.leyenda = false; } }
 function recPaso(k){ const L = REC.lista; REC.k = k = Math.max(0, Math.min(k, L.length-1)); const p = L[k];
@@ -131,7 +140,7 @@ function recorrido(){ if (REC) return; if (!entradaEl.hidden || !infoModal.hidde
   globo.innerHTML = `<div class="rec-paso"></div><h3 id="rec-titulo" tabindex="-1"></h3><p aria-live="polite"></p>
     <div class="rec-acc"><button type="button" class="rec-salir">Salir del recorrido</button><button type="button" class="btn secondary rec-ant">Anterior</button><button type="button" class="btn rec-sig">Siguiente</button></div>`;
   document.body.append(velo, foco, globo);
-  REC = { k:0, velo, foco, globo, origen:document.activeElement, ficha:false, punto:null, leyenda:false, lista:recPasos() };
+  REC = { k:0, velo, foco, globo, origen:document.activeElement, ficha:false, punto:null, leyenda:false, cuenta:false, lista:recPasos() };
   appEl.inert = true; document.body.classList.add('recorrido');
   globo.querySelector('.rec-salir').onclick = recFin;
   globo.querySelector('.rec-ant').onclick = ()=> recPaso(REC.k-1);

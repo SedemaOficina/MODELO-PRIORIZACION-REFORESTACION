@@ -9,6 +9,10 @@ function readTokens(){
   T.ground = css('--ground');
   T.inv = ['--inv-cepa','--inv-tocon','--inv-muerto'].map(v=>hex(css(v)));   // espacios para plantar (05_inventario.js)
   T.manzana = hex(css('--fondo-manzana')); T.fverde = hex(css('--fondo-verde')); T.fagua = hex(css('--fondo-agua'));
+  T.ink = hex(css('--ink')); T.guinda = hex(css('--guinda')); T.halo = hex(css('--map-halo'));   // nombres de calle, contornos y resaltes (04_mapa_capas.js)
+  // clases de la rampa que no llegan a 3:1 contra el blanco (WCAG 2.2): en el resalte de la calle o avenida consultada llevan filete oscuro
+  const lum = c=> c.slice(0,3).reduce((s, v, k)=>{ v/=255; return s + [0.2126,0.7152,0.0722][k]*(v<=0.04045? v/12.92 : Math.pow((v+0.055)/1.055, 2.4)); }, 0);
+  T.prioClara = T.prio.map(c=> (lum(T.halo)+0.05)/(lum(c)+0.05) < 3);
 }
 readTokens();
 
@@ -97,7 +101,7 @@ function buildVP(){
   for(let i=0;i<NV;i++){
     const c = ctx? T.vpctx : T.prio[VP.prio[i]];
     const inS = enAmbitoVP(i);
-    const a = ctx? 200 : (inS? 255 : 40);
+    const a = ctx? 255 : (inS? 255 : 40);   // en gris (contexto) van opacas: --map-vp contra manzana y «Sin fondo» llega a 3:1
     const v = visible[VP.prio[i]]? 1 : 0;
     for(let k=vstart[i];k<vstart[i+1];k++){ const o=4*k; VCOLORS[o]=c[0]; VCOLORS[o+1]=c[1]; VCOLORS[o+2]=c[2]; VCOLORS[o+3]=a; VFILTER[2*k]=VP.mun[i]; VFILTER[2*k+1]=v; }
   }

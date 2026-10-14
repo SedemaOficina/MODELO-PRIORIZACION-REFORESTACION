@@ -141,15 +141,44 @@ function capasFondo(){ const f = FONDOS[fondo]; if (f.propio) return fondoPropio
   if (f.ref) L.push(capaTeselas('fondo-'+fondo+'-vias', f.ref, f, 1, false));
   return L; }
 
+// ---------- lo elegido y lo consultado: contornos y resaltes ----------
+// trazos de los frentes o tramos idx (st0: inicio de cada uno en pos) como datos de un PathLayer
+function trazos(idx, st0, pos){ const st = new Uint32Array(idx.length+1); let n=0;
+  for(let i=0;i<idx.length;i++){ st[i]=n; n += st0[idx[i]+1]-st0[idx[i]]; }
+  st[idx.length]=n; const p = new Float64Array(n*2); let o=0;
+  for(const i of idx){ for(let k=st0[i];k<st0[i+1];k++){ p[o++]=pos[2*k]; p[o++]=pos[2*k+1]; } }
+  return {length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}}; }
+// Contorno de la alcaldía o colonia elegida (--map-sel) sobre una franja blanca de FRANJA_PX a cada lado: donde cruza una línea Alta o
+// Muy Alta, tan oscuras como el contorno, la franja los separa (auditoría de contraste, MN44 a MN48).
+const FRANJA_PX = 2;
+const contornoElegido = (id, data, min, max)=> [
+  new PolygonLayer({id:id+'-franja', data, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.halo, lineWidthMinPixels:min+2*FRANJA_PX, lineWidthMaxPixels:max+2*FRANJA_PX, updateTriggers:{getLineColor:[T.halo]}}),
+  new PolygonLayer({id, data, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.sel, lineWidthMinPixels:min, lineWidthMaxPixels:max, updateTriggers:{getLineColor:[T.sel]}})];
+// Resalte de la calle o la avenida consultada, de fuera hacia dentro: franja blanca, halo guinda, filete blanco y, solo bajo las clases que
+// no contrastan con el blanco (T.prioClara: Muy Baja, Baja y Media), filete oscuro; al centro va la prioridad de cada tramo (la dibuja quien
+// llama). La franja separa el halo de las líneas vecinas Alta y Muy Alta, del mismo rojo que el guinda; con los filetes, cada clase del
+// centro queda junto a un color con el que contrasta (auditoría de contraste, MN50 a MN67). Medidas: [metros, px mínimo, px máximo];
+// el halo conserva el ancho que tenía el dorado.
+const RESALTE = {
+  calle:   {franja:[36, 17, 38], halo:[30, 13, 34], filete:[18, 9, 21], oscuro:[14, 6.5, 16]},
+  avenida: {franja:[52, 13, 34], halo:[44, 9, 30], filete:[26, 6.2, 18], oscuro:[20, 4.2, 15]} };
+function resalte(id, idx, st0, pos, prio, m){
+  const capa = (sufijo, data, w, color)=> new PathLayer({id:id+sufijo, data, _pathType:'open', widthUnits:'meters', getWidth:w[0], widthMinPixels:w[1], widthMaxPixels:w[2], capRounded:true, jointRounded:true, getColor:color, pickable:false});
+  const d = trazos(idx, st0, pos), claras = idx.filter(i=>T.prioClara[prio[i]]);
+  const L = [capa('-franja', d, m.franja, T.halo), capa('', d, m.halo, T.guinda), capa('-filete', d, m.filete, T.halo)];
+  if (claras.length) L.push(capa('-oscuro', trazos(claras, st0, pos), m.oscuro, T.ink));
+  return L; }
+
 function layers(){
   const z = viewState.zoom;
   const L = [];
   if (fondo!=='no') L.push(...capasFondo());
   if (showAlcB) L.push(new PolygonLayer({id:'alcaldias', opacity:opPrio, data:ALC_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> visible[domOf(d.i)]? [...T.prio[domOf(d.i)].slice(0,3), (sel===null || d.i===sel)? 170 : 45] : [0,0,0,0], pickable:true, autoHighlight: alcOnly(), highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, sel, visible.join(''), resp]}}));
-  // con el fondo propio, el tinte de prioridad de las colonias va más tenue: si no, cubre el hueco blanco de las calles
-  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : fondo==='calles'? 35 : 80)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol, fondo]}}));
+  // el tinte de prioridad de las colonias va tenue (35) con cualquier fondo: más fuerte cubre el hueco blanco de las calles y, con «Sin fondo»,
+  // les quita contraste a las líneas de prioridad (auditoría de contraste, MN21 a MN24)
+  if (showCol()) L.push(new PolygonLayer({id:'col-fill', opacity:opPrio, data:COL_PARTS, getPolygon:d=>d.poly, filled:true, stroked:false, getFillColor:d=> (d.prio>=0 && visible[d.prio])? [...T.prio[d.prio].slice(0,3), selCol!==null? (d.i===selCol? (frVisibles()? 60 : 190) : (frVisibles()? 14 : 40)) : (colOnly()? 150 : 35)] : [0,0,0,0], pickable: true, autoHighlight: true, highlightColor:[...T.gold.slice(0,3),120], updateTriggers:{getFillColor:[T.prio, showColB, showFrB, frVisibles(), visible.join(''), resp, selCol]}}));
   L.push(new PolygonLayer({id:'alc', data:ALC_PARTS, getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.alc, lineWidthMinPixels:1, lineWidthMaxPixels:1.5, updateTriggers:{getLineColor:[T.alc]}}));
-  if ((z>=12.2 && !isGC()) || colOnly()) L.push(new PathLayer({id:'cols', data:COL_PATHS, getPath:d=>d.path, getColor:T.col, widthMinPixels:0.7, widthMaxPixels:1, opacity:.7, updateTriggers:{getColor:[T.col]}}));
+  if ((z>=12.2 && !isGC()) || colOnly()) L.push(new PathLayer({id:'cols', data:COL_PATHS, getPath:d=>d.path, getColor:T.col, widthMinPixels:0.7, widthMaxPixels:1, updateTriggers:{getColor:[T.col]}}));   // opaco: --map-col llega a 3:1 sobre todos los fondos claros
   // frentes de manzana (responsabilidad de las alcaldías)
   // los frentes solo responden al cursor desde el zoom 12: más lejos son demasiado finos y revisar 372 mil tramos
   // en cada movimiento del ratón vuelve lento el mapa (se consultan las colonias)
@@ -158,36 +187,25 @@ function layers(){
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[COLORS, frParcial()? sel+'|'+selCol : ''], getFilterValue:[FILTER, frParcial()? sel+'|'+selCol : '']}}));
   if (highlight && highlight.avId!==undefined){
-    // con alcaldía seleccionada, el tramo que sí cuentan las cifras va marcado; el resto de la avenida, tenue
-    const mk = (idx, alpha, id)=>{ if(!idx.length) return; const st=new Uint32Array(idx.length+1); let n=0;
-      for(let i=0;i<idx.length;i++){ st[i]=n; n += vstart[idx[i]+1]-vstart[idx[i]]; }
-      st[idx.length]=n; const p=new Float64Array(n*2); let o=0;
-      for(const i of idx){ for(let k=vstart[i];k<vstart[i+1];k++){ p[o++]=VPOS[2*k]; p[o++]=VPOS[2*k+1]; } }
-      L.push(new PathLayer({id, data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}}, _pathType:'open', widthUnits:'meters', getWidth:44, widthMinPixels:9, widthMaxPixels:30, capRounded:true, jointRounded:true, getColor:[T.gold[0],T.gold[1],T.gold[2],alpha], pickable:false})); };
-    if (sel===null) mk(highlight.idx, 95, 'av-halo');
-    else { mk(highlight.idx.filter(i=>VP.mun[i]!==sel), 32, 'av-halo-out'); mk(highlight.idx.filter(i=>VP.mun[i]===sel), 120, 'av-halo'); }
+    // con alcaldía seleccionada, el tramo que sí cuentan las cifras lleva el resalte; el resto de la avenida, solo un halo tenue
+    const dentro = sel===null? highlight.idx : highlight.idx.filter(i=>VP.mun[i]===sel), fuera = sel===null? [] : highlight.idx.filter(i=>VP.mun[i]!==sel);
+    if (fuera.length) L.push(new PathLayer({id:'av-halo-out', data:trazos(fuera, vstart, VPOS), _pathType:'open', widthUnits:'meters', getWidth:RESALTE.avenida.halo[0], widthMinPixels:RESALTE.avenida.halo[1], widthMaxPixels:RESALTE.avenida.halo[2], capRounded:true, jointRounded:true, getColor:[...T.guinda.slice(0,3), 40], pickable:false}));
+    if (dentro.length) L.push(...resalte('av-halo', dentro, vstart, VPOS, VP.prio, RESALTE.avenida));   // la línea de la avenida va encima (capa 'vias')
   }
   // vialidades primarias (Gobierno Central): contexto en gris en modo Alcaldía; coloreadas por prioridad en los otros modos
   if (showFr() || isGC()) L.push(new PathLayer({id:'vias', opacity:opPrio, data:vpData(), _pathType:'open', widthUnits:'meters', getWidth: resp==='alc'? 7 : 14, widthMinPixels: resp==='alc'? 1.2 : 2.2, widthMaxPixels: resp==='alc'? 5 : 12, capRounded:true, jointRounded:true,
     pickable:true, autoHighlight:true, highlightColor:T.gold,
     extensions:[new DataFilterExtension({filterSize:2})], filterRange:[[0,15],[1,1]],
     updateTriggers:{getColor:[VCOLORS], getFilterValue:[VFILTER], getWidth:[resp]}}));
-  if (sel!==null) L.push(new PolygonLayer({id:'alc-sel', data:ALC_PARTS.filter(d=>d.i===sel), getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.sel, lineWidthMinPixels:2.2, lineWidthMaxPixels:3, updateTriggers:{getLineColor:[T.sel]}}));
-  if (selCol!==null) L.push(new PolygonLayer({id:'col-sel', data:COL_PARTS.filter(d=>d.i===selCol), getPolygon:d=>d.poly, filled:false, stroked:true, getLineColor:T.sel, lineWidthMinPixels:2.5, lineWidthMaxPixels:4, updateTriggers:{getLineColor:[T.sel]}}));
+  if (sel!==null) L.push(...contornoElegido('alc-sel', ALC_PARTS.filter(d=>d.i===sel), 2.2, 3));
+  if (selCol!==null) L.push(...contornoElegido('col-sel', COL_PARTS.filter(d=>d.i===selCol), 2.5, 4));
   if (highlight && highlight.avId===undefined){
-    const src = {st:start, pos:POS};
-    const idx = highlight.idx; const st = new Uint32Array(idx.length+1); let n=0;
-    for(let i=0;i<idx.length;i++){ st[i]=n; n += src.st[idx[i]+1]-src.st[idx[i]]; }
-    st[idx.length]=n; const p = new Float64Array(n*2); let o=0;
-    for(const i of idx){ for(let k=src.st[i];k<src.st[i+1];k++){ p[o++]=src.pos[2*k]; p[o++]=src.pos[2*k+1]; } }
-    // calle buscada: halo dorado, filete oscuro y, al centro, el color de prioridad de cada frente (el resaltado
-    // no debe tapar la prioridad, y se ve aunque la capa de calles esté apagada)
-    const hd = {length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}}};
-    L.push(new PathLayer({id:'hl', data:hd, _pathType:'open', widthUnits:'meters', getWidth:30, widthMinPixels:13, widthMaxPixels:34, getColor:[T.gold[0],T.gold[1],T.gold[2],235], pickable:false}));
-    L.push(new PathLayer({id:'hl-borde', data:hd, _pathType:'open', widthUnits:'meters', getWidth:16, widthMinPixels:7, widthMaxPixels:18, getColor:[36,38,42,255], pickable:false}));
-    if (highlight.avId===undefined){ const cc = new Uint8Array(n*4); let q=0;
-      for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=src.st[i];k<src.st[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
-      L.push(new PathLayer({id:'hl-prio', data:{length:idx.length, startIndices:st, attributes:{getPath:{value:p,size:2}, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false})); }
+    // calle buscada: el resalte y, al centro, el color de prioridad de cada frente (el resalte no tapa la prioridad, y se ve aunque la capa
+    // de calles esté apagada)
+    const idx = highlight.idx, hd = trazos(idx, start, POS), cc = new Uint8Array(hd.startIndices[idx.length]*4); let q=0;
+    for(const i of idx){ const c=T.prio[F.prio[i]]; for(let k=start[i];k<start[i+1];k++){ cc[q++]=c[0]; cc[q++]=c[1]; cc[q++]=c[2]; cc[q++]=255; } }
+    L.push(...resalte('hl', idx, start, POS, F.prio, RESALTE.calle));
+    L.push(new PathLayer({id:'hl-prio', data:{...hd, attributes:{...hd.attributes, getColor:{value:cc,size:4,normalized:true}}}, _pathType:'open', widthUnits:'meters', getWidth:10, widthMinPixels:4, widthMaxPixels:12, pickable:false}));
   }
   L.push(...invCapas());   // espacios para plantar del inventario de arbolado (05_inventario.js), debajo de los nombres
   const E = NOMAP? {alc:[], col:[], st:[]} : colocarNombres();
@@ -195,12 +213,12 @@ function layers(){
     fontFamily:'Cabin, Roboto, sans-serif', fontWeight:600, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', visible: z<14, updateTriggers:{getColor:[T.label], getSize:[z<11.5]}}));
   if (z>=13.6 && !isGC()) L.push(new TextLayer({id:'col-labels', data:E.col, getPosition:d=>d.pos, getText:d=>d.text.toUpperCase(), getSize:10.5, getColor:T.label, characterSet:ETQ_LETRAS,
     fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:hex(T.ground), getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.label]}}));
-  if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[34,38,42,235], characterSet:ETQ_LETRAS,
-    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:[255,255,255,235], getTextAnchor:'middle', getAlignmentBaseline:'center'}));
+  if (E.st.length) L.push(new TextLayer({id:'st-labels', data:E.st, getPosition:d=>d.pos, getText:d=>d.text, getAngle:d=>d.ang, getSize:ETQ_TAM, getColor:[...T.ink.slice(0,3),235], characterSet:ETQ_LETRAS,
+    fontFamily:'Roboto, sans-serif', fontWeight:500, fontSettings:ETQ_LETRA, outlineWidth:ETQ_CONTORNO, outlineColor:[...T.halo.slice(0,3),235], getTextAnchor:'middle', getAlignmentBaseline:'center', updateTriggers:{getColor:[T.ink]}}));
   if (ptoBuscado) L.push(new deck.ScatterplotLayer({id:'pto-buscado', data:[ptoBuscado], getPosition:d=>[d.lon,d.lat], getRadius:8, radiusUnits:'pixels', filled:true, stroked:true,
-    getFillColor:hex(css('--guinda')), getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:3, pickable:false, updateTriggers:{getPosition:[ptoBuscado.lon, ptoBuscado.lat]}}));
+    getFillColor:hex(css('--guinda')), getLineColor:T.halo, lineWidthUnits:'pixels', getLineWidth:3, pickable:false, updateTriggers:{getPosition:[ptoBuscado.lon, ptoBuscado.lat]}}));
   if (myPos){ const P=[myPos];
     L.push(new deck.ScatterplotLayer({id:'loc-acc', data:P, getPosition:d=>[d.lon,d.lat], getRadius:d=>Math.max(d.acc,4), radiusUnits:'meters', filled:true, stroked:true, getFillColor:[...LOC_BLUE,38], getLineColor:[...LOC_BLUE,120], lineWidthMinPixels:1, pickable:false, updateTriggers:{getPosition:[myPos.t], getRadius:[myPos.t]}}));
-    L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:[255,255,255,255], lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }
+    L.push(new deck.ScatterplotLayer({id:'loc-dot', data:P, getPosition:d=>[d.lon,d.lat], getRadius:7, radiusUnits:'pixels', filled:true, stroked:true, getFillColor:[...LOC_BLUE,255], getLineColor:T.halo, lineWidthUnits:'pixels', getLineWidth:2.5, pickable:false, updateTriggers:{getPosition:[myPos.t]}})); }
   return L;
 }

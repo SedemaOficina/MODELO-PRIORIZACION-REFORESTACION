@@ -3,7 +3,7 @@
 /* Generado por 02_fuente/construir.py a partir de 02_fuente/css/. No editar aquí. */
 /* Los estilos van en archivos aparte y no en un bloque <style> de la página: una política de seguridad de contenido estricta no lo admite. */
 :root{color-scheme:light}
-body{margin:0;padding:0;font:.875rem -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}
+body{margin:0;padding:0;font:.875rem -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5}
 img{max-width:100%}
 [hidden]:not([hidden=until-found i]){display:none!important}
 /* Variables: paleta institucional, rampa de prioridad (--p0 Muy Baja … --p4 Muy Alta), colores del mapa y sombras. Cambiar un color aquí lo cambia en toda la herramienta; los colores del mapa se leen desde app (03_estado.js). */
@@ -14,8 +14,9 @@ img{max-width:100%}
   --ink:#24262A; --ink-2:#55585A; --ink-3:#666A6D;
   --p0:#F9E7BF; --p1:#F4C56E; --p2:#E88A2E; --p3:#C2421B; --p4:#7F1D12;
   --fondo-calle:#FFFFFF; --fondo-manzana:#E2DED6; --fondo-verde:#D9EAD0; --fondo-agua:#BCD7E6;
-  --map-alc:#8A8C8E; --map-col:#B9B3A8; --map-label:#55585A; --map-sel:#273A45; --map-vp:#6E7174;
-  --focus:#B28E5C;
+  --map-alc:var(--ink-3); --map-col:#7A766F; --map-label:#55585A; --map-sel:#273A45; --map-vp:var(--ink-3);
+  --map-halo:#FFFFFF;   /* franjas y halos blancos del mapa: nombres de calle, contorno de lo elegido, resalte de la calle o avenida consultada, marcadores */
+  --focus:#5A1029;   /* anillo de foco del teclado (con halo blanco, 07_accesibilidad.css) */
   --shadow: 0 8px 28px rgba(36,38,42,.14);
   --inv-cepa:#1B8A3C; --inv-tocon:#7A5534; --inv-muerto:#3C4043;   /* espacios para plantar: cepa vacante, tocón y árbol muerto (fuera de la rampa de prioridad) */
   --loc:#1A73E8;   /* punto y botón de Mi ubicación (azul convencional de "tu ubicación")*/
@@ -27,7 +28,6 @@ html,body{height:100%}
 body{margin:0;background:var(--ground);color:var(--ink);font:.875rem/1.45 Roboto,"Helvetica Neue",Arial,sans-serif;overflow:hidden}
 h1,h2,h3,.cabin{font-family:Cabin,"Trebuchet MS",Arial,sans-serif}
 button,input,select{font:inherit;color:inherit}
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .app{display:grid;grid-template-columns:392px 1fr;height:100vh;height:100dvh}
 /* ---------- panel ---------- */
 .panel{background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-height:0}
@@ -165,8 +165,6 @@ body.fondo-propio .attrib{display:none}   /* el fondo propio no lleva crédito s
 .legend .lg-tit{display:block;margin:0 0 6px;font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);font-weight:600}
 .legend .row{display:flex;align-items:center;gap:8px;padding:3px 0;cursor:pointer;user-select:none}
 .legend .row i{width:22px;height:5px;border-radius:2px;flex:none}
-.legend .row.off{opacity:.38}
-.legend .row.off span{text-decoration:line-through}
 .legend .static{cursor:default;border-top:1px solid var(--line);margin-top:5px;padding-top:6px;font-size:.75rem;color:var(--ink-2);align-items:flex-start}
 .legend .sw{width:22px;height:5px;border-radius:2px;flex:none;margin-top:6px}
 .legend .sw.ctx{background:var(--map-vp);height:3px;margin-top:7px}
@@ -181,7 +179,7 @@ body.fondo-propio .attrib{display:none}   /* el fondo propio no lleva crédito s
 .card .close:hover{background:var(--panel-2);color:var(--ink)}
 .pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 7px;border-radius:999px;font-family:Cabin,sans-serif;font-weight:700;font-size:.75rem;letter-spacing:.05em;text-transform:uppercase;background:var(--panel-2);color:var(--ink)}
 .pill i{width:9px;height:9px;border-radius:50%}
-.dot,.pr,.pill i,.legend .row i,.mapsum .scope i,.bars .fill{box-shadow:inset 0 0 0 1px rgba(36,38,42,.14)}
+.dot,.pr,.pill i,.mapsum .scope i,.bars .fill{box-shadow:inset 0 0 0 1px rgba(36,38,42,.14)}
 .card h3{margin:8px 0 0;font-size:1rem;line-height:1.2;padding-right:20px}
 .card .sub{color:var(--ink-2);font-size:.75rem;margin:2px 0 10px}
 .card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:.75rem}
@@ -233,7 +231,7 @@ body.fondo-propio .attrib{display:none}   /* el fondo propio no lleva crédito s
 .loader .bar{width:220px;height:6px;border-radius:3px;background:var(--line);margin:12px auto 0;overflow:hidden}
 .loader .bar i{display:block;height:100%;width:0;background:var(--guinda);transition:width .3s}
 .loader[hidden]{display:none}
-.attrib{position:absolute;right:16px;bottom:16px;font-size:.75rem;color:var(--ink-3);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 6px;border-radius:4px}
+.attrib{position:absolute;right:16px;bottom:16px;font-size:.75rem;color:var(--ink-2);background:color-mix(in srgb,var(--panel) 80%,transparent);padding:2px 6px;border-radius:4px}
 .card:not([hidden]) ~ .attrib:not(.sat){display:none}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   .panel-head{padding:12px 16px 10px}
@@ -246,7 +244,7 @@ body.fondo-propio .attrib{display:none}   /* el fondo propio no lleva crédito s
 
 /* Refinamiento de controles: foco, campos, menús, barra de herramientas, barra de resumen sobre el mapa, leyenda plegable y casillas. */
 /* --- refinamiento de controles --- */
-:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:4px}
+:focus-visible{border-radius:4px}
 .combo input,.search input{border-color:var(--line);box-shadow:0 1px 2px rgba(36,38,42,.05);transition:border-color .12s ease,box-shadow .12s ease}
 .combo input:hover,.search input:hover{border-color:var(--ink-3)}
 .combo input:focus,.search input:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(178,142,92,.22);outline:none}
@@ -418,8 +416,9 @@ body.tab-dl .panel-actions{display:none}
 #legend-rows .row[aria-checked="true"] .lg-cb{background:var(--ink);border-color:var(--ink)}
 #legend-rows .row[aria-checked="true"] .lg-cb::after{content:"";position:absolute;inset:0;background:var(--panel);-webkit-mask:var(--check) center/80% no-repeat;mask:var(--check) center/80% no-repeat}
 .legend .lg-km{font-style:normal;color:var(--ink-2);font-variant-numeric:tabular-nums;font-size:.75rem}
-.legend .row.off{opacity:.55}
-.legend .row.off span{text-decoration:none}
+/* prioridad apagada: el nombre y los km en --ink-3 (5.45:1, sin opacidad); solo la muestra de color se ve tenue */
+.legend .row.off,.legend .row.off .lg-km{color:var(--ink-3)}
+.legend .row.off i{opacity:.35}
 /* encabezado compacto */
 .panel-head{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 10px;padding:10px 16px 10px;border-bottom-width:3px}
 .panel-head .logo{grid-column:1/-1;max-width:230px;height:auto}
@@ -439,7 +438,6 @@ body.tab-dl .panel-actions{display:none}
 .card .fa svg{width:18px;height:18px;fill:none;stroke:var(--guinda);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 /* barra de escala y atribución con la ficha o el panel de capas abiertos */
 .card:not([hidden]) ~ .scalebar{display:none}
-.attrib{color:var(--ink-2)}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.legend.open{max-height:calc(100% - 72px);overflow-y:auto}.legend.open ~ .scalebar{display:none}}
 
 /* Panel y hoja inferior: panel con consulta arriba, respuesta, pestañas y acciones fijas; ruta de navegación; hoja inferior de tres alturas; ayuda de uso. Ajusta reglas de los archivos anteriores; el orden importa. */
@@ -643,7 +641,7 @@ body.buscando .panel-head,body.buscando .panel-actions{display:none}
 #scope-title:focus{outline:none}
 #scope-title:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
 /* indicador de foco de dos tonos: anillo oscuro con halo claro, visible sobre blanco, sobre el mapa y sobre el botón guinda */
-:root{--focus:#5A1029; --ctl:#8A8478}
+:root{--ctl:#8A8478}   /* --focus está en 01_variables.css */
 :focus-visible{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 2px #fff!important}
 .combo input:focus,.search input:focus{border-color:var(--focus);box-shadow:0 0 0 2px #fff,0 0 0 5px var(--focus)!important;outline:none}
 /* los renglones de los listados muestran dónde está el foco */
@@ -852,13 +850,12 @@ body.con-sesion .panel-head .logo{grid-column:1}
 /* ---------- fila «Banqueta»: filtro de los frentes de las alcaldías según INEGI 2020 ---------- */
 .query .banq-row{margin-top:6px}
 .banq-row[hidden]{display:none}
-.banq-row .seg.pills{flex-wrap:nowrap;gap:5px}
-.banq-row .seg.pills button{padding:5px 10px;white-space:nowrap}
+/* mismos chips que «Atiende» y «Espacio» (05_panel_y_hoja_inferior.css); como se elige una sola opción, el icono es un círculo de radio (○ / ◉).
+   Su rótulo «Banqueta» solo lo oyen los lectores de pantalla (clase sr): con él a la vista, «Sin banqueta» no cabía en el renglón */
+.resp-row .chip.radio i{border-radius:50%}
+.resp-row .chip.radio i::after{-webkit-mask:none;mask:none;left:2.5px;top:2.5px;right:2.5px;bottom:2.5px;border-radius:50%}
 .banq-tag{color:var(--guinda-ink);font-weight:600}
 .univline.banq span{font-size:.8125rem}
-@media (max-width:380px){.banq-row .seg.pills button{padding:5px 8px;font-size:.6875rem}}
-/* objetivo táctil de 44 px en teléfono (misma regla que 07_accesibilidad.css) */
-@media (max-width:860px) and (min-height:481px), (max-width:600px){.banq-row .seg.pills button{min-height:44px}}
 /* ---------- fila «Espacio»: casillas como las de «Atiende»; si no caben en un renglón, pasan al siguiente sin cortarse ---------- */
 .esp-row[hidden],.esp-aviso[hidden]{display:none}
 .esp-row{align-items:flex-start}
@@ -869,7 +866,8 @@ body.con-sesion .panel-head .logo{grid-column:1}
 .esp-aviso.warn{color:var(--guinda-ink)}
 /* aviso bajo «Mostrar» mientras bajan las cepas vacantes del orden por cepas (o si fallan) */
 .ini-carga{flex:1 0 100%;margin:0}
-@media (max-width:860px) and (min-height:481px), (max-width:600px){ .esp-row .chip{min-height:44px} .esp-row .lab{padding-top:15px} }
+/* objetivo táctil de 44 px en teléfono, igual en las tres filas («Atiende», «Banqueta» y «Espacio») */
+@media (max-width:860px) and (min-height:481px), (max-width:600px){ .resp-row .chip{min-height:44px} .esp-row .lab{padding-top:15px} }
 /* «Atiende» y «Banqueta»: las dos filas, con la explicación de la banqueta elegida debajo */
 .filtros-ops{display:flex;flex-direction:column;gap:10px}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){ .filtros-ops{gap:8px} .query .filtros-ops .resp-row{margin-top:0} }
