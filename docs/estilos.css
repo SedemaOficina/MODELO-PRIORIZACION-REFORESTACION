@@ -830,6 +830,15 @@ body.con-sesion .panel-head .logo{grid-column:1}
 .entrada-red b{font:700 1.0625rem/1.2 Cabin,sans-serif}
 .entrada-red span{grid-column:2;font-size:.875rem;line-height:1.35;color:var(--ink-2)}
 .entrada-volver{display:inline-block;margin:0 0 12px}
+/* «Las dos» (resp='both'): en la computadora, a lo ancho debajo de las otras dos */
+.entrada-dos{grid-column:1/-1;min-height:0}
+/* paso 2: una línea con lo elegido (ícono y texto) y, junto, el enlace para cambiarlo */
+.entrada-eleg{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 14px;margin:0 0 14px;padding:0 0 12px;border-bottom:1px solid var(--line)}
+.entrada-eleg p{display:flex;align-items:center;gap:10px;margin:0;min-width:0;font-size:.9375rem;color:var(--ink)}
+.entrada-eleg b{font:700 .9375rem/1.3 Cabin,sans-serif}
+.entrada-eleg-ic{display:flex;flex:none}
+.entrada-eleg-ic svg{width:30px;height:30px;padding:5px;border-radius:8px;background:rgba(157,33,72,.08);stroke:var(--guinda);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.entrada-eleg .entrada-volver{margin:0;min-height:32px}
 #entrada-q:focus{outline:none}
 .query .resp-row{margin-top:8px}
 @media (max-width:600px){ .entrada-resp{grid-template-columns:1fr} }
@@ -903,6 +912,9 @@ body.con-sesion .panel-head .logo{grid-column:1}
 .rec-velo.sin-foco{background:rgba(20,22,26,.6)}
 .rec-foco{position:fixed;z-index:2001;border-radius:10px;pointer-events:none;box-shadow:0 0 0 3px var(--dorado),0 0 0 200vmax rgba(20,22,26,.6);transition:left .25s ease,top .25s ease,width .25s ease,height .25s ease}
 .rec-foco[hidden]{display:none}
+/* paso «Espacios para plantar»: marca invisible sobre un punto real del inventario; el foco lo rodea en círculo */
+.rec-punto{position:fixed;z-index:1999;width:40px;height:40px;pointer-events:none}
+.rec-foco.redondo{border-radius:50%}
 .rec-globo{position:fixed;z-index:2002;background:var(--panel);color:var(--ink);border-radius:12px;border-top:4px solid var(--guinda);box-shadow:0 12px 32px rgba(0,0,0,.32);padding:14px 16px 12px;font:400 .9375rem/1.45 Roboto,sans-serif}
 .rec-globo .rec-paso{font:600 .75rem/1 Cabin,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--guinda)}
 .rec-globo h3{margin:6px 0 6px;font:700 1.125rem/1.25 Cabin,sans-serif;color:var(--ink);outline:0}
@@ -940,7 +952,7 @@ body.con-sesion .panel-head .logo{grid-column:1}
   .btn-vista:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
   #ver-mapa{justify-self:end;align-self:center;padding:0 14px}
   /* las pestañas ocupan el ancho sin sobrar: en iPhone la letra sale un poco más ancha y la barra se deslizaba de lado al bajar con el dedo */
-  .tabs{overscroll-behavior-x:none}
+  .tabs{overscroll-behavior-x:none;position:static}   /* en el celular no se quedan pegadas arriba: en iPhone, al deslizar, el título se les encimaba y las cortaba */
   .tabs button{flex:1 1 auto;padding-left:2px;padding-right:2px;font-size:clamp(.8rem,3.6vw,.875rem)}
   .btn-info{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom, 0px));z-index:6;min-height:56px;padding:6px 20px;gap:12px}
   /* dos renglones: qué hace (siempre igual) y el lugar consultado; la flecha a la izquierda es por donde entra la información */

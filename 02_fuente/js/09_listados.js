@@ -145,8 +145,8 @@ function filasColonias(ul, ord){
   // tienen km prioritarios pero sí cepas (por su total; lo que tiene km prioritarios conserva el orden de siempre)
   items.sort((a,b)=> b[3]-a[3] || b[1].kmp-a[1].kmp || (cv && !a[1].kmp? b[1].cvt-a[1].cvt : 0));
   $('ini-count').textContent = `${fmt.format(items.length)} colonia${items.length===1?'':'s'}, ${o.tit}`;
-  const sc = sinColStat();
-  iniNota(o.nota, [cv? cepasDet('la colonia', 'frentes') + ' ' + cepasNota('una colonia') : '', sc.n? `Además, ${fmt.format(sc.n)} frentes (${kmFull(sc.km)}; ${kmFull(sc.kmp)} prioritarios) ${sel===null? 'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo y no aparecen en esta lista. Sí se cuentan en las cifras de la alcaldía y en su Excel de frentes.` : ''].filter(Boolean).join(' '));
+  // los frentes sin colonia se explican en el Resumen (nota de las barras); aquí no se repite
+  iniNota(o.nota, cv? cepasDet('la colonia', 'frentes') + ' ' + cepasNota('una colonia') : '');
   if(!items.length) return iniVacio(ul, filtroEsp? `Ninguna colonia de este ámbito tiene frentes ${cv? '' : 'prioritarios '}con ${espLista()} inventariados hasta ahora. El inventario de arbolado está en curso.` : cv? 'Este ámbito no tiene colonias con frente prioritario ni con cepas vacantes registradas.' : 'Este ámbito no tiene colonias con frente prioritario.');
   items.slice(0,iniN).forEach(([i,s,c],k)=>{
     const [v,sm] = ord==='pob'? [fmt.format(c.pob||0)+' hab.', `${kmFull(s.kmp)} de frente prioritario`]

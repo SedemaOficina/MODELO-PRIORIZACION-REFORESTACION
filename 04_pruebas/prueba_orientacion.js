@@ -1,4 +1,5 @@
-// Entrada y orientación: entrada en dos pasos (red y territorio), pestaña inicial «Dónde empezar», panel de capas cerrado con
+// Entrada y orientación: entrada en dos pasos (red —alcaldías, Gobierno Central o «Las dos»— y territorio; el segundo no repite la
+// presentación), pestaña inicial «Dónde empezar», panel de capas cerrado con
 // leyenda compacta, «Quién atiende» dentro del panel de capas y la consulta guardada en la dirección.
 // Uso: node 04_pruebas/prueba_orientacion.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
@@ -15,9 +16,10 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
   // ---------- entrada por territorio ----------
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
     const e = await page.evaluate(() => { const d = document.getElementById('entrada'); return { visible: !d.hidden, ops: d.querySelectorAll('.entrada-op').length, ciudad: !!document.getElementById('entrada-cdmx'), inerte: document.querySelector('.app').inert, foco: document.activeElement.className, redes: d.querySelectorAll('.entrada-red').length, paso1: !document.getElementById('entrada-p1').hidden, paso2: !document.getElementById('entrada-p2').hidden, texto: d.innerText, rol: d.getAttribute('role'), modal: d.getAttribute('aria-modal'), nombre: !!document.getElementById(d.getAttribute('aria-labelledby')) }; });
-    ok('primera visita sin consulta: se pregunta primero qué red consultar, con dos opciones', e.visible && e.redes === 2 && e.paso1 && !e.paso2, JSON.stringify(e));
+    ok('primera visita sin consulta: se pregunta primero qué consultar, con tres opciones (alcaldías, Gobierno Central y «Las dos»)', e.visible && e.redes === 3 && e.paso1 && !e.paso2 && /Las dos/.test(e.texto), JSON.stringify(e));
     ok('la entrada es un diálogo con nombre, deja inerte el resto y enfoca la primera opción', e.rol === 'dialog' && e.modal === 'true' && e.nombre && e.inerte && e.foco === 'entrada-red');
     ok('la entrada dice que la herramienta es para las alcaldías y para el Gobierno de la Ciudad', /alcaldías/.test(e.texto) && /Gobierno de la Ciudad/.test(e.texto) && /Gobierno Central/.test(e.texto));
+    ok('la presentación menciona los espacios para plantar del inventario de arbolado', /cepas vacantes, tocones y árboles muertos/.test(e.texto) && /inventario de arbolado/.test(e.texto));
     const ini = await page.evaluate(() => ({ tab: document.querySelector('.tabs [aria-selected="true"]').id, capas: document.querySelector('.legend').classList.contains('open') }));
     ok('la pestaña inicial es «Dónde empezar» y el panel de capas empieza cerrado', ini.tab === 'tab-ini' && !ini.capas, JSON.stringify(ini));
     await page.keyboard.press('Escape'); await page.waitForTimeout(300);
@@ -28,8 +30,10 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     await ctx.close(); }
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
     await page.click('.entrada-red[data-red="alc"]'); await page.waitForTimeout(200);
-    const p2 = await page.evaluate(() => ({ paso2: !document.getElementById('entrada-p2').hidden, ops: document.querySelectorAll('.entrada-op').length, q: document.getElementById('entrada-q').textContent, foco: document.activeElement.id }));
+    const p2 = await page.evaluate(() => ({ paso2: !document.getElementById('entrada-p2').hidden, ops: document.querySelectorAll('.entrada-op').length, q: document.getElementById('entrada-q').textContent, foco: document.activeElement.id,
+      texto: document.getElementById('entrada').innerText, eleg: document.getElementById('entrada-eleg').innerText.trim(), ic: !!document.querySelector('#entrada-eleg-ic svg'), volver: !!document.getElementById('entrada-volver').offsetParent }));
     ok('segundo paso: 16 alcaldías y «Ver toda la ciudad»; el foco pasa a la pregunta', p2.paso2 && p2.ops === 16 && /alcaldía/.test(p2.q) && p2.foco === 'entrada-q', JSON.stringify(p2));
+    ok('segundo paso: no repite la presentación; una línea dice lo elegido, con su ícono, y se puede cambiar', !/pone esta herramienta/.test(p2.texto) && p2.eleg === 'Calles y colonias de las alcaldías' && p2.ic && p2.volver && /Cambiar lo que quiero consultar/.test(p2.texto), p2.eleg);
     await page.click('#entrada-volver'); await page.waitForTimeout(150);
     ok('se puede volver al primer paso', await page.evaluate(() => !document.getElementById('entrada-p1').hidden && document.getElementById('entrada-p2').hidden));
     await page.click('.entrada-red[data-red="alc"]');
@@ -45,6 +49,7 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
     await page.click('.entrada-red[data-red="gc"]'); await page.waitForTimeout(200);
     ok('con Gobierno Central, el segundo paso pregunta por las vialidades primarias', /vialidades primarias/.test(await page.$eval('#entrada-q', x => x.textContent)));
+    ok('con Gobierno Central, la línea de lo elegido lo dice', (await page.$eval('#entrada-eleg', x => x.innerText.trim())) === 'Vialidades primarias del Gobierno Central');
     await page.evaluate(() => [...document.querySelectorAll('.entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await page.waitForTimeout(700);
     const g = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, url: location.search, red: localStorage.getItem('cp_red'), gc: document.querySelector('button[data-resp="gc"]').getAttribute('aria-pressed'), mapsum: document.getElementById('mapsum').innerText }));
     ok('entrar por Gobierno Central abre las vialidades primarias de la alcaldía, con sus avenidas en «Dónde empezar»', g.resp === 'gc' && g.titulo === 'Iztapalapa' && /^Avenidas de la alcaldía Iztapalapa/.test(g.ini) && g.n > 0 && g.gc === 'true', JSON.stringify(g));
@@ -59,6 +64,27 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('Gobierno Central en toda la ciudad: avenidas de la ciudad, y se recuerda', c.resp === 'gc' && c.titulo === 'Ciudad de México' && /^Avenidas de la ciudad/.test(c.ini) && c.red === 'gc' && c.inicio === 'ciudad', JSON.stringify(c));
     await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
     ok('al volver, sigue en Gobierno Central y toda la ciudad', await page.evaluate(() => document.body.dataset.resp === 'gc' && document.getElementById('entrada').hidden && document.getElementById('scope-title').textContent === 'Ciudad de México'));
+    await ctx.close(); }
+  // «Las dos»: como marcar «Alcaldías» y «Gobierno Central» en «Atiende» (resp='both'); queda en la dirección (r=both) y se recuerda
+  { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
+    await page.click('.entrada-red[data-red="both"]'); await page.waitForTimeout(200);
+    const p2 = await page.evaluate(() => ({ eleg: document.getElementById('entrada-eleg').innerText.trim(), q: document.getElementById('entrada-q').textContent, texto: document.getElementById('entrada').innerText }));
+    ok('«Las dos»: el segundo paso dice «Calles de las alcaldías y vialidades primarias» y no repite la presentación', p2.eleg === 'Calles de las alcaldías y vialidades primarias' && /alcaldía/.test(p2.q) && !/pone esta herramienta/.test(p2.texto), JSON.stringify(p2.eleg));
+    await page.evaluate(() => [...document.querySelectorAll('.entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await page.waitForTimeout(700);
+    const b = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, url: location.search, red: localStorage.getItem('cp_red'), inicio: localStorage.getItem('cp_inicio'),
+      alc: document.querySelector('button[data-resp="alc"]').getAttribute('aria-pressed'), gc: document.querySelector('button[data-resp="gc"]').getAttribute('aria-pressed'), bars2: !document.getElementById('bars2').hidden }));
+    ok('«Las dos» abre la alcaldía con las dos casillas de «Atiende» marcadas (resp=both) y los dos bloques del Resumen', b.resp === 'both' && b.titulo === 'Iztapalapa' && b.alc === 'true' && b.gc === 'true' && b.bars2, JSON.stringify(b));
+    ok('«Las dos» queda en la dirección (r=both) y se recuerda', /r=both/.test(b.url) && /a=007/.test(b.url) && b.red === 'both' && b.inicio === '007', JSON.stringify(b));
+    await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+    const r = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, entrada: document.getElementById('entrada').hidden, url: location.search }));
+    ok('la siguiente visita abre con las dos redes y la misma alcaldía, sin preguntar', r.resp === 'both' && r.titulo === 'Iztapalapa' && r.entrada && /r=both/.test(r.url), JSON.stringify(r));
+    await ctx.close(); }
+  { const { page, ctx } = await L.abrir(browser, U, { entrada: true }, errores);
+    await page.click('.entrada-red[data-red="both"]'); await page.evaluate(() => document.getElementById('entrada-cdmx').click()); await page.waitForTimeout(600);
+    const c = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, red: localStorage.getItem('cp_red'), inicio: localStorage.getItem('cp_inicio') }));
+    ok('«Las dos» en toda la ciudad: se recuerda', c.resp === 'both' && c.titulo === 'Ciudad de México' && c.red === 'both' && c.inicio === 'ciudad', JSON.stringify(c));
+    await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+    ok('al volver, sigue con las dos redes y toda la ciudad', await page.evaluate(() => document.body.dataset.resp === 'both' && document.getElementById('entrada').hidden && document.getElementById('scope-title').textContent === 'Ciudad de México'));
     await ctx.close(); }
   { const { page, ctx } = await L.abrir(browser, srv.url + '?modo=ligero&a=005#nomap', { entrada: true }, errores);
     const r = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, entrada: document.getElementById('entrada').hidden, guarda: localStorage.getItem('cp_inicio') }));

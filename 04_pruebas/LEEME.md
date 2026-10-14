@@ -4,7 +4,7 @@ Una sola orden corre todo y termina con código 0 solo si todo pasó:
 
 ```
 node 04_pruebas/correr_todas.js            todo: unos 40 minutos sin tarjeta gráfica
-node 04_pruebas/correr_todas.js rapidas    datos, construcción y revisión estática: menos de un minuto
+node 04_pruebas/correr_todas.js rapidas    datos, construcción, revisión estática y contraste del mapa: menos de un minuto
 ```
 
 Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la raíz (instala las versiones fijadas en `package.json`: Playwright 1.56.0 y ESLint 9.37.0), y `npx playwright install chromium`. La prueba de coherencia requiere además `openpyxl` y `pdftotext`.
@@ -16,6 +16,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `03_procesamiento_datos/verificar_datos.py` | Que los datos sean los registrados y cuadren entre sí; del inventario de arbolado, que cada archivo sea el registrado, sus puntos por tipo las cifras de control y sus frentes los de `data.bin`; del archivo del filtro «Espacio», sus cifras de control y un recálculo desde los puntos | 10 s |
 | `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza, o si el inventario de arbolado no es el registrado, se asignó con otros frentes o el archivo del filtro «Espacio» falta o no cuadra | 30 s |
 | ESLint (`npm run lint`) | Variables sin definir o sin usar en `docs/app.js` | 5 s |
+| `prueba_contraste.js` | Contraste de los colores del mapa sobre cada fondo real (texto 4.5:1; líneas, puntos, aros, contornos y foco 3:1), con el cálculo de `herramientas/contraste.mjs` | 1 s |
 | `prueba_sin_terceros.js` | Que el sitio, el archivo único y la instalación en una subruta trabajen sin pedir nada a otros dominios | 2 min |
 | `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 6 min |
 | `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 1 min |
@@ -23,10 +24,10 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_accesibilidad.js` | Marcado, anuncios, foco, teclado, contraste, objetivos táctiles, letra, impresión y propiedades de PDF y Excel | 1 min |
 | `prueba_servidor_sia.js` | Instalada en `/priorizacion-reforestacion/` con la política de seguridad de contenido del ejemplo de nginx y sus reglas de caché (la página, también con `?v=` de avenida, se revalida siempre; lo que lleva huella se guarda un año): cero violaciones, sesión vencida, datos descomprimidos por un intermediario; rutas de la fase 2 (acceso y API bajo `/priorizacion-reforestacion/`, sin `auth_request`); «Mi cuenta» con la sesión configurada (menú con «Cambiar contraseña» y «Cerrar sesión», teclado, Esc, clic fuera, celular de 44 px) y oculto sin sesión | 2 min |
 | `prueba_telefono_y_sin_conexion.js` | GPS impreciso, Excel grandes, teléfono en horizontal y uso sin conexión | 2 min |
-| `prueba_orientacion.js` | Entrada por territorio, tres pestañas, «Dónde empezar» (orden, filtro por nombre, calles de la alcaldía, alcaldías, tramos de la calle elegida, avenidas y alcaldías que cruza una avenida), el nombre del lugar una sola vez en el Resumen, capas cerradas con leyenda compacta, «Quién atiende» en capas, sin «Compartir» | 1 min |
+| `prueba_orientacion.js` | Entrada por territorio (tres opciones, «Las dos» abre con `r=both` y se recuerda; el segundo paso no repite la presentación), tres pestañas, «Dónde empezar» (orden, filtro por nombre, calles de la alcaldía, alcaldías, tramos de la calle elegida, avenidas y alcaldías que cruza una avenida), el nombre del lugar una sola vez en el Resumen, capas cerradas con leyenda compacta, «Quién atiende» en capas, sin «Compartir» | 1 min |
 | `prueba_casos_limite.js` | Casos límite: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
 | `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, explicación visible de la opción elegida, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central (una sola medida a la vista; lo que está en km de frente, plegado también en la computadora) | 1 min |
-| `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, pasos de banqueta y de Street View, en escritorio y teléfono | 1 min |
+| `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, el foco cae sobre el control de cada paso, menos de 15 pasos, pasos de banqueta, «Espacio», orden por cepas, Street View y espacios para plantar (punto real del inventario), «Mi cuenta» solo con sesión (simulada con `SIA_SESION`), en escritorio, teléfono y Gobierno Central | 2 min |
 | `prueba_nombres_mapa.js` | Nombres del mapa, gestos y búsqueda por coordenadas: nombres de alcaldía y colonia dentro de su figura, nombres de calle sobre la línea media, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta |
 | `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo, «Atiende» y «Banqueta» siempre a la vista; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) |
 | `prueba_inventario_espacios.js` | Espacios para plantar (inventario de arbolado): puntos por tipo de los datos publicados = cifras de control y recálculo propio (y el CSV del inventario, si está en el equipo), frente asignado a 20 m o menos y ninguno cerca de los que quedaron sin frente, capa que aparece al acercar y no de lejos (archivos con huella, solo de las alcaldías a la vista), casillas que encienden y apagan cada tipo (también con el teclado), ficha de una cepa que gana al frente de debajo (tipo, clave, calle, colonia, prioridad del frente, Street View), avance de la alcaldía, cifras del modelo sin cambios, celular de 390 px sin desborde ni encimados y sin errores | 6 min |
@@ -101,6 +102,17 @@ node 04_pruebas/prueba_telefono_y_sin_conexion.js
 ```
 
 Tarda unos 2 minutos. Las demás pruebas bloquean el proceso de servicio (`serviceWorkers: 'block'`) para poder intervenir la red; esta lo deja activo en su última sección.
+
+## Prueba de contraste del mapa
+
+`prueba_contraste.js` usa el mismo cálculo que `herramientas/contraste.mjs`, que lee los colores directamente de `02_fuente/css` y `02_fuente/js` (variables, colores de las capas de deck.gl, transparencias, halos y contornos) y mide cada par sobre el fondo donde aparece en el mapa: suelo, manzana, verde y agua del fondo «Calles», «Sin fondo», la rampa de prioridad, los rellenos de colonia y los extremos del satélite. Comprueba la fórmula contra valores conocidos de WCAG y **falla si un par exigido que hoy cumple deja de cumplir**, si un color ya no está donde la auditoría lo busca o si la lista de pendientes (`PENDIENTES_CONOCIDOS` en `contraste.mjs`) ya no corresponde a sus pares. Los pares «Pendiente de decisión» no la hacen fallar: se listan como aviso. También avisa si `05_documentacion/auditoria_contraste_mapa.md` no está al día con los colores. No abre el navegador.
+
+```
+node 04_pruebas/prueba_contraste.js
+node herramientas/contraste.mjs                     la tabla completa
+node herramientas/contraste.mjs --md 05_documentacion/auditoria_contraste_mapa.md --html _local/auditoria_contraste_mapa.html
+node herramientas/contraste.mjs --pendientes        la lista de pendientes, para pegarla en contraste.mjs tras una decisión
+```
 
 ## Prueba de accesibilidad
 

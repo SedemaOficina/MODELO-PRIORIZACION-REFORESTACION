@@ -19,7 +19,7 @@
   .btn-vista:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
   #ver-mapa{justify-self:end;align-self:center;padding:0 14px}
   /* las pestañas ocupan el ancho sin sobrar: en iPhone la letra sale un poco más ancha y la barra se deslizaba de lado al bajar con el dedo */
-  .tabs{overscroll-behavior-x:none}
+  .tabs{overscroll-behavior-x:none;position:static}   /* en el celular no se quedan pegadas arriba: en iPhone, al deslizar, el título se les encimaba y las cortaba */
   .tabs button{flex:1 1 auto;padding-left:2px;padding-right:2px;font-size:clamp(.8rem,3.6vw,.875rem)}
   .btn-info{position:absolute;left:10px;right:10px;bottom:calc(10px + env(safe-area-inset-bottom, 0px));z-index:6;min-height:56px;padding:6px 20px;gap:12px}
   /* dos renglones: qué hace (siempre igual) y el lugar consultado; la flecha a la izquierda es por donde entra la información */

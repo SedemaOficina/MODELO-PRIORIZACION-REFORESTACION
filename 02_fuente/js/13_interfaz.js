@@ -133,8 +133,10 @@ function resaltaUnidad(el){ if (!el || el.querySelector('b.unidad')) return; con
   const b = document.createElement('b'); b.className = 'unidad'; b.textContent = m[1]; el.replaceChildren(t.slice(0, m.index), b, t.slice(m.index + m[1].length)); }
 for (const id of ['ini-title']){ const el = $(id); if (!el) continue; resaltaUnidad(el); new MutationObserver(()=>resaltaUnidad(el)).observe(el, {childList:true, characterData:true, subtree:true}); }
 // ---------- entrada en dos pasos ----------
-// Primera visita sin consulta en la dirección. Paso 1: qué red se consulta (alcaldías o Gobierno Central), con el mismo peso.
-// Paso 2: el territorio (una alcaldía o toda la ciudad). Esc o «Ver toda la ciudad» dejan la ciudad completa.
+// Primera visita sin consulta en la dirección. Paso 1: la presentación y qué red se consulta (alcaldías, Gobierno Central o las dos,
+// como marcar las dos casillas de «Atiende»: resp='both'), con el mismo peso. Paso 2: el territorio (una alcaldía o toda la ciudad); no
+// repite la presentación: una línea dice lo elegido (data-eleg del botón, con su ícono). Esc o «Ver toda la ciudad» dejan la ciudad completa.
+// La red queda en la dirección (r=gc o r=both) y en este navegador (cp_red), como cualquier cambio de «Atiende».
 const entradaEl = $('entrada'); let entradaRed = 'alc';
 let trasEntrada = null;   // lo que sigue a la entrada en la primera visita: el recorrido guiado (17_recorrido.js)
 function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false;
@@ -144,7 +146,9 @@ function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false;
   if (trasEntrada){ const f = trasEntrada; trasEntrada = null; setTimeout(f, 700); } }
 function entradaPaso(n){ $('entrada-p1').hidden = n!==1; $('entrada-p2').hidden = n!==2;
   if (n===1) entradaEl.querySelector('.entrada-red[data-red="'+entradaRed+'"]').focus();
-  else { $('entrada-q').textContent = entradaRed==='gc'? '¿En qué alcaldía quieres ver las vialidades primarias?' : '¿Qué alcaldía quieres revisar?'; $('entrada-q').focus(); } }
+  else { const b = entradaEl.querySelector('.entrada-red[data-red="'+entradaRed+'"]');
+    $('entrada-eleg-t').textContent = b.dataset.eleg; $('entrada-eleg-ic').replaceChildren(b.querySelector('svg').cloneNode(true));
+    $('entrada-q').textContent = entradaRed==='gc'? '¿En qué alcaldía quieres ver las vialidades primarias?' : '¿Qué alcaldía quieres revisar?'; $('entrada-q').focus(); } }
 function abreEntrada(){ const g = $('entrada-grid');
   if (!g.children.length) META.muns.map((m,i)=>i).sort((a,b)=>META.munNames[a].localeCompare(META.munNames[b],'es')).forEach(i=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'entrada-op'; b.textContent = META.munNames[i]; b.onclick = ()=>cierraEntrada(i); g.appendChild(b); });
   entradaEl.hidden = false; appEl.inert = true; entradaPaso(1); }

@@ -9,6 +9,7 @@ const RAPIDAS = [
   ['datos verificados', py, ['03_procesamiento_datos/verificar_datos.py']],
   ['construcción', py, ['04_pruebas/prueba_construccion.py']],
   ['revisión estática (ESLint)', fs.existsSync(eslint) ? process.execPath : null, [eslint, 'docs/app.js']],
+  ['contraste del mapa', process.execPath, ['04_pruebas/prueba_contraste.js']],   // lee 02_fuente; no abre el navegador
 ];
 const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js', 'prueba_espacio_gobierno_central.js', 'prueba_cepas_total.js']
   .map(f => [f.replace('prueba_', '').replace('.js', '').replace(/_/g, ' '), process.execPath, ['04_pruebas/' + f]]);

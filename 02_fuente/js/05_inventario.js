@@ -62,6 +62,9 @@ function invCapas(){ const L = []; const zn = $('inv-zoom'); if (zn) zn.hidden =
     L.push(new TextLayer({id:'inv-muerto-x', data:D[2], getPosition:pos, getText:()=>'×', getSize:15, getColor:[255,255,255,255], characterSet:['×'],
       fontFamily:'Roboto, sans-serif', fontWeight:700, getTextAnchor:'middle', getAlignmentBaseline:'center', pickable:false})); }
   return L; }
+// los puntos de una alcaldía, con la misma caché que la capa (el recorrido guiado, 17_recorrido.js, busca uno real para mostrarlo)
+function invDeAlc(cve){ if (INVD.mz.has(cve)) return Promise.resolve(INVD.mz.get(cve));
+  return invLeer(cve).then(P=>{ INVD.mz.set(cve, P); INVD.pend.delete(cve); return P; }); }
 // al tocar el mapa, un punto del inventario gana al frente que tenga debajo (radio mayor con el dedo)
 let invToque = false;
 mapEl.addEventListener('pointerdown', e=>{ invToque = e.pointerType==='touch' || e.pointerType==='pen'; }, true);
