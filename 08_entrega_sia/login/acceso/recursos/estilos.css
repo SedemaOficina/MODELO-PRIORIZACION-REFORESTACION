@@ -42,6 +42,8 @@ input[aria-invalid=true]{border-color:var(--error)}
 .error::before{content:"⚠ "}
 .error.general{margin:0 0 14px;padding:10px 12px;border-radius:6px;background:#FBEDEC}
 form .btn{width:100%}
+form .btn.volver{margin-top:10px;text-decoration:none}
+form .btn.volver[hidden]{display:none}
 .aviso{margin:0 0 16px;padding:10px 12px;border-radius:6px;font-size:.9375rem}
 .aviso.ok{background:#E8F3EC;color:var(--ok)}
 .aviso.alerta{background:#FDF1E1;color:var(--alerta)}

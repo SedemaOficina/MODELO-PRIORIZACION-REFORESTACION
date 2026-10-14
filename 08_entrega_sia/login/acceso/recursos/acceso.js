@@ -32,7 +32,9 @@
 
   function aCambiar(desdeTemporal) {
     $('f-entrar').hidden = true; $('f-cambiar').hidden = false;
-    if (!desdeTemporal) { $('cambiar-titulo').textContent = 'Cambia tu contraseña'; $('cambiar-nota').textContent = 'Escribe tu contraseña actual y la nueva: al menos 12 caracteres.'; }
+    if (!desdeTemporal) { $('cambiar-titulo').textContent = 'Cambia tu contraseña'; $('cambiar-nota').textContent = 'Escribe tu contraseña actual y la nueva: al menos 12 caracteres.';
+      // cambio voluntario (desde «Mi cuenta»): se puede regresar a la consulta sin cambiar nada; con la temporal no, hay que crear una propia
+      $('cambiar-guardar').textContent = 'Guardar y volver'; document.querySelector('label[for="actual"]').textContent = 'Contraseña actual'; const v = $('cambiar-volver'); v.href = volver; v.hidden = false; }
     $('cambiar-titulo').focus();
   }
 
