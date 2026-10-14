@@ -1,5 +1,5 @@
 """Construye los bloques de datos v7: frentes (con responsable y enlace a vialidad primaria), vialidades primarias y META."""
-import json, gzip, collections, sys, numpy as np, shapefile, shapely
+import json, gzip, collections, re, sys, numpy as np, shapefile, shapely
 from shapely import STRtree
 from pyproj import Transformer
 
@@ -74,8 +74,11 @@ for k in miss:  # fallback: polígono más cercano
     mun_of[k] = int(alc_tree.nearest(mids[k]))
 print('vp sin alcaldía por punto medio (resueltas por cercanía):', len(miss))
 # catálogos
+UN_ESPACIO = re.compile(r'[\s\u00a0\u2000-\u200b\u202f\u205f\u3000\ufeff]+')
+def un_espacio(s): return UN_ESPACIO.sub(' ', s).strip() if isinstance(s, str) else s   # espacios raros del catálogo (no separables, dobles)
 def cat(values):
-    lst = sorted(set(values), key=lambda s: s.lower()); idx = {v: i for i, v in enumerate(lst)}; return lst, idx
+    values = list(values); lst = sorted(set(un_espacio(v) for v in values), key=lambda s: s.lower()); pos = {v: i for i, v in enumerate(lst)}
+    return lst, {v: pos[un_espacio(v)] for v in values}   # el índice acepta el valor original del insumo
 nomenclat, i_nom = cat(v['a']['NOMENCLAT'] for v in VP)
 nombres, i_nombre = cat(v['a']['NOMBRE'] for v in VP)
 circula, i_circ = cat(v['a']['CIRCULA'] for v in VP)

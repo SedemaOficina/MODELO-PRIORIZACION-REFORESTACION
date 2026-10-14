@@ -45,7 +45,8 @@ async function causaFalla(url){ if (/^blob:|^data:/.test(url)) return 'servidor'
 function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){ const a = document.createElement('a'); a.href = SESION.inicio; a.textContent = 'Iniciar sesión'; el.appendChild(a); } }
 // Los textos de los catálogos se interpolan en HTML en muchos puntos: se neutralizan al entrar.
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
-const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›') : s;
+// Además, los espacios raros del catálogo (no separables, dobles, al inicio o al final) quedan como un espacio normal: se ven igual y no estorban a la búsqueda
+const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›').replace(/[\s\u00a0\u2000-\u200b\u202f\u205f\u3000\ufeff]+/g,' ').trim() : s;
 // aviso no bloqueante sobre el mapa (errores de dibujo, contexto gráfico perdido, errores inesperados)
 // sin mapa (el contexto gráfico se perdió o deck.gl falló al dibujar): en el celular queda solo la información (pantalla() en 13_interfaz.js)
 let HAY_MAPA = true;
@@ -2210,7 +2211,7 @@ $('dl-calles').onclick = ()=>{
     const c = s.col? META.colonias[s.col] : null;
     const r = [META.names[s.nid], c? c.n : 'Colonia no identificada', c? (c.cat||c.n) : '', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, n[4], n[3], n[2], num(s.kp[4].toFixed(2)), num(s.kp[3].toFixed(2)), num(s.kp[2].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))];
     items.push(r); deCalle.set(r, s); }
-  items.sort((x,y)=> y[12]-x[12]); for(const r of items) rows.push(r);
+  items.sort((x,y)=> y[13]-x[13]); for(const r of items) rows.push(r);   // por km_prioritario (columna 13), como el resumen por avenida
   deliverConEsp(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, [['Km de frente prioritario sin nombre de calle (INEGI), no incluidos en este resumen', num(sinNombre.kmp.toFixed(2))], ['Frentes prioritarios sin nombre de calle, no incluidos', sinNombre.np], ...prioExtra()],
     items.map(r=> deCalle.get(r)), s=> espSuma(s.idx, espDeFrente), 'calle');
 };

@@ -42,7 +42,8 @@ async function causaFalla(url){ if (/^blob:|^data:/.test(url)) return 'servidor'
 function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){ const a = document.createElement('a'); a.href = SESION.inicio; a.textContent = 'Iniciar sesión'; el.appendChild(a); } }
 // Los textos de los catálogos se interpolan en HTML en muchos puntos: se neutralizan al entrar.
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
-const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›') : s;
+// Además, los espacios raros del catálogo (no separables, dobles, al inicio o al final) quedan como un espacio normal: se ven igual y no estorban a la búsqueda
+const limpioCat = s => typeof s==='string'? s.replace(/</g,'‹').replace(/>/g,'›').replace(/[\s\u00a0\u2000-\u200b\u202f\u205f\u3000\ufeff]+/g,' ').trim() : s;
 // aviso no bloqueante sobre el mapa (errores de dibujo, contexto gráfico perdido, errores inesperados)
 // sin mapa (el contexto gráfico se perdió o deck.gl falló al dibujar): en el celular queda solo la información (pantalla() en 13_interfaz.js)
 let HAY_MAPA = true;

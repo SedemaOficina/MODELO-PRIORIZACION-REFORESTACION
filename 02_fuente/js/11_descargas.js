@@ -295,7 +295,7 @@ $('dl-calles').onclick = ()=>{
     const c = s.col? META.colonias[s.col] : null;
     const r = [META.names[s.nid], c? c.n : 'Colonia no identificada', c? (c.cat||c.n) : '', c && c.cp? c.cp.padStart(5,'0') : '', [...s.tipos].filter(Boolean).join('; '), META.munNames[F.mun[s.idx[0]]], s.idx.length, n[4], n[3], n[2], num(s.kp[4].toFixed(2)), num(s.kp[3].toFixed(2)), num(s.kp[2].toFixed(2)), num(s.kmp.toFixed(2)), num(s.km.toFixed(2))];
     items.push(r); deCalle.set(r, s); }
-  items.sort((x,y)=> y[12]-x[12]); for(const r of items) rows.push(r);
+  items.sort((x,y)=> y[13]-x[13]); for(const r of items) rows.push(r);   // por km_prioritario (columna 13), como el resumen por avenida
   deliverConEsp(`resumen_calles_prioritarias_${scopeSlug()}`, 'calles', rows, [['Km de frente prioritario sin nombre de calle (INEGI), no incluidos en este resumen', num(sinNombre.kmp.toFixed(2))], ['Frentes prioritarios sin nombre de calle, no incluidos', sinNombre.np], ...prioExtra()],
     items.map(r=> deCalle.get(r)), s=> espSuma(s.idx, espDeFrente), 'calle');
 };
