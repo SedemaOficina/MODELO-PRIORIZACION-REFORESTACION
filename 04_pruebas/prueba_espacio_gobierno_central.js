@@ -64,7 +64,7 @@ function avCepas(BV, CNT, m, mun) { const S = new Map();
   D.VP.forEach((v, i) => { if ((mun !== null && v.mun !== mun) || (m && !(BV[i] & m))) return; let s = S.get(v.nom); if (!s) { s = { a: v.nom, km: 0, kmp: 0, cv: 0, cvt: 0, recs: new Set(), recsp: new Set() }; S.set(v.nom, s); }
     const c = (CNT.get(i) || [0])[0]; s.km += v.len / 1000; s.cvt += c; s.recs.add(v.rec); if (v.prio >= L.PRIO_MIN) { s.kmp += v.len / 1000; s.recsp.add(v.rec); s.cv += c; } });
   return [...S.values()].filter(s => s.kmp > 0 || s.cvt > 0).map(s => ({ ...s, n: M.vp.nomenclat[s.a] })).sort((a, b) => b.cv - a.cv || b.kmp - a.kmp || (a.kmp ? 0 : b.cvt - a.cvt) || b.km - a.km); }
-const cepasTxt = (cv, cvt) => cv ? `${L.fN.format(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt ? ` · ${L.fN.format(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${L.fN.format(cvt)} en total` : 'sin cepas registradas';
+const cepasTxt = (cv, cvt) => cv ? `${L.fN.format(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt && cvt !== cv ? ` · ${L.fN.format(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${L.fN.format(cvt)} en total` : 'sin cepas registradas';
 const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]* cepas? vacantes?(?: · [\d,]+ en total)?|sin cepas en lo prioritario · [\d,]+ en total|sin cepas registradas)/); return m ? m[1].trim() : ''; };
 function comparaAv(filas, exp) { const malas = [];
   filas.forEach((r, k) => { const e = exp[k], t = L.norm(r.t);

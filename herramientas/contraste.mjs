@@ -24,12 +24,18 @@ const RAIZ_DEF = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 // «dónde» acompaña al id para que un cambio de numeración no esconda un par: si no coinciden, la prueba falla.
 // Para rehacer la lista después de una decisión: node herramientas/contraste.mjs --pendientes
 export const PENDIENTES_CONOCIDOS = [
-  ["MN03", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
-  ["MN08", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
-  ["MN13", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
-  ["MN18", "Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
-  ["MN23", "Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)"],
 ];
+
+// Pares exigidos que no cumplen y que Liber decidió aceptar así: [id, dónde, motivo]. No cuentan como pendientes ni hacen fallar la prueba;
+// se muestran como «Aceptado» con su motivo. Si uno llega a cumplir, la prueba avisa para quitarlo de aquí.
+export const ACEPTADOS = [
+  ["MN03", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)", "Decisión de Liber (17 oct 2026): se queda así; el filete gris ya separa la línea Media de cualquier fondo (3.63:1 o más), que es lo que importa para leer el mapa."],
+  ["MN08", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre una manzana del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)", "Decisión de Liber (17 oct 2026): se queda así; el filete gris ya separa la línea Media de cualquier fondo (3.63:1 o más), que es lo que importa para leer el mapa."],
+  ["MN13", "Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre «Sin fondo», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)", "Decisión de Liber (17 oct 2026): se queda así; el filete gris ya separa la línea Media de cualquier fondo (3.63:1 o más), que es lo que importa para leer el mapa."],
+  ["MN18", "Línea Media sobre el relleno de colonia que menos contrasta (fondo «Calles», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)", "Decisión de Liber (17 oct 2026): se queda así; el filete gris ya separa la línea Media de cualquier fondo (3.63:1 o más), que es lo que importa para leer el mapa."],
+  ["MN23", "Línea Media sobre el relleno de colonia que menos contrasta («Sin fondo», relleno al 14 %), desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras»)", "Decisión de Liber (17 oct 2026): se queda así; el filete gris ya separa la línea Media de cualquier fondo (3.63:1 o más), que es lo que importa para leer el mapa."],
+];
+const ACEPTADO = new Map(ACEPTADOS.map(([id, , m]) => [id, m]));
 
 // ---------------------------------------------------------------- color
 const h2 = v => Math.round(v).toString(16).padStart(2, '0').toUpperCase();
@@ -265,7 +271,7 @@ export function auditar(raiz = RAIZ_DEF) {
   const NOM = ['Muy Baja', 'Baja', 'Media', 'Alta', 'Muy Alta'];
   const par = (id, tipo, fg, bg, donde, o = {}) => {
     const min = o.min || (tipo === 'texto' ? TEXTO : NO_TEXTO); const r = razon(fg, bg); const exige = o.exige !== false;
-    P.push({ id, tipo, fg, bg, razon: r, min, exige, resultado: !exige ? 'Informativo' : r >= min ? 'Cumple' : 'Pendiente de decisión', donde, grupo: o.grupo || id, opciones: o.opciones || null }); };
+    P.push({ id, tipo, fg, bg, razon: r, min, exige, resultado: !exige ? 'Informativo' : r >= min ? 'Cumple' : ACEPTADO.has(id) ? 'Aceptado' : 'Pendiente de decisión', motivo: ACEPTADO.get(id) || null, donde, grupo: o.grupo || id, opciones: o.opciones || null }); };
   const B4 = [['suelo', F.suelo], ['manzana', F.manzana], ['verde (parques, ANP y AVA)', F.verde], ['agua', F.agua]];
   const B5 = [...B4, ['«Sin fondo»', F.sinfondo]];
   // relleno de colonia de una clase, con su transparencia real y la opacidad de la capa (opPrio), sobre su fondo
@@ -530,7 +536,7 @@ function notas(S) {
 const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const desc = c => `${c.n} ${hex(c)}`;
 export function resumen(A) { const P = A.pares; const c = k => P.filter(p => p.resultado === k).length;
-  return { total: P.length, cumple: c('Cumple'), pendiente: c('Pendiente de decisión'), informativo: c('Informativo'), exigidos: P.filter(p => p.exige).length }; }
+  return { total: P.length, cumple: c('Cumple'), pendiente: c('Pendiente de decisión'), aceptado: c('Aceptado'), informativo: c('Informativo'), exigidos: P.filter(p => p.exige).length }; }
 // opciones de un grupo de pendientes: texto y razón resultante para cada renglón del grupo, en su orden
 export function opcionesDe(g) { if (!g[0].opciones) return null; return g[0].opciones(g).map(o => ({ t: o.t, r: g.map(p => fmtR(o.f(p))).join(' / ') + (o.extra || '') })); }
 function gruposPendientes(A) { const g = new Map(); for (const p of A.pendientes) { if (!g.has(p.grupo)) g.set(p.grupo, []); g.get(p.grupo).push(p); } return [...g.values()]; }
@@ -567,11 +573,14 @@ export function markdown(A) {
   L.push('# Contraste medido sobre cada fondo real', '');
   L.push(`Mapa de la herramienta «Modelo de priorización de reforestación urbana». Generado con \`node herramientas/contraste.mjs --md\` (${new Date().toISOString().slice(0, 10)}); no editar a mano: si un color cambia en 02_fuente, se vuelve a generar.`, '');
   L.push(CRITERIO, '');
-  L.push(`**${s.total} pares medidos: ${s.cumple} cumplen, ${s.pendiente} pendientes de decisión y ${s.informativo} informativos** (${s.exigidos} exigidos).`, '');
+  L.push(`**${s.total} pares medidos: ${s.cumple} cumplen, ${s.aceptado} aceptados por decisión, ${s.pendiente} pendientes de decisión y ${s.informativo} informativos** (${s.exigidos} exigidos).`, '');
   L.push('Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.', '');
   L.push('## Lo principal', ''); for (const h of hallazgos(A)) L.push('- ' + h); L.push('');
   L.push('## Tabla', '', '| Id | Primer plano y fondo | Razón | Mínimo | Resultado | Dónde |', '|---|---|---|---|---|---|');
   for (const p of A.pares) L.push(`| ${p.id} | ${desc(p.fg).replace(/\|/g, '\\|')} sobre ${desc(p.bg).replace(/\|/g, '\\|')} | ${fmtR(p.razon)} | ${p.min}:1${p.exige ? '' : ' (ref.)'} | ${p.resultado} | ${p.donde.replace(/\|/g, '\\|')} |`);
+  L.push('', '## Aceptados por decisión', '');
+  { const ac = A.pares.filter(p => p.resultado === 'Aceptado'); if (!ac.length) L.push('Ninguno.');
+    for (const p of ac) L.push(`- ${p.id} · ${desc(p.fg)} sobre ${desc(p.bg)} · **${fmtR(p.razon)}** (mínimo ${p.min}:1) · ${p.donde}. ${p.motivo}`); }
   L.push('', '## Pendientes de decisión', '');
   if (!A.pendientes.length) L.push('Ninguno.');
   for (const g of gruposPendientes(A)) { const p0 = g[0];
@@ -594,7 +603,7 @@ export function html(A) {
     if (p.tipo === 'aro') return `<span class="mu" style="background:${b}"><i class="aro" style="border-color:${f}"></i></span>`;
     if (p.tipo === 'foco') return `<span class="mu" style="background:${b}"><i class="fo" style="outline-color:${f}"></i></span>`;
     return `<span class="mu" style="background:${b}"><i class="pu" style="background:${f}"></i></span>`; };
-  const cls = r => r === 'Cumple' ? 'ok' : r === 'Informativo' ? 'in' : 'pe';
+  const cls = r => r === 'Cumple' ? 'ok' : r === 'Informativo' ? 'in' : r === 'Aceptado' ? 'ac' : 'pe';
   const filas = A.pares.map(p => `<tr class="${cls(p.resultado)}"><td class="id">${p.id}</td><td class="mc">${muestra(p)}</td><td class="pf"><b>${esc(p.fg.n)}</b> <code>${hex(p.fg)}</code><br>sobre <b>${esc(p.bg.n)}</b> <code>${hex(p.bg)}</code></td><td class="ra">${fmtR(p.razon)}</td><td class="mi">${p.min}:1${p.exige ? '' : ' <small>(ref.)</small>'}</td><td><span class="re ${cls(p.resultado)}">${p.resultado}</span></td><td class="do">${esc(p.donde)}</td></tr>`).join('\n');
   const pend = gruposPendientes(A).map(g => { const ops = opcionesDe(g);
     return `<section class="pd"><h3>${g.map(p => p.id).join(', ')}</h3><ul>${g.map(p => `<li>${muestra(p)}<span><b>${p.id} · ${fmtR(p.razon)}</b><br>${esc(p.donde)}</span></li>`).join('')}</ul>${ops ? `<ol>${ops.map(o => `<li>${esc(o.t)} → <b>${esc(o.r)}</b></li>`).join('')}</ol><p class="de">Decide Liber.</p>` : '<p class="de">Sin opciones preparadas. Decide Liber.</p>'}</section>`; }).join('\n');
@@ -628,7 +637,7 @@ td.ra{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
 td.mi{white-space:nowrap;color:var(--t2)}
 code{font-size:.8125rem}
 .re{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.75rem;font-weight:700;white-space:nowrap}
-.re.ok{background:var(--okb);color:var(--ok)}.re.pe{background:var(--peb);color:var(--pe)}.re.in{background:var(--inb);color:var(--in)}
+.re.ok{background:var(--okb);color:var(--ok)}.re.pe{background:var(--peb);color:var(--pe)}.re.in{background:var(--inb);color:var(--in)}.re.ac{background:var(--inb);color:var(--in);font-style:italic}
 .mu{display:inline-grid;place-items:center;width:64px;height:40px;border-radius:6px;border:1px solid var(--ln);font:700 18px/1 Roboto,system-ui,sans-serif;vertical-align:middle;flex:none}
 .mu .li{display:block;width:48px;height:4px;border-radius:2px}
 .mu .pu{display:block;width:14px;height:14px;border-radius:50%}
@@ -658,10 +667,11 @@ code{font-size:.8125rem}
 <h1>Contraste medido sobre cada fondo real</h1>
 <p class="cr">Mapa del «Modelo de priorización de reforestación urbana». ${esc(CRITERIO)}</p>
 <ul class="ha">${hallazgos(A).map(h => `<li>${esc(h)}</li>`).join("")}</ul>
-<p><b>${s.total} pares medidos: ${s.cumple} cumplen, ${s.pendiente} pendientes de decisión y ${s.informativo} informativos.</b> Generado con <code>node herramientas/contraste.mjs --html</code> el ${new Date().toISOString().slice(0, 10)}. La muestra pinta cada par con los colores ya compuestos.</p>
+<p><b>${s.total} pares medidos: ${s.cumple} cumplen, ${s.aceptado} aceptados por decisión, ${s.pendiente} pendientes de decisión y ${s.informativo} informativos.</b> Generado con <code>node herramientas/contraste.mjs --html</code> el ${new Date().toISOString().slice(0, 10)}. La muestra pinta cada par con los colores ya compuestos.</p>
 <ul class="res" aria-label="Filtrar la tabla">
 <li><button type="button" data-f="" aria-pressed="true">Todos <b>${s.total}</b></button></li>
 <li><button type="button" data-f="ok" aria-pressed="false">Cumple <b>${s.cumple}</b></button></li>
+<li><button type="button" data-f="ac" aria-pressed="false">Aceptado <b>${s.aceptado}</b></button></li>
 <li><button type="button" data-f="pe" aria-pressed="false">Pendiente de decisión <b>${s.pendiente}</b></button></li>
 <li><button type="button" data-f="in" aria-pressed="false">Informativo <b>${s.informativo}</b></button></li>
 </ul>
@@ -690,7 +700,7 @@ var osc=o?o==='dark':matchMedia('(prefers-color-scheme: dark)').matches;r.setAtt
 
 export function tabla(A) {
   const s = resumen(A); const L = [];
-  L.push(`Contraste del mapa · ${s.total} pares: ${s.cumple} cumplen, ${s.pendiente} pendientes de decisión, ${s.informativo} informativos`, '');
+  L.push(`Contraste del mapa · ${s.total} pares: ${s.cumple} cumplen, ${s.aceptado} aceptados, ${s.pendiente} pendientes de decisión, ${s.informativo} informativos`, '');
   for (const p of A.pares) L.push(`${p.id.padEnd(5)} ${fmtR(p.razon).padStart(8)}  ${(p.min + ':1').padEnd(6)} ${p.resultado.padEnd(22)} ${desc(p.fg)} sobre ${desc(p.bg)} · ${p.donde}`);
   if (A.pendientes.length) { L.push('', 'Pendientes de decisión:'); for (const g of gruposPendientes(A)) { L.push('  ' + g.map(p => `${p.id} ${fmtR(p.razon)}`).join(', ') + ' · ' + g[0].donde);
     const ops = opcionesDe(g) || []; ops.forEach((o, i) => L.push(`      ${i + 1}. ${o.t} → ${o.r}`)); } }

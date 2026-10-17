@@ -68,7 +68,7 @@ function callesCepas(CV, terr) { const S = new Map();
     s.km += f.len / 1000; s.cvt += CV[i]; if (f.prio >= L.PRIO_MIN) { s.kmp += f.len / 1000; s.cv += CV[i]; } }
   return [...S.values()].filter(s => (s.kmp > 0 || s.cvt > 0) && M.names[s.nid]).map(s => ({ n: M.names[s.nid], ...s })).sort((a, b) => ordenCep(a, b, true)); }
 // el renglón: las cepas de lo prioritario y el total de cualquier prioridad (v1.27)
-const cepasTxt = (cv, cvt) => cv ? `${L.fN.format(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt ? ` · ${L.fN.format(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${L.fN.format(cvt)} en total` : 'sin cepas registradas';
+const cepasTxt = (cv, cvt) => cv ? `${L.fN.format(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt && cvt !== cv ? ` · ${L.fN.format(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${L.fN.format(cvt)} en total` : 'sin cepas registradas';
 const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]* cepas? vacantes?(?: · [\d,]+ en total)?|sin cepas en lo prioritario · [\d,]+ en total|sin cepas registradas)/); return m ? m[1].trim() : ''; };
 // renglones contra el recálculo: nombre, número de cepas con su total y km prioritarios, en el mismo orden
 function comparaFilas(filas, exp) { const malas = [];

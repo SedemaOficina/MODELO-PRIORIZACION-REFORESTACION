@@ -108,7 +108,7 @@ let iniPend = null;   // orden por cepas pedido mientras baja el archivo
 // renglón del orden por cepas: las de lo prioritario (las que ordenan) y el total de cualquier prioridad, «48 cepas vacantes · 62 en total»;
 // cada cifra con su texto no se parte entre renglones (espacios no separables) y la cifra puede ocupar dos (span.cep)
 const cepasTxt = (cv, cvt) => { const n = (v, t) => (fmt.format(v) + ' ' + t).replace(/ /g, '\u00a0');
-  return cv? n(cv, `cepa${cv===1? '' : 's'} vacante${cv===1? '' : 's'}`) + (cvt? ' · ' + n(cvt, 'en total') : '')
+  return cv? n(cv, `cepa${cv===1? '' : 's'} vacante${cv===1? '' : 's'}`) + (cvt && cvt!==cv? ' · ' + n(cvt, 'en total') : '')   // si el total es igual, no se repite
     : cvt? 'sin cepas en lo prioritario · ' + n(cvt, 'en total') : 'sin cepas registradas'; };
 const cepasK = (cv, cvt) => `<span class="cep">${cepasTxt(cv, cvt)}</span>`;
 const cepasNota = que => `Cuenta solo lo inventariado hasta ${INV.corte} (inventario en curso): ${que} con 0 puede no estar inventariada todavía.`;

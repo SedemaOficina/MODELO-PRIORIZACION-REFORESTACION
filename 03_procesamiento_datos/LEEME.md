@@ -74,6 +74,8 @@ Un frente pasa a Gobierno Central si corre paralelo (30° o menos) a una vialida
 
 El inventario está en curso. Cuando llegue una entrega nueva (o la final):
 
+**Al terminar el inventario, antes de actualizar:** proponer al SIA tenerlo en un solo lugar (PostGIS y GeoServer del SIA) y que cada proyecto lo tome de ahí al construir, en lugar de copiarlo en cada uno. Está explicado en `08_entrega_sia/CONTRATO_DE_DATOS.md` (sección 6 bis, «Pendiente: cuando el inventario de arbolado esté terminado»). Si el SIA todavía no lo tiene publicado, se actualiza como sigue.
+
 1. Reemplazar el CSV con el mismo nombre en `adopta-un-arbol/00_insumos/arbolado/`, o indicar su ruta: `set INVENTARIO_ARBOLADO_CSV=C:
 utalrchivo.csv` (PowerShell: `$env:INVENTARIO_ARBOLADO_CSV = "…"`).
 2. Indicar el corte nuevo, que se muestra en la herramienta: `INVENTARIO_CORTE` (por ejemplo `diciembre de 2026`); si no se da, queda `septiembre de 2026` (constante `CORTE` del script).

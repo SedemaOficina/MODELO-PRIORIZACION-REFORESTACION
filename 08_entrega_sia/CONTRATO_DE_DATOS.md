@@ -94,6 +94,16 @@ Un archivo por alcaldía (clave INEGI de 3 dígitos), con la misma envoltura, en
 
 **Desde la v1.25,** `espacios_frentes.bin` y `espacios_vp.bin` alimentan también las columnas `cepas_vacantes`, `tocones` y `arboles_muertos` de los Excel, el GeoJSON y el KML. Sus formatos no cambian.
 
+### Pendiente: cuando el inventario de arbolado esté terminado
+
+Hoy el inventario está en curso y este proyecto lleva su propia copia procesada (los archivos de arriba), generada desde el CSV que también usa «Guardianes de árboles». **Cuando el CIGA-UNAM y SEDEMA entreguen el inventario completo**, la propuesta para el SIA es:
+
+1. Cargarlo **una sola vez** en PostGIS del SIA, en un esquema compartido entre proyectos (como `territorio`), y publicarlo en su GeoServer.
+2. Que cada proyecto que lo usa (este y «Guardianes de árboles») lo **tome de ahí al construir el sitio** (por WFS o GeoPackage), no en vivo: así la herramienta sigue rápida, funciona sin conexión y no depende de que el GeoServer responda en cada consulta.
+3. Cuidar la cuota de 2 GiB de GeoWebCache y la carga del servidor si alguna capa se sirve en vivo (por ejemplo, el millón de árboles vivos a zoom alto).
+
+Mientras tanto, nada cambia: el script `03_procesamiento_datos/9_inventario_espacios.py` lee el CSV local. Cuando el SIA lo tenga publicado, solo cambia de dónde lo lee el script; el formato de estos archivos se queda igual.
+
 ## 7. Reglas que deben respetarse al sustituir datos
 
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.

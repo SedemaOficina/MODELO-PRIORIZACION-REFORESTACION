@@ -25,7 +25,9 @@ const aviso = (n, det = '') => console.log(`AVISO ${n}${det ? ' · ' + det : ''}
   // la lista de pendientes corresponde a sus pares (si la numeración cambió, un par nuevo podría esconderse bajo un id viejo)
   const malos = M.PENDIENTES_CONOCIDOS.filter(([id, donde]) => !porId.has(id) || porId.get(id).donde !== donde);
   ok('PENDIENTES_CONOCIDOS corresponde a los pares de la auditoría', malos.length === 0, malos.map(([id]) => id).join(', ') + (malos.length ? ' · rehacer con node herramientas/contraste.mjs --pendientes' : ''));
-  const conocidos = new Set(M.PENDIENTES_CONOCIDOS.map(([id]) => id));
+  const malosAc = M.ACEPTADOS.filter(([id, donde]) => !porId.has(id) || porId.get(id).donde !== donde);
+  ok('ACEPTADOS corresponde a los pares de la auditoría', malosAc.length === 0, malosAc.map(([id]) => id).join(', '));
+  const conocidos = new Set([...M.PENDIENTES_CONOCIDOS, ...M.ACEPTADOS].map(([id]) => id));
 
   const exigidos = A.pares.filter(p => p.exige);
   const cumplen = exigidos.filter(p => p.razon >= p.min);
@@ -35,10 +37,10 @@ const aviso = (n, det = '') => console.log(`AVISO ${n}${det ? ' · ' + det : ''}
   for (const p of nuevos) console.log(`        ${p.id}: ${M.hex(p.fg)} sobre ${M.hex(p.bg)} · ${p.fg.n} sobre ${p.bg.n}`);
 
   // avisos: pendientes de decisión (no fallan) y pendientes que ya cumplen
-  const pend = exigidos.filter(p => p.razon < p.min && conocidos.has(p.id));
+  const pend = exigidos.filter(p => p.resultado === 'Pendiente de decisión');
   if (pend.length) { aviso(`${pend.length} pares pendientes de decisión (no hacen fallar la prueba)`);
     for (const p of pend) console.log(`        ${p.id} ${M.fmtR(p.razon).padStart(7)} · ${p.donde}`); }
-  const yaCumplen = M.PENDIENTES_CONOCIDOS.filter(([id]) => porId.has(id) && porId.get(id).resultado === 'Cumple').map(([id]) => id);
+  const yaCumplen = [...M.PENDIENTES_CONOCIDOS, ...M.ACEPTADOS].filter(([id]) => porId.has(id) && porId.get(id).resultado === 'Cumple').map(([id]) => id);
   if (yaCumplen.length) aviso('ya cumplen y pueden salir de PENDIENTES_CONOCIDOS', yaCumplen.join(', '));
 
   // la auditoría escrita en 05_documentacion, al día con los colores (aviso, no falla)
@@ -47,7 +49,7 @@ const aviso = (n, det = '') => console.log(`AVISO ${n}${det ? ' · ' + det : ''}
   else { const sinFecha = t => t.replace(/\r/g, '').replace(/\(\d{4}-\d{2}-\d{2}\)/g, '');
     if (sinFecha(fs.readFileSync(doc, 'utf8')) !== sinFecha(M.markdown(A))) aviso('05_documentacion/auditoria_contraste_mapa.md no está al día con los colores', 'node herramientas/contraste.mjs --md 05_documentacion/auditoria_contraste_mapa.md --html _local/auditoria_contraste_mapa.html'); }
   const s = M.resumen(A);
-  console.log(`\n${s.total} pares: ${s.cumple} cumplen, ${s.pendiente} pendientes de decisión, ${s.informativo} informativos`);
+  console.log(`\n${s.total} pares: ${s.cumple} cumplen, ${s.aceptado} aceptados, ${s.pendiente} pendientes de decisión, ${s.informativo} informativos`);
   fin();
 })().catch(e => { ok('la prueba corre', false, e.stack || e.message); fin(); });
 

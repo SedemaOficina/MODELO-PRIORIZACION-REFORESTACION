@@ -73,7 +73,7 @@ function avCepas(mun, { m = 0 } = {}) { const S = new Map();
   return [...S.values()].filter(s => s.kmp > 0 || s.cvt > 0).map(s => ({ ...s, n: M.vp.nomenclat[s.a] })).sort((a, b) => ordena(a, b, true)); }
 // lo que dice el renglón: las cepas de lo prioritario y el total de cualquier prioridad
 const fN = L.fN.format;
-const cepasTxt = (cv, cvt) => cv ? `${fN(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt ? ` · ${fN(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${fN(cvt)} en total` : 'sin cepas registradas';
+const cepasTxt = (cv, cvt) => cv ? `${fN(cv)} cepa${cv === 1 ? '' : 's'} vacante${cv === 1 ? '' : 's'}${cvt && cvt !== cv ? ` · ${fN(cvt)} en total` : ''}` : cvt ? `sin cepas en lo prioritario · ${fN(cvt)} en total` : 'sin cepas registradas';
 const cepasDe = t => { const m = t.match(/(?:^|\s)(\d[\d,]* cepas? vacantes?(?: · [\d,]+ en total)?|sin cepas en lo prioritario · [\d,]+ en total|sin cepas registradas)/); return m ? m[1].trim() : ''; };
 // renglones contra el recálculo: nombre, cepas con su total y km prioritarios (aunque sean 0), en el mismo orden
 function compara(filas, exp, sufijo = 'de frente prioritario') { const malas = [];

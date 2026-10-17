@@ -190,7 +190,7 @@ let resp = 'alc';         // 'alc' | 'gc' | 'both'  → responsable consultado
 let sel = null;           // índice de alcaldía o null
 let selCol = null;        // id de colonia o null
 let selAv = null;         // id de avenida (NOMENCLAT) o null — solo modo Gobierno Central
-let highlight = null;     // {nameId, idx:[...]} (calles) | {avId, idx:[...]} (vialidades)
+let highlight = null;     // {nameId, idx:[...]} (calles; nameId es la clave de la lista, el nombre es nidResaltado()) | {avId, idx:[...]} (vialidades)
 let pinned = null;        // {kind:'fr'|'vp'|'col'|'inv'|'loc'|'pto', i}  (inv: i es el punto del inventario)
 let viewState = null;
 let locSel = false;       // true mientras Mi ubicación cambia el ámbito por sí misma (no es un cambio hecho a mano)
@@ -1623,7 +1623,7 @@ let iniPend = null;   // orden por cepas pedido mientras baja el archivo
 // renglón del orden por cepas: las de lo prioritario (las que ordenan) y el total de cualquier prioridad, «48 cepas vacantes · 62 en total»;
 // cada cifra con su texto no se parte entre renglones (espacios no separables) y la cifra puede ocupar dos (span.cep)
 const cepasTxt = (cv, cvt) => { const n = (v, t) => (fmt.format(v) + ' ' + t).replace(/ /g, '\u00a0');
-  return cv? n(cv, `cepa${cv===1? '' : 's'} vacante${cv===1? '' : 's'}`) + (cvt? ' · ' + n(cvt, 'en total') : '')
+  return cv? n(cv, `cepa${cv===1? '' : 's'} vacante${cv===1? '' : 's'}`) + (cvt && cvt!==cv? ' · ' + n(cvt, 'en total') : '')   // si el total es igual, no se repite
     : cvt? 'sin cepas en lo prioritario · ' + n(cvt, 'en total') : 'sin cepas registradas'; };
 const cepasK = (cv, cvt) => `<span class="cep">${cepasTxt(cv, cvt)}</span>`;
 const cepasNota = que => `Cuenta solo lo inventariado hasta ${INV.corte} (inventario en curso): ${que} con 0 puede no estar inventariada todavía.`;
