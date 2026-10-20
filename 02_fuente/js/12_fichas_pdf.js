@@ -62,7 +62,8 @@ function fichaPDF(kind){
   doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(l1, M+6, 52.5);
   const tw = doc.getTextWidth(l1);
   doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
-  const l2 = isCol? `Desarrollo social (IDS) de su unidad territorial: ${c.ids||'—'}` : isAlc? `Concentra ${partTxt(sel,false)}` : isVpAlc? `Concentra ${partTxt(sel,true)}` : `${VPC.tipos[VP.tipo[avStat(selAv).idx[0]]]}`;
+  // la participación en la ciudad es una cifra sin filtros: con filtro no se pone, igual que en el panel
+  const l2 = isCol? `Desarrollo social (IDS) de su unidad territorial: ${c.ids||'—'}` : isAlc? (hayFiltro()? '' : `Concentra ${partTxt(sel,false)}`) : isVpAlc? (espVP? '' : `Concentra ${partTxt(sel,true)}`) : `${VPC.tipos[VP.tipo[avStat(selAv).idx[0]]]}`;
   const l2x = M+6+tw+8; if (l2x + doc.getTextWidth(l2) <= W-M) doc.text(l2, l2x, 52.5); else doc.text(doc.splitTextToSize(l2, W-2*M-6)[0], M+6, 56.4);
   // KPIs
   const kp = [[kmFull(cs.kmp), isVP? `de vialidad primaria prioritaria ${ampP()} (Muy Alta, Alta y Media)` : `de frente prioritario ${ampP()} (Muy Alta, Alta y Media)`],[fmt1.format(tot? 100*cs.kmp/tot:0)+' %','de los '+kmFull(tot)+' '+(isCol?'de frentes de la colonia':isAlc?'de frentes de la alcaldía':isVpAlc?'de vialidad primaria de la alcaldía':'de la avenida')],[fmt.format(cs.np), isVP? `${unit} prioritarios, de los ${fmt.format(ntot)} ${unit} ${ampP()}` : (isCol? `frentes prioritarios a cargo de la alcaldía, de ${fmt.format(ntot)} en la colonia` : `frentes prioritarios, de los ${fmt.format(ntot)} a cargo de la alcaldía`)]];
@@ -72,7 +73,7 @@ function fichaPDF(kind){
   // nota complementaria: se mide su alto real y la gráfica se coloca debajo, sin encimarse
   let notaFin = 0; const nota = t => { doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GUINDA); const ls = doc.splitTextToSize(t, W-2*M).slice(0,4); doc.text(ls, M, 81.5, {lineHeightFactor:1.2}); notaFin = 81.5 + (ls.length-1)*3.6; };
   if (isAlc){ const vs=VPC.summ[META.muns[sel]]; const top=[]; for(const [a,s] of (()=>{ const m=new Map(); for(let i=0;i<NV;i++){ if(VP.mun[i]!==sel) continue; const a=VP.nom[i]; m.set(a,(m.get(a)||0)+(esPrio(VP.prio[i])? VP.len[i]/1000:0)); } return m; })()) top.push([a,s]); top.sort((x,y)=>y[1]-x[1]);
-    nota(`Gobierno Central atiende además ${fmt0.format(sum(vs.km))} km de vialidades primarias en la alcaldía, medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios); no se cuentan arriba. Principales: ${top.slice(0,3).map(t=>VPC.nomenclat[t[0]]).join(', ')}.`); }
+    nota(`Gobierno Central atiende además ${fmt0.format(sum(vs.km))} km de vialidades primarias en la alcaldía, medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios${hayFiltro()? '; sin filtros' : ''}); no se cuentan arriba. Principales: ${top.slice(0,3).map(t=>VPC.nomenclat[t[0]]).join(', ')}.`); }
   // con el filtro «Espacio», la nota de las fichas de vialidades primarias empieza por decirlo (y el corte del inventario)
   const espFicha = espVP? `Consulta filtrada: ${espTxtVP()}, en sus frentes o en el camellón; inventario en curso, corte: ${INV.corte}. ` : '';
   if (isVpAlc){ const fs=META.summ[META.muns[sel]]; nota(`${espFicha}Los kilómetros de esta ficha se miden sobre el eje de la vialidad. ${gcFrenteTxt(sel, null)}. La alcaldía atiende por su parte ${fmt0.format(sum(fs.km))} km de frentes de manzana (${fmt0.format(kmPrio(fs))} km prioritarios); ver ficha de alcaldía.`); }
@@ -136,7 +137,7 @@ function fichaPDF(kind){
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...INK);
     const ug = sumPrio(R.km[1]);
     // el filtro de banqueta, si está activo, y el desglose por banqueta de los km prioritarios, siempre
-    const lsU = doc.splitTextToSize(`${hayFiltro()? 'Consulta filtrada: '+filtroTxt()+'. ' : ''}${filtroEsp? 'Inventario en curso, corte: '+INV.corte+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente prioritario sobre vialidades primarias ${isCol?'de la colonia':'de la alcaldía'}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
+    const lsU = doc.splitTextToSize(`${hayFiltro()? 'Consulta filtrada: '+filtroTxt()+'. ' : ''}${filtroEsp? 'Inventario en curso, corte: '+INV.corte+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente sobre tramos prioritarios de vialidad primaria ${isCol?'de la colonia':'de la alcaldía'}${hayFiltro()? ' (la banqueta no le aplica; el espacio, por su tramo)' : ''}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
     doc.text(lsU, M, y+2, {lineHeightFactor:1.25});
     y += 16 + Math.max(0, lsU.length-3)*4.4; }
   doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);

@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.36 (17 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.37 (20 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -111,7 +111,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 **Reglas de negocio en un solo lugar:** «prioritario» es clase ≥ `PRIO_MIN` = 2 (Muy Alta, Alta y Media). Todo el código pregunta con `esPrio(clase)` y suma con `sumPrio(arreglo)`; no debe escribirse `>=2` ni `[2]+[3]+[4]`. Las pruebas usan el mismo umbral desde `lib_pruebas.js` (`L.PRIO_MIN`) y la exportación de capas desde `PRIO_MIN` en `5_exportar_geoserver.py`.
 
-**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía; y además el filtro de banqueta (`pasaBanq`). Mapa, cifras, listado, Excel y fichas deben usar esta función y no repetir la condición. Las cifras que se guardan en caché (`colStat`, `repStat`, `sinColStat`) se rehacen al cambiar `filtroBanq`; `frSumm` recalcula desde los frentes cuando hay filtro. `banqDesglose` da los km prioritarios con banqueta, sin banqueta y por verificar **sin** aplicar el filtro: es el desglose que muestran siempre el Resumen y las fichas.
+**Filtro único del ámbito:** `enAmbito(i)` (en `03_estado.js`) decide si un frente pertenece a la consulta: con colonia elegida manda la colonia; sin colonia, la alcaldía; y además los filtros, con `pasaFiltros(i)`: los frentes de la alcaldía pasan por banqueta (`pasaBanq`) y espacio (`pasaEspacio`); los del Gobierno Central siguen la regla de sus vialidades, sin banqueta y con el espacio de su tramo (`pasaEspacioVP(F.vp[i])`). La prioridad de un frente se lee con `prioFr(i)`: la suya, o la de su tramo si es del Gobierno Central (v1.37). Mapa, cifras, listado, Excel y fichas deben usar estas funciones y no repetir la condición. Las cifras que se guardan en caché (`colStat`, `repStat`, `sinColStat`) se rehacen al cambiar `filtroBanq` o `filtroEsp`; con solo Gobierno Central `setResp` suelta el filtro de banqueta, que no se ve; `frSumm` recalcula desde los frentes cuando hay filtro. `banqDesglose` da los km prioritarios con banqueta, sin banqueta y por verificar **sin** aplicar el filtro: es el desglose que muestran siempre el Resumen y las fichas.
 
 **Banqueta:** «con» = INEGI 2020 registra banqueta (índice 0 de `META.disp`, «Dispone»); «sin» = cualquier otro valor (no dispone, conjunto habitacional, no aplica, no especificado). Solo afecta a los frentes de manzana; las vialidades primarias no tienen ese dato. La fila se oculta con Gobierno Central.
 

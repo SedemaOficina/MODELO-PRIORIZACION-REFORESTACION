@@ -39,7 +39,7 @@ const sinNombreFr = i => PLACEHOLDER.has(F.name[i]) || !META.names[F.name[i]];
 const nomFrente = i => sinNombreFr(i)? SIN_NOMBRE : META.names[F.name[i]];
 // frentes de alcaldía sin colonia asignada: no aparecen en ninguna consulta por colonia
 let SINCOL = null, SINCOL_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio
-const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroClave()){ SINCOL_B = filtroClave(); SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
+const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroClave()){ SINCOL_B = filtroClave(); SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaFiltros(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
 const sinColStat = () => sel!==null? sinColBase()[sel] : sinColBase().reduce((t,s)=>({n:t.n+s.n, km:t.km+s.km, kmp:t.kmp+s.kmp}), {n:0,km:0,kmp:0});
 // ---------- ubicar una calle cuyo nombre se repite ----------
 // Sin alcaldía ni colonia elegidas, un nombre que existe en varias colonias no se responde con cifras:
@@ -254,6 +254,9 @@ function renderInicio(){
     : v==='avalc'? filasAvAlc(ul) : v==='av'? filasAvenidas(ul, '') : v==='avcv'? filasAvenidas(ul, '', true)
     : v==='alc'? filasAlcaldias(ul) : v==='calles'? filasCalles(ul, '', '')
     : v==='callescv' || (v==='cv' && selCol!==null)? filasCalles(ul, '', '', true) : filasColonias(ul, v);
+  // la lista dice el filtro que tiene puesto, como las cifras y el resumen del mapa (la de alcaldías no filtra y su nota lo dice)
+  const filt = q || v==='alc'? '' : isGC()? espCorto() : filtroCorto();
+  if (filt) $('ini-count').textContent += filt;
   mas.hidden = total<=iniN; if(!mas.hidden) mas.textContent = `Ver ${Math.min(10,total-iniN)} más`;
 }
 $('q').addEventListener('input', ()=>{ iniN = 10; renderInicio(); });

@@ -225,7 +225,7 @@ const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.m
 let filtroEsp = 0, ESP_FR = null, ESP_CV = null, ESP_FRN = null;
 const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
 const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
-const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
+const enAmbito = i => enTerritorio(i) && pasaFiltros(i);
 // El mismo filtro para el Gobierno Central (v1.24): una parte de vialidad primaria pasa si tiene al menos un punto de los tipos elegidos.
 // Cuentan los puntos de sus frentes de manzana a cargo del Gobierno Central y los del camellón (sin frente y a 25 m o menos de su eje);
 // los de los frentes de las alcaldías no. ESP_VP (Uint8Array de NV) trae los tipos de cada parte y ESP_VPN (Uint16Array de 3·NV) cuántos
@@ -234,6 +234,13 @@ const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
 // alcaldía o por avenida sin enAmbitoVP. La banqueta no aplica a las vialidades primarias.
 let ESP_VP = null, ESP_VPN = null;
 const pasaEspacioVP = i => filtroEsp===0 || (ESP_VP!==null && i>=0 && (ESP_VP[i] & filtroEsp)!==0);
+// Los filtros de un frente de manzana según quién lo atiende: los de la alcaldía pasan por «Banqueta» y por «Espacio» (sus puntos a 20 m);
+// los del Gobierno Central siguen la regla de sus vialidades: sin banqueta y con el «Espacio» de su tramo (sus frentes y el camellón).
+// Es la única condición de filtro de los frentes: la usan enAmbito(i) y las cifras que se guardan por colonia o por alcaldía.
+const pasaFiltros = i => F.gc[i]? pasaEspacioVP(F.vp[i]) : pasaBanq(i) && pasaEspacio(i);
+// Prioridad de un frente: la suya, salvo en los del Gobierno Central, que llevan la de su tramo de vialidad primaria (la misma de sus
+// listas y descargas). Así «prioritario del Gobierno Central» quiere decir lo mismo en km de vialidad y en km de frente.
+const prioFr = i => F.gc[i] && F.vp[i]>=0? VP.prio[F.vp[i]] : F.prio[i];
 const enAmbitoVP = i => (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv) && pasaEspacioVP(i);
 // texto que acompaña al ámbito cuando el filtro de banqueta está activo
 const banqTxt = () => filtroBanq==='con'? 'solo frentes con banqueta (INEGI 2020)' : filtroBanq==='sin'? 'solo frentes sin banqueta o por verificar (INEGI 2020)' : '';
@@ -328,7 +335,7 @@ const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> 
 // Sumas exactas por alcaldía, calculadas una sola vez de los frentes y los tramos: los resúmenes de meta.bin
 // vienen redondeados a dos decimales y volver a redondearlos movería la cifra hasta 0.1 km respecto del recálculo.
 (()=>{ const z = ()=>[0,0,0,0,0]; const A=META.muns.map(z), G=META.muns.map(z), W=META.muns.map(z);
-  for(let i=0;i<N;i++) (F.gc[i]? G : A)[F.mun[i]][F.prio[i]] += F.len[i]/1000;
+  for(let i=0;i<N;i++) (F.gc[i]? G : A)[F.mun[i]][prioFr(i)] += F.len[i]/1000;
   for(let i=0;i<NV;i++) W[VP.mun[i]][VP.prio[i]] += VP.len[i]/1000;
   const tot = M => M.reduce((t,a)=>t.map((v,k)=>v+a[k]), z());
   META.muns.forEach((m,i)=>{ META.summ[m].km=A[i]; META.summ_gc[m].km=G[i]; if (VPC.summ[m]) VPC.summ[m].km=W[i]; });
@@ -1193,6 +1200,8 @@ function setResp(v, sinRefresh){
   respOn.alc = v!=='gc'; respOn.gc = v!=='alc';
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
+  // con solo Gobierno Central la fila no se ve: su filtro se suelta para que ninguna cifra quede filtrada por algo que no está a la vista
+  if (v==='gc' && filtroBanq!=='todas'){ filtroBanq = 'todas'; document.querySelectorAll('button[data-banq]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq==='todas'))); }
   $('esp-row').hidden = !INV;   // el espacio aplica a las dos redes desde la v1.24 (el archivo único no trae el inventario)
   espTitulos(v);
   if (resp===v) return; resp=v;
@@ -1280,7 +1289,7 @@ $('reset-all').onclick = ()=>{ invReinicia(); espReinicia();
 // cv: cepas vacantes del inventario en los frentes prioritarios (orden «más cepas vacantes» de «Dónde empezar»); cvt: en todos sus frentes, de
 // cualquier prioridad (el total que acompaña a cada renglón de ese orden). Los dos valen 0 hasta que se carga ESP_CV
 let COLSTAT = null, COLSTAT_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio, y al llegar las cepas
-function colStat(id){ const clave = filtroClave() + (ESP_CV? '|cv' : ''); if(!COLSTAT || COLSTAT_B!==clave){ COLSTAT = new Map(); COLSTAT_B = clave; for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,cv:0,cvt:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000; s.n[p]++; s.km[p]+=k; if (ESP_CV) s.cvt+=ESP_CV[i]; if(esPrio(p)){ s.kmp+=k; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; } } }
+function colStat(id){ const clave = filtroClave() + (ESP_CV? '|cv' : ''); if(!COLSTAT || COLSTAT_B!==clave){ COLSTAT = new Map(); COLSTAT_B = clave; for(let i=0;i<N;i++){ const c=F.col[i]; if(!c || F.gc[i] || !pasaFiltros(i)) continue; let s=COLSTAT.get(c); if(!s){ s={n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,cv:0,cvt:0}; COLSTAT.set(c,s); } const p=F.prio[i], k=F.len[i]/1000; s.n[p]++; s.km[p]+=k; if (ESP_CV) s.cvt+=ESP_CV[i]; if(esPrio(p)){ s.kmp+=k; s.np++; if (ESP_CV) s.cv+=ESP_CV[i]; } } }
   return COLSTAT.get(id) || {n:[0,0,0,0,0],km:[0,0,0,0,0],kmp:0,np:0,cv:0,cvt:0}; }
 // estadísticas por avenida (NOMENCLAT), toda la ciudad, calculadas una vez
 let AVSTAT = null;
@@ -1307,32 +1316,35 @@ function vpSumm(){ const s={n:[0,0,0,0,0],km:[0,0,0,0,0],recs:new Set(),recsp:ne
 // ---------- reparto por responsable ----------
 // Kilómetros de FRENTE DE MANZANA por responsable (0 = alcaldía, 1 = Gobierno Central) y prioridad en un ámbito:
 // total (km), sin arbolado (sa) y sin arbolado con banqueta registrada por INEGI (sb). Con colonia manda la colonia, igual que enAmbito().
+// Cada responsable con su regla (pasaFiltros, prioFr): los frentes del Gobierno Central no se filtran por banqueta, el «Espacio» se les
+// aplica por su tramo y su prioridad es la del tramo; así la columna coincide con «Equivalen a…» de su bloque (gcFrente).
 // Lo usan la tabla de comparación del Resumen (compHtml), el diccionario de los Excel y las fichas (sb, solo estos dos).
 const REP_CACHE = new Map();
 function repStat(mun, col){
   const key = mun+'|'+col+'|'+filtroClave(); let r = REP_CACHE.get(key); if (r) return r;
   r = {km:[[0,0,0,0,0],[0,0,0,0,0]], sa:[[0,0,0,0,0],[0,0,0,0,0]], sb:[[0,0,0,0,0],[0,0,0,0,0]]};
-  for(let i=0;i<N;i++){ if ((col!==null? F.col[i]!==col : (mun!==null && F.mun[i]!==mun)) || !pasaBanq(i) || !pasaEspacio(i)) continue;
-    const g=F.gc[i], p=F.prio[i], k=F.len[i]/1000, fl=F.flags[i]; r.km[g][p]+=k;
+  for(let i=0;i<N;i++){ if ((col!==null? F.col[i]!==col : (mun!==null && F.mun[i]!==mun)) || !pasaFiltros(i)) continue;
+    const g=F.gc[i], p=prioFr(i), k=F.len[i]/1000, fl=F.flags[i]; r.km[g][p]+=k;
     if ((fl&7)===1){ r.sa[g][p]+=k; if (((fl>>3)&7)===0) r.sb[g][p]+=k; } }
   if (REP_CACHE.size>40) REP_CACHE.clear(); REP_CACHE.set(key, r); return r; }
 // Equivalente en km de FRENTE DE MANZANA (aceras con manzana enfrente) de las vialidades primarias de un ámbito.
 // La cifra oficial del Gobierno Central es el km de vialidad medido sobre el eje; el km de frente es su dato complementario
 // y la única unidad con la que se compara o se suma con las alcaldías. Con el filtro «Espacio», solo los frentes de los tramos que pasan.
+// Lo prioritario es lo que da a tramos prioritarios (prioFr): una avenida sin km prioritarios no tiene km de frente prioritarios.
 const GCF_CACHE = new Map();
 function gcFrente(mun, av){ const key=mun+'|'+av+'|'+filtroEsp; let r=GCF_CACHE.get(key); if (r) return r; r={km:[0,0,0,0,0]};
-  for(let i=0;i<N;i++){ if(!F.gc[i]) continue; if (mun!==null && F.mun[i]!==mun) continue; if (av!==null && (F.vp[i]<0 || VP.nom[F.vp[i]]!==av)) continue; if (!pasaEspacioVP(F.vp[i])) continue; r.km[F.prio[i]]+=F.len[i]/1000; }
+  for(let i=0;i<N;i++){ if(!F.gc[i]) continue; if (mun!==null && F.mun[i]!==mun) continue; if (av!==null && (F.vp[i]<0 || VP.nom[F.vp[i]]!==av)) continue; if (!pasaEspacioVP(F.vp[i])) continue; r.km[prioFr(i)]+=F.len[i]/1000; }
   if (GCF_CACHE.size>60) GCF_CACHE.clear(); GCF_CACHE.set(key,r); return r; }
-const gcFrenteTxt = (mun, av) => { const g=gcFrente(mun, av); return `Equivalen a ${kmFull(sum(g.km))} de frente de manzana (aceras con manzana enfrente), ${kmFull(kmPrio(g))} prioritarios`; };
-// Banqueta del Gobierno Central, solo como referencia (no filtra): la de los frentes de manzana prioritarios que dan a sus
-// vialidades primarias, con la misma clasificación de INEGI 2020 que la fila «Banqueta» de las alcaldías
+const gcFrenteTxt = (mun, av) => { const g=gcFrente(mun, av); return `Equivalen a ${kmFull(sum(g.km))} de frente de manzana (aceras con manzana enfrente), ${kmFull(kmPrio(g))} sobre tramos prioritarios`; };
+// Banqueta del Gobierno Central, solo como referencia (no filtra): la de los frentes de manzana que dan a sus tramos prioritarios,
+// con la misma clasificación de INEGI 2020 que la fila «Banqueta» de las alcaldías
 const GCB_CACHE = new Map();
 function gcBanq(mun, av){ const key=mun+'|'+av+'|'+filtroEsp; let r=GCB_CACHE.get(key); if (r) return r; r=[0,0,0];
-  for(let i=0;i<N;i++){ if(!F.gc[i] || !esPrio(F.prio[i])) continue; if (mun!==null && F.mun[i]!==mun) continue; if (av!==null && (F.vp[i]<0 || VP.nom[F.vp[i]]!==av)) continue; if (!pasaEspacioVP(F.vp[i])) continue;
+  for(let i=0;i<N;i++){ if(!F.gc[i] || !esPrio(prioFr(i))) continue; if (mun!==null && F.mun[i]!==mun) continue; if (av!==null && (F.vp[i]<0 || VP.nom[F.vp[i]]!==av)) continue; if (!pasaEspacioVP(F.vp[i])) continue;
     const b=(F.flags[i]>>3)&7; r[b===0? 0 : b===1? 1 : 2] += F.len[i]/1000; }
   if (GCB_CACHE.size>60) GCB_CACHE.clear(); GCB_CACHE.set(key,r); return r; }
 const gcBanqTxt = (mun, av) => { const d=gcBanq(mun, av), t=d[0]+d[1]+d[2]; if (!t) return '';
-  return `Banqueta, como referencia: de los ${kmFull(t)} de frente de manzana prioritario que dan a estas vialidades, ${kmFull(d[0])} tienen banqueta (${pct(d[0],t)}), ${kmFull(d[1])} no la tienen y ${kmFull(d[2])} están por verificar, según INEGI 2020. Los tramos sin manzanas al lado (accesos controlados, puentes y entronques) no tienen este dato. No es un filtro: la fila «Banqueta» solo aplica a las calles de las alcaldías.`; };
+  return `Banqueta, como referencia: de los ${kmFull(t)} de frente de manzana que dan a sus tramos prioritarios, ${kmFull(d[0])} tienen banqueta (${pct(d[0],t)}), ${kmFull(d[1])} no la tienen y ${kmFull(d[2])} están por verificar, según INEGI 2020. Los tramos sin manzanas al lado (accesos controlados, puentes y entronques) no tienen este dato. No es un filtro: la fila «Banqueta» solo aplica a las calles de las alcaldías.`; };
 // ---------- comparación de la alcaldía y el Gobierno Central (al final del Resumen) ----------
 // Km de frente de manzana por responsable (repStat: los mismos frentes y filtros de siempre) y espacios para plantar del inventario de
 // arbolado: los puntos asignados a frentes de la alcaldía que pasan enAmbito(i) (ESP_FRN) y, del Gobierno Central, los de las partes de
@@ -1358,9 +1370,9 @@ function compHtml(){
   if (INV) h += `<tbody>${grupo('Espacios para plantar (inventario en curso)')}</tbody><tbody id="rp-esp">${espCompHtml()}</tbody>`;
   h += '</table>';
   const det = ['Los km de frente de manzana cuentan cada acera por separado; no se suman con los km de vialidad primaria del Gobierno Central, que se miden sobre el eje.',
-    'Prioritario reúne las prioridades Muy Alta, Alta y Media; «sin arbolado» es la clase del modelo.',
+    'Prioritario reúne las prioridades Muy Alta, Alta y Media; «sin arbolado» es la clase del modelo. Los frentes del Gobierno Central llevan la prioridad de su tramo de vialidad primaria.',
     INV? `Los espacios para plantar son los puntos del ${INV.fuente}: a la alcaldía le cuentan los de sus frentes de manzana (a ${INV.dist} m o menos) y al Gobierno Central, los de sus frentes y los del camellón (a ${INV.vp.dist} m o menos del eje de una vialidad primaria).${selCol!==null? ' En una colonia, del Gobierno Central cuentan solo los de sus frentes: el camellón no se asigna a una colonia.' : ''} ${espSinContar()}` : '',
-    hayFiltro()? 'Con los filtros activos, cuentan solo los frentes y los tramos que pasan.' : ''].filter(Boolean).join(' ');
+    hayFiltro()? `Con los filtros activos, cuentan solo los frentes y los tramos que pasan.${filtroBanq!=='todas'? ' La banqueta solo filtra las calles de las alcaldías.' : ''}${filtroEsp? ' Del Gobierno Central cuentan sus tramos con ' + espLista() + ', en sus frentes o en el camellón.' : ''}` : ''].filter(Boolean).join(' ');
   return h + `<div class="note">${INV? `Inventario en curso (corte: ${INV.corte}).` : ''}${masDet(det)}</div>`; }
 // pinta los renglones de los espacios (al llegar el inventario o si falla) sin rehacer el resto del Resumen
 function espCompPinta(err){ const b = $('rp-esp'); if (b) b.innerHTML = espCompHtml(err); }
@@ -1487,12 +1499,11 @@ function renderSummary(){
   }
   // km por categoría del ámbito consultado, en la leyenda
   { const ls = resp==='gc'? vs : fs; document.querySelectorAll('#legend-rows .lg-km').forEach(e=>{ e.textContent = kmFull(ls.km[+e.dataset.k]); });
-    $('lg-scope').textContent = resp==='gc' ? `Prioridad · km de vialidad primaria ${ambV1}` : `Prioridad · km de frente ${amb}`; }
+    $('lg-scope').textContent = resp==='gc' ? `Prioridad · km de vialidad primaria ${ambV1}${espCorto()}` : `Prioridad · km de frente ${amb}${filtroCorto()}`; }   // con filtro, la leyenda dice que sus km son los filtrados
   // barras «Por prioridad» de cada bloque (los títulos ya no repiten el ámbito: lo dice el encabezado del bloque)
   $('kpis').innerHTML = resp==='gc'? kVp : kFr; $('bars').innerHTML = resp==='gc'? barsHtml(vs) : emptyCol? '' : barsHtml(fs);
   $('bars2').hidden = resp!=='both';
   $('kpis2').innerHTML = resp==='both'? kVp : ''; $('bars2-rows').innerHTML = resp==='both'? barsHtml(vs) : '';
-  const gcs = sel===null? META.city_gc : META.summ_gc[META.muns[sel]];
   let txt;
   if (resp==='gc'){
     const tot=sum(vs.km);
@@ -1507,8 +1518,9 @@ function renderSummary(){
     txt = (sel===null
       ? `En toda la ciudad, ${pct(cityPrioKm,cityTotKm)} del frente de manzana a cargo de las alcaldías es prioritario. ${top2Txt(META.summ, cityPrioKm)}`
       : `${selCol!==null? 'En la alcaldía '+META.munNames[sel]+', '+pct(kmPrio(META.summ[META.muns[sel]]), sum(META.summ[META.muns[sel]].km))+' del frente a cargo de la alcaldía es prioritario. ' : 'En toda la ciudad, '+pct(cityPrioKm,cityTotKm)+' del frente a cargo de las alcaldías es prioritario. '}${selCol!==null? fmt0.format(sumPrio(fs.n))+' de '+fmt0.format(sum(fs.n))+' frentes de esta colonia son prioritarios.' : ''}`)
-      + (selCol===null && sinColStat().n? ` ${fmt.format(sinColStat().n)} frentes (${kmFull(sinColStat().km)}) ${sel===null?'de la ciudad':'de la alcaldía'} no tienen colonia asignada en el catálogo: se cuentan aquí, pero no aparecen en las consultas por colonia.` : '')
-      + (resp==='alc' && selCol===null? ` Además, ${fmt0.format(sum(gcs.km))} km de frentes sobre vialidades primarias ${sel===null?'de la ciudad':'de la alcaldía'} (${fmt0.format(kmPrio(gcs))} km prioritarios) quedan a cargo del Gobierno Central y no se cuentan aquí.` : '');
+      + (selCol===null && sinColStat().n? ` ${fmt.format(sinColStat().n)} frente${sinColStat().n===1? '' : 's'} (${kmFull(sinColStat().km)}) ${sel===null?'de la ciudad':'de la alcaldía'}${hayFiltro()? ' que pasan los filtros' : ''} no tienen colonia asignada en el catálogo: se cuentan aquí, pero no aparecen en las consultas por colonia.` : '')
+      // lo del Gobierno Central con su propia regla (gcFrente): sin banqueta, con el «Espacio» de su tramo y la prioridad del tramo
+      + (resp==='alc' && selCol===null? (g=>` Además, ${fmt0.format(sum(g.km))} km de frentes sobre vialidades primarias ${sel===null?'de la ciudad':'de la alcaldía'}${filtroEsp? ' en tramos con '+espLista() : ''} (${fmt0.format(kmPrio(g))} km sobre tramos prioritarios) quedan a cargo del Gobierno Central y no se cuentan aquí.`)(gcFrente(sel, null)) : '');
   }
   notaPlegable($('bars-note'), txt);
 }
@@ -1554,7 +1566,7 @@ const sinNombreFr = i => PLACEHOLDER.has(F.name[i]) || !META.names[F.name[i]];
 const nomFrente = i => sinNombreFr(i)? SIN_NOMBRE : META.names[F.name[i]];
 // frentes de alcaldía sin colonia asignada: no aparecen en ninguna consulta por colonia
 let SINCOL = null, SINCOL_B = null;   // se rehace al cambiar el filtro de banqueta o el de espacio
-const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroClave()){ SINCOL_B = filtroClave(); SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaBanq(i) || !pasaEspacio(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
+const sinColBase = () => { if (!SINCOL || SINCOL_B!==filtroClave()){ SINCOL_B = filtroClave(); SINCOL = META.muns.map(()=>({n:0, km:0, kmp:0})); for(let i=0;i<N;i++){ if (F.col[i] || F.gc[i] || !pasaFiltros(i)) continue; const s=SINCOL[F.mun[i]], k=F.len[i]/1000; s.n++; s.km+=k; if (esPrio(F.prio[i])) s.kmp+=k; } } return SINCOL; };
 const sinColStat = () => sel!==null? sinColBase()[sel] : sinColBase().reduce((t,s)=>({n:t.n+s.n, km:t.km+s.km, kmp:t.kmp+s.kmp}), {n:0,km:0,kmp:0});
 // ---------- ubicar una calle cuyo nombre se repite ----------
 // Sin alcaldía ni colonia elegidas, un nombre que existe en varias colonias no se responde con cifras:
@@ -1769,6 +1781,9 @@ function renderInicio(){
     : v==='avalc'? filasAvAlc(ul) : v==='av'? filasAvenidas(ul, '') : v==='avcv'? filasAvenidas(ul, '', true)
     : v==='alc'? filasAlcaldias(ul) : v==='calles'? filasCalles(ul, '', '')
     : v==='callescv' || (v==='cv' && selCol!==null)? filasCalles(ul, '', '', true) : filasColonias(ul, v);
+  // la lista dice el filtro que tiene puesto, como las cifras y el resumen del mapa (la de alcaldías no filtra y su nota lo dice)
+  const filt = q || v==='alc'? '' : isGC()? espCorto() : filtroCorto();
+  if (filt) $('ini-count').textContent += filt;
   mas.hidden = total<=iniN; if(!mas.hidden) mas.textContent = `Ver ${Math.min(10,total-iniN)} más`;
 }
 $('q').addEventListener('input', ()=>{ iniN = 10; renderInicio(); });
@@ -1977,7 +1992,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
     if (p.has('c') && r!=='gc' && Number.isInteger(c) && c>0 && META.colonias[c] && META.colonias[c].n){ if (selCol!==c) pickColonia(c); }
     else if (p.has('v') && r==='gc' && Number.isInteger(v) && v>0 && VPC.nomenclat[v]){ if (sel!==m){ sel=m; selEl.value = m===null? '' : String(m); } if (selAv!==v) pickAvenida(v); else refresh(); }
     else if (sel!==m || selCol!==null || selAv!==null){ selEl.value = m===null? '' : String(m); setSel(selEl.value); }
-    const b = p.get('b')==='con' || p.get('b')==='sin'? p.get('b') : 'todas'; if (b!==filtroBanq) setBanq(b);
+    const b = r!=='gc' && (p.get('b')==='con' || p.get('b')==='sin')? p.get('b') : 'todas'; if (b!==filtroBanq) setBanq(b);   // con r=gc la banqueta no aplica
     const e = espDeTexto(p.get('e')); if (e!==espQuiero) setEspacio(e);
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
@@ -2235,13 +2250,13 @@ const num = v => { const n = Number(v); return Number.isFinite(n)? n : v; };
 function gcExtra(){ const g = gcFrente(sel, selAv);
   return [['Unidad de las longitudes', 'Metros o kilómetros de vialidad, medidos sobre el eje'],
     ['Equivalente del ámbito en km de frente de manzana (aceras con manzana enfrente)', num(sum(g.km).toFixed(2))],
-    ['Equivalente prioritario (Muy Alta, Alta y Media) en km de frente de manzana', num(kmPrio(g).toFixed(2))]]; }
+    ['Equivalente en km de frente de manzana de los tramos prioritarios (Muy Alta, Alta y Media)', num(kmPrio(g).toFixed(2))]]; }
 // cifras de lo prioritario del ámbito consultado, para el diccionario de los Excel de la red de las alcaldías
 function prioExtra(){ const R = repStat(sel, selCol); const k = v => num(v.toFixed(2));
   return [['Prioritario del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía', k(sumPrio(R.km[0]))],
     ['De lo prioritario, km de frente sin arbolado', k(sumPrio(R.sa[0]))],
     ['De lo prioritario, km de frente sin arbolado y con banqueta (INEGI)', k(sumPrio(R.sb[0]))],
-    ['Prioritario del ámbito, km de frente a cargo del Gobierno Central', k(sumPrio(R.km[1]))]]; }
+    ['Km de frente a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo)', k(sumPrio(R.km[1]))]]; }
 // ---------- espacios para plantar en las descargas (v1.25) ----------
 // Tres columnas al final de cada Excel (y tres propiedades en el GeoJSON y el KML): cepas vacantes, tocones y árboles muertos del
 // inventario de arbolado. Por frente de manzana, los puntos asignados a ese frente (ESP_FRN); por parte de vialidad primaria, los de sus
@@ -2445,7 +2460,8 @@ function fichaPDF(kind){
   doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(11); doc.text(l1, M+6, 52.5);
   const tw = doc.getTextWidth(l1);
   doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);
-  const l2 = isCol? `Desarrollo social (IDS) de su unidad territorial: ${c.ids||'—'}` : isAlc? `Concentra ${partTxt(sel,false)}` : isVpAlc? `Concentra ${partTxt(sel,true)}` : `${VPC.tipos[VP.tipo[avStat(selAv).idx[0]]]}`;
+  // la participación en la ciudad es una cifra sin filtros: con filtro no se pone, igual que en el panel
+  const l2 = isCol? `Desarrollo social (IDS) de su unidad territorial: ${c.ids||'—'}` : isAlc? (hayFiltro()? '' : `Concentra ${partTxt(sel,false)}`) : isVpAlc? (espVP? '' : `Concentra ${partTxt(sel,true)}`) : `${VPC.tipos[VP.tipo[avStat(selAv).idx[0]]]}`;
   const l2x = M+6+tw+8; if (l2x + doc.getTextWidth(l2) <= W-M) doc.text(l2, l2x, 52.5); else doc.text(doc.splitTextToSize(l2, W-2*M-6)[0], M+6, 56.4);
   // KPIs
   const kp = [[kmFull(cs.kmp), isVP? `de vialidad primaria prioritaria ${ampP()} (Muy Alta, Alta y Media)` : `de frente prioritario ${ampP()} (Muy Alta, Alta y Media)`],[fmt1.format(tot? 100*cs.kmp/tot:0)+' %','de los '+kmFull(tot)+' '+(isCol?'de frentes de la colonia':isAlc?'de frentes de la alcaldía':isVpAlc?'de vialidad primaria de la alcaldía':'de la avenida')],[fmt.format(cs.np), isVP? `${unit} prioritarios, de los ${fmt.format(ntot)} ${unit} ${ampP()}` : (isCol? `frentes prioritarios a cargo de la alcaldía, de ${fmt.format(ntot)} en la colonia` : `frentes prioritarios, de los ${fmt.format(ntot)} a cargo de la alcaldía`)]];
@@ -2455,7 +2471,7 @@ function fichaPDF(kind){
   // nota complementaria: se mide su alto real y la gráfica se coloca debajo, sin encimarse
   let notaFin = 0; const nota = t => { doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...GUINDA); const ls = doc.splitTextToSize(t, W-2*M).slice(0,4); doc.text(ls, M, 81.5, {lineHeightFactor:1.2}); notaFin = 81.5 + (ls.length-1)*3.6; };
   if (isAlc){ const vs=VPC.summ[META.muns[sel]]; const top=[]; for(const [a,s] of (()=>{ const m=new Map(); for(let i=0;i<NV;i++){ if(VP.mun[i]!==sel) continue; const a=VP.nom[i]; m.set(a,(m.get(a)||0)+(esPrio(VP.prio[i])? VP.len[i]/1000:0)); } return m; })()) top.push([a,s]); top.sort((x,y)=>y[1]-x[1]);
-    nota(`Gobierno Central atiende además ${fmt0.format(sum(vs.km))} km de vialidades primarias en la alcaldía, medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios); no se cuentan arriba. Principales: ${top.slice(0,3).map(t=>VPC.nomenclat[t[0]]).join(', ')}.`); }
+    nota(`Gobierno Central atiende además ${fmt0.format(sum(vs.km))} km de vialidades primarias en la alcaldía, medidos sobre el eje (${fmt0.format(kmPrio(vs))} km prioritarios${hayFiltro()? '; sin filtros' : ''}); no se cuentan arriba. Principales: ${top.slice(0,3).map(t=>VPC.nomenclat[t[0]]).join(', ')}.`); }
   // con el filtro «Espacio», la nota de las fichas de vialidades primarias empieza por decirlo (y el corte del inventario)
   const espFicha = espVP? `Consulta filtrada: ${espTxtVP()}, en sus frentes o en el camellón; inventario en curso, corte: ${INV.corte}. ` : '';
   if (isVpAlc){ const fs=META.summ[META.muns[sel]]; nota(`${espFicha}Los kilómetros de esta ficha se miden sobre el eje de la vialidad. ${gcFrenteTxt(sel, null)}. La alcaldía atiende por su parte ${fmt0.format(sum(fs.km))} km de frentes de manzana (${fmt0.format(kmPrio(fs))} km prioritarios); ver ficha de alcaldía.`); }
@@ -2519,7 +2535,7 @@ function fichaPDF(kind){
     doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(...INK);
     const ug = sumPrio(R.km[1]);
     // el filtro de banqueta, si está activo, y el desglose por banqueta de los km prioritarios, siempre
-    const lsU = doc.splitTextToSize(`${hayFiltro()? 'Consulta filtrada: '+filtroTxt()+'. ' : ''}${filtroEsp? 'Inventario en curso, corte: '+INV.corte+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente prioritario sobre vialidades primarias ${isCol?'de la colonia':'de la alcaldía'}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
+    const lsU = doc.splitTextToSize(`${hayFiltro()? 'Consulta filtrada: '+filtroTxt()+'. ' : ''}${filtroEsp? 'Inventario en curso, corte: '+INV.corte+'. ' : ''}De lo prioritario a cargo de la alcaldía, ${kmFull(sumPrio(R.sa[0]))} no tienen arbolado.${ug>0? ` Gobierno Central: ${kmFull(ug)} de frente sobre tramos prioritarios de vialidad primaria ${isCol?'de la colonia':'de la alcaldía'}${hayFiltro()? ' (la banqueta no le aplica; el espacio, por su tramo)' : ''}.`:''} ${banqDesgloseTxt(sel, isCol? selCol : null)}`, W-2*M).slice(0,5);
     doc.text(lsU, M, y+2, {lineHeightFactor:1.25});
     y += 16 + Math.max(0, lsU.length-3)*4.4; }
   doc.setFont('helvetica','bold'); doc.setFontSize(9.5); doc.setTextColor(...GRIS);

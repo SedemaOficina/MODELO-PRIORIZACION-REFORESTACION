@@ -111,8 +111,15 @@ const estado = page => page.evaluate(() => {
 // final lo que no tiene km prioritarios. comparable() deja las cifras del Resumen sin sus rótulos y los renglones sin ese total.
 const ROTULOS_V127 = ['kpisTxt', 'caps', 'pob', 'barsTitle', 'bars2Title'];
 const sinTotal = t => String(t).replace(/ · [\d,]+ en total/, '').replace(/sin cepas en lo prioritario/, 'sin cepas registradas');
+// En la v1.37 cambiaron a propósito tres textos: el conteo de la lista y la leyenda terminan con el filtro activo («· sin banqueta o por
+// verificar», «· con cepa vacante»), y la nota del Resumen dice «Además, …» con la regla del Gobierno Central (prioridad del tramo; la revisa
+// prueba_cifras_gobierno_central.js) y «1 frente» en singular. comparable() los deja como antes para comparar lo demás.
+const sinFiltroAlFinal = t => t == null ? t : String(t).replace(/( · (con banqueta|sin banqueta o por verificar|con (cepa vacante|tocón|árbol muerto)[^·]*))+$/, '');
+const notaComparable = t => t == null ? t : String(t).replace(/ ?Además, [\d,]+ km de frentes sobre vialidades primarias[^.]*\) quedan a cargo del Gobierno Central y no se cuentan aquí\./, '')
+  .replace(/\b(\d[\d,]*) frentes? \(/g, '$1 frentes (').replace(/ que pasan los filtros no tienen/, ' no tienen');
 function comparable(e) { const c = { ...e }; for (const k of ROTULOS_V127) delete c[k];
-  c.kpis = (e.kpis || []).map(k => k.v); c.lista = (e.lista || []).map(l => ({ ...l, t: sinTotal(l.t) })); return c; }
+  c.kpis = (e.kpis || []).map(k => k.v); c.lista = (e.lista || []).map(l => ({ ...l, t: sinTotal(l.t) }));
+  c.listCount = sinFiltroAlFinal(e.listCount); c.lgScope = sinFiltroAlFinal(e.lgScope); c.nota = notaComparable(e.nota); return c; }
 const MALOS = /\bNaN\b|undefined|Infinity|\bnull\b|(^|[\s(])-0(?![\d.,])|\[object/;
 const negativos = t => (String(t).match(/(^|[\s(])[-−]\d[\d,.]*\s*(km|m|%|hab|frentes|tramos)/g) || []);
 async function buscar(page, q, espera = 500) { await page.fill('#omni', ''); await page.fill('#omni', q); await page.waitForTimeout(espera); return page.$$eval('#omni-list li', ls => ls.map(l => ({ c: l.className, t: l.innerText.replace(/\s+/g, ' ').trim() }))); }

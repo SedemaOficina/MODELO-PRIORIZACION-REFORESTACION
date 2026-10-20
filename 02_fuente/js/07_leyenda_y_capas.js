@@ -27,6 +27,8 @@ function setResp(v, sinRefresh){
   respOn.alc = v!=='gc'; respOn.gc = v!=='alc';
   document.querySelectorAll('button[data-resp]').forEach(b=>b.setAttribute('aria-pressed', String(respOn[b.dataset.resp])));
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
+  // con solo Gobierno Central la fila no se ve: su filtro se suelta para que ninguna cifra quede filtrada por algo que no está a la vista
+  if (v==='gc' && filtroBanq!=='todas'){ filtroBanq = 'todas'; document.querySelectorAll('button[data-banq]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq==='todas'))); }
   $('esp-row').hidden = !INV;   // el espacio aplica a las dos redes desde la v1.24 (el archivo único no trae el inventario)
   espTitulos(v);
   if (resp===v) return; resp=v;

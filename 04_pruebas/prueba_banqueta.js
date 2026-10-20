@@ -72,8 +72,8 @@ const kmDe = t => L.numEs(t);   // primera cifra de un texto
     ok('Gobierno Central: a la vista solo los km de vialidad; equivalencia, banqueta y la comparación con las alcaldías (km de frente) plegados y cerrados en la computadora', g.ub && g.rp && /km prioritarios/.test(g.kpis) && /^Gobierno Central · Vialidades primarias · km sobre el eje$/.test(g.cab) && !/Equivalen a|Banqueta, como referencia|Gobierno Central\s+Total/.test(g.vista), JSON.stringify({ ub: g.ub, rp: g.rp }));
     await page.$eval('#univbox details.mas summary', s => s.click()); await page.waitForTimeout(200);
     ok('Gobierno Central: «Más detalles» se abre con su botón', await page.evaluate(() => document.querySelector('#univbox details.mas').open && /Equivalen a/.test(document.getElementById('univbox').innerText))); }
-  // banqueta del Gobierno Central como referencia: frentes prioritarios que dan a las vialidades primarias de la alcaldía
-  { const d = [0, 0, 0]; for (const f of D.F) { if (!f.gc || f.prio < L.PRIO_MIN || f.mun !== ALC) continue; const b = banq(f); d[b === 0 ? 0 : b === 1 ? 1 : 2] += f.len / 1000; }
+  // banqueta del Gobierno Central como referencia: frentes que dan a los tramos prioritarios de la alcaldía (la prioridad es la del tramo, v1.37)
+  { const d = [0, 0, 0]; for (const f of D.F) { if (!f.gc || f.vp < 0 || D.VP[f.vp].prio < L.PRIO_MIN || f.mun !== ALC) continue; const b = banq(f); d[b === 0 ? 0 : b === 1 ? 1 : 2] += f.len / 1000; }
     const t = d[0] + d[1] + d[2];
     const ub = await page.$eval('#univbox', x => x.hidden ? '' : x.textContent.replace(/\s+/g, ' '));
     ok('Gobierno Central: el Resumen da la banqueta de los frentes al lado como referencia, igual al recálculo', /Banqueta, como referencia/.test(ub) && ub.includes(`${L.kmTxt(t)} ${L.kmUn(t)}`) && ub.includes(`${L.kmTxt(d[0])} ${L.kmUn(d[0])} tienen banqueta`) && /No es un filtro/.test(ub), ub.slice(0, 220)); }

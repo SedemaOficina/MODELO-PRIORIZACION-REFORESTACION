@@ -76,7 +76,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
     if (p.has('c') && r!=='gc' && Number.isInteger(c) && c>0 && META.colonias[c] && META.colonias[c].n){ if (selCol!==c) pickColonia(c); }
     else if (p.has('v') && r==='gc' && Number.isInteger(v) && v>0 && VPC.nomenclat[v]){ if (sel!==m){ sel=m; selEl.value = m===null? '' : String(m); } if (selAv!==v) pickAvenida(v); else refresh(); }
     else if (sel!==m || selCol!==null || selAv!==null){ selEl.value = m===null? '' : String(m); setSel(selEl.value); }
-    const b = p.get('b')==='con' || p.get('b')==='sin'? p.get('b') : 'todas'; if (b!==filtroBanq) setBanq(b);
+    const b = r!=='gc' && (p.get('b')==='con' || p.get('b')==='sin')? p.get('b') : 'todas'; if (b!==filtroBanq) setBanq(b);   // con r=gc la banqueta no aplica
     const e = espDeTexto(p.get('e')); if (e!==espQuiero) setEspacio(e);
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });

@@ -165,9 +165,11 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   ok('el desarrollo social se rotula como de la unidad territorial', /de su unidad territorial/.test(e.colinfo || '') && /unidad territorial/.test(e.pob || ''), `${(e.colinfo || '').slice(0, 120)} · ${e.pob}`);
 
   // ---------- reparto por responsable y calle por prioridad (prioritario = Muy Alta, Alta y Media) ----------
-  // recálculo independiente: km de frente por responsable y prioridad; sin arbolado = (flags & 7) === 1; con banqueta = ((flags >> 3) & 7) === 0
+  // recálculo independiente: km de frente por responsable y prioridad; sin arbolado = (flags & 7) === 1; con banqueta = ((flags >> 3) & 7) === 0.
+  // Los frentes del Gobierno Central llevan la prioridad de su tramo de vialidad primaria (v1.37)
+  const prioDe = f => f.gc && f.vp >= 0 ? D.VP[f.vp].prio : f.prio;
   const rep = (filtro) => { const r = { km: [[0, 0, 0, 0, 0], [0, 0, 0, 0, 0]], sa: [0, 0], sb: [0, 0] };
-    for (const f of D.F) { if (!filtro(f)) continue; r.km[f.gc][f.prio] += f.len / 1000; if (f.prio >= L.PRIO_MIN && (f.flags & 7) === 1) { r.sa[f.gc] += f.len / 1000; if (((f.flags >> 3) & 7) === 0) r.sb[f.gc] += f.len / 1000; } } return r; };
+    for (const f of D.F) { if (!filtro(f)) continue; const p = prioDe(f); r.km[f.gc][p] += f.len / 1000; if (p >= L.PRIO_MIN && (f.flags & 7) === 1) { r.sa[f.gc] += f.len / 1000; if (((f.flags >> 3) & 7) === 0) r.sb[f.gc] += f.len / 1000; } } return r; };
   const u3 = a => a.slice(L.PRIO_MIN).reduce((x, y) => x + y, 0);   // km prioritarios
   // tabla de comparación «Alcaldía(s) y Gobierno Central» (v1.27): km de frente sin decimales (prioritario, de lo prioritario sin arbolado,
   // todos los frentes) y espacios para plantar (puntos de frentes de la alcaldía; del Gobierno Central, de las partes de vialidad del ámbito)
@@ -243,9 +245,9 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
 
   // ---------- km de vialidad (eje) y su equivalente en km de frente; banqueta como condición ----------
   await L.clic(page, '#zcity'); await page.waitForTimeout(300); await L.ponResp(page, 'gc'); await page.click('#tab-res'); await page.waitForTimeout(500);
-  { const g = D.F.filter(f => f.gc); const kt = g.reduce((s, f) => s + f.len, 0) / 1000, kp = g.filter(f => f.prio >= L.PRIO_MIN).reduce((s, f) => s + f.len, 0) / 1000;
+  { const g = D.F.filter(f => f.gc); const kt = g.reduce((s, f) => s + f.len, 0) / 1000, kp = g.filter(f => prioDe(f) >= L.PRIO_MIN).reduce((s, f) => s + f.len, 0) / 1000;
     const t = await page.$eval('#univbox', b => b.hidden ? '' : b.textContent.replace(/\s+/g, ' '));
-    ok('Gobierno Central, ciudad: equivalente en km de frente = recálculo', t.includes(`Equivalen a ${L.kmTxt(kt)} ${L.kmUn(kt)} de frente de manzana`) && t.includes(`${L.kmTxt(kp)} ${L.kmUn(kp)} prioritarios`) && /sobre el eje/.test(t), t.slice(-260));
+    ok('Gobierno Central, ciudad: equivalente en km de frente = recálculo', t.includes(`Equivalen a ${L.kmTxt(kt)} ${L.kmUn(kt)} de frente de manzana`) && t.includes(`${L.kmTxt(kp)} ${L.kmUn(kp)} sobre tramos prioritarios`) && /sobre el eje/.test(t), t.slice(-260));
     await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500);
     const gi = g.filter(f => f.mun === izt); const ki = gi.reduce((s, f) => s + f.len, 0) / 1000;
     const ti = await page.$eval('#univbox', b => b.hidden ? '' : b.textContent.replace(/\s+/g, ' '));

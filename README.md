@@ -72,13 +72,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo, unos 12 minutos) o `nod
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub (propuesta, no activada):** `05_documentacion/verificacion_automatica_github.md` trae el archivo y los pasos para que GitHub repita en cada cambio las verificaciones rápidas (datos, construcción y revisión estática). Activarla le corresponde a quien administra la cuenta.
 
-## Estado al 17 de octubre de 2026 (versión 1.36)
+## Estado al 20 de octubre de 2026 (versión 1.37)
 
-- Versión vigente: **v1.36**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.37**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.37 | Bloque 1 de la auditoría del 19 de octubre (`05_documentacion/AUDITORIA-2026-10-19.md`): cifras del Gobierno Central con filtros. Sus frentes siguen su propia regla (una sola función, `pasaFiltros`): la banqueta no les aplica, el filtro «Espacio» se les aplica por su tramo y llevan la prioridad de su tramo (`prioFr`), así que la columna del Gobierno Central de la tabla «Alcaldía y Gobierno Central», «Equivalen a…», el Excel y las fichas dicen lo mismo (lo prioritario de frente del Gobierno Central en la ciudad pasa de 1,254 a 1,186 km). Con solo Gobierno Central ya no queda un filtro de banqueta escondido (al cambiar de red ni con un enlace `r=gc&b=…`). La lista «Dónde empezar» y la leyenda dicen el filtro activo; la ficha PDF filtrada ya no trae «Concentra … de la ciudad», que era sin filtro. Prueba nueva: `prueba_cifras_gobierno_central.js` (falla 25 de 36 contra la v1.36). |
 | 1.36 | Decisiones de Liber: la línea Media contra su filete (2.10:1) queda así y la auditoría la marca «Aceptado» con su motivo (lista `ACEPTADOS` en `herramientas/contraste.mjs`; ya no quedan pendientes: 253 pares, 188 cumplen, 5 aceptados, 60 informativos); en modo ligero el filete de los frentes sigue solo con alcaldía o colonia elegida; el renglón por cepas ya no repite el total cuando es igual («762 cepas vacantes»). Queda anotado en `08_entrega_sia/CONTRATO_DE_DATOS.md` y en `03_procesamiento_datos/LEEME.md` que, al terminar el inventario de arbolado, se proponga al SIA tenerlo en un solo lugar (su PostGIS y GeoServer). |
 | 1.35 | Texto: «el inventario va en curso» pasa a «está en curso» en la metodología y en el recorrido guiado. |
 | 1.34 | Metodología: el párrafo de espacios para plantar dice qué significa cada tipo (cepa vacante: se planta directo; tocón: hay que retirarlo antes; árbol muerto: requiere sustitución) y que los espacios no cambian la prioridad de ninguna calle. |

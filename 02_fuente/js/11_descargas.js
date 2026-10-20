@@ -224,13 +224,13 @@ const num = v => { const n = Number(v); return Number.isFinite(n)? n : v; };
 function gcExtra(){ const g = gcFrente(sel, selAv);
   return [['Unidad de las longitudes', 'Metros o kilómetros de vialidad, medidos sobre el eje'],
     ['Equivalente del ámbito en km de frente de manzana (aceras con manzana enfrente)', num(sum(g.km).toFixed(2))],
-    ['Equivalente prioritario (Muy Alta, Alta y Media) en km de frente de manzana', num(kmPrio(g).toFixed(2))]]; }
+    ['Equivalente en km de frente de manzana de los tramos prioritarios (Muy Alta, Alta y Media)', num(kmPrio(g).toFixed(2))]]; }
 // cifras de lo prioritario del ámbito consultado, para el diccionario de los Excel de la red de las alcaldías
 function prioExtra(){ const R = repStat(sel, selCol); const k = v => num(v.toFixed(2));
   return [['Prioritario del ámbito (Muy Alta, Alta y Media), km de frente a cargo de la alcaldía', k(sumPrio(R.km[0]))],
     ['De lo prioritario, km de frente sin arbolado', k(sumPrio(R.sa[0]))],
     ['De lo prioritario, km de frente sin arbolado y con banqueta (INEGI)', k(sumPrio(R.sb[0]))],
-    ['Prioritario del ámbito, km de frente a cargo del Gobierno Central', k(sumPrio(R.km[1]))]]; }
+    ['Km de frente a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo)', k(sumPrio(R.km[1]))]]; }
 // ---------- espacios para plantar en las descargas (v1.25) ----------
 // Tres columnas al final de cada Excel (y tres propiedades en el GeoJSON y el KML): cepas vacantes, tocones y árboles muertos del
 // inventario de arbolado. Por frente de manzana, los puntos asignados a ese frente (ESP_FRN); por parte de vialidad primaria, los de sus

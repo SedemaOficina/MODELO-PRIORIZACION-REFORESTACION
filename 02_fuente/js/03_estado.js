@@ -58,7 +58,7 @@ const enTerritorio = i => selCol!==null ? F.col[i]===selCol : (sel===null || F.m
 let filtroEsp = 0, ESP_FR = null, ESP_CV = null, ESP_FRN = null;
 const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
 const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
-const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
+const enAmbito = i => enTerritorio(i) && pasaFiltros(i);
 // El mismo filtro para el Gobierno Central (v1.24): una parte de vialidad primaria pasa si tiene al menos un punto de los tipos elegidos.
 // Cuentan los puntos de sus frentes de manzana a cargo del Gobierno Central y los del camellón (sin frente y a 25 m o menos de su eje);
 // los de los frentes de las alcaldías no. ESP_VP (Uint8Array de NV) trae los tipos de cada parte y ESP_VPN (Uint16Array de 3·NV) cuántos
@@ -67,6 +67,13 @@ const enAmbito = i => enTerritorio(i) && pasaBanq(i) && pasaEspacio(i);
 // alcaldía o por avenida sin enAmbitoVP. La banqueta no aplica a las vialidades primarias.
 let ESP_VP = null, ESP_VPN = null;
 const pasaEspacioVP = i => filtroEsp===0 || (ESP_VP!==null && i>=0 && (ESP_VP[i] & filtroEsp)!==0);
+// Los filtros de un frente de manzana según quién lo atiende: los de la alcaldía pasan por «Banqueta» y por «Espacio» (sus puntos a 20 m);
+// los del Gobierno Central siguen la regla de sus vialidades: sin banqueta y con el «Espacio» de su tramo (sus frentes y el camellón).
+// Es la única condición de filtro de los frentes: la usan enAmbito(i) y las cifras que se guardan por colonia o por alcaldía.
+const pasaFiltros = i => F.gc[i]? pasaEspacioVP(F.vp[i]) : pasaBanq(i) && pasaEspacio(i);
+// Prioridad de un frente: la suya, salvo en los del Gobierno Central, que llevan la de su tramo de vialidad primaria (la misma de sus
+// listas y descargas). Así «prioritario del Gobierno Central» quiere decir lo mismo en km de vialidad y en km de frente.
+const prioFr = i => F.gc[i] && F.vp[i]>=0? VP.prio[F.vp[i]] : F.prio[i];
 const enAmbitoVP = i => (sel===null || VP.mun[i]===sel) && (selAv===null || VP.nom[i]===selAv) && pasaEspacioVP(i);
 // texto que acompaña al ámbito cuando el filtro de banqueta está activo
 const banqTxt = () => filtroBanq==='con'? 'solo frentes con banqueta (INEGI 2020)' : filtroBanq==='sin'? 'solo frentes sin banqueta o por verificar (INEGI 2020)' : '';
@@ -161,7 +168,7 @@ const showCol = ()=> showColB && !isGC(), showFr = ()=> showFrB, colOnly = ()=> 
 // Sumas exactas por alcaldía, calculadas una sola vez de los frentes y los tramos: los resúmenes de meta.bin
 // vienen redondeados a dos decimales y volver a redondearlos movería la cifra hasta 0.1 km respecto del recálculo.
 (()=>{ const z = ()=>[0,0,0,0,0]; const A=META.muns.map(z), G=META.muns.map(z), W=META.muns.map(z);
-  for(let i=0;i<N;i++) (F.gc[i]? G : A)[F.mun[i]][F.prio[i]] += F.len[i]/1000;
+  for(let i=0;i<N;i++) (F.gc[i]? G : A)[F.mun[i]][prioFr(i)] += F.len[i]/1000;
   for(let i=0;i<NV;i++) W[VP.mun[i]][VP.prio[i]] += VP.len[i]/1000;
   const tot = M => M.reduce((t,a)=>t.map((v,k)=>v+a[k]), z());
   META.muns.forEach((m,i)=>{ META.summ[m].km=A[i]; META.summ_gc[m].km=G[i]; if (VPC.summ[m]) VPC.summ[m].km=W[i]; });
