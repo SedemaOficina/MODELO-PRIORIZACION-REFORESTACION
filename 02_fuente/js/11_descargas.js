@@ -362,10 +362,10 @@ function geoDescarga(tipo){ const st = $('dl-status'); const g = geoSel(); const
   if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un teléfono. Elige una colonia o descárgalo desde una computadora.`; return; }
   st.textContent = n>GRANDE? `Preparando un archivo grande: ${fmt.format(n)} líneas, alrededor de ${fmt0.format(Math.max(1, n*(tipo==='kml'? 0.0006 : 0.00033)))} MB…` : 'Preparando archivo…';
   const base = `calles_prioritarias_mapa_${g.fr.length? scopeSlug() : 'vialidades_primarias_'+scopeSlugVP()}`;
-  // primero los conteos del inventario (si no llegan, el archivo sale sin esas propiedades y lo dice)
-  espDescarga().then(esp=> setTimeout(()=>{ try {
+  // primero la sesión (si venció, se avisa como en el Excel) y los conteos del inventario (si no llegan, el archivo sale sin esas propiedades y lo dice)
+  sesionViva().then(viva=> viva? espDescarga() : null).then(esp=> { if (!esp){ avisoSesion(st); return; } setTimeout(()=>{ try {
       const blob = tipo==='kml'? new Blob([geoKML(g, esp)], {type:'application/vnd.google-earth.kml+xml'}) : new Blob([geoJSON(g, esp)], {type:'application/geo+json'});
       deliverBlob(`${base}.${tipo==='kml'? 'kml' : 'geojson'}`, blob).then(()=>{ if (n>2000 && tipo==='kml') st.textContent += ` · ${fmt.format(n)} líneas. Google Earth lo abre completo; «Mis mapas» de Google admite hasta 2,000 por capa: para ese uso, descarga por colonia.`; espAvisoDescarga(esp); });
-    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30)); }
+    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30); }); }
 $('dl-kml').onclick = ()=>geoDescarga('kml');
 $('dl-geojson').onclick = ()=>geoDescarga('geojson');

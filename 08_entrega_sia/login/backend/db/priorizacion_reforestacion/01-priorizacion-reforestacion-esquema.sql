@@ -27,14 +27,15 @@ CREATE SCHEMA IF NOT EXISTS priorizacion_reforestacion;
 -- Personas con acceso. La contraseña nunca se guarda: solo su huella (scrypt con sal propia).
 CREATE TABLE IF NOT EXISTS priorizacion_reforestacion.usuarios (
   id                serial PRIMARY KEY,
-  correo            text NOT NULL CHECK (correo = lower(correo) AND correo ~ '^[^\s@]+@[^\s@]+\.[^\s@]+$'),
-  nombre            text NOT NULL CHECK (length(trim(nombre)) > 0),
+  correo            text NOT NULL CHECK (correo = lower(correo) AND correo ~ '^[!-?A-~]+@[!-?A-~]+\.[!-?A-~]+$'),   -- solo ASCII visible
+  nombre            text NOT NULL CHECK (length(trim(nombre)) > 0 AND length(nombre) <= 120),
   institucion       text NOT NULL DEFAULT 'Alcaldía' CHECK (institucion IN ('Alcaldía', 'Gobierno Central', 'SEDEMA', 'Otra')),
   alcaldia_cve      text CHECK (alcaldia_cve ~ '^0(0[2-9]|1[0-7])$'),   -- clave de INEGI «002» a «017»; vacía si no es de una alcaldía
   rol               text NOT NULL DEFAULT 'usuario' CHECK (rol IN ('usuario', 'admin')),
   activo            boolean NOT NULL DEFAULT true,
   huella            text NOT NULL CHECK (huella LIKE 'scrypt$%'),        -- scrypt$N$r$p$sal$huella
   debe_cambiar      boolean NOT NULL DEFAULT true,                       -- contraseña temporal: se cambia al primer acceso
+  temporal_desde    timestamptz DEFAULT now(),                           -- cuándo se dio la temporal: deja de servir a las 72 horas
   intentos_fallidos integer NOT NULL DEFAULT 0,
   bloqueado_hasta   timestamptz,
   creado            timestamptz NOT NULL DEFAULT now(),
@@ -43,6 +44,8 @@ CREATE TABLE IF NOT EXISTS priorizacion_reforestacion.usuarios (
   baja              timestamptz                                          -- a los 24 meses de la baja, depurar() elimina la cuenta
 );
 CREATE UNIQUE INDEX IF NOT EXISTS usuarios_correo ON priorizacion_reforestacion.usuarios (correo);
+-- en una base donde el esquema ya estaba aplicado (antes de la v1.38)
+ALTER TABLE priorizacion_reforestacion.usuarios ADD COLUMN IF NOT EXISTS temporal_desde timestamptz DEFAULT now();
 
 -- Sesiones abiertas. La cookie lleva un valor aleatorio de 256 bits; aquí solo su huella SHA-256.
 CREATE TABLE IF NOT EXISTS priorizacion_reforestacion.sesiones (

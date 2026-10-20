@@ -41,7 +41,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Archivos de datos resistentes a un intermediario que los descomprima | Listo; probado |
 | Todas las referencias con huella de versión | Listo |
 | Librerías sin avisos de seguridad publicados | Listo: jsPDF 4.2.1 y SheetJS 0.20.3 |
-| **Módulo de sesión** (backend, esquema, pantalla de acceso, panel de administración) | **Construido y probado** (`login/`): pruebas del módulo 5 de 5, depuración por plazos probada en PostgreSQL 17; flujo completo probado con la demostración (acceso, contraseña temporal, regreso a la consulta, registro de consultas y descargas, baja inmediata, cierre de sesión) |
+| **Módulo de sesión** (backend, esquema, pantalla de acceso, panel de administración) | **Construido y probado** (`login/`): pruebas del módulo 19 de 19 en PostgreSQL 17 (17 en la base en memoria, más la depuración por plazos y la transacción del alta masiva, que necesitan PostgreSQL real); flujo completo probado con la demostración (acceso, contraseña temporal, regreso a la consulta, registro de consultas y descargas, baja inmediata, cierre de sesión) |
 | Registro de usos en la herramienta | Listo; solo se activa con la sesión configurada (el paquete la trae) |
 | Aviso de privacidad | Aprobado por la Unidad de Transparencia (oct. 2026); publicado en la pantalla de acceso. Textos en `login/privacidad/` |
 | Configuración de nginx (con y sin login) | Escrita; **sin validar con `nginx -t`** |

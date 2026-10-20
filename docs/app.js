@@ -42,6 +42,11 @@ const esSesion = r => !!r && (r.status===401 || r.status===403 || (r.ok && (r.he
 const errSesion = detalle => { const e = errAmable(SESION_TXT, detalle); e.sesion = true; return e; };
 // por qué no llegó un archivo: 'sesion', 'red' (sin conexión) o 'servidor' (el archivo no está o el servidor falló)
 async function causaFalla(url){ if (/^blob:|^data:/.test(url)) return 'servidor'; try { const r = await fetch(url, {cache:'no-store'}); return esSesion(r)? 'sesion' : r.ok? 'otra' : 'servidor'; } catch(e){ return 'red'; } }
+// ¿Sigue abierta la sesión? Antes de entregar lo que se arma en el navegador sin pedir nada al servidor (KML y GeoJSON): así una sesión
+// vencida se detiene igual que el Excel y la ficha, y lo descargado queda en el registro de usos. Sin sesión configurada, o si la red
+// falla, se sigue (la falla de red no es una sesión vencida).
+const sesionViva = () => !SESION.inicio || !USO_URL? Promise.resolve(true)
+  : fetch(USO_URL.replace(/uso$/, 'yo'), {credentials:'same-origin', cache:'no-store'}).then(r=> !esSesion(r), ()=> true);
 function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){ const a = document.createElement('a'); a.href = SESION.inicio; a.textContent = 'Iniciar sesión'; el.appendChild(a); } }
 // Los textos de los catálogos se interpolan en HTML en muchos puntos: se neutralizan al entrar.
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.
@@ -2388,11 +2393,11 @@ function geoDescarga(tipo){ const st = $('dl-status'); const g = geoSel(); const
   if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un teléfono. Elige una colonia o descárgalo desde una computadora.`; return; }
   st.textContent = n>GRANDE? `Preparando un archivo grande: ${fmt.format(n)} líneas, alrededor de ${fmt0.format(Math.max(1, n*(tipo==='kml'? 0.0006 : 0.00033)))} MB…` : 'Preparando archivo…';
   const base = `calles_prioritarias_mapa_${g.fr.length? scopeSlug() : 'vialidades_primarias_'+scopeSlugVP()}`;
-  // primero los conteos del inventario (si no llegan, el archivo sale sin esas propiedades y lo dice)
-  espDescarga().then(esp=> setTimeout(()=>{ try {
+  // primero la sesión (si venció, se avisa como en el Excel) y los conteos del inventario (si no llegan, el archivo sale sin esas propiedades y lo dice)
+  sesionViva().then(viva=> viva? espDescarga() : null).then(esp=> { if (!esp){ avisoSesion(st); return; } setTimeout(()=>{ try {
       const blob = tipo==='kml'? new Blob([geoKML(g, esp)], {type:'application/vnd.google-earth.kml+xml'}) : new Blob([geoJSON(g, esp)], {type:'application/geo+json'});
       deliverBlob(`${base}.${tipo==='kml'? 'kml' : 'geojson'}`, blob).then(()=>{ if (n>2000 && tipo==='kml') st.textContent += ` · ${fmt.format(n)} líneas. Google Earth lo abre completo; «Mis mapas» de Google admite hasta 2,000 por capa: para ese uso, descarga por colonia.`; espAvisoDescarga(esp); });
-    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30)); }
+    } catch(e){ console.error(e); st.textContent = 'No fue posible preparar el archivo. Intenta con un ámbito más pequeño (una colonia).'; } }, 30); }); }
 $('dl-kml').onclick = ()=>geoDescarga('kml');
 $('dl-geojson').onclick = ()=>geoDescarga('geojson');
 

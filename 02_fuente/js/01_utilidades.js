@@ -39,6 +39,11 @@ const esSesion = r => !!r && (r.status===401 || r.status===403 || (r.ok && (r.he
 const errSesion = detalle => { const e = errAmable(SESION_TXT, detalle); e.sesion = true; return e; };
 // por qué no llegó un archivo: 'sesion', 'red' (sin conexión) o 'servidor' (el archivo no está o el servidor falló)
 async function causaFalla(url){ if (/^blob:|^data:/.test(url)) return 'servidor'; try { const r = await fetch(url, {cache:'no-store'}); return esSesion(r)? 'sesion' : r.ok? 'otra' : 'servidor'; } catch(e){ return 'red'; } }
+// ¿Sigue abierta la sesión? Antes de entregar lo que se arma en el navegador sin pedir nada al servidor (KML y GeoJSON): así una sesión
+// vencida se detiene igual que el Excel y la ficha, y lo descargado queda en el registro de usos. Sin sesión configurada, o si la red
+// falla, se sigue (la falla de red no es una sesión vencida).
+const sesionViva = () => !SESION.inicio || !USO_URL? Promise.resolve(true)
+  : fetch(USO_URL.replace(/uso$/, 'yo'), {credentials:'same-origin', cache:'no-store'}).then(r=> !esSesion(r), ()=> true);
 function avisoSesion(el){ el.textContent = SESION_TXT + ' '; if (SESION.inicio){ const a = document.createElement('a'); a.href = SESION.inicio; a.textContent = 'Iniciar sesión'; el.appendChild(a); } }
 // Los textos de los catálogos se interpolan en HTML en muchos puntos: se neutralizan al entrar.
 // Un nombre con marcado es un error del insumo; se muestra con comillas angulares simples y no puede ejecutar código.

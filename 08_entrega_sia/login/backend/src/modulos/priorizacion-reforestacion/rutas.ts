@@ -1,7 +1,7 @@
 import express, { type ErrorRequestHandler, type NextFunction, type Request, type RequestHandler, type Response, type Router } from "express";
 import { createHash, randomBytes } from "node:crypto";
 import type pg from "pg";
-import { huella, huellaTemporal, revisaNueva, temporal, verifica, verificaFicticia } from "./contrasenas";
+import { huella, huellaTemporal, revisaNueva, temporal, verifica, verificaFicticia, verificaIgual } from "./contrasenas";
 import { ALCALDIAS, nombreAlcaldia } from "./alcaldias";
 import { aplica, INSTITUCIONES, leeCsv, revisa, type CuentaNueva } from "./masiva";
 import { ipDeOrigen } from "../../comun/procedencia";
@@ -58,6 +58,8 @@ export interface Opciones {
   visitaCadaMin: number;
   /** 0 apaga la depuración periódica (para pruebas); la base también puede correrla sola. */
   depurarCadaHoras: number;
+  /** Una contraseña temporal sin usar deja de servir a las N horas de darse (alta o restablecimiento). */
+  temporalHoras: number;
 }
 
 const OPCIONES: Opciones = {
@@ -72,6 +74,7 @@ const OPCIONES: Opciones = {
   bloqueoMin: 15,
   visitaCadaMin: 30,
   depurarCadaHoras: 24,
+  temporalHoras: 72,
 };
 
 const COOKIE = "priorizacion_reforestacion_sesion";
@@ -84,7 +87,7 @@ const LIMPIO = /^[\p{L}\p{N} .,;:()«»'_\-·/]{0,160}$/u;
 interface Usuario {
   id: number; correo: string; nombre: string; institucion: string; alcaldia_cve: string | null; rol: "usuario" | "admin";
   activo: boolean; huella: string; debe_cambiar: boolean; intentos_fallidos: number; bloqueado_hasta: Date | null;
-  creado: Date; actualizado: Date; ultimo_acceso: Date | null; baja: Date | null;
+  creado: Date; actualizado: Date; ultimo_acceso: Date | null; baja: Date | null; temporal_desde: Date | null;
 }
 interface Sesion extends Pick<Usuario, "id" | "correo" | "nombre" | "rol" | "activo" | "institucion" | "alcaldia_cve" | "debe_cambiar"> {
   token_huella: string; ultima_actividad: Date; expira: Date; ultima_visita: Date | null;
@@ -93,6 +96,13 @@ interface Sesion extends Pick<Usuario, "id" | "correo" | "nombre" | "rol" | "act
 const huellaToken = (t: string) => createHash("sha256").update(t).digest("hex");
 const cuerpo = (req: Request): Record<string, unknown> => (req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>) : {});
 const texto = (v: unknown) => (typeof v === "string" ? v : "");
+/** Identificador de cuenta en la dirección: entero positivo; otra cosa responde 404 y no llega a la base. */
+const idValido = (v: unknown) => (typeof v === "string" && /^\d{1,9}$/.test(v) ? Number(v) : null);
+/** Nombre que empieza con = + - @ (fórmula al abrir un CSV en Excel) o demasiado largo: no se acepta. */
+export const NOMBRE_MAX = 120;
+export const nombreMalo = (n: string) => n.length > NOMBRE_MAX || /^[=+\-@\t\r]/.test(n);
+/** Correo: solo caracteres visibles de ASCII (un espacio de ancho cero haría una cuenta «repetida» que se ve igual). */
+export const CORREO_RE = /^[\x21-\x3f\x41-\x7e]+@[\x21-\x3f\x41-\x7e]+\.[\x21-\x3f\x41-\x7e]+$/;
 /** La sesión que dejó `conSesion` en res.locals. */
 const usuarioDe = (res: Response) => res.locals.usuario as Sesion;
 
@@ -100,6 +110,8 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   const o: Opciones = { ...OPCIONES, ...opciones };
   const r = express.Router();
   const json = express.json({ limit: "8kb" });
+  // Nada de lo que responde el módulo se guarda en caché: lleva datos de cuentas y de la bitácora.
+  r.use((_req, res, next) => { res.set("Cache-Control", "no-store"); next(); });
 
   const anota = (usuario_id: number | null, evento: string, detalle: object | null, req: Request | null) =>
     pool.query("INSERT INTO priorizacion_reforestacion.bitacora (usuario_id, evento, detalle, ip) VALUES ($1, $2, $3, $4)",
@@ -107,7 +119,8 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
 
   const leeCookie = (req: Request): string | null => {
     const m = (req.get("cookie") ?? "").split(/;\s*/).find((x) => x.startsWith(COOKIE + "="));
-    return m ? decodeURIComponent(m.slice(COOKIE.length + 1)) : null;
+    if (!m) return null;
+    try { return decodeURIComponent(m.slice(COOKIE.length + 1)); } catch { return null; }   // una cookie mal codificada es «sin sesión», no un error
   };
   /** La cookie solo viaja a la herramienta, a su acceso y a su API: su Path es la ruta de la herramienta. */
   const ponCookie = (res: Response, valor: string, maxSeg: number) => res.append("Set-Cookie",
@@ -131,33 +144,56 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
 
   /* Las peticiones que cambian algo deben venir de la propia procedencia (protección contra solicitudes cruzadas). */
   const origenes = o.origen.split(",").map((s) => s.trim()).filter(Boolean);
+  /* Sin cabecera Origin, los navegadores actuales mandan Sec-Fetch-Site: si dice que viene de otro sitio, también se rechaza. */
+  const deOtroSitio = (req: Request) => { const f = req.get("sec-fetch-site"); return f === "cross-site" || f === "same-site"; };
   const mismaProcedencia: RequestHandler = (req, res, next) => {
     const or = req.get("origin");
-    if (or && !origenes.includes(or)) { res.status(403).json({ error: "Procedencia no permitida." }); return; }
+    if ((or && !origenes.includes(or)) || (!or && deOtroSitio(req))) { res.status(403).json({ error: "Procedencia no permitida." }); return; }
     next();
   };
-  const conSesion = (rol?: "admin"): RequestHandler => async (req, res, next) => {
+  /* Con contraseña temporal solo se puede cambiar la contraseña (permiteTemporal): ni la herramienta, ni el registro de usos, ni la
+     administración. Así una temporal de administración que alguien vea no sirve para administrar cuentas. */
+  const conSesion = (rol?: "admin", permiteTemporal = false): RequestHandler => async (req, res, next) => {
     const s = await sesion(req);
     if (!s) { res.status(401).json({ error: "Tu sesión terminó. Vuelve a iniciar sesión para continuar." }); return; }
+    if (s.debe_cambiar && !permiteTemporal) { res.status(403).json({ error: "Primero cambia tu contraseña temporal.", cambiar: true }); return; }
     if (rol && s.rol !== rol) { res.status(403).json({ error: "No tienes permiso para esta sección." }); return; }
     res.locals.usuario = s;
     next();
   };
 
   /* Límite por IP de los intentos FALLIDOS de acceso (30 en 15 minutos), además del bloqueo por cuenta en la base.
-     Los accesos correctos no cuentan: muchas personas de una oficina pueden salir por la misma IP. */
+     Cada intento se reserva ANTES de verificar la contraseña (así los intentos simultáneos también cuentan) y se devuelve si
+     resulta correcto: los accesos correctos no cuentan, porque muchas personas de una oficina salen por la misma IP. */
   const fallidos = new Map<string, number[]>();
   const IP_MAX = 30, IP_VENTANA = 15 * 60000;
   const recientes = (k: string, ahora: number) => (fallidos.get(k) ?? []).filter((t) => ahora - t < IP_VENTANA);
   const limiteIp: RequestHandler = (req, res, next) => {
-    if (recientes(ipDeOrigen(req) ?? "?", Date.now()).length >= IP_MAX) { res.status(429).json({ error: "Demasiados intentos desde esta red. Espera unos minutos." }); return; }
+    const k = ipDeOrigen(req) ?? "?", ahora = Date.now(), a = recientes(k, ahora);
+    if (a.length >= IP_MAX) { res.status(429).json({ error: "Demasiados intentos desde esta red. Espera unos minutos." }); return; }
+    if (fallidos.size > 5000 && !fallidos.has(k)) fallidos.clear();
+    a.push(ahora); fallidos.set(k, a); res.locals.intentoIp = ahora;
     next();
   };
-  const anotaFallido = (req: Request) => {
-    const k = ipDeOrigen(req) ?? "?", ahora = Date.now(), a = recientes(k, ahora);
-    a.push(ahora); fallidos.set(k, a);
-    if (fallidos.size > 5000) fallidos.clear();
+  const devuelveIntento = (req: Request, res: Response) => {
+    const a = fallidos.get(ipDeOrigen(req) ?? "?"), t = res.locals.intentoIp as number | undefined, i = a && t !== undefined ? a.indexOf(t) : -1;
+    if (a && i >= 0) a.splice(i, 1);
   };
+  /* Intento de una cuenta, contado de forma ATÓMICA antes de verificar: una sola sentencia suma el intento y, al llegar al tope, detiene
+     la cuenta. Si ya está detenida no devuelve nada. Con peticiones simultáneas cada una suma la suya: no se pueden probar más de
+     intentosMax contraseñas antes de que la cuenta se detenga. */
+  const cuentaIntento = async (id: number) => {
+    const { rows } = await pool.query<{ bloqueado_hasta: Date | null }>(
+      `UPDATE priorizacion_reforestacion.usuarios
+          SET intentos_fallidos = CASE WHEN intentos_fallidos + 1 >= $2 THEN 0 ELSE intentos_fallidos + 1 END,
+              bloqueado_hasta = CASE WHEN intentos_fallidos + 1 >= $2 THEN $3::timestamptz ELSE NULL END
+        WHERE id = $1 AND (bloqueado_hasta IS NULL OR bloqueado_hasta <= $4::timestamptz)
+        RETURNING bloqueado_hasta`,
+      [id, o.intentosMax, new Date(Date.now() + o.bloqueoMin * 60000), new Date()]);
+    return rows[0] ? { detenida: false, bloquea: !!rows[0].bloqueado_hasta } : { detenida: true, bloquea: false };
+  };
+  const temporalVencida = (u: Pick<Usuario, "debe_cambiar" | "temporal_desde" | "actualizado">) =>
+    u.debe_cambiar && Date.now() - new Date(u.temporal_desde ?? u.actualizado).getTime() > o.temporalHoras * 3600e3;
 
   // ---------- entrar ----------
   r.post("/entrar", mismaProcedencia, limiteIp, json, async (req, res) => {
@@ -166,28 +202,31 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     /* Correo desconocido, cuenta de baja, cuenta detenida o contraseña equivocada: la MISMA respuesta (401 y mensaje) y el
        mismo trabajo de verificación, para no revelar si la cuenta existe ni si está detenida. El motivo queda en la bitácora. */
     const NO = async (usuario_id: number | null, detalle: object) => {
-      anotaFallido(req);
       await anota(usuario_id, "acceso_fallido", detalle, req);
       res.status(401).json({ error: `El correo o la contraseña no son correctos. Tras ${o.intentosMax} intentos fallidos, el acceso se detiene ${o.bloqueoMin} minutos.` });
     };
     const { rows } = await pool.query<Usuario>("SELECT * FROM priorizacion_reforestacion.usuarios WHERE correo = $1", [correo]);
     const u = rows[0];
     if (!u || !u.activo) { await verificaFicticia(contrasena); await NO(null, { motivo: u ? "baja" : "correo" }); return; }
-    if (u.bloqueado_hasta && new Date(u.bloqueado_hasta).getTime() > Date.now()) {
-      await verifica(contrasena, u.huella);   // se calcula y se descarta: aun con la contraseña correcta, no entra
-      await NO(u.id, { motivo: "detenida" }); return;
-    }
-    if (!(await verifica(contrasena, u.huella))) {
-      const n = u.intentos_fallidos + 1, bloquea = n >= o.intentosMax;
-      await pool.query("UPDATE priorizacion_reforestacion.usuarios SET intentos_fallidos = $1, bloqueado_hasta = $2 WHERE id = $3",
-        [bloquea ? 0 : n, bloquea ? new Date(Date.now() + o.bloqueoMin * 60000) : null, u.id]);
-      await NO(u.id, { motivo: "contrasena", bloqueo: bloquea }); return;
-    }
+    const intento = await cuentaIntento(u.id);
+    // verificaIgual cuesta lo mismo con huella temporal que definitiva: el tiempo no delata las cuentas con contraseña temporal.
+    // Se calcula siempre: detenida o con la temporal vencida, aun la contraseña correcta no entra
+    const correcta = await verificaIgual(contrasena, u.huella);
+    if (intento.detenida) { await NO(u.id, { motivo: "detenida" }); return; }
+    if (!correcta) { await NO(u.id, { motivo: "contrasena", bloqueo: intento.bloquea }); return; }
+    if (temporalVencida(u)) { await NO(u.id, { motivo: "temporal_vencida" }); return; }
+    devuelveIntento(req, res);
     const token = randomBytes(32).toString("base64url");
-    await pool.query("INSERT INTO priorizacion_reforestacion.sesiones (token_huella, usuario_id, expira) VALUES ($1, $2, $3)",
-      [huellaToken(token), u.id, new Date(Date.now() + o.maximoDias * 864e5)]);
-    await pool.query("UPDATE priorizacion_reforestacion.usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = now() WHERE id = $1", [u.id]);
-    await anota(u.id, "acceso", null, req);
+    // la sesión, el fin del conteo de intentos y la anotación van juntos: si falla la bitácora no queda una sesión sin entregar
+    const c = await pool.connect();
+    try {
+      await c.query("BEGIN");
+      await c.query("INSERT INTO priorizacion_reforestacion.sesiones (token_huella, usuario_id, expira) VALUES ($1, $2, $3)",
+        [huellaToken(token), u.id, new Date(Date.now() + o.maximoDias * 864e5)]);
+      await c.query("UPDATE priorizacion_reforestacion.usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = now() WHERE id = $1", [u.id]);
+      await c.query("INSERT INTO priorizacion_reforestacion.bitacora (usuario_id, evento, detalle, ip) VALUES ($1, 'acceso', NULL, $2)", [u.id, ipDeOrigen(req)]);
+      await c.query("COMMIT");
+    } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); }
     ponCookie(res, token, o.maximoDias * 86400);
     res.json({ ok: true, debe_cambiar: u.debe_cambiar, volver: volverSeguro(b.volver) });
   });
@@ -210,7 +249,7 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   // ---------- salir: por enlace (GET, desde «Salir» en la herramienta) o por formulario ----------
   const salir: RequestHandler = async (req, res) => {
     const t = leeCookie(req);
-    if (t) {
+    if (t && !deOtroSitio(req)) {   // un enlace puesto en otro sitio no cierra la sesión de nadie
       const { rows } = await pool.query<{ usuario_id: number }>("DELETE FROM priorizacion_reforestacion.sesiones WHERE token_huella = $1 RETURNING usuario_id", [huellaToken(t)]);
       if (rows[0]) await anota(rows[0].usuario_id, "salida", null, req);
     }
@@ -228,13 +267,24 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   });
 
   // ---------- cambiar la contraseña (obligatorio con contraseña temporal) ----------
-  r.post("/contrasena", mismaProcedencia, json, conSesion(), async (req, res) => {
+  r.post("/contrasena", mismaProcedencia, json, conSesion(undefined, true), async (req, res) => {
     const yo = usuarioDe(res), b = cuerpo(req);
     const { rows } = await pool.query<Pick<Usuario, "huella" | "correo">>("SELECT huella, correo FROM priorizacion_reforestacion.usuarios WHERE id = $1", [yo.id]);
-    if (!(await verifica(texto(b.actual), rows[0]?.huella))) { res.status(400).json({ error: "La contraseña actual no es correcta.", campo: "actual" }); return; }
+    // la contraseña actual equivocada cuenta como intento fallido de la cuenta: al llegar al tope, la cuenta se detiene y se cierran sus sesiones
+    const intento = await cuentaIntento(yo.id);
+    const correcta = await verifica(texto(b.actual), rows[0]?.huella);
+    if (intento.detenida || (!correcta && intento.bloquea)) {
+      await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1", [yo.id]);
+      await anota(yo.id, "acceso_fallido", { motivo: "cambio_contrasena", bloqueo: true }, req);
+      ponCookie(res, "", 0);
+      res.status(401).json({ error: `Demasiados intentos con la contraseña actual: el acceso se detiene ${o.bloqueoMin} minutos.` }); return;
+    }
+    if (!correcta) { res.status(400).json({ error: "La contraseña actual no es correcta.", campo: "actual" }); return; }
+    await pool.query("UPDATE priorizacion_reforestacion.usuarios SET intentos_fallidos = 0, bloqueado_hasta = NULL WHERE id = $1", [yo.id]);
     const err = revisaNueva(b.nueva, rows[0].correo);
     if (err) { res.status(400).json({ error: err, campo: "nueva" }); return; }
-    await pool.query("UPDATE priorizacion_reforestacion.usuarios SET huella = $1, debe_cambiar = false, actualizado = now() WHERE id = $2", [await huella(texto(b.nueva)), yo.id]);
+    if (await verifica(texto(b.nueva), rows[0].huella)) { res.status(400).json({ error: "La nueva contraseña debe ser distinta de la actual.", campo: "nueva" }); return; }
+    await pool.query("UPDATE priorizacion_reforestacion.usuarios SET huella = $1, debe_cambiar = false, temporal_desde = NULL, actualizado = now() WHERE id = $2", [await huella(texto(b.nueva)), yo.id]);
     await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1 AND token_huella <> $2", [yo.id, yo.token_huella]);   // cierra las demás sesiones
     await anota(yo.id, "cambio_contrasena", null, req);
     res.json({ ok: true, volver: volverSeguro(b.volver) });
@@ -256,12 +306,13 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   const admin = conSesion("admin");
   const vistaUsuario = (u: Usuario) => ({
     id: u.id, correo: u.correo, nombre: u.nombre, institucion: u.institucion, alcaldia_cve: u.alcaldia_cve, alcaldia: nombreAlcaldia(u.alcaldia_cve),
-    rol: u.rol, activo: u.activo, debe_cambiar: u.debe_cambiar, bloqueado: !!(u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date()),
+    rol: u.rol, activo: u.activo, debe_cambiar: u.debe_cambiar, temporal_vencida: temporalVencida(u), bloqueado: !!(u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date()),
     creado: u.creado, ultimo_acceso: u.ultimo_acceso,
   });
   const revisaDatos = (b: Record<string, unknown>, nuevo: boolean): string | null => {
-    if (nuevo && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(texto(b.correo).trim())) return "Escribe un correo válido.";
+    if (nuevo && !CORREO_RE.test(texto(b.correo).trim())) return "Escribe un correo válido.";
     if (nuevo && !texto(b.nombre).trim()) return "Escribe el nombre.";
+    if (typeof b.nombre === "string" && nombreMalo(b.nombre.trim())) return `El nombre debe tener a lo más ${NOMBRE_MAX} caracteres y no empezar con = + - @.`;
     if (b.institucion !== undefined && !(INSTITUCIONES as readonly unknown[]).includes(b.institucion)) return "Institución no válida.";
     if (b.alcaldia_cve !== undefined && b.alcaldia_cve !== null && b.alcaldia_cve !== "" && !(typeof b.alcaldia_cve === "string" && ALCALDIAS[b.alcaldia_cve])) return "Alcaldía no válida.";
     if (b.rol !== undefined && b.rol !== "usuario" && b.rol !== "admin") return "Rol no válido.";
@@ -280,10 +331,16 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     if (err) { res.status(400).json({ error: err }); return; }
     const correo = texto(b.correo).trim().toLowerCase(), clave = temporal();
     if ((await pool.query("SELECT 1 FROM priorizacion_reforestacion.usuarios WHERE correo = $1", [correo])).rows.length) { res.status(409).json({ error: "Ya existe una cuenta con ese correo." }); return; }
-    const { rows } = await pool.query<Usuario>(
-      `INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar)
-       VALUES ($1, $2, $3, $4, $5, $6, true) RETURNING *`,
-      [correo, texto(b.nombre).trim(), b.institucion ?? "Alcaldía", b.alcaldia_cve || null, b.rol ?? "usuario", await huellaTemporal(clave)]);
+    let rows: Usuario[];
+    try {
+      ({ rows } = await pool.query<Usuario>(
+        `INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar, temporal_desde)
+         VALUES ($1, $2, $3, $4, $5, $6, true, now()) RETURNING *`,
+        [correo, texto(b.nombre).trim(), b.institucion ?? "Alcaldía", b.alcaldia_cve || null, b.rol ?? "usuario", await huellaTemporal(clave)]));
+    } catch (e) {   // dos altas del mismo correo a la vez: la segunda choca con el índice único
+      if ((e as { code?: string }).code === "23505" || /duplicate|unique/i.test((e as Error).message)) { res.status(409).json({ error: "Ya existe una cuenta con ese correo." }); return; }
+      throw e;
+    }
     await anota(usuarioDe(res).id, "admin", { accion: "alta", usuario: rows[0].id }, req);
     res.status(201).json({ usuario: vistaUsuario(rows[0]), contrasena_temporal: clave });   // se muestra una sola vez
   });
@@ -291,7 +348,8 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   r.patch("/admin/usuarios/:id", mismaProcedencia, json, admin, async (req, res) => {
     const b = cuerpo(req), err = revisaDatos(b, false);
     if (err) { res.status(400).json({ error: err }); return; }
-    const id = Number(req.params.id), yo = usuarioDe(res);
+    const id = idValido(req.params.id), yo = usuarioDe(res);
+    if (id === null) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
     if (id === yo.id && (b.activo === false || b.rol === "usuario")) { res.status(400).json({ error: "No puedes desactivarte ni quitarte el rol de administración a ti mismo." }); return; }
     const cambios: string[] = [], vals: unknown[] = [];
     for (const k of ["nombre", "institucion", "alcaldia_cve", "rol", "activo"] as const)
@@ -300,17 +358,38 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     else if (b.activo === true) cambios.push("baja = NULL");
     if (!cambios.length) { res.status(400).json({ error: "Nada que cambiar." }); return; }
     vals.push(id);
-    const { rows } = await pool.query<Usuario>(`UPDATE priorizacion_reforestacion.usuarios SET ${cambios.join(", ")}, actualizado = now() WHERE id = $${vals.length} RETURNING *`, vals);
-    if (!rows[0]) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
+    /* Siempre queda al menos una cuenta de administración activa. La revisión y el cambio van en una transacción que bloquea primero
+       las cuentas de administración: si dos personas se dan de baja una a la otra a la vez, la segunda ve el resultado de la primera. */
+    const quitaAdmin = b.activo === false || b.rol === "usuario";
+    const c = await pool.connect(); let rows: Usuario[];
+    try {
+      await c.query("BEGIN");
+      if (quitaAdmin) {
+        const adm = await c.query<{ id: number }>("SELECT id FROM priorizacion_reforestacion.usuarios WHERE rol = 'admin' AND activo ORDER BY id FOR UPDATE");
+        if (adm.rows.some((x) => x.id === id) && adm.rows.length <= 1) {
+          await c.query("ROLLBACK"); res.status(409).json({ error: "Debe quedar al menos una cuenta de administración activa." }); return;
+        }
+      }
+      // la misma condición va dentro del UPDATE: la sentencia no deja sin administración aunque la base no bloquee filas
+      const resguardo = quitaAdmin ? ` AND (rol <> 'admin' OR NOT activo OR EXISTS (SELECT 1 FROM priorizacion_reforestacion.usuarios x WHERE x.rol = 'admin' AND x.activo AND x.id <> $${vals.length}))` : "";
+      ({ rows } = await c.query<Usuario>(`UPDATE priorizacion_reforestacion.usuarios SET ${cambios.join(", ")}, actualizado = now() WHERE id = $${vals.length}${resguardo} RETURNING *`, vals));
+      await c.query("COMMIT");
+    } catch (e) { await c.query("ROLLBACK").catch(() => {}); throw e; } finally { c.release(); }
+    if (!rows[0]) {
+      const existe = (await pool.query("SELECT 1 FROM priorizacion_reforestacion.usuarios WHERE id = $1", [id])).rows.length;
+      if (existe) { res.status(409).json({ error: "Debe quedar al menos una cuenta de administración activa." }); return; }
+      res.status(404).json({ error: "No existe esa cuenta." }); return;
+    }
     if (b.activo === false) await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1", [id]);   // una baja cierra sus sesiones al momento
     await anota(yo.id, "admin", { accion: b.activo === false ? "baja" : b.activo === true ? "reactivacion" : "cambio", usuario: id }, req);
     res.json(vistaUsuario(rows[0]));
   });
 
   r.post("/admin/usuarios/:id/restablecer", mismaProcedencia, admin, async (req, res) => {
-    const clave = temporal(), id = Number(req.params.id);
+    const clave = temporal(), id = idValido(req.params.id);
+    if (id === null) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
     const { rows } = await pool.query<Usuario>(
-      "UPDATE priorizacion_reforestacion.usuarios SET huella = $1, debe_cambiar = true, intentos_fallidos = 0, bloqueado_hasta = NULL, actualizado = now() WHERE id = $2 RETURNING *",
+      "UPDATE priorizacion_reforestacion.usuarios SET huella = $1, debe_cambiar = true, temporal_desde = now(), intentos_fallidos = 0, bloqueado_hasta = NULL, actualizado = now() WHERE id = $2 RETURNING *",
       [await huellaTemporal(clave), id]);
     if (!rows[0]) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
     await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1", [id]);
@@ -399,10 +478,12 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   });
 
   /* Depuración de lo vencido según los plazos del aviso de privacidad. También puede programarse en la base. */
+  /* Corre al arrancar y después cada N horas: si el backend se reinicia seguido (cada despliegue de cualquier módulo), la depuración no
+     queda esperando 24 horas que nunca llegan. Conviene además programarla en la base (login/LEEME.md). */
   if (o.depurarCadaHoras > 0) {
-    const t = setInterval(() => { pool.query("SELECT priorizacion_reforestacion.depurar()").catch((e: Error) => console.error("🔥 [PRIORIZACION_REFORESTACION] depuración:", e.message)); },
-      o.depurarCadaHoras * 3600e3);
-    t.unref();
+    const depura = () => { pool.query("SELECT priorizacion_reforestacion.depurar()").catch((e: Error) => console.error("🔥 [PRIORIZACION_REFORESTACION] depuración:", e.message)); };
+    const t0 = setTimeout(depura, 1000); t0.unref();
+    const t = setInterval(depura, o.depurarCadaHoras * 3600e3); t.unref();
   }
 
   /* Errores: a la persona nunca se le muestra el detalle; en el journal solo el mensaje, sin datos de la petición. */

@@ -188,6 +188,18 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     ok('con la sesión vencida, el Excel no se sustituye por CSV: avisa que la sesión terminó', /sesión/i.test(t2) && desc.length === 0, `${t2.slice(0, 80)} · descargas: ${desc.join(', ') || 'ninguna'}`);
     await ctx.close(); srv.close(); }
 
+  { // KML y GeoJSON con sesión: se arman en el navegador sin pedir nada, así que antes de entregarlos se pregunta si la sesión sigue (v1.38)
+    const srv = await servidor('sesion'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero'); await L.elegir(page, 'iztapalapa');
+    await page.$eval('#tab-dl', b => b.click());
+    const bajado = await L.descargar(page, '#dl-geojson', os.tmpdir(), 60000);
+    ok('con la sesión abierta, el GeoJSON se entrega', !!bajado, bajado ? bajado.nombre : 'sin descarga');
+    const desc = []; page.on('download', d => desc.push(d.suggestedFilename()));
+    await page.route(/api\/yo/, r => r.fulfill({ status: 401, contentType: 'application/json', body: '{"error":"Sin sesión."}' }));
+    for (const id of ['dl-kml', 'dl-geojson']) { await page.$eval('#' + id, b => b.click()); await page.waitForTimeout(3000); }
+    const t3 = await page.$eval('#dl-status', e => e.innerText);
+    ok('con la sesión vencida, el KML y el GeoJSON no se entregan: avisa que la sesión terminó', /sesión/i.test(t3) && desc.length === 0, `${t3.slice(0, 80)} · descargas: ${desc.join(', ') || 'ninguna'}`);
+    await ctx.close(); srv.close(); }
+
   // ---------- 3) un proxy entrega los .bin ya descomprimidos ----------
   { const srv = await servidor('descomprime'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero'); await L.elegir(page, 'iztapalapa');
     ok('si un proxy entrega los datos ya descomprimidos, la herramienta carga igual', (await page.$eval('#scope-title', e => e.innerText)) === 'Iztapalapa' && (await page.$eval('#mapsum', e => e.innerText)).includes(L.kmTxt(L.resumenFrentes(L.decodificar(), { mun: L.decodificar().META.muns.indexOf('007') }).kmp)));

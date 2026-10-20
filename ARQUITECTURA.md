@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.37 (20 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.38 (20 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -121,7 +121,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 **Registro de usos:** con la sesión configurada (`SESION.inicio`), `avisaUso` (`01_utilidades.js`) envía con `navigator.sendBeacon` a `/priorizacion-reforestacion/api/uso` (o `SESION.uso`) cada descarga (`usoDescarga`, llamada desde `deliver` y `deliverBlob`, con el tipo de archivo deducido del nombre) y cada consulta (`usoConsulta` al final de `refresh()`, tras 1.5 s en el mismo ámbito; no anota toda la ciudad ni los cambios de «Seguirme»). El ámbito lo arma `ambitoUso` (`11_descargas.js`). Sin sesión no envía nada. El servidor y el panel están en `08_entrega_sia/login/`.
 
-**Sesión (Fase 2):** `esSesion` reconoce una respuesta 401 o 403, o una página HTML donde se esperaba un archivo; `causaFalla(url)` distingue sesión, red y servidor cuando una librería no llega; `avisoSesion` escribe el mensaje con el enlace de `SESION.inicio`. Con `SESION.inicio` definido no se registra `sw.js`. Ver `08_entrega_sia/SESION_Y_LOGIN.md`.
+**Sesión (Fase 2):** `esSesion` reconoce una respuesta 401 o 403, o una página HTML donde se esperaba un archivo; `sesionViva()` pregunta a `/api/yo` antes de entregar lo que se arma sin pedir nada al servidor (KML y GeoJSON, v1.38); `causaFalla(url)` distingue sesión, red y servidor cuando una librería no llega; `avisoSesion` escribe el mensaje con el enlace de `SESION.inicio`. Con `SESION.inicio` definido no se registra `sw.js`. Ver `08_entrega_sia/SESION_Y_LOGIN.md`.
 
 **Accesibilidad:**
 - *Anuncios:* `anunciaAmbito()` (`10_seleccion.js`) escribe el ámbito y su cifra en `#sr-estado` (región viva); el conteo del listado, el estado de las descargas y el mensaje del cargador tienen `role="status"`; los errores de carga, `role="alert"`.

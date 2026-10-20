@@ -60,6 +60,15 @@ export async function verifica(contrasena: unknown, guardada: string | null | un
   return timingSafeEqual(esperado, calculado);
 }
 
+/** Verifica con el costo de una contraseña definitiva aunque la guardada sea temporal (p = 1): después de verificar, completa el
+ *  trabajo que falta con un cálculo descartable. Así el tiempo de respuesta de «Entrar» no delata qué cuentas tienen contraseña temporal. */
+export async function verificaIgual(contrasena: unknown, guardada: string | null | undefined): Promise<boolean> {
+  const ok = await verifica(contrasena, guardada);
+  const p = Number(String(guardada ?? "").split("$")[3]) || 0, falta = PARAMETROS.definitiva.p - p;
+  if (falta > 0 && falta <= PARAMETROS.definitiva.p) await scrypt(randomBytes(12).toString("base64url"), randomBytes(16), LARGO, opciones({ n: N, r: R, p: falta }));
+  return ok;
+}
+
 /** Para un correo que no existe o una cuenta detenida: el mismo trabajo que verificar una contraseña definitiva,
  *  así el tiempo de respuesta no delata si la cuenta existe. */
 let ficticia: Promise<string> | null = null;
@@ -68,11 +77,24 @@ export async function verificaFicticia(contrasena: unknown): Promise<void> {
   await verifica(contrasena, await ficticia);
 }
 
-/** Reglas mínimas: 12 caracteres o más y que no contenga el correo. Frases largas mejor que símbolos raros (NIST 800-63B). */
+/* Contraseñas que no se aceptan aunque tengan 12 caracteres (NIST 800-63B pide revisar contra una lista de comunes). La lista va aquí,
+   sin consultar servicios externos: las de 12 o más caracteres más usadas y las que se adivinan por el nombre de la herramienta. */
+const COMUNES = new Set(["password1234", "contrasena123", "contrasena1234", "contraseña123", "contraseña1234", "123456789012", "1234567890123",
+  "qwertyuiop12", "qwertyuiopas", "abcdefghijkl", "abc123456789", "iloveyou1234", "passwordpassword", "administrador", "administrador1",
+  "admin1234567", "bienvenido123", "bienvenido1234", "mexico123456", "cdmx12345678", "sedema123456", "sedema2026sedema", "reforestacion",
+  "reforestacion1", "reforestacion2026", "priorizacion", "priorizacion1", "arbolado1234", "cambiame1234", "temporal1234"]);
+const SECUENCIAS = ["01234567890123456789", "98765432109876543210", "abcdefghijklmnopqrstuvwxyz", "qwertyuiopasdfghjklzxcvbnm"];
+const plano = (s: string) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[\s\-_.]/g, "");
+
+/** Reglas mínimas: 12 caracteres o más, que no contenga el correo y que no sea una contraseña común, una secuencia ni un solo carácter
+ *  repetido. Frases largas mejor que símbolos raros (NIST 800-63B). */
 export function revisaNueva(nueva: unknown, correo: string | null | undefined): string | null {
   if (typeof nueva !== "string" || [...nueva].length < 12) return "La contraseña debe tener al menos 12 caracteres.";
   if ([...nueva].length > 200) return "La contraseña es demasiado larga.";
   if (correo && nueva.toLowerCase().includes(String(correo).split("@")[0].toLowerCase())) return "La contraseña no debe contener tu correo.";
+  const p = plano(nueva);
+  if (COMUNES.has(p) || /^(.)\1+$/.test(p) || SECUENCIAS.some((s) => s.includes(p)) || /^(.{1,4})\1+$/.test(p))
+    return "Esa contraseña es muy fácil de adivinar. Usa una frase de varias palabras.";
   return null;
 }
 

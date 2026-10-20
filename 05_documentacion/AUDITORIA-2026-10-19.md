@@ -842,7 +842,9 @@ Cada bloque se cierra con la prueba que lo demuestra: debe fallar antes y pasar 
 | Versión | Fecha | Bloque | Hallazgos | Estado | Prueba que lo cierra |
 |---|---|---|---|---|---|
 | 1.37 | 20 oct 2026 | 1 · Cifras del Gobierno Central | B2-01, B2-02, B2-03, B2-04, C4-01, F2-01 | Corregidos | `04_pruebas/prueba_cifras_gobierno_central.js`: 36 de 36; contra la v1.36, 11 de 36 |
+| 1.38 | 20 oct 2026 | 2 · Inicio de sesión | E1-01, E1-02, E1-03, E1-04, E1-05, E1-06, E1-07, E1-08, E2-01, E2-02, E2-04, B9-02, E3-03 | Corregidos | `backend/pruebas/seguridad.test.mjs` (contra la v1.37 fallan las 6 que corren en memoria); módulo 19 de 19 en PostgreSQL 17 de pruebas; `prueba_servidor_sia.js` 34 de 34 |
 
 Notas:
 - **B2-03:** se corrigió con la decisión de Liber (manda la prioridad del tramo). Ya no quedan frentes prioritarios del Gobierno Central fuera de sus listas: la ciudad pasa de 1,253.9 a 1,186.3 km de frente prioritario.
+- **E1-04:** la depuración ya corre al arrancar. Programarla además en la base queda como recomendación para el SIA (lista de verificación, bloque 3).
 - **B2-04:** la ficha filtrada ya no trae la participación sin filtro, y la leyenda dice el filtro. El subtítulo cortado de la ficha («… frente…») queda para el bloque 4 (descargas).

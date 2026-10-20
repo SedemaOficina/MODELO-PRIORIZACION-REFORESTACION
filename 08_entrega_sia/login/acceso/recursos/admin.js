@@ -67,7 +67,7 @@
       const p = celda(tr); p.appendChild(el('b', u.nombre)); p.appendChild(el('br')); p.appendChild(el('span', u.correo));
       celda(tr, u.institucion + (u.alcaldia ? ' · ' + u.alcaldia : ''));
       celda(tr).appendChild(el('span', u.rol === 'admin' ? 'Administración' : 'Consulta', 'etiqueta' + (u.rol === 'admin' ? ' admin' : '')));
-      celda(tr).appendChild(el('span', !u.activo ? 'De baja' : u.bloqueado ? 'Detenida por intentos' : u.debe_cambiar ? 'Pendiente de primer acceso' : 'Activa',
+      celda(tr).appendChild(el('span', !u.activo ? 'De baja' : u.bloqueado ? 'Detenida por intentos' : u.temporal_vencida ? 'Contraseña temporal vencida: restablécela' : u.debe_cambiar ? 'Pendiente de primer acceso' : 'Activa',
         'etiqueta' + (!u.activo ? ' baja' : (u.bloqueado || u.debe_cambiar) ? ' pendiente' : '')));
       celda(tr, fecha(u.ultimo_acceso));
       const ac = el('div', null, 'acciones'); celda(tr).appendChild(ac);
@@ -86,7 +86,8 @@
   const leeArchivo = async f => { const b = await f.arrayBuffer(); try { return new TextDecoder('utf-8', { fatal: true }).decode(b); } catch (e) { return new TextDecoder('windows-1252').decode(b); } };
   const descarga = (nombre, texto) => { const a = el('a'); a.href = URL.createObjectURL(new Blob(['\uFEFF' + texto], { type: 'text/csv;charset=utf-8' })); a.download = nombre;
     document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 4000); };
-  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  // sin fórmulas al abrir en Excel: un valor que empieza con = + - @ va con apóstrofo, igual que el CSV de la bitácora
+  const q = v => { const s = String(v ?? ''); return `"${(/^[=+\-@\t\r]/.test(s) ? "'" + s : s).replace(/"/g, '""')}"`; };
   const norm = s => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
   // Lee el CSV como el servidor: coma o punto y coma, con o sin BOM, campos entre comillas; descarta renglones vacíos
   function partesCsv(entrada) {

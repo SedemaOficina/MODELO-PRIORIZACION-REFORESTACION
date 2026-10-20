@@ -153,7 +153,8 @@ location ^~ /priorizacion-reforestacion/ {
 #     absolute_redirect off;
 # }
 # Opcional, si el SIA aplica su zona de límite «auth» al inicio de sesión (POST /priorizacion-reforestacion/api/entrar).
-# El módulo ya limita los intentos fallidos por IP y detiene la cuenta tras 5. limit_req cuenta todas las peticiones.
+# El módulo ya limita los intentos fallidos por IP y detiene la cuenta tras 5, también con intentos simultáneos (los cuenta antes de
+# verificar). limit_req es una defensa más, antes de que la petición llegue al backend: cuenta todas las peticiones y frena las ráfagas.
 # location = /priorizacion-reforestacion/api/entrar {
 #     # limit_req zone=auth burst=5 nodelay;
 #     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/priorizacion-reforestacion/entrar;

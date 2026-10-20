@@ -35,7 +35,7 @@ Solo en el repositorio (no van en el paquete del SIA):
 
 | Carpeta | Qué es |
 |---|---|
-| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales, sin trust proxy), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración y los controles negativos del rol |
+| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales, sin trust proxy), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
 | `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración (salta las IP de `SIA_SALTOS_CONOCIDOS`). En `sia-backend` se usa el archivo propio del SIA |
 | `backend/scripts/servidor_demo.mjs`, `datos_demo.mjs` | Demostración en una sola máquina y datos simulados para ver el panel lleno |
 | `backend/package.json`, `tsconfig.check.json` | Para correr las pruebas y la revisión de tipos (la misma configuración que `sia-backend`) |
@@ -88,7 +88,7 @@ app.use("/api/priorizacion-reforestacion", crearRutasPriorizacionReforestacion(p
 - **IP de origen:** el módulo importa `ipDeOrigen(req)` de `src/comun/procedencia.ts` (`import { ipDeOrigen } from "../../comun/procedencia";`). No hace falta `trust proxy`. La columna `ip` de la bitácora y el límite de intentos fallidos por IP solo tienen sentido cuando esa función descarta los saltos conocidos (el proxy de ADIP y nginx); mientras no lo haga, todas las peticiones parecerían venir de la misma dirección.
 - Requiere Express 5: las rutas son asíncronas y Express 5 pasa sus errores al manejador. El `express.json()` general (100 KB) alcanza: la alta masiva admite hasta 100 cuentas por petición y el panel envía el archivo en partes de 50.
 - `npm run typecheck`, `npm run build` y `deploy.fish`, **solo después** de los pasos 1 y 2. En el arranque, el journal debe decir `🔑 [PRIORIZACION_REFORESTACION] conectado como priorizacion_reforestacion_api`, sin «SUPERUSUARIO».
-- El módulo pide la depuración por plazos cada 24 horas. Si se prefiere, puede programarse en la base: `SELECT priorizacion_reforestacion.depurar();` una vez al día.
+- El módulo pide la depuración por plazos **al arrancar** y después cada 24 horas. Como el backend se reinicia con cada despliegue, conviene además programarla en la base o en el sistema, una vez al día: `SELECT priorizacion_reforestacion.depurar();`. Así se cumple lo que promete el aviso de privacidad aunque el backend no dure 24 horas encendido.
 
 **4. Primera cuenta de administración.** El servidor corre un solo binario, sin `node_modules`, así que la herramienta no se conecta: genera el SQL en la computadora de quien despliega (Node 25 ejecuta TypeScript sin compilar):
 ```
@@ -184,6 +184,7 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
   - Compártela por un medio institucional y por separado del correo.
 - **Bajas:** «Dar de baja» cierra las sesiones de la persona al instante; la cuenta puede reactivarse.
 - **Contraseña olvidada:** «Restablecer contraseña» genera otra temporal y cierra sus sesiones.
+- **La contraseña temporal** solo sirve para que la persona cree la suya: con ella no se entra a la herramienta ni al panel, ni se registran usos. **Vence a las 72 horas** de darse; si vence, el panel dice «Contraseña temporal vencida: restablécela» y se restablece. La nueva no puede ser igual a la temporal.
 - **Reportes:** la pestaña «Usos» muestra, por rango de fechas:
   - cuentas activas;
   - uso por institución y alcaldía de quien consulta;
@@ -193,9 +194,14 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 
   «Descargar bitácora (CSV)» exporta el detalle, sin direcciones IP.
 - **Seguridad:**
-  - Contraseñas de 12 caracteres o más, guardadas con huella scrypt: las definitivas con N = 2^14, r = 8, p = 5 (costo equivalente a la recomendación de OWASP, con 16 MiB por cálculo); las temporales, con p = 1. Cada huella guarda sus parámetros, así que las anteriores siguen sirviendo.
-  - La cuenta se detiene 15 minutos tras 5 intentos fallidos.
-  - Hasta 30 intentos fallidos por IP cada 15 minutos; los accesos correctos no cuentan.
+  - Contraseñas de 12 caracteres o más, que no sean comunes, secuencias ni un carácter repetido (lista propia, sin consultar servicios externos), guardadas con huella scrypt: las definitivas con N = 2^14, r = 8, p = 5 (costo equivalente a la recomendación de OWASP, con 16 MiB por cálculo); las temporales, con p = 1. Cada huella guarda sus parámetros, así que las anteriores siguen sirviendo.
+  - La cuenta se detiene 15 minutos tras 5 intentos fallidos, también si los intentos llegan al mismo tiempo: cada intento se cuenta en la base con una sola sentencia **antes** de verificar la contraseña. Los intentos con la contraseña actual equivocada al cambiarla cuentan igual y, al quinto, cierran sus sesiones.
+  - Hasta 30 intentos fallidos por IP cada 15 minutos; los accesos correctos no cuentan. El intento se reserva antes de verificar y se devuelve si fue correcto.
+  - «Entrar» tarda lo mismo con una cuenta inexistente, con contraseña temporal o con definitiva: el tiempo no delata qué cuentas existen ni cuáles están sin estrenar.
+  - Siempre queda al menos una cuenta de administración activa (aunque dos personas se den de baja una a la otra a la vez).
+  - El alta masiva va en una transacción: si algo falla a la mitad, no queda ninguna cuenta creada sin su contraseña.
+  - Nombres de 120 caracteres o menos, que no empiecen con `= + - @`; correos solo con caracteres ASCII visibles. El CSV de contraseñas que arma el panel y el de la bitácora no dejan fórmulas activas.
+  - Las respuestas del módulo llevan `Cache-Control: no-store`. Una petición que cambia algo y viene de otro sitio (Origin ajeno, o sin Origin y con `Sec-Fetch-Site` de otro sitio) se rechaza; un enlace a «Salir» puesto en otro sitio no cierra la sesión.
   - La sesión dura 12 h sin actividad, con un máximo de 7 días.
   - Cookie `HttpOnly`, `Secure`, `SameSite=Lax` y `Path=/priorizacion-reforestacion/`.
   - Solo se aceptan peticiones de la propia procedencia.
