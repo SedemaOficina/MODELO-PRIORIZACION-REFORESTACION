@@ -2,11 +2,11 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.38 (20 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.39 (20 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
-Sitio **estático**: HTML, CSS y JavaScript sin frameworks ni compilador. El navegador descarga los datos ya procesados (`docs/datos/*.bin`), los descomprime y dibuja el mapa con deck.gl. No hay servidor de aplicaciones, base de datos ni GeoServer, y la herramienta no guarda datos de nadie: el navegador solo conserva los archivos de la propia herramienta (para abrir sin conexión) y una preferencia de aviso.
+Sitio **estático**: HTML, CSS y JavaScript sin frameworks ni compilador. El navegador descarga los datos ya procesados (`docs/datos/*.bin`), los descomprime y dibuja el mapa con deck.gl. No hay servidor de aplicaciones, base de datos ni GeoServer, y la herramienta no guarda datos de nadie: el navegador solo conserva los archivos de la propia herramienta (para abrir sin conexión) y cuatro preferencias en `localStorage`: el aviso del modo ligero ya leído (`sia.avisoLigero`), la última alcaldía y red consultadas (`cp_inicio`, `cp_red`) y el recorrido guiado ya visto (`cp_recorrido`).
 
 ## 2. Mapa del repositorio
 
@@ -25,7 +25,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 │   └── fuentes/               tipografías Cabin y Roboto (woff2) + licencias OFL
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
-├── 04_pruebas/                correr_todas.js, doce pruebas de navegador y la prueba de la construcción (ver su LEEME.md)
+├── 04_pruebas/                correr_todas.js, las verificaciones rápidas y las pruebas de navegador (cuántas y cuánto tardan: su LEEME.md)
 ├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
 ├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
@@ -37,7 +37,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 └── 07_versiones/              versiones anteriores (solo en la copia local)
 ```
 
-**Regla de oro:** se edita en `02_fuente/` y se corre `python3 02_fuente/construir.py`. Todo lo de `docs/` se regenera; un cambio hecho directamente en `docs/` se pierde en la siguiente construcción.
+**Regla de oro:** se edita en `02_fuente/` y se corre `python 02_fuente/construir.py` (en Windows Python se llama `python`; en Linux o Mac, `python3`). Todo lo de `docs/` se regenera; un cambio hecho directamente en `docs/` se pierde en la siguiente construcción.
 
 ## 3. Cómo se arma (`construir.py`)
 
@@ -52,7 +52,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 - `config.js` indica dónde están las librerías (`SIA_LIBS`) y su huella (`SIA_LIBS_V`), la huella y el tamaño de los datos (`SIA_DATOS`), la huella de cada archivo del fondo propio (`SIA_FONDO`), la clave del satélite y las direcciones de la sesión (`SIA_SESION`). Clave y sesión no se escriben en `construir.py`: se toman de variables de entorno (`SIA_ESRI_KEY`, `SIA_SESION_INICIO`, `SIA_SESION_CIERRE`) o de `02_fuente/claves.local.json`, que no se publica. Si no existe (archivo único), la app lee los datos incrustados.
 - Solo se reescriben los archivos que cambiaron, así Git no ve cambios falsos.
 - **Valida antes de escribir:** las listas `JS_ESPERADOS` y `CSS_ESPERADOS` nombran cada módulo; si falta, sobra o está vacío uno, se detiene con código 1 y no escribe nada. Para agregar un módulo hay que añadirlo a la lista. De `libs/` y `fuentes/` solo se publica lo listado en `LIBS_PUBLICADAS` y `FUENTES_PUBLICADAS`.
-- **Datos verificados:** compara el contenido descomprimido de `datos/*.bin` con `datos/SUMAS.json` y se detiene si no coincide. Se compara el contenido porque la compresión gzip cambia de un equipo a otro. Tras regenerar los datos a propósito: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`.
+- **Datos verificados:** compara el contenido descomprimido de `datos/*.bin` con `datos/SUMAS.json` y se detiene si no coincide. Se compara el contenido porque la compresión gzip cambia de un equipo a otro. Tras regenerar los datos a propósito: `python 03_procesamiento_datos/verificar_datos.py --actualizar`.
 - **No borra:** un archivo de `docs/` que ya no pertenece al sitio se mueve a `_to_delete/docs_obsoletos_<fecha>/` y se avisa. Genera `docs/.nojekyll`.
 - Lo cubre `04_pruebas/prueba_construccion.py`.
 - `ROBOTS` en `construir.py` controla la instrucción de no aparecer en buscadores.
@@ -63,7 +63,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 1. `index.html` pinta el panel y el cargador; con `preload` empieza a bajar `datos/*.bin` de inmediato.
 2. `config.js`, `libs/deck.js`, `libs/pako.js` y `app.js` (en ese orden).
 3. `02_datos.js` descarga los tres `.bin` con barra de avance, los descomprime (`DecompressionStream`, o pako si no existe) y los decodifica.
-4. `03_estado.js` a `15_mi_ubicacion.js` preparan estado, mapa, panel y eventos; `16_arranque.js` fija el estado inicial.
+4. `03_estado.js` a `15_mi_ubicacion.js` preparan estado, mapa, panel y eventos; `16_arranque.js` fija el estado inicial, y `17_recorrido.js`, el último, prepara el recorrido guiado (arranca solo en la primera visita, después de la entrada).
 5. jsPDF y SheetJS se cargan solo al pedir una ficha o un Excel (`loadLib`).
 6. `16_arranque.js` registra `sw.js` (lo genera `construir.py`): guarda en el navegador los archivos de la herramienta con el nombre de caché `calles-<huella>`, de modo que la siguiente visita abre sin conexión. La página se pide primero a la red y solo si falla se usa la copia; cada publicación cambia la huella y descarta la copia anterior. No se registra en el archivo único ni dentro de un marco. Con la sesión configurada (`SESION.inicio`) tampoco se registra, y se retira la copia que hubiera: una copia local se abriría sin sesión.
 
@@ -80,7 +80,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `05_inventario.js` | Capa «Espacios para plantar» del inventario de arbolado (CIGA-UNAM y SEDEMA): cepas vacantes, tocones y árboles muertos. Carga diferida por alcaldía desde zoom 15 (16 en modo ligero), símbolos distinguibles sin color, ficha (`showCard('inv')`), casillas y avance del inventario. La capa no altera ninguna cifra; el filtro «Espacio» (v1.21) sí acota los frentes consultados, igual que la banqueta, con los tipos de cada frente que baja `espCargar` (`espacios_frentes.bin`, formato 2: puntos de cada tipo por frente; de ahí `ESP_FR` y `ESP_CV`, que usa también el orden por cepas) | `invCapas`, `invPick`, `invHtml`, `invNota`, `invReinicia`, `INV_Z`, `INV_Z_LIGERO`, `espCargar`, `espLeer`, `espNota`, `invDeAlc` |
 | `06_mapa_interaccion.js` | Instancia `DeckGL`, clic en el mapa, dedos «fantasma» en teléfono, mostrar/ocultar tarjeta, botones de zoom y toda la ciudad (casa), modo ligero. Con `window.SIA_PRUEBA` expone `window.__MAPA` para las pruebas | `showCard`, `hideCard`, `rerender`, `scopeView`, `revisarRendimiento`, `soltarDedos` |
 | `07_leyenda_y_capas.js` | Leyenda-filtro, filas «Atiende» (alcaldías / Gobierno Central), «Banqueta» (solo alcaldías) y «Espacio» (cepa vacante, tocón, árbol muerto; casillas independientes, todas apagadas = sin filtro; aplica a las dos redes desde la v1.24, con su aviso de inventario en curso). Casillas de capas, mapa de fondo | `setResp`, `setBanq`, `setEspacio`, `espAviso`, `espReinicia`, `setLayer`, `setFondo` |
-| `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; desglose de lo prioritario por banqueta y cuadro «Quién atiende» en km de frente por responsable. «Más detalles» (`details.mas`): plegado en el celular y abierto en la computadora; con `siempre`, plegado también en la computadora (lo del Gobierno Central en km de frente) | `masDet`, `notaPlegable`, `compHtml` (comparación «Alcaldía y Gobierno Central»: km prioritario, sin arbolado y total sin decimales, y cepas, tocones y árboles muertos; sustituye a `repartoHtml`), `espComp`, `espCompPide`, `kmComp`, `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `repartoHtml`, `renderSummary` |
+| `08_resumenes.js` | Estadísticas por colonia, avenida y ámbito; cifras y barras del panel; desglose de lo prioritario por banqueta y cuadro «Quién atiende» en km de frente por responsable. «Más detalles» (`details.mas`): plegado en el celular y abierto en la computadora; con `siempre`, plegado también en la computadora (lo del Gobierno Central en km de frente) | `masDet`, `notaPlegable`, `compHtml` (comparación «Alcaldía y Gobierno Central»: km prioritario, sin arbolado y total sin decimales, y cepas, tocones y árboles muertos), `espComp`, `espCompPide`, `kmComp`, `colStat`, `avStat`, `frSumm`, `repStat`, `gcFrente` (equivalente en km de frente de las vialidades primarias), `avGrupos` (vialidades separadas que comparten nombre), `renderSummary` |
 | `09_listados.js` | Pestaña «Dónde empezar» (`renderInicio`), la única lista: según el ámbito, colonias con orden elegible, calles de la alcaldía o de la colonia, avenidas o alcaldías (selector «Mostrar», `iniVistas`), con filtro por nombre, «Ver 10 más», tramos de la calle elegida arriba y calle consultada resaltada. «Mostrar» con textos cortos («Colonias · más km prioritarios», «· más cepas vacantes», «· más habitantes»; calles; avenidas; alcaldías). El orden por cepas cuenta lo prioritario y el renglón dice también el total (`cv`, `callescv`, `avcv`; `cepasTxt`, `cepasK`), que baja el inventario la primera vez (`iniCepas`, `iniCarga`, `cepasTxt`; `colStat().cv`) | `nomFrente` (nombre único de un frente; «Frente sin nombre de calle (INEGI)»), `buildStreets`, `buildAvenues`, `desgHtml` (desglose de la calle por prioridad), `calleCoincide` y `renderUbicar` (paso de ubicación de un nombre repetido: alcaldías con conteo y renglones sin cifras), `iniFila`, `filasColonias`, `filasCalles`, `filasAvenidas`, `filasAlcaldias`, `highlightStreet`, `calleSel` |
 | `09_tramos.js` | Junta los pedazos de esquina (tramos de menos de 60 m «a la altura de» una calle) con el tramo vecino y los dos lados de una cuadra que no se emparejaron; lo que aún se repita se distingue por lado o número (`tramoTxt`). Tramos de la calle consultada: agrupa sus frentes de esquina a esquina con una regla geométrica (casi paralelos, en lados opuestos y traslapados) y nombra las vialidades que los delimitan; se calcula al consultar, sin cambiar los datos. Su regla de «frente de enfrente» (`trEnfrente`) la usan también los nombres de calle | `tramosDeCalle`, `trEnfrente`, `entreTxt`, `tramosSel`, `renderTramos` |
 | `10_seleccion.js` | Selección de alcaldía, colonia y avenida; **`refresh()`** | `refresh`, `setSel`, `pickColonia`, `pickAvenida` |
@@ -92,22 +92,26 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
 | `17_recorrido.js` | Pasos de unos dos minutos (12 a 14 según pantalla y sesión): incluye el filtro «Espacio», un punto real del inventario («Espacios para plantar», `recPunto`, `recEspacios`), el orden por cepas dentro de «Dónde empezar» y «Mi cuenta» solo con sesión; los textos pueden depender de la consulta y `prep` puede ser asíncrono (`recDeshace`). Recorrido guiado: velo, foco sobre cada control y globo con el texto; arranca solo la primera vez (después de la entrada, mediante `trasEntrada` de `13_interfaz.js`) y desde el botón de «Cómo funciona». El paso de Street View abre la ficha de un frente prioritario con nombre del ámbito. No arranca solo en las pruebas automáticas salvo que se pida (`window.SIA_RECORRIDO`) | `recorrido`, `recPaso`, `recColoca`, `recFin` |
 
-### Estado global (en `03_estado.js`)
+### Estado global (en `03_estado.js`, salvo donde se indica otro archivo)
 
 | Variable | Qué guarda |
 |---|---|
 | `resp` / `respOn` | Quién atiende: `'alc'`, `'gc'` o `'both'` / casillas activas |
 | `sel`, `selCol`, `selAv` | Alcaldía (índice), colonia (id) y avenida (id de NOMENCLAT) seleccionadas, o `null` |
 | `highlight` | Calle o avenida resaltada en el mapa |
-| `pinned` | Tarjeta abierta: `{kind:'fr'|'vp'|'col'|'loc', i}` |
+| `pinned` | Tarjeta abierta: `{kind:'fr'|'vp'|'col'|'inv'|'loc'|'pto', i}` (`inv`: punto del inventario; `pto`: punto buscado por coordenadas) |
 | `visible[5]` | Prioridades visibles según la leyenda |
 | `showAlcB`, `showColB`, `showFrB` | Capas encendidas |
 | `viewState` | Vista actual del mapa |
 | `myPos` | Última posición de Mi ubicación (solo en memoria) |
+| `ptoBuscado` | Punto buscado por coordenadas (`{lon, lat}`), marcado en el mapa hasta otra búsqueda o al cerrar su ficha |
 | `modoLigero` | `true` si el navegador dibuja sin tarjeta gráfica (ver sección 9 bis) |
 | `fondo` | Mapa de fondo: `'no'`, `'calles'` o `'sat'` |
 | `opPrio` | Opacidad de las capas de prioridad (0.2 a 1) |
 | `filtroBanq` | Filtro de banqueta de los frentes de las alcaldías: `'todas'`, `'con'` o `'sin'` |
+| `filtroEsp` | Filtro «Espacio» en vigor, en bits: 1 cepa vacante, 2 tocón, 4 árbol muerto; 0 = sin filtro (en la dirección, `e=cv,to,am`) |
+| `espQuiero` | Lo elegido en las casillas de «Espacio» mientras llega el archivo del inventario; al llegar pasa a `filtroEsp` (`07_leyenda_y_capas.js`) |
+| `PANTALLA` | Pantalla visible en el celular: `'info'` o `'mapa'` (`13_interfaz.js`) |
 
 **Reglas de negocio en un solo lugar:** «prioritario» es clase ≥ `PRIO_MIN` = 2 (Muy Alta, Alta y Media). Todo el código pregunta con `esPrio(clase)` y suma con `sumPrio(arreglo)`; no debe escribirse `>=2` ni `[2]+[3]+[4]`. Las pruebas usan el mismo umbral desde `lib_pruebas.js` (`L.PRIO_MIN`) y la exportación de capas desde `PRIO_MIN` en `5_exportar_geoserver.py`.
 
@@ -171,11 +175,11 @@ Los tres archivos son **gzip de una secuencia de enteros varint con signo en zig
 | `Q`, `N`, `bounds`, `ambito` | Escala de coordenadas, número de frentes, encuadres |
 
 **`data.bin`** (372,534 frentes de manzana): `N`, y por cada frente: alcaldía, prioridad (0 Muy Baja … 4 Muy Alta), nombre, tipo, colonia, longitud (m), `flags`, vialidad primaria + 1, número de vértices y los vértices.
-`flags`: bits 0–2 arbolado (1 = sin arbolado; el significado de las demás clases no está documentado y queda por confirmar con el SIA), bits 3–5 banqueta (índice en `disp`), bit 6 = a cargo de Gobierno Central.
+`flags`: bits 0–2 arbolado, el dato de árboles de INEGI 2020 (`ARBOLES_D`), con el mismo catálogo que la banqueta (`META.disp`; confirmado el 5 oct 2026, ver `08_entrega_sia/CONTRATO_DE_DATOS.md` y `05_documentacion/capas_geograficas.md`); la herramienta solo usa 1 = sin arbolado. Bits 3–5 banqueta (índice en `disp`), bit 6 = a cargo de Gobierno Central.
 
 **`vp.bin`** (tramos de vialidades primarias): `NV`, y por cada tramo: nomenclatura, nombre, tipo, carriles, circulación, texto de alcaldía, alcaldía, prioridad, longitud (m), clave, registro, número de vértices y los vértices.
 
-**`datos/inventario/inv_<cve>.bin`** (un archivo por alcaldía, mismo formato que el fondo propio): por punto, coordenadas, tipo (0 cepa vacante, 1 tocón, 2 árbol muerto), frente de manzana asignado + 1 (a 20 m o menos; 0 = sin frente) y la clave del inventario. `RESUMEN.json` y `SUMAS.json` (en `02_fuente/datos/inventario/`) guardan el corte, las cifras de control, el avance por alcaldía y la huella de `data.bin` con que se asignaron; `construir.py` se detiene si no coinciden. La página recibe huellas, corte y avance en `window.SIA_INVENTARIO` (`config.js`). **`datos/inventario/espacios_frentes.bin`** (v1.21; formato 2 desde la v1.23): por cada frente con al menos un punto asignado, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene; lo usa el filtro «Espacio» (`pasaEspacio(i)`, dentro de `enAmbito(i)` junto con `pasaBanq`; las cachés usan `filtroClave()`). Sus cifras van en `SIA_INVENTARIO.fr`. `SIA_INVENTARIO.sinc`: puntos sin frente ni vialidad primaria a 25 m (5,019), que la nota de la comparación del Resumen dice en toda la ciudad. **`datos/inventario/espacios_vp.bin`** (v1.24): por cada parte de vialidad primaria con al menos un punto, su índice (en diferencias) y sus conteos por tipo. Un punto cuenta para una parte si está en un frente del Gobierno Central ligado a ella (`F.vp`) o, si quedó sin frente, si el eje de la parte está a 25 m o menos (camellón). El filtro de vialidades está en `pasaEspacioVP(i)`, dentro de `enAmbitoVP(i)`; estado `ESP_VP`, `ESP_VPN`; cifras en `SIA_INVENTARIO.vp`. Desde la v1.24, `inv_<cve>.bin` va en formato 2: lleva además la parte de vialidad de los puntos del camellón.
+**`datos/inventario/inv_<cve>.bin`** (un archivo por alcaldía; formato byte por byte en la sección 6 bis de `08_entrega_sia/CONTRATO_DE_DATOS.md`): por punto, coordenadas, tipo (0 cepa vacante, 1 tocón, 2 árbol muerto), frente de manzana asignado + 1 (a 20 m o menos; 0 = sin frente) y la clave del inventario. `RESUMEN.json` y `SUMAS.json` (en `02_fuente/datos/inventario/`) guardan el corte, las cifras de control, el avance por alcaldía y la huella de `data.bin` con que se asignaron; `construir.py` se detiene si no coinciden. La página recibe huellas, corte y avance en `window.SIA_INVENTARIO` (`config.js`). **`datos/inventario/espacios_frentes.bin`** (v1.21; formato 2 desde la v1.23): por cada frente con al menos un punto asignado, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene; lo usa el filtro «Espacio» (`pasaEspacio(i)`, dentro de `enAmbito(i)` junto con `pasaBanq`; las cachés usan `filtroClave()`). Sus cifras van en `SIA_INVENTARIO.fr`. `SIA_INVENTARIO.sinc`: puntos sin frente ni vialidad primaria a 25 m (5,019), que la nota de la comparación del Resumen dice en toda la ciudad. **`datos/inventario/espacios_vp.bin`** (v1.24): por cada parte de vialidad primaria con al menos un punto, su índice (en diferencias) y sus conteos por tipo. Un punto cuenta para una parte si está en un frente del Gobierno Central ligado a ella (`F.vp`) o, si quedó sin frente, si el eje de la parte está a 25 m o menos (camellón). El filtro de vialidades está en `pasaEspacioVP(i)`, dentro de `enAmbitoVP(i)`; estado `ESP_VP`, `ESP_VPN`; cifras en `SIA_INVENTARIO.vp`. Desde la v1.24, `inv_<cve>.bin` va en formato 2: lleva además la parte de vialidad de los puntos del camellón.
 
 Cómo se generan: `03_procesamiento_datos/LEEME.md` (el inventario, paso 9).
 
@@ -190,6 +194,8 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md` (el inventario, paso 9).
 | Mapa de fondo de calles (opcional) | Propio, alojado con el sitio (`datos/fondo/`): manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017 de SEDEMA, ANP y AVA oficiales y cuerpos de agua de SEDEMA | Lo genera `03_procesamiento_datos/6_fondo.py` (1.6 MB en total). Es el fondo con que abre la herramienta (`FONDO_INICIAL`): de lejos solo pide `fondo_base.bin` (143 KB, que también guarda el proceso de servicio para abrir sin conexión); las manzanas, por alcaldía, desde el zoom 13. No está en el archivo único, que abre sin fondo |
 | Mapa de fondo satelital (opcional) | Sin clave (vigente): Esri World Imagery con la capa de nombres de vías `Reference/World_Transportation` encima, ambas de `services.arcgisonline.com`. Con clave: Esri World Imagery con nombres, `static-map-tiles-api.arcgis.com` (ArcGIS Location Platform, 2 millones de teselas gratis al mes) | La clave se da con `SIA_ESRI_KEY` o en `02_fuente/claves.local.json` (ver sección 9). El uso sin clave queda pendiente de regularizar con una cuenta de Esri. Atribución obligatoria. Solo se pide si el usuario lo enciende |
 | Inventario de arbolado (capa «Espacios para plantar») | CIGA-UNAM y SEDEMA, corte de septiembre de 2026, **en curso**. Se lee del CSV de «Guardianes de árboles» (`INVENTARIO_ARBOLADO_CSV`) sin copiarlo; solo se publican cepas vacantes, tocones y árboles muertos. Pendiente de análisis: tomarlo de una sola fuente en PostGIS/GeoServer del SIA, al construir |
+
+Las fallas y los límites conocidos de cada componente ajeno (librerías, navegadores, herramientas de prueba y servidor del SIA), con el rodeo que usa la herramienta y qué revisar al actualizarlo, están en `05_documentacion/componentes_compartidos.md`.
 
 ## 9. Cambios comunes
 
@@ -207,11 +213,11 @@ Cómo se generan: `03_procesamiento_datos/LEEME.md` (el inventario, paso 9).
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
 | Poner la clave del satélite | Variable de entorno `SIA_ESRI_KEY` o `02_fuente/claves.local.json`, y reconstruir. La clave queda visible en la página: restringirla al dominio del sitio |
 | Actualizar el fondo «Calles» | Poner los insumos nuevos en `03_procesamiento_datos/insumos/fondo/`, correr `python 03_procesamiento_datos/6_fondo.py` y reconstruir |
-| Armar el paquete para el SIA | `python3 08_entrega_sia/empaquetar.py` |
-| Generar las listas de catálogos para el SIA | `python3 03_procesamiento_datos/reporte_catalogos.py` |
+| Armar el paquete para el SIA | `python 08_entrega_sia/empaquetar.py` |
+| Generar las listas de catálogos para el SIA | `python 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 
-Después de cualquier cambio: `python3 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js` (ver `04_pruebas/LEEME.md`).
+Después de cualquier cambio: `python 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js` (ver `04_pruebas/LEEME.md`).
 
 ### 9 bis. Rendimiento y modo ligero
 

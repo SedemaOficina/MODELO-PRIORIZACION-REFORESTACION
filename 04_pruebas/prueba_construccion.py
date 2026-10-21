@@ -3,7 +3,7 @@
 ANTES de escribir si falta o sobra una pieza, no publicar archivos imprevistos y apartar lo obsoleto sin borrarlo.
 
 Trabaja sobre copias en una carpeta temporal: no toca la carpeta del proyecto.
-Uso:  python3 04_pruebas/prueba_construccion.py     · termina con código 1 si algo falla. Requiere únicamente Python 3.
+Uso:  python 04_pruebas/prueba_construccion.py     · termina con código 1 si algo falla. Requiere únicamente Python 3.
 """
 import hashlib
 import json

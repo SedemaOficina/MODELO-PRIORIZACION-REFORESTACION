@@ -33,8 +33,8 @@ Requieren Python 3 con las dependencias de `requirements.txt` (`pip install -r 0
 Después del paso 4, en este orden:
 
 ```
-python3 03_procesamiento_datos/verificar_datos.py --actualizar    registra las sumas de los datos nuevos
-python3 02_fuente/construir.py
+python 03_procesamiento_datos/verificar_datos.py --actualizar    registra las sumas de los datos nuevos
+python 02_fuente/construir.py
 node 04_pruebas/correr_todas.js
 ```
 

@@ -3,9 +3,11 @@
 Una sola orden corre todo y termina con código 0 solo si todo pasó:
 
 ```
-node 04_pruebas/correr_todas.js            todo: unos 40 minutos sin tarjeta gráfica
-node 04_pruebas/correr_todas.js rapidas    datos, construcción, revisión estática y contraste del mapa: menos de un minuto
+node 04_pruebas/correr_todas.js            todo: unos 45 minutos en el equipo de trabajo (más si está ocupado o sin tarjeta gráfica)
+node 04_pruebas/correr_todas.js rapidas    las verificaciones sin navegador: menos de un minuto
 ```
+
+Son **6 verificaciones rápidas** (datos, construcción, revisión estática, contraste del mapa, coherencia de los documentos y empaquetado para el SIA) y **19 pruebas de navegador**. Este es el único lugar donde se escriben el número y la duración de las pruebas: los demás documentos remiten aquí, y `prueba_docs_coherencia.js` revisa que estas cifras sean las de `correr_todas.js`.
 
 Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la raíz (instala las versiones fijadas en `package.json`: Playwright 1.56.0 y ESLint 9.37.0), y `npx playwright install chromium`. La prueba de coherencia requiere además `openpyxl` y `pdftotext`.
 
@@ -17,6 +19,8 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_construccion.py` | Que `construir.py` dé el mismo sitio desde cero y se detenga sin escribir si falta o sobra una pieza, o si el inventario de arbolado no es el registrado, se asignó con otros frentes o el archivo del filtro «Espacio» falta o no cuadra | 30 s |
 | ESLint (`npm run lint`) | Variables sin definir o sin usar en `docs/app.js` | 5 s |
 | `prueba_contraste.js` | Contraste de los colores del mapa sobre cada fondo real (texto 4.5:1; líneas, puntos, aros, contornos y foco 3:1), con el cálculo de `herramientas/contraste.mjs` | 1 s |
+| `prueba_docs_coherencia.js` | Que los documentos no se contradigan con el código ni entre sí: ninguna aprobación de la Unidad de Transparencia sin número de oficio; avisos de privacidad sin el «21 Ter» y con «Transferencias» y «ARCOP»; sin las cifras de la v1.0 en `08_entrega_sia/`; el número de pruebas de este LEEME igual al de `correr_todas.js` y la misma duración en `CLAUDE.md`; ninguna orden con `python3` (en este equipo es `python`) fuera de las instrucciones para Linux; `05_documentacion/componentes_compartidos.md` con un renglón por librería | 1 s |
+| `prueba_empaquetado.js` | Que `08_entrega_sia/empaquetar.py` no deje viajar al SIA archivos ajenos ni secretos: en una copia fuera del repositorio, sin archivos sembrados la revisión (`--revisar`) pasa, entran los `.sql` del módulo y no se escribe ZIP; con un `.env`, una llave `.pem`, un `.sql` fuera de `login/backend/db/`, un CSV de contraseñas y dos archivos que solo delata su contenido, termina con error, nombra cada uno y no deja ZIP. Otra versión del guion: `EMPAQUETAR=ruta node 04_pruebas/prueba_empaquetado.js` (la de la v1.38 falla 11 de 16) | 5 s |
 | `prueba_sin_terceros.js` | Que el sitio, el archivo único y la instalación en una subruta trabajen sin pedir nada a otros dominios | 2 min |
 | `prueba_sitio.js` | Flujos principales en escritorio y teléfono | 6 min |
 | `prueba_robustez.js` | Lo que ve la persona cuando algo falla | 1 min |
@@ -28,9 +32,9 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 | `prueba_casos_limite.js` | Casos límite: avenida con una alcaldía que no cruza, Atrás tras cambiar de red, colonias homónimas en archivos, mapa de una colonia con las dos redes y doble clic | 1 min |
 | `prueba_banqueta.js` | Filtro de banqueta: cifras de cada opción contra un recálculo propio, explicación visible de la opción elegida, desglose fijo, Excel, GeoJSON y ficha con el filtro, dirección y Gobierno Central (una sola medida a la vista; lo que está en km de frente, plegado también en la computadora) | 1 min |
 | `prueba_recorrido.js` | Recorrido guiado: arranque solo después de la entrada y una sola vez, desde «Cómo funciona», teclado, cada globo cabe y no tapa su control, el foco cae sobre el control de cada paso, menos de 15 pasos, pasos de banqueta, «Espacio», orden por cepas, Street View y espacios para plantar (punto real del inventario), «Mi cuenta» solo con sesión (simulada con `SIA_SESION`), en escritorio, teléfono y Gobierno Central | 2 min |
-| `prueba_nombres_mapa.js` | Nombres del mapa, gestos y búsqueda por coordenadas: nombres de alcaldía y colonia dentro de su figura, nombres de calle sobre la línea media, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta |
-| `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo, «Atiende» y «Banqueta» siempre a la vista; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) |
-| `prueba_inventario_espacios.js` | Espacios para plantar (inventario de arbolado): puntos por tipo de los datos publicados = cifras de control y recálculo propio (y el CSV del inventario, si está en el equipo), frente asignado a 20 m o menos y ninguno cerca de los que quedaron sin frente, capa que aparece al acercar y no de lejos (archivos con huella, solo de las alcaldías a la vista), casillas que encienden y apagan cada tipo (también con el teclado), ficha de una cepa que gana al frente de debajo (tipo, clave, calle, colonia, prioridad del frente, Street View), avance de la alcaldía, cifras del modelo sin cambios, celular de 390 px sin desborde ni encimados y sin errores | 6 min |
+| `prueba_nombres_mapa.js` | Nombres del mapa, gestos y búsqueda por coordenadas: nombres de alcaldía y colonia dentro de su figura, nombres de calle sobre la línea media, juego de letras con «Ñ» en mayúsculas, contraste de los nombres de colonia, nombres de calle al día tras un salto sin animación y dedos «fantasma» que el mapa suelta | 3 min |
+| `prueba_dos_pantallas.js` | Celular en dos pantallas (información y mapa): el panel sale a la izquierda y el mapa no cambia de tamaño, la pantalla que no se ve queda inerte, el botón de abajo dice qué se verá, qué acción lleva a qué pantalla, «atrás», nada encimado con el botón de abajo, «Atiende» y «Banqueta» siempre a la vista; en 360, 390 y 430 px, y en 1440 px la computadora no cambia (WebKit si está instalado) | 2 min |
+| `prueba_inventario_espacios.js` | Espacios para plantar (inventario de arbolado): puntos por tipo de los datos publicados = cifras de control y recálculo propio (y el CSV del inventario, si está en el equipo), frente asignado a 20 m o menos y ninguno cerca de los que quedaron sin frente, capa que aparece al acercar y no de lejos (archivos con huella, solo de las alcaldías a la vista), casillas que encienden y apagan cada tipo (también con el teclado), ficha de una cepa que gana al frente de debajo (tipo, clave, calle, colonia, prioridad del frente, Street View), avance de la alcaldía, cifras del modelo sin cambios, celular de 390 px sin desborde ni encimados y sin errores | 12 min |
 | `prueba_filtro_espacio.js` | Filtro «Espacio» (cepa vacante, tocón, árbol muerto): archivo de puntos por tipo de cada frente = cifras de control y recálculo propio desde los puntos; cifras con las siete combinaciones (Tláhuac) y con cada tipo, los tres y «Con banqueta» (Iztapalapa) contra un recálculo propio; «Dónde empezar», Excel, GeoJSON, KML y ficha de una colonia con el filtro; todo igual al apagarlo; dirección (`e=`), «Reiniciar», Gobierno Central, aviso del inventario en curso, teclado y celular de 390 px; orden «más cepas vacantes» de «Dónde empezar» (colonias de Tláhuac y de la ciudad, con banqueta, calles de la alcaldía y de una colonia = recálculo propio; ceros al final, nota del corte, carga diferida y su falla, Gobierno Central, archivo único, celular) | 3 min |
 | `prueba_espacio_gobierno_central.js` | Filtro «Espacio» y orden por cepas del Gobierno Central (v1.24): archivo de puntos por tipo de cada parte de vialidad = cifras de control y recálculo propio con la regla (por su frente o en el camellón, a 25 m o menos del eje, con rejilla propia); ciudad e Iztapalapa con cada combinación (km y tramos prioritarios); Excel de tramos y de avenidas, GeoJSON, KML, ficha de vialidades y de avenida con el filtro; «Avenidas con más cepas vacantes»; ficha de un tramo y de un punto del camellón; las dos redes; «Reiniciar»; `e=` con `r=gc`; celular; y, contra la v1.23 tomada de Git, todo igual con el filtro apagado y con «Alcaldías» | 8 min |
 | `prueba_cepas_total.js` | Orden por cepas vacantes con el total de cualquier prioridad (v1.27) y columnas de espacios para plantar en las descargas (v1.25): opciones cortas de «Mostrar» (sin «(todas)», porcentaje ni «sin arbolado y con banqueta»); colonias de Tláhuac y de la ciudad, calles de la alcaldía y de una colonia y avenidas de Iztapalapa y de la ciudad por cepas de lo prioritario, con «N cepas vacantes · M en total» = recálculo propio (también con «Con banqueta» y «Espacio»), lo que no tiene km prioritarios pero sí cepas al final, carga diferida, falla y reintento, la avenida 5 de Mayo («sin cepas en lo prioritario · 128 en total»); columnas `cepas_vacantes`, `tocones` y `arboles_muertos` en los Excel de frentes (colonia y calle), de tramos y en los resúmenes por calle y por avenida, el Diccionario, GeoJSON y KML; descarga sin conexión al inventario; celular de 390 px; y, contra la v1.26 tomada de Git, lo que no cambió igual (del Resumen, las cifras sin sus rótulos; por cepas, lo que ya listaba) | 8 min |
@@ -41,7 +45,7 @@ Preparación, una sola vez: Node 18 o posterior, Python 3 y `npm install` en la 
 
 **Qué compara cifras.** La prueba integral (`prueba_sitio.js`) es un recorrido de controles: confirma que cada flujo responde, no que las cifras sean correctas. Las cifras las vigila `prueba_coherencia_cifras.js`, que abre los Excel y las fichas PDF y los compara con la pantalla y con un recálculo propio desde `docs/datos/*.bin`. Las dos son necesarias.
 
-GitHub puede repetir las tres primeras verificaciones en cada cambio que recibe; la propuesta, sin activar, está en `05_documentacion/verificacion_automatica_github.md`.
+GitHub puede repetir las verificaciones rápidas en cada cambio que recibe; la propuesta, sin activar, está en `05_documentacion/verificacion_automatica_github.md`.
 
 ## Prueba integral
 
@@ -54,12 +58,14 @@ GitHub puede repetir las tres primeras verificaciones en cada cambio que recibe;
 - Mi ubicación con un GPS simulado en la colonia Vicente Guerrero (Iztapalapa);
 - ayuda y lámina de la metodología, y que la ayuda se pueda cerrar aunque se haya bajado hasta el final;
 - botón "toda la ciudad";
-- teléfono sin desborde horizontal y con la hoja mínima al abrir.
+- mapas de fondo: abre con «Calles» (propio, sin crédito sobre el mapa) y el satélite trae su atribución;
+- calle con nombre repetido, y Excel y ficha PDF de la calle consultada;
+- teléfono sin desborde horizontal, que abre en la información (dos pantallas: información y mapa).
 
-Uso (requiere Node 18 o posterior y Playwright):
+Uso (requiere Node 18 o posterior y la preparación de arriba):
 
 ```
-npm i playwright
+npm install
 npx playwright install chromium
 node 04_pruebas/prueba_sitio.js
 ```
@@ -115,6 +121,15 @@ node herramientas/contraste.mjs --md 05_documentacion/auditoria_contraste_mapa.m
 node herramientas/contraste.mjs --pendientes        la lista de pendientes, para pegarla en contraste.mjs tras una decisión
 ```
 
+## Prueba de coherencia de los documentos
+
+`prueba_docs_coherencia.js` (auditoría del 19 de octubre de 2026, bloque 3) lee los documentos versionados, sin la bitácora, el informe de la auditoría ni su evidencia, que son historia, y falla si encuentra: una aprobación de la Unidad de Transparencia sin número de oficio en el mismo renglón; un aviso de privacidad que cite el «21 Ter», o el aviso integral y su página sin «Transferencias» o «ARCOP»; en `08_entrega_sia/`, una de las cifras o frases de la v1.0 que ya no son ciertas («8 MB», «14 archivos», «12 de 12», «trae la clave del mapa», «no envía nada al servidor»…); un número de pruebas en este LEEME distinto del de `correr_todas.js`, una prueba sin renglón en la tabla, otra duración en `CLAUDE.md`, o el número o la duración repetidos en README, ARQUITECTURA o la verificación de GitHub; una orden con `python3` (lista blanca: la verificación de GitHub, que corre en Linux), y un `05_documentacion/componentes_compartidos.md` sin el renglón de alguna librería de `02_fuente/libs/LICENCIAS.md` o con direcciones IP. No abre el navegador.
+
+```
+node 04_pruebas/prueba_docs_coherencia.js            los documentos de esta carpeta
+node 04_pruebas/prueba_docs_coherencia.js CARPETA    los de otra copia (por ejemplo, una versión anterior sacada con git archive)
+```
+
 ## Prueba de accesibilidad
 
 `prueba_accesibilidad.js` recorre la herramienta con teclado y comprueba: `<title>` y estilos en `<head>`, `<main>` y enlace de salto; anuncio del cambio de ámbito; foco tras elegir en el buscador, al abrir y cerrar la ficha, el panel de capas y la ayuda (fondo inerte); renglones de la lista de «Dónde empezar» con rol, foco visible y barra espaciadora; ficha de un frente abierta desde un tramo sin usar el puntero; contraste de bordes e indicador de foco; objetivos táctiles en teléfono (44 px en herramientas, pestañas y selector; 38 px en capas); ningún texto por debajo de 12 px ni tamaños en píxeles; impresión; movimiento reducido, e idioma, título y autoría en la ficha PDF y el Excel.
@@ -130,7 +145,7 @@ Las propiedades del Excel se leen con Python (`zipfile`), sin depender de `unzip
 `prueba_construccion.py` trabaja sobre copias en una carpeta temporal y comprueba que `construir.py`: da un sitio idéntico a `docs/` desde cero; no reescribe nada en una segunda corrida; da el mismo sitio con el código fuente en formato de Windows (CRLF); aparta en `_to_delete/` un archivo obsoleto de `docs/`; no publica un archivo imprevisto de `libs/`, y se detiene **sin escribir nada** cuando falta un módulo, sobra una hoja de estilos, un módulo está vacío, falta una librería, los datos están cortados o no son los registrados, la plantilla no trae su marcador o se le pasa un argumento desconocido.
 
 ```
-python3 04_pruebas/prueba_construccion.py
+python 04_pruebas/prueba_construccion.py
 ```
 
 ## Prueba del servidor del SIA
@@ -145,7 +160,7 @@ No sustituye la validación en el nginx real del SIA: el servidor de la prueba e
 
 ## Entrada y orientación
 
-`prueba_orientacion.js` comprueba que la primera visita pregunta el territorio y la siguiente abre en la última alcaldía consultada, que un enlace compartido no pregunta, que hay tres pestañas (la del listado se fundió en «Dónde empezar»), que «Dónde empezar» lista las colonias en el orden elegido (y coincide con un recálculo propio), que no depende de las casillas de capas, que ofrece las calles de la alcaldía con su desglose por prioridad y las alcaldías de la ciudad de diez en diez, que su campo filtra las calles por nombre, que elegir una colonia pasa a sus calles y elegir una calle muestra sus tramos arriba de la lista, que con una avenida da las alcaldías que cruza, que el nombre del lugar no se repite en el Resumen, que el panel de capas empieza cerrado con la leyenda compacta, que «Quién atiende» y el aviso de asignación preliminar están en el panel de capas y que no hay botón «Compartir»: la consulta queda en la dirección.
+`prueba_orientacion.js` comprueba que la primera visita pregunta el territorio y la siguiente abre en la última alcaldía consultada, que un enlace compartido no pregunta, que hay tres pestañas (la del listado se fundió en «Dónde empezar»), que «Dónde empezar» lista las colonias en el orden elegido (y coincide con un recálculo propio), que no depende de las casillas de capas, que ofrece las calles de la alcaldía con su desglose por prioridad y las alcaldías de la ciudad de diez en diez, que su campo filtra las calles por nombre, que elegir una colonia pasa a sus calles y elegir una calle muestra sus tramos arriba de la lista, que con una avenida da las alcaldías que cruza, que el nombre del lugar no se repite en el Resumen, que el panel de capas empieza cerrado con la leyenda compacta, que la fila «Atiende» está junto al buscador y su explicación en el panel de capas, sin el aviso de asignación preliminar (se retiró en la v1.0), y que no hay botón «Compartir»: la consulta queda en la dirección.
 
 Las demás pruebas parten de «toda la ciudad» (`L.sinEntrada`) y leen las cifras en la pestaña Resumen; `L.estado` lee la lista de «Dónde empezar» (`#ini-list`, con su título, su conteo y el filtro `#q`).
 
@@ -155,7 +170,7 @@ node 04_pruebas/prueba_orientacion.js
 
 ## Cepas de cualquier prioridad y columnas de espacios para plantar
 
-`prueba_cepas_total.js` revisa lo que agregó la v1.25. En «Dónde empezar», cada orden por cepas vacantes tiene dos opciones: «(prioritarias)», que cuenta solo las cepas de los frentes o tramos prioritarios (el de siempre), y «(todas)», que cuenta las de todos los frentes o tramos del ámbito, de cualquier prioridad, con los filtros de banqueta y «Espacio». Con decodificadores propios lee `data.bin`, `vp.bin`, `espacios_frentes.bin` y `espacios_vp.bin` y compara con un recálculo propio: las colonias de Tláhuac (todas) y de la ciudad, las calles de Tláhuac y de una colonia y las avenidas de Iztapalapa (todas) y de la ciudad, también con «Con banqueta» y con «Tocón»; que aparece lo que no tiene km prioritarios pero sí cepas («0 km de frente prioritario»); los ceros al final; la nota del corte; la carga diferida con aviso, su falla y el reintento; y que la avenida 5 de Mayo (128 cepas en partes no prioritarias) sale en su lugar con «(todas)» y al final con «(prioritarias)». En las descargas revisa las columnas `cepas_vacantes`, `tocones` y `arboles_muertos`, al final: en el Excel de frentes de una colonia y de la calle consultada, frente por frente y en total; en el de tramos de Iztapalapa, parte por parte; en los resúmenes por calle (Tláhuac) y por avenida (Iztapalapa), como suma de todos sus frentes o partes; el Diccionario (cada columna, fuente, corte y regla de asignación); el GeoJSON y el KML. Con el inventario bloqueado, el Excel y el GeoJSON salen sin esas columnas y lo dicen, y la pantalla lo avisa. En un celular de 390 px, las etiquetas de cepas caben enteras en el selector. Por último compara con la versión anterior tomada de Git (`REF_ANTERIOR`, por omisión el commit de la v1.24, `0eed690`; `REF_ANTERIOR=no` lo omite): pantalla, cifras, los órdenes que ya existían (listas completas) y, sin las tres columnas nuevas, los Excel y el GeoJSON, iguales. Imprime las cinco colonias y avenidas con más cepas vacantes de cualquier prioridad.
+`prueba_cepas_total.js` revisa el orden por cepas vacantes (v1.27; las opciones «(prioritarias)» y «(todas)» de la v1.25 se retiraron) y las columnas de espacios para plantar de las descargas (v1.25). En «Dónde empezar», «Mostrar» tiene opciones cortas y un solo orden por cepas para colonias, calles de la alcaldía, calles de una colonia y avenidas, sin porcentaje ni «sin arbolado y con banqueta». Ese orden cuenta las cepas de los frentes o tramos prioritarios, y cada renglón dice además el total de cualquier prioridad («48 cepas vacantes · 62 en total»). Con decodificadores propios lee `data.bin`, `vp.bin`, `espacios_frentes.bin` y `espacios_vp.bin` y compara con un recálculo propio: las colonias de Tláhuac y de la ciudad, las calles de la alcaldía y de una colonia y las avenidas de Iztapalapa y de la ciudad, también con «Con banqueta» y con el filtro «Espacio»; que lo que no tiene km prioritarios pero sí cepas sale al final; la nota del corte; la carga diferida con aviso, su falla y el reintento; y que la avenida 5 de Mayo (128 cepas en partes no prioritarias) dice «sin cepas en lo prioritario · 128 en total». En las descargas revisa las columnas `cepas_vacantes`, `tocones` y `arboles_muertos`, al final: en el Excel de frentes de una colonia y de la calle consultada, frente por frente y en total; en el de tramos de Iztapalapa, parte por parte; en los resúmenes por calle (Tláhuac) y por avenida (Iztapalapa), como suma de todos sus frentes o partes; el Diccionario (cada columna, fuente, corte y regla de asignación); el GeoJSON y el KML. Con el inventario bloqueado, el Excel y el GeoJSON salen sin esas columnas y lo dicen, y la pantalla lo avisa. En un celular de 390 px, las etiquetas de cepas caben enteras en el selector. Por último compara con la versión anterior tomada de Git (`REF_ANTERIOR`, por omisión el commit de la v1.26, `6935635`; `REF_ANTERIOR=no` lo omite): pantalla, cifras (del Resumen, sin sus rótulos), los órdenes que siguen (por cepas, lo que ya listaba, en el mismo orden) y los Excel y el GeoJSON, iguales. Imprime las cinco colonias y avenidas con más cepas vacantes de cualquier prioridad.
 
 ```
 node 04_pruebas/prueba_cepas_total.js
@@ -163,7 +178,7 @@ node 04_pruebas/prueba_cepas_total.js
 
 ## Descargas para abrir en un mapa
 
-`prueba_mapa_descargas.js` descarga el GeoJSON y el KML de una colonia, de una alcaldía grande y de las vialidades primarias, y comprueba: que son válidos (JSON y XML bien formados, líneas con coordenadas dentro de la ciudad), que traen tantas líneas como frentes prioritarios dice la pantalla y que sus longitudes suman los mismos kilómetros, que declaran fuentes, asignación preliminar y versión, y que en teléfono no se entrega el archivo de una alcaldía grande.
+`prueba_mapa_descargas.js` descarga el GeoJSON y el KML de una colonia, de una alcaldía grande y de las vialidades primarias, y comprueba: que son válidos (JSON y XML bien formados, líneas con coordenadas dentro de la ciudad), que traen tantas líneas como frentes prioritarios dice la pantalla y que sus longitudes suman los mismos kilómetros, que declaran fuentes y versión, sin el aviso de asignación preliminar, y que en teléfono no se entrega el archivo de una alcaldía grande.
 
 ```
 node 04_pruebas/prueba_mapa_descargas.js

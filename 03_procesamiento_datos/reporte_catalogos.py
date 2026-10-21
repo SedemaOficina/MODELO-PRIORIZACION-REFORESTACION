@@ -4,7 +4,7 @@
 Solo lee los datos publicados (02_fuente/datos/*.bin) y escribe un Excel con las listas. NO modifica ningún catálogo:
 la corrección corresponde a la fuente de cada capa.
 
-Uso:  python3 03_procesamiento_datos/reporte_catalogos.py
+Uso:  python 03_procesamiento_datos/reporte_catalogos.py
 Sale: 06_entregables/Catalogos_para_homologacion_SIA.xlsx
 Requiere: Python 3 con openpyxl.
 """

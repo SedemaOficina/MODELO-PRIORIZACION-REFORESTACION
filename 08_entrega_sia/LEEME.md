@@ -8,7 +8,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 |---|---|
 | [`INSTALACION.md`](INSTALACION.md) | Instalar, actualizar y revertir, paso a paso |
 | [`nginx_priorizacion_reforestacion.conf.ejemplo`](nginx_priorizacion_reforestacion.conf.ejemplo) | Los dos fragmentos de configuración de nginx |
-| [`LISTA_DE_VERIFICACION.md`](LISTA_DE_VERIFICACION.md) | 22 comprobaciones con `curl` y navegador, y qué revisar si alguna falla |
+| [`LISTA_DE_VERIFICACION.md`](LISTA_DE_VERIFICACION.md) | 25 comprobaciones con `curl` y navegador, y qué revisar si alguna falla |
 | [`SESION_Y_LOGIN.md`](SESION_Y_LOGIN.md) | Cómo se integra un inicio de sesión: qué hace ya la herramienta y qué construye el SIA |
 | [`CIERRE_FASE_1.md`](CIERRE_FASE_1.md) | Orden para apagar la página de GitHub y lo demás del piloto (interno; no va en el paquete) |
 | [`CONTRATO_DE_DATOS.md`](CONTRATO_DE_DATOS.md) | Formato de los archivos de datos (interno; no va en el paquete) |
@@ -19,17 +19,17 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 
 ## En una página
 
-- **Qué es:** un sitio estático (HTML, CSS, JavaScript y tres archivos de datos). La herramienta no usa base de datos ni GeoServer. Pesa 8 MB. El inicio de sesión sí usa el backend y la base de datos (módulo `priorizacion-reforestacion`).
+- **Qué es:** un sitio estático (HTML, CSS, JavaScript y sus archivos de datos: los tres del modelo, el fondo «Calles» en `datos/fondo/` y el inventario de arbolado en `datos/inventario/`). La herramienta no usa base de datos ni GeoServer. El tamaño y los conteos de la versión vigente están en `05_documentacion/cifras_de_la_construccion.md`, que se mide en cada construcción; el número de archivos del paquete, en su `VERSION.txt`. El inicio de sesión sí usa el backend y la base de datos (módulo `priorizacion-reforestacion`).
 - **Dónde va:** en el servidor web, junto a los demás sitios que no requieren backend, en la subruta `/priorizacion-reforestacion/`.
 - **Qué necesita del servidor:** servir archivos, la redirección de la dirección sin barra final, no recomprimir los `.bin` y las cabeceras del ejemplo. Nada más.
 - **Qué pide a terceros:** nada para funcionar. Solo si la persona enciende el satélite, las teselas de Esri (el fondo «Calles» es propio y viaja con el sitio); y los enlaces a Google Maps de las fichas, que se abren en otra pestaña.
 - **Datos personales:** los del inicio de sesión y el registro de usos (ver `login/LEEME.md`). «Mi ubicación» se calcula en el teléfono y no se envía.
-- **Política de seguridad de contenido:** funciona con una política estricta, sin `'unsafe-inline'` ni `'unsafe-eval'`. Probado: 12 de 12 funciones, cero violaciones.
+- **Política de seguridad de contenido:** funciona con una política estricta, sin `'unsafe-inline'` ni `'unsafe-eval'`. Probado con `04_pruebas/prueba_servidor_sia.js`: todas las funciones que revisa (cifras, mapas de fondo, espacios para plantar, Excel, fichas PDF, ayuda, Mi ubicación y las demás) trabajan sin ninguna violación.
 - **Inicio de sesión:** acceso solo con cuenta y registro de usos (accesos, consultas y descargas por institución y alcaldía). Se entrega construido y probado en `login/`; el SIA lo instala y mantiene el servidor, la base y sus respaldos; las cuentas las opera la Oficina de la Secretaría desde el panel.
 - **Navegadores:** Chrome o Edge 80, Firefox 79, Safari 15, o posteriores, con WebGL 2.
 - **Soporte:** Oficina de la Secretaría, Sistema de Información Ambiental. El código y la documentación de mantenimiento están en `ARQUITECTURA.md`, en la raíz del repositorio.
 
-## Estado de preparación (5 de octubre de 2026, versión 1.0)
+## Estado de preparación (20 de octubre de 2026, versión 1.39)
 
 | Punto | Estado |
 |---|---|
@@ -43,7 +43,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Librerías sin avisos de seguridad publicados | Listo: jsPDF 4.2.1 y SheetJS 0.20.3 |
 | **Módulo de sesión** (backend, esquema, pantalla de acceso, panel de administración) | **Construido y probado** (`login/`): pruebas del módulo 19 de 19 en PostgreSQL 17 (17 en la base en memoria, más la depuración por plazos y la transacción del alta masiva, que necesitan PostgreSQL real); flujo completo probado con la demostración (acceso, contraseña temporal, regreso a la consulta, registro de consultas y descargas, baja inmediata, cierre de sesión) |
 | Registro de usos en la herramienta | Listo; solo se activa con la sesión configurada (el paquete la trae) |
-| Aviso de privacidad | Aprobado por la Unidad de Transparencia (oct. 2026); publicado en la pantalla de acceso. Textos en `login/privacidad/` |
+| Aviso de privacidad | **En revisión de la Unidad de Transparencia**, adecuado a la ley de datos personales del 13 de julio de 2026. **No abrir el inicio de sesión sin la aprobación por escrito de la Unidad de Transparencia** (número de oficio). Textos en `login/privacidad/` |
 | Configuración de nginx (con y sin login) | Escrita; **sin validar con `nginx -t`** |
 | Guía de instalación, actualización y reversión | Escrita; **sin ensayar por una persona distinta de quien la escribió** |
 | Claves de los mapas de fondo | «Calles» no necesita clave (fondo propio). Esri: pendiente (el satélite funciona sin clave por ahora) |

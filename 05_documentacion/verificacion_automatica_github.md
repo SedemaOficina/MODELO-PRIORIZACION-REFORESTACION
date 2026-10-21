@@ -1,6 +1,6 @@
 # Verificación automática en GitHub (propuesta, no activada)
 
-GitHub puede repetir, en cada cambio que llega al repositorio, las verificaciones rápidas: que los datos sean los registrados, que la construcción dé el mismo sitio desde cero y que el programa no tenga variables sin definir. Tarda unos dos minutos y no abre el navegador; las seis pruebas de navegador se siguen corriendo en el equipo de trabajo antes de cada commit.
+GitHub puede repetir, en cada cambio que llega al repositorio, casi todas las verificaciones rápidas: que los datos sean los registrados, que la construcción dé el mismo sitio desde cero, que el programa no tenga variables sin definir, que los colores del mapa sigan cumpliendo el contraste y que los documentos no se contradigan. No abre el navegador. La del empaquetado (necesita las capas para GeoServer, que no están en GitHub) y las pruebas de navegador se siguen corriendo en el equipo de trabajo antes de cada commit; cuántas son y cuánto tardan está en `04_pruebas/LEEME.md`.
 
 **Qué cambia al activarla.** En cada *Push*, la pestaña *Actions* del repositorio muestra una palomita verde o una cruz roja. Si falla, GitHub envía un correo a la cuenta. La página publicada no depende de este resultado. Es gratuita en repositorios públicos.
 
@@ -16,8 +16,9 @@ GitHub puede repetir, en cada cambio que llega al repositorio, las verificacione
 Para desactivarla: borrar ese archivo desde github.com, o en *Settings → Actions* deshabilitar las acciones del repositorio.
 
 ```yaml
-# Verificación automática en cada cambio que llega a GitHub: datos, construcción y revisión estática.
-# No abre el navegador: las seis pruebas de navegador se corren en el equipo de trabajo antes de cada commit (04_pruebas/LEEME.md).
+# Verificación automática en cada cambio que llega a GitHub: datos, construcción, revisión estática, contraste y documentos.
+# No abre el navegador: las pruebas de navegador se corren en el equipo de trabajo antes de cada commit (04_pruebas/LEEME.md).
+# Corre en Linux (ubuntu-latest), donde Python se llama python3.
 # Si falla, GitHub avisa por correo a la cuenta del repositorio; la página publicada no cambia por ello.
 name: Verificar
 on:
@@ -50,4 +51,8 @@ jobs:
         run: |
           npm install --no-audit --no-fund @eslint/js@9.37.0 eslint@9.37.0 globals@16.4.0
           npx eslint docs/app.js
+      - name: Contraste del mapa
+        run: node 04_pruebas/prueba_contraste.js
+      - name: Coherencia de los documentos
+        run: node 04_pruebas/prueba_docs_coherencia.js
 ```

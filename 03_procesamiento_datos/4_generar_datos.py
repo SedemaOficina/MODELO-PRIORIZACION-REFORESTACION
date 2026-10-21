@@ -152,5 +152,5 @@ print('catálogos (meta):', len(meta_gz), 'bytes comprimidos')
 # bloques de datos de la herramienta (gzip de varints; construir.py los usa tal cual)
 for _n, _b in (('meta', meta_gz), ('data', fr_gz), ('vp', vp_gz)):
     open(RAIZ + '02_fuente/datos/%s.bin' % _n, 'wb').write(_b)
-print('Datos escritos en 02_fuente/datos/. Siguiente: python3 03_procesamiento_datos/verificar_datos.py --actualizar y python3 02_fuente/construir.py')
+print('Datos escritos en 02_fuente/datos/. Siguiente: python 03_procesamiento_datos/verificar_datos.py --actualizar y python 02_fuente/construir.py')
 print(json.dumps({'vp_city': vp_city, 'vp_cov': vp_cov, 'cruce': META['cruce'], 'city': META['city'], 'city_gc': META['city_gc']}, ensure_ascii=False))

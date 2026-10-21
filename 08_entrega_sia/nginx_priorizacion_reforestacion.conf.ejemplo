@@ -46,7 +46,7 @@ location ^~ /priorizacion-reforestacion/ {
     try_files $uri $uri/ =404;
     absolute_redirect off;
 
-    # Si el servidor aplica límite de velocidad (limit_req) en esta ruta: la página pide 14 archivos al abrir.
+    # Si el servidor aplica límite de velocidad (limit_req) en esta ruta: la página hace unas 13 peticiones al abrir, y más al encender capas.
     # Un límite con ráfaga menor a 30 produce errores 503 intermitentes. Ajustar la ráfaga o exceptuar esta ruta.
 
     # --- cabeceras (se repiten en el bloque de los .bin: en nginx, un bloque con add_header no hereda los del bloque padre) ---
@@ -98,6 +98,7 @@ location ^~ /priorizacion-reforestacion/ {
 #     absolute_redirect off;
 #     auth_request /_priorizacion_reforestacion_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
 #     # (las mismas cabeceras de seguridad y caché del bloque 2, y el bloque de los .bin)
+#     location ~ /\. { return 404; }                                    # archivos ocultos (.env, .git…): nunca se sirven
 
 #     # Solo la PÁGINA lleva a la pantalla de acceso. Datos y programas responden 401: así la herramienta
 #     # puede decir «Tu sesión terminó» en lugar de «revisa tu conexión».
@@ -136,6 +137,8 @@ location ^~ /priorizacion-reforestacion/ {
 #     add_header X-Content-Type-Options "nosniff" always;
 #     add_header Referrer-Policy "same-origin" always;
 #     add_header Cache-Control "no-cache" always;
+#     # Esta ruta no pide sesión: un archivo oculto copiado por error a la carpeta (.env, .git…) lo vería cualquiera.
+#     location ~ /\. { return 404; }
 # }
 
 # 2-cuater) La API del módulo. En sia-backend el módulo sigue montado en /api/priorizacion-reforestacion (src/index.ts):

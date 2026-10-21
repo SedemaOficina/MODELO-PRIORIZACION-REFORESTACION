@@ -82,7 +82,7 @@ const REC_PASOS = [
   { sel:'#panel-actions, #tab-dl', panel:true, titulo:'Tu lista de campo', texto:()=> (isGC()
       ? 'Elige una alcaldía o una avenida y descarga sus tramos prioritarios en Excel y su ficha en PDF.'
       : 'Elige una alcaldía o una colonia y descarga su listado en Excel y su ficha en PDF.')
-      + ' En «Descargas» también están los archivos para Google Earth (KML). Todos respetan los filtros y traen las cepas vacantes, los tocones y los árboles muertos de cada calle.' },
+      + ' En «Descargas» también están los archivos para Google Earth (KML). Todos respetan los filtros. Los Excel y los archivos para mapas traen además las cepas vacantes, los tocones y los árboles muertos de cada calle; la ficha PDF no los trae.' },
   { sel:'#zloc', mapa:true, titulo:'En campo', texto:'«Mi ubicación» dice en qué colonia estás y qué calles prioritarias tienes cerca. Tu ubicación no sale del teléfono.' },
   { sel:'#cuenta-btn', con:'#cuenta-menu', panel:true, si:()=>!!SESION.cierre, prep:recCuenta, titulo:'Mi cuenta', texto:()=> SESION.inicio
       ? 'En «Mi cuenta» puedes cambiar tu contraseña o cerrar sesión. Al cambiarla regresas a la misma consulta.'

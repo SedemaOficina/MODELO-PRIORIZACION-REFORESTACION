@@ -79,7 +79,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.38'
+VERSION = '1.39'
 ACTUALIZACION = '20 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
@@ -409,7 +409,7 @@ filas = [('Versión de la herramienta', VERSION), ('Corte de los datos', CORTE_D
          ('Sitio completo (`docs/`)', tam(peso_sitio)), ('Archivos que se piden al abrir, sin comprimir', tam(sum(pesa(a) for a in arranque))),
          ('Archivo único (`_local/priorizacion_reforestacion.html`)', tam(len(unico.encode('utf-8')))),
          ('Archivos que guarda el navegador para abrir sin conexión', len(PRE)),
-         ('Fondo propio «Calles» (`docs/datos/fondo/`, se pide al encenderlo)', tam(sum(len(SALIDA['datos/fondo/' + n]) for n in fondo_ver))),
+         ('Fondo propio «Calles» (`docs/datos/fondo/`; es el fondo inicial: de lejos se pide `fondo_base.bin` y las manzanas, por alcaldía, al acercar)', tam(sum(len(SALIDA['datos/fondo/' + n]) for n in fondo_ver))),
          ('Espacios para plantar del inventario de arbolado (`docs/datos/inventario/inv_*.bin`, se piden al acercar el mapa)', '%s · %s puntos · corte: %s' % (tam(sum(len(SALIDA['datos/inventario/' + n]) for n in inv_ver if n not in (INV_FR['archivo'], INV_VP['archivo']))), format(sum(INV_RES['puntos_por_tipo']), ','), INV_RES['corte'])),
          ('Filtro «Espacio» y orden por cepas: puntos por tipo de cada frente (`docs/datos/inventario/%s`, se pide al usarlos)' % INV_FR['archivo'], '%s · %s frentes' % (tam(len(SALIDA['datos/inventario/' + INV_FR['archivo']])), format(INV_FR['frentes'], ','))),
          ('Filtro «Espacio» y orden por cepas del Gobierno Central: puntos por tipo de cada parte de vialidad primaria (`docs/datos/inventario/%s`, se pide junto con el anterior)' % INV_VP['archivo'], '%s · %s partes · %s puntos (%s del camellón)' % (tam(len(SALIDA['datos/inventario/' + INV_VP['archivo']])), format(INV_VP['partes'], ','), format(sum(INV_VP['puntos_por_tipo']), ','), format(INV_VP['sin_frente_recuperados'], ','))),

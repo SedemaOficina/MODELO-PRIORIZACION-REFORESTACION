@@ -8,12 +8,12 @@ Este paquete trae todo lo necesario para instalar la herramienta en `sedema.sia.
 
 | Carpeta o archivo | Qué es | Dónde va |
 |---|---|---|
-| `sitio/` | La herramienta: sitio estático (HTML, CSS, JavaScript y tres archivos de datos, 8 MB). Ya trae la clave del mapa de fondo y la sesión configurada | Servidor web, en la subruta `/priorizacion-reforestacion/` |
+| `sitio/` | La herramienta: sitio estático (HTML, CSS, JavaScript y sus archivos de datos: los del modelo, el fondo «Calles» y el inventario de arbolado). `VERSION.txt` dice cuántos archivos trae y si incluye la clave del satélite de Esri; sin ella, el satélite funciona por ahora sin clave. Ya trae la sesión configurada | Servidor web, en la subruta `/priorizacion-reforestacion/` |
 | `MANIFIESTO.sha256` | Suma SHA-256 de **cada archivo del paquete** (salvo él mismo), para comprobar que llegó y se copió completo | — |
 | `login/acceso/` | Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad (estáticos) | Servidor web, en `/priorizacion-reforestacion/acceso/` |
 | `login/backend/` | Con la misma estructura que el repositorio `sia-backend`: el módulo en TypeScript (`src/modulos/priorizacion-reforestacion/`), su SQL (`db/priorizacion_reforestacion/`) y la herramienta de la primera cuenta (`herramientas/priorizacion-reforestacion/`) | Repositorio `sia-backend`, en las mismas rutas |
 | `capas_geoserver/` | Tres capas en GeoPackage (frentes de manzana, vialidades primarias y colonias) con sus estilos | GeoServer (o PostGIS) |
-| `documentos/` | Guía de instalación, ejemplo de nginx, lista de verificación y descripción del inicio de sesión | — |
+| `documentos/` | Guía de instalación, ejemplo de nginx, lista de verificación, descripción del inicio de sesión y contrato de datos (formato de los archivos y propuesta del inventario en PostGIS) | — |
 
 ## Comprobar que el paquete llegó completo
 
@@ -48,8 +48,8 @@ cd modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD && sha256sum -c MANIFIESTO.sh
 
 ## En una página
 
-- **Herramienta:** sitio estático; no usa base de datos ni GeoServer. Solo pide a terceros las teselas del mapa de fondo si la persona lo enciende.
+- **Herramienta:** sitio estático; no usa base de datos ni GeoServer. A terceros solo pide las imágenes del satélite (Esri), si la persona lo enciende; el fondo «Calles» viaja con el sitio. Con la sesión configurada, avisa al servidor de cada consulta y descarga (registro de usos).
 - **Inicio de sesión:** nginx protege la herramienta con `auth_request`; el módulo `priorizacion-reforestacion` del backend valida la sesión y registra accesos, consultas y descargas en el esquema `priorizacion_reforestacion` de PostgreSQL.
-- **Datos personales:** nombre, correo, institución, alcaldía, bitácora de uso y dirección IP. El aviso de privacidad se publica en la pantalla de acceso. La depuración automática cumple sus plazos: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
+- **Datos personales:** nombre, correo, institución, alcaldía, bitácora de uso y dirección IP. El aviso de privacidad se publica en la pantalla de acceso. **No abrir el inicio de sesión sin la aprobación por escrito de la Unidad de Transparencia** (número de oficio). La depuración automática cumple sus plazos: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
 - **Navegadores:** Chrome o Edge 80, Firefox 79, Safari 15, o posteriores, con WebGL 2.
 - **Soporte:** primer nivel, el SIA (servidor); segundo nivel, la Oficina de la Secretaría (contenido, datos y nuevas versiones).

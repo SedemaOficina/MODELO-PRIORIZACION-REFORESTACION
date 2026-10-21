@@ -1,6 +1,7 @@
 // Corre todas las verificaciones, una tras otra, y da una sola señal: código 0 si todo pasó.
-// Uso: node 04_pruebas/correr_todas.js          todas (unos 40 minutos sin tarjeta gráfica)
-//      node 04_pruebas/correr_todas.js rapidas  solo las que no abren el navegador (menos de un minuto)
+// Uso: node 04_pruebas/correr_todas.js          todas
+//      node 04_pruebas/correr_todas.js rapidas  solo las que no abren el navegador
+// Cuántas son y cuánto tardan: 04_pruebas/LEEME.md (prueba_docs_coherencia.js revisa que el LEEME diga las mismas que estas listas).
 const cp = require('child_process'), path = require('path'), fs = require('fs');
 const RAIZ = path.join(__dirname, '..'); const py = process.platform === 'win32' ? 'python' : 'python3';
 // ESLint se corre con Node y no con su .cmd: sin intérprete de órdenes de por medio, las rutas con espacios no se parten
@@ -10,6 +11,8 @@ const RAPIDAS = [
   ['construcción', py, ['04_pruebas/prueba_construccion.py']],
   ['revisión estática (ESLint)', fs.existsSync(eslint) ? process.execPath : null, [eslint, 'docs/app.js']],
   ['contraste del mapa', process.execPath, ['04_pruebas/prueba_contraste.js']],   // lee 02_fuente; no abre el navegador
+  ['coherencia de los documentos', process.execPath, ['04_pruebas/prueba_docs_coherencia.js']],   // lee los documentos; no abre el navegador
+  ['empaquetado para el SIA', process.execPath, ['04_pruebas/prueba_empaquetado.js']],   // en una carpeta temporal; no escribe el ZIP
 ];
 const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js', 'prueba_espacio_gobierno_central.js', 'prueba_cepas_total.js', 'prueba_cifras_gobierno_central.js']
   .map(f => [f.replace('prueba_', '').replace('.js', '').replace(/_/g, ' '), process.execPath, ['04_pruebas/' + f]]);

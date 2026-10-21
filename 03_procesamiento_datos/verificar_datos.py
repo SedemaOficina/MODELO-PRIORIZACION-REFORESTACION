@@ -17,8 +17,8 @@ vialidad) es el registrado, trae sus cifras de control y coincide con un recálc
 un frente a cargo del Gobierno Central cuenta para la parte de vialidad de ese frente; un punto sin frente, para la parte del camellón
 que trae su archivo; los de los frentes de las alcaldías, para ninguna.
 
-Uso:  python3 03_procesamiento_datos/verificar_datos.py               verifica; termina con código 1 si algo no coincide
-      python3 03_procesamiento_datos/verificar_datos.py --actualizar  registra las sumas de los datos actuales (después de regenerarlos a propósito)
+Uso:  python 03_procesamiento_datos/verificar_datos.py               verifica; termina con código 1 si algo no coincide
+      python 03_procesamiento_datos/verificar_datos.py --actualizar  registra las sumas de los datos actuales (después de regenerarlos a propósito)
 Requiere únicamente Python 3.
 """
 import gzip

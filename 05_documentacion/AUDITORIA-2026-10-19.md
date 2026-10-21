@@ -843,6 +843,7 @@ Cada bloque se cierra con la prueba que lo demuestra: debe fallar antes y pasar 
 |---|---|---|---|---|---|
 | 1.37 | 20 oct 2026 | 1 · Cifras del Gobierno Central | B2-01, B2-02, B2-03, B2-04, C4-01, F2-01 | Corregidos | `04_pruebas/prueba_cifras_gobierno_central.js`: 36 de 36; contra la v1.36, 11 de 36 |
 | 1.38 | 20 oct 2026 | 2 · Inicio de sesión | E1-01, E1-02, E1-03, E1-04, E1-05, E1-06, E1-07, E1-08, E2-01, E2-02, E2-04, B9-02, E3-03 | Corregidos | `backend/pruebas/seguridad.test.mjs` (contra la v1.37 fallan las 6 que corren en memoria); módulo 19 de 19 en PostgreSQL 17 de pruebas; `prueba_servidor_sia.js` 34 de 34 |
+| 1.39 | 20 oct 2026 | 3 · Aviso y documentos | G1-01, D1-01, D1-02, D1-03, D1-04, D1-05, D3-01, E2-03, F4-01, G1-02, G2-01, C5-05, B7-01 (aviso) | Corregidos; G1-01 y G1-02 esperan la aprobación de la Unidad de Transparencia y de jurídico | `prueba_docs_coherencia.js` y `prueba_empaquetado.js` (contra la v1.38: 22 de 27 y 11 de 16 fallas); lector independiente del inventario 109 de 109; respaldo y restauración ensayados en PostgreSQL 17 de pruebas |
 
 Notas:
 - **B2-03:** se corrigió con la decisión de Liber (manda la prioridad del tramo). Ya no quedan frentes prioritarios del Gobierno Central fuera de sus listas: la ciudad pasa de 1,253.9 a 1,186.3 km de frente prioritario.

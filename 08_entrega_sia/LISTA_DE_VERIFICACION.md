@@ -31,3 +31,11 @@ Con inicio de sesión, además:
 | 20 | La pantalla de acceso no está protegida | `curl -sI SITIO/priorizacion-reforestacion/acceso/` | `200`, `text/html` (no `302` ni `401`) |
 | 21 | La API llega al módulo | `curl -sI SITIO/priorizacion-reforestacion/api/sesion` | `401` del módulo (no `404` ni `302`) |
 | 22 | Cookie limitada a la herramienta | Entrar y revisar la cookie `priorizacion_reforestacion_sesion` en el navegador | Ruta `/priorizacion-reforestacion/`, `HttpOnly`, `Secure`, `SameSite=Lax` |
+
+Base del inicio de sesión (las revisa quien opera PostgreSQL; detalle en `INSTALACION.md`, sección 4 bis):
+
+| # | Comprobación | Cómo | Se espera |
+|---|---|---|---|
+| 23 | Depuración diaria programada | Tarea del SIA (en la base o en el sistema) que corre `SELECT priorizacion_reforestacion.depurar();` con la cuenta dueña del esquema, una vez al día | La tarea existe y su última ejecución terminó sin error. No basta la depuración que pide el módulo: si el backend se reinicia antes de 24 horas, no llega a correr |
+| 24 | Respaldo programado | Tarea diaria con `pg_dump -n priorizacion_reforestacion -Fc` y la cuenta dueña del esquema (no la del servicio) | Hay un respaldo de hoy; `pg_restore --list` del archivo cuenta 3 `TABLE DATA`; está cifrado y fuera del servidor de base de datos, según la política del SIA |
+| 25 | Restauración de ensayo | Restaurar el último respaldo en una base de ensayo, correr `depurar()` y la verificación de la sección 4 bis; después borrar la base de ensayo | Conteos coherentes con producción, permisos de `priorizacion_reforestacion_api` iguales a los de `02-…`, controles negativos fallan. Repetir cada tres meses |

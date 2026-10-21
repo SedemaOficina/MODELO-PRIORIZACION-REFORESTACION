@@ -48,7 +48,7 @@ Las sumas de los archivos que genera el paso 6 están en `02_fuente/datos/fondo/
 
 ## Datos de la herramienta
 
-Las sumas del contenido de `02_fuente/datos/*.bin` están en `02_fuente/datos/SUMAS.json` y se comprueban con `python3 03_procesamiento_datos/verificar_datos.py`.
+Las sumas del contenido de `02_fuente/datos/*.bin` están en `02_fuente/datos/SUMAS.json` y se comprueban con `python 03_procesamiento_datos/verificar_datos.py`.
 
 ## Pendiente
 

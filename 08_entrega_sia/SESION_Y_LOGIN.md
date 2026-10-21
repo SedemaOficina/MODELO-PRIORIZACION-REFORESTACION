@@ -19,7 +19,7 @@ Navegador ── pide /priorizacion-reforestacion/datos/data.bin ──▶ nginx
 | Capacidad | Dónde (en `sitio/`) |
 |---|---|
 | Reconoce la sesión vencida: respuesta 401 o 403, o una página HTML donde esperaba datos o un programa | `esSesion`, `causaFalla` en `app.js` |
-| Dice «Tu sesión terminó. Vuelve a iniciar sesión para continuar.», con enlace a la pantalla de acceso, en lugar de «revisa tu conexión» | Carga inicial, Excel y fichas PDF |
+| Dice «Tu sesión terminó. Vuelve a iniciar sesión para continuar.», con enlace a la pantalla de acceso, en lugar de «revisa tu conexión» | Carga inicial, Excel, fichas PDF y, desde la versión 1.38, KML y GeoJSON (antes de entregarlos pregunta al servidor si la sesión sigue activa) |
 | Con la sesión vencida no entrega archivos de respaldo | Descargas, en `app.js` |
 | Muestra «Mi cuenta» (cambiar contraseña y cerrar sesión) junto a los logotipos si la instalación define esa dirección | `window.SIA_SESION` en `config.js` |
 | No guarda copia para uso sin conexión cuando hay sesión, y retira la que hubiera | Arranque, en `app.js` |
@@ -84,5 +84,6 @@ Si la pantalla de acceso no es accesible, nadie con esa necesidad entra a la her
 
 ## 7. Antes de abrir
 
-- **Datos personales:** el login trata correo, contraseña, bitácora de accesos y dirección IP. El aviso de privacidad se publica en la pantalla de acceso.
+- **Datos personales:** el login trata nombre, correo, institución, alcaldía, contraseña (solo se guarda su huella), bitácora de uso (accesos, consultas y descargas) y dirección IP. El aviso de privacidad se publica en la pantalla de acceso.
+- **Aviso de privacidad:** está en revisión de la Unidad de Transparencia. **No abrir el inicio de sesión sin la aprobación por escrito de la Unidad de Transparencia** (número de oficio).
 - **Versión piloto en GitHub:** mientras siga en línea la versión de prueba en GitHub, el login no restringe nada. La Oficina de la Secretaría la retira cuando la herramienta quede publicada en el SIA.

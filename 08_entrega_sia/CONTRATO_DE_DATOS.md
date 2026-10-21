@@ -1,8 +1,8 @@
 # Contrato de datos
 
-Formato exacto de los tres archivos de `datos/`, suficiente para escribir un lector o un generador sin ver el código. Lectores de referencia en Python, sin dependencias: `03_procesamiento_datos/verificar_datos.py` (los tres archivos) y `03_procesamiento_datos/reporte_catalogos.py`. El generador es `03_procesamiento_datos/4_generar_datos.py`.
+Formato exacto de los tres archivos de `datos/` (secciones 1 a 6) y de los del inventario de arbolado en `datos/inventario/` (sección 6 bis), suficiente para escribir un lector o un generador sin ver el código. Lectores de referencia en Python, sin dependencias: `03_procesamiento_datos/verificar_datos.py` (todos) y `03_procesamiento_datos/reporte_catalogos.py`. Los generadores son `03_procesamiento_datos/4_generar_datos.py` (los tres de `datos/`) y `03_procesamiento_datos/9_inventario_espacios.py` (los del inventario).
 
-Los archivos no llevan número de versión de formato ni fecha dentro; la versión y el corte se declaran en `construir.py` (`VERSION`, `CORTE_DATOS`) y la identidad del contenido, en `02_fuente/datos/SUMAS.json`.
+Los tres archivos de `datos/` no llevan número de versión de formato ni fecha dentro (los del inventario sí traen su número de formato: sección 6 bis); la versión y el corte se declaran en `construir.py` (`VERSION`, `CORTE_DATOS`) y la identidad del contenido, en `02_fuente/datos/SUMAS.json`.
 
 ## 1. Envoltura
 
@@ -84,15 +84,77 @@ Grados decimales (longitud, latitud, WGS 84) multiplicados por `Q = 100000` y re
 
 **Resúmenes.** Cada uno es `{n: [5], km: [5]}` por clase de prioridad (algunos traen además `km_sinarb`). Son una **segunda copia** de lo que dicen los registros. La herramienta recalcula los kilómetros desde los frentes al cargar; los conteos sí se leen de aquí.
 
-## 6 bis. `datos/inventario/inv_<cve>.bin` · espacios para plantar (inventario de arbolado)
+## 6 bis. `datos/inventario/` · espacios para plantar (inventario de arbolado)
 
-Un archivo por alcaldía (clave INEGI de 3 dígitos), con la misma envoltura, enteros y coordenadas de este documento. Por cada punto: coordenadas (diferencias), tipo (0 cepa vacante, 1 tocón, 2 árbol muerto), frente de manzana asignado + 1 (índice en `data.bin`; 0 = sin frente a 20 m o menos) y la clave del inventario. Fuente: inventario de arbolado urbano del CIGA-UNAM y SEDEMA (corte en `config.js`, `window.SIA_INVENTARIO`), **en curso**. Se generan con `03_procesamiento_datos/9_inventario_espacios.py` y dependen de `data.bin`: si cambian los frentes hay que volver a generarlos (la construcción se detiene si no coinciden). La capa no interviene en ninguna cifra del modelo.
+Cepas vacantes, tocones y árboles muertos del inventario de arbolado urbano del CIGA-UNAM y SEDEMA, **en curso** (corte en `config.js`, `window.SIA_INVENTARIO.corte`). Los árboles vivos no se publican. La capa no interviene en ninguna cifra del modelo: es una capa de oportunidad encima de él. Los genera `03_procesamiento_datos/9_inventario_espacios.py` y dependen de `data.bin` y `vp.bin`: si cambian los frentes o las vialidades hay que volver a generarlos (la construcción se detiene si no coinciden).
 
-**`datos/inventario/espacios_frentes.bin`** (v1.21): mismo formato; trae el número de frentes y, por cada frente de `data.bin` con al menos un punto asignado, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene (formato 2, desde la v1.23). Lo usan el filtro «Espacio», que acota los frentes consultados como el de banqueta, y el orden por cepas de «Dónde empezar». Sus cifras de control van en `RESUMEN.json` (`frentes_con_espacio`, con `puntos_por_tipo` y `puntos_alcaldia_por_tipo`); depende de `data.bin` y de los `inv_<cve>.bin`, y se genera con el mismo script.
+| Archivo | Contenido | Formato vigente |
+|---|---|---|
+| `inv_<cve>.bin` | Un archivo por alcaldía (`<cve>` = clave INEGI de 3 dígitos, «002» a «017», como en `meta.muns`): sus puntos | 2 |
+| `espacios_frentes.bin` | Cuántos puntos de cada tipo tiene asignados cada frente de `data.bin` | 2 |
+| `espacios_vp.bin` | Cuántos puntos de cada tipo cuentan para cada parte de `vp.bin` | 1 |
 
-**Desde la v1.24:** `inv_<cve>.bin` va en formato 2, con un campo más al final de cada punto (no en diferencias): la parte de vialidad primaria + 1 para los puntos del camellón (0 si no aplica). **`datos/inventario/espacios_vp.bin`** (formato 1): por cada parte de `vp.bin` con al menos un punto, su índice (en diferencias) y cuántas cepas vacantes, tocones y árboles muertos tiene. Cuenta un punto si está en un frente del Gobierno Central ligado a esa parte o, si no tiene frente a 20 m, si el eje de la parte está a 25 m o menos. Cifras de control en `RESUMEN.json` (`vialidades_con_espacio`) y huella de `vp.bin` (`vp_sha256`): si cambian las vialidades hay que volver a correr el script.
+**Lo que comparten con la sección 1 y la 2, y lo que no.** La envoltura es la misma (gzip; si llegan descomprimidos, se usan igual) y los enteros también (varint con signo en zigzag, sección 2). Pero **no** son como `data.bin`:
 
-**Desde la v1.25,** `espacios_frentes.bin` y `espacios_vp.bin` alimentan también las columnas `cepas_vacantes`, `tocones` y `arboles_muertos` de los Excel, el GeoJSON y el KML. Sus formatos no cambian.
+1. **Encabezado.** Cada archivo empieza con dos enteros: `formato` y `n` (número de registros). Un lector debe rechazar un `formato` que no conozca: el formato 1 de `inv_<cve>.bin` (hasta la v1.23) traía 7 enteros por punto, no 8, y se leería corrido.
+2. **Escala de las coordenadas: `ESCALA = 200000`** (no `Q = 100000`): grados decimales WGS 84 multiplicados por 200,000 y redondeados al entero; una unidad equivale a unos 0.55 m. Va también en `RESUMEN.json` (`escala`).
+3. **Varios campos van en diferencias** con su propio acumulador, no solo las coordenadas (ver «Dif.» en las tablas). Todos los acumuladores empiezan en 0 al inicio de cada archivo (salvo el índice de `espacios_*.bin`, que empieza en −1) y no se reinician entre registros. Valor del registro = acumulador + entero leído; ese valor pasa a ser el acumulador.
+4. Después del último registro **no sobra ningún byte**: si sobran o faltan, el archivo está dañado.
+
+### `inv_<cve>.bin` (formato 2)
+
+`formato` (= 2), `n` (número de puntos) y después `n` registros de **8 enteros**, en este orden:
+
+| # | Campo | Dif. | Valor ya acumulado |
+|---|---|---|---|
+| 1 | `x` | Sí | Longitud × 200,000. Longitud en grados = `x / 200000` (negativa en la CDMX: −99.4 a −98.9) |
+| 2 | `y` | Sí | Latitud × 200,000. Latitud = `y / 200000` (19.0 a 19.65) |
+| 3 | `tipo` | No | 0 cepa vacante, 1 tocón, 2 árbol muerto |
+| 4 | `fr` | Sí | Frente de manzana asignado + 1: el número de orden del frente en `data.bin` (sección 4) más 1. 0 = sin frente a 20 m o menos |
+| 5 | `pre` | Sí | Las tres letras de la clave del inventario como número en base 26, con A = 0: `pre = 676·L1 + 26·L2 + L3` |
+| 6 | `uga` | Sí | El número de en medio de la clave (unidad de gestión ambiental) |
+| 7 | `num` | Sí | El consecutivo de la clave |
+| 8 | `vp` | **No** | Parte de vialidad primaria + 1 (número de orden en `vp.bin` más 1) si el punto es **del camellón**: quedó sin frente (`fr` = 0) y el eje de esa parte está a 25 m o menos. 0 en los demás puntos (siempre 0 si `fr` > 0) |
+
+- **Orden de los puntos:** dentro de cada archivo, por clave del inventario, de menor a mayor (`pre`, luego `uga`, luego `num`). Por eso `pre`, `uga` y `num` en diferencias suelen ser números chicos; las diferencias de `uga` y `num` pueden ser negativas.
+- **Clave como texto** (forma `AAA-000-0000`, como la muestra la herramienta): letras `chr(65 + pre // 676)`, `chr(65 + (pre // 26) % 26)`, `chr(65 + pre % 26)`; `uga` con 3 dígitos y `num` con al menos 4, rellenando con ceros a la izquierda. La clave es única en toda la ciudad (el generador toma una sola vez una clave repetida).
+- **Alcaldía de un punto:** la del archivo, que es la del polígono de `meta.alc` que contiene el punto (o el más cercano, si no cae en ninguno); puede no coincidir con la columna de alcaldía del inventario. Los polígonos están simplificados: unos 4,200 puntos (6.7 %) no caen en ninguno y unos cuantos, en el límite, caen en dos; un lector no debe recalcular la alcaldía, sino tomar la del archivo. Por eso `RESUMEN.json` cuenta los registros del inventario por su columna de alcaldía (`registros`, el avance) y los puntos por archivo (`puntos`).
+- **Ejemplo** (primeros enteros de `inv_002.bin`, ya decodificados del zigzag; los de los registros, todavía en diferencias): `2, 4227, -19835704, 3891788, 0, 56349, 652, 1, 494, 0, …` se lee formato 2, 4,227 puntos y el primero en `x = −19835704` (longitud −99.17852), `y = 3891788` (latitud 19.45894), tipo 0 (cepa vacante), frente 56,348, `pre` 652 («AZC»), `uga` 1, `num` 494, sin camellón: clave «AZC-001-0494».
+
+### `espacios_frentes.bin` (formato 2)
+
+`formato` (= 2), `n` (frentes con al menos un punto) y después `n` registros de 4 enteros, en orden creciente de frente:
+
+| # | Campo | Dif. | Valor ya acumulado |
+|---|---|---|---|
+| 1 | `f` | Sí, desde **−1** | Número de orden del frente en `data.bin` (0 a `N` − 1). El primer entero es `f + 1`; los siguientes, al menos 1 |
+| 2 | `cv` | No | Cepas vacantes asignadas a ese frente |
+| 3 | `to` | No | Tocones |
+| 4 | `am` | No | Árboles muertos |
+
+Al menos uno de `cv`, `to`, `am` es mayor que 0. Los frentes que no aparecen tienen 0 de cada tipo. Es la suma, por frente, de los puntos de los `inv_<cve>.bin` con ese `fr`. Lo usan el filtro «Espacio», el orden por cepas de «Dónde empezar» y, desde la v1.25, las columnas `cepas_vacantes`, `tocones` y `arboles_muertos` de los Excel, el GeoJSON y el KML. (El formato 1, hasta la v1.22, traía solo los tipos en bits.)
+
+### `espacios_vp.bin` (formato 1)
+
+Igual que `espacios_frentes.bin`, por parte de vialidad primaria: `formato` (= 1), `n` (partes con al menos un punto) y `n` registros `dvp, cv, to, am`, con `dvp` en diferencias desde −1 (número de orden en `vp.bin`). Un punto cuenta para una parte **por su frente** (su `fr` es un frente a cargo del Gobierno Central, bit 6 de las banderas, cuya vialidad primaria, campo 8 de `data.bin`, es esa parte) o **por el camellón** (`fr` = 0 y su campo `vp` es esa parte + 1). Los puntos de frentes de las alcaldías no cuentan para ninguna parte, ni los de un frente del Gobierno Central sin vialidad enlazada (campo 8 = 0; hoy no hay ninguno: `RESUMEN.json`, `puntos_gc_sin_parte`).
+
+### Cifras de control
+
+Un lector (o un generador) está bien si reproduce estas cifras. En el repositorio están en `02_fuente/datos/inventario/RESUMEN.json` (con la huella de cada archivo en `SUMAS.json`); en el sitio publicado, en `config.js` (`window.SIA_INVENTARIO`), que no trae `RESUMEN.json`.
+
+| Qué | `RESUMEN.json` | `config.js` (`SIA_INVENTARIO`) |
+|---|---|---|
+| Formato y escala de `inv_<cve>.bin` | `formato`, `escala` | — |
+| Puntos de cada tipo en cada `inv_<cve>.bin` | `por_alcaldia.<cve>.puntos` | `n.<cve>` |
+| Puntos sin frente (`fr` = 0) en cada archivo | `por_alcaldia.<cve>.sin_frente` | — |
+| Puntos de cada tipo en toda la ciudad | `puntos_por_tipo` | suma de `n` |
+| Puntos sin frente en toda la ciudad | `sin_frente` | — |
+| `espacios_frentes.bin`: formato, `n`, frentes con cada tipo, puntos de cada tipo | `frentes_con_espacio`: `formato`, `frentes`, `por_tipo`, `puntos_por_tipo` | `fr`: `formato`, `n`, `tipos`, `puntos` |
+| `espacios_vp.bin`: lo mismo por parte | `vialidades_con_espacio`: `formato`, `partes`, `por_tipo`, `puntos_por_tipo` | `vp`: `formato`, `n`, `tipos`, `puntos` |
+| Puntos del camellón de cada tipo (`fr` = 0 y `vp` > 0) y su suma | `vialidades_con_espacio.puntos_camellon` y `sin_frente_recuperados` (la suma) | — |
+| Puntos sin frente ni camellón (no cuentan para nadie) | `sin_frente` − `vialidades_con_espacio.sin_frente_recuperados` | `sinc` |
+
+**Para un generador.** Comprimir con gzip nivel 9 y la fecha interna del gzip en 0, para que el mismo contenido dé siempre los mismos bytes y la misma huella (`SUMAS.json`; `construir.py` las compara). Redondear las coordenadas al entero más cercano antes de restar, nunca restar grados y luego redondear: así el error no se acumula a lo largo del archivo.
 
 ### Pendiente: cuando el inventario de arbolado esté terminado
 
@@ -107,7 +169,7 @@ Mientras tanto, nada cambia: el script `03_procesamiento_datos/9_inventario_espa
 ## 7. Reglas que deben respetarse al sustituir datos
 
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.
-2. Después de generar: `python3 03_procesamiento_datos/verificar_datos.py --actualizar`, `python3 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js`. `construir.py` se niega a construir con datos distintos de los registrados.
+2. Después de generar (en el repositorio): `python 03_procesamiento_datos/verificar_datos.py --actualizar`, `python 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js`. En un equipo Linux donde Python se llame `python3`, usar ese nombre. Si cambió `data.bin` o `vp.bin`, antes de verificar hay que volver a correr `python 03_procesamiento_datos/9_inventario_espacios.py` (sección 6 bis). `construir.py` se niega a construir con datos distintos de los registrados.
 3. Los catálogos se referencian **por posición**: insertar un elemento en medio de `names`, `colonias` o `vp.nomenclat` cambia el significado de todos los registros.
 4. El número de clases de prioridad (5) y el umbral «prioritario» (≥ 2: Muy Alta, Alta y Media) están en `02_fuente/js/01_utilidades.js` (`PRIO_MIN`). `meta.bin` trae `cruce.km_gc_prio` calculado con umbral ≥ 3 (solo Muy Alta y Alta); la herramienta no lo usa y se corrige al regenerar los datos. Cambiar el número de clases exige revisar la leyenda, las fichas y los Excel.
 

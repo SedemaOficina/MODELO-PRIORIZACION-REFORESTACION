@@ -8,11 +8,16 @@ sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; a
 La sesión va encendida por omisión (acceso en /priorizacion-reforestacion/acceso/, cierre en /priorizacion-reforestacion/api/salir
 y registro de usos en /priorizacion-reforestacion/api/uso); --sin-sesion arma la herramienta sin login.
 
-Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion]
+Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion] [--revisar]
+      --revisar arma y revisa el paquete en la carpeta temporal, pero no escribe el ZIP (para comprobar antes de entregar).
 Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; viajan SIEMPRE juntos)
       Dentro: LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/, capas_geoserver/ y documentos/.
       MANIFIESTO.sha256 trae la suma de CADA archivo del paquete (salvo él mismo), con rutas relativas a la raíz del
       paquete: se comprueba con «sha256sum -c MANIFIESTO.sha256» desde esa carpeta.
+
+Antes de cerrar el ZIP revisa cada archivo: solo pasan las extensiones previstas para su carpeta (CABEN), nada oculto,
+ni variables de entorno, llaves, SQL fuera de login/backend/db/, datos o respaldos, ni contraseñas escritas (SECRETOS).
+Si algo no pasa, termina con error, dice qué archivo y por qué, y no deja ZIP.
 
 Los documentos Markdown pierden, al empaquetarse, lo que va entre <!-- solo-repositorio --> y <!-- /solo-repositorio -->
 (instrucciones para quien mantiene el repositorio). Requiere únicamente Python 3.
@@ -30,9 +35,42 @@ import zipfile
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
-DOCUMENTOS = ['INSTALACION.md', 'nginx_priorizacion_reforestacion.conf.ejemplo', 'LISTA_DE_VERIFICACION.md', 'SESION_Y_LOGIN.md']
+DOCUMENTOS = ['INSTALACION.md', 'nginx_priorizacion_reforestacion.conf.ejemplo', 'LISTA_DE_VERIFICACION.md', 'SESION_Y_LOGIN.md', 'CONTRATO_DE_DATOS.md']
 CAPAS = ['frentes_reforestacion', 'vialidades_primarias_reforestacion', 'colonias_reforestacion']
 SOLO_REPO = re.compile(r'<!-- solo-repositorio -->.*?<!-- /solo-repositorio -->\n?', re.S)
+REVISAR = '--revisar' in sys.argv
+
+# Lista blanca: qué extensiones caben en cada carpeta del paquete (rutas dentro del paquete). Una carpeta que no esté aquí
+# no viaja. El SQL solo cabe en login/backend/db/priorizacion_reforestacion/; sitio/.nojekyll es el único archivo oculto.
+CABEN = {
+    '': {'.md', '.txt'},                                                    # LEEME.md y VERSION.txt
+    'sitio': {'.html', '.js', '.css'},
+    'sitio/datos': {'.bin'}, 'sitio/datos/fondo': {'.bin'}, 'sitio/datos/inventario': {'.bin'},
+    'sitio/libs': {'.js', '.txt', '.md'},                                   # librerías y sus licencias
+    'sitio/fuentes': {'.woff2', '.txt'},
+    'sitio/img': {'.png', '.jpg'},
+    'login': {'.md'},
+    'login/acceso': {'.html'}, 'login/acceso/admin': {'.html'},
+    'login/acceso/recursos': {'.js', '.css', '.woff2', '.png', '.txt'},
+    'login/backend/src/modulos/priorizacion-reforestacion': {'.ts'},
+    'login/backend/db/priorizacion_reforestacion': {'.sql'},
+    'login/backend/herramientas/priorizacion-reforestacion': {'.ts'},
+    'capas_geoserver': {'.gpkg', '.sld', '.md', '.sha256'},
+    'documentos': {'.md', '.ejemplo'},
+}
+OCULTOS_PERMITIDOS = {'sitio/.nojekyll'}
+BINARIOS = {'.bin', '.gpkg', '.png', '.jpg', '.woff2'}                     # no se buscan contraseñas dentro
+# Búsqueda de secretos en el contenido de los archivos de texto. Los valores de ejemplo («…», <valor>, $VARIABLE) no cuentan.
+SECRETOS = [
+    (re.compile(r'-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY-----'), 'trae una llave privada'),
+    (re.compile(r'(?:^|\s)(?:export\s+)?[A-Z0-9_]*(?:PASSWORD|PASSWD|PASS|PWD|SECRET|TOKEN|API_?KEY)[A-Z0-9_]*\s*=\s*'
+                r'(?!process\.env)(?:"[^"\n]{4,}"|\'[^\'\n]{4,}\'|(?![<$…*{%])[^\s"\'`;,(){}<>]{4,}(?=\s|$))', re.M),
+     'trae una contraseña o clave escrita (NOMBRE=valor)'),
+    (re.compile(r'\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqp)://[^\s:/@"\']+:(?![<$…*{%])[^\s@"\']{3,}@', re.I),
+     'trae una dirección de base de datos con contraseña'),
+]
+ENCABEZADO_CONTRASENAS = re.compile(r'contrase|password|passwd', re.I)
+TRABAJO = re.compile(r'(pruebas|demo|borrador|privacidad/|\.test\.js|node_modules|_local|\.py$|\.docx$)')
 
 if '--sin-sesion' not in sys.argv:
     os.environ.setdefault('SIA_SESION_INICIO', '/priorizacion-reforestacion/acceso/')
@@ -60,6 +98,39 @@ def manifiesto(carpeta):
             ruta = os.path.join(d, a)
             lineas.append('%s  %s' % (suma(ruta), os.path.relpath(ruta, carpeta).replace(os.sep, '/')))
     return lineas
+
+
+def motivos(r, ruta):
+    """por qué el archivo r (ruta dentro del paquete) no debe viajar al SIA; lista vacía si puede"""
+    carpeta, nombre = r.rsplit('/', 1) if '/' in r else ('', r)
+    ext, bajo = os.path.splitext(nombre)[1].lower(), nombre.lower()
+    m = []
+    if bajo.startswith('.env') or bajo.endswith('.env'):
+        m.append('archivo de variables de entorno (suele traer contraseñas)')
+    elif bajo == 'claves.local.json':
+        m.append('claves locales de los mapas de fondo')
+    elif ext in ('.pem', '.key', '.p12', '.pfx', '.jks', '.keystore', '.crt', '.cer', '.der') or bajo.startswith(('id_rsa', 'id_ed25519')):
+        m.append('llave o certificado')
+    elif ext == '.sql' and carpeta != 'login/backend/db/priorizacion_reforestacion':
+        m.append('SQL fuera de login/backend/db/priorizacion_reforestacion/ (puede ser un volcado de la base)')
+    elif ext in ('.csv', '.tsv', '.xlsx', '.xls', '.ods', '.dump', '.backup', '.bak', '.sqlite', '.sqlite3', '.db', '.zip', '.rar', '.7z'):
+        m.append('datos, respaldo o comprimido (puede traer datos personales)')
+    elif any(p.startswith('.') for p in r.split('/')) and r not in OCULTOS_PERMITIDOS:
+        m.append('archivo o carpeta oculta')
+    elif TRABAJO.search(r):
+        m.append('archivo de trabajo (pruebas, demostración, borrador o programa del repositorio)')
+    elif carpeta not in CABEN:
+        m.append('carpeta no prevista en el paquete')
+    elif ext not in CABEN[carpeta] and r not in OCULTOS_PERMITIDOS:
+        m.append('extensión «%s» no prevista en %s/' % (ext or '(sin extensión)', carpeta or 'la raíz'))
+    if ext not in BINARIOS:   # búsqueda de secretos en el contenido
+        texto = open(ruta, encoding='utf-8', errors='replace').read()
+        m += [por for patron, por in SECRETOS if patron.search(texto)]
+        if ext in ('.csv', '.tsv', '.txt', ''):
+            primera = next((l for l in texto.split('\n') if l.strip()), '')
+            if re.search(r'[,;\t]', primera) and ENCABEZADO_CONTRASENAS.search(primera):
+                m.append('parece una lista de cuentas con contraseñas (por su encabezado)')
+    return m
 
 
 t = tempfile.mkdtemp(prefix='entrega-')
@@ -128,12 +199,23 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
            ('acceso en %s, cierre en %s, registro de usos en %s' % (sesion['inicio'], sesion['cierre'], sesion.get('uso') or '(por omisión)'))
            if sesion.get('inicio') else 'no'))
 
-    # 5. comprobación: nada de trabajo, pruebas, demostraciones ni src/comun/ en el paquete
-    todo = [os.path.relpath(os.path.join(d, a), base).replace(os.sep, '/') for d, _, aa in os.walk(base) for a in aa]
-    prohibidos = [r for r in todo if re.search(r'(pruebas|demo|borrador|privacidad/|\.test\.js|node_modules|_local|\.py$|\.docx$|claves\.local'
-                                               r'|^login/backend/src/(?!modulos/priorizacion-reforestacion/))', r)]
-    if prohibidos:
-        sys.exit('ERROR: se colaron archivos de trabajo: ' + ', '.join(prohibidos))
+    # 5. revisión de cada archivo, antes de cerrar nada: lista blanca por carpeta y búsqueda de secretos (ver motivos()).
+    #    Se reportan TODOS los que no pasan, no solo el primero; el ZIP no se escribe.
+    todo = sorted(os.path.relpath(os.path.join(d, a), base).replace(os.sep, '/') for d, _, aa in os.walk(base) for a in aa)
+    malos = [(r, motivos(r, os.path.join(base, r))) for r in todo]
+    malos = [(r, m) for r, m in malos if m]
+    if malos:
+        sys.exit('ERROR: no se armó el paquete; %d archivo(s) no deben viajar al SIA (rutas dentro del paquete; login/ y '
+                 'capas_geoserver/ salen de 08_entrega_sia/):\n%s\nQuitarlos (o moverlos a _to_delete/) y volver a correr.'
+                 % (len(malos), '\n'.join('  - %s: %s' % (r, '; '.join(m)) for r, m in malos)))
+    if REVISAR:
+        cuenta = {}
+        for r in todo:
+            k = r.split('/')[0] if '/' in r else 'raíz'
+            cuenta[k] = cuenta.get(k, 0) + 1
+        print('revisión correcta: %d archivos (%s); sin archivos ajenos ni secretos. No se escribió el ZIP (--revisar).'
+              % (len(todo), ', '.join('%s %d' % kv for kv in sorted(cuenta.items()))))
+        sys.exit(0)
 
     # 6. manifiesto de TODO el paquete (salvo él mismo), con rutas relativas a su raíz: «sha256sum -c MANIFIESTO.sha256»
     general = manifiesto(base)
@@ -142,9 +224,16 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     salida = os.path.join(RAIZ, '_local', 'entrega')
     os.makedirs(salida, exist_ok=True)
     destino = os.path.join(salida, nombre + '.zip')
-    with zipfile.ZipFile(destino, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
-        for r in sorted(todo):
-            z.write(os.path.join(base, r), nombre + '/' + r)
+    # se escribe con otro nombre y se renombra al final: si algo falla a medio camino, no queda un ZIP a medias
+    parcial = destino + '.parcial'
+    try:
+        with zipfile.ZipFile(parcial, 'w', zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+            for r in sorted(todo):
+                z.write(os.path.join(base, r), nombre + '/' + r)
+        os.replace(parcial, destino)
+    finally:
+        if os.path.exists(parcial):
+            os.remove(parcial)
 finally:
     shutil.rmtree(t, ignore_errors=True)
 # la suma del ZIP va en un archivo aparte, junto a él (dentro cambiaría el ZIP); formato de sha256sum -c

@@ -213,7 +213,7 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
 - **Sí registra:**
   - accesos, intentos fallidos, cierres de sesión;
   - visitas a la página (una cada 30 minutos por sesión, no por cada archivo);
-  - **consultas**: el ámbito donde la persona se detiene (alcaldía, colonia, avenida o calle, red y filtro de banqueta);
+  - **consultas**: el ámbito donde la persona se detiene (alcaldía, colonia, avenida o calle, red, filtro de banqueta y filtro «Espacio» del inventario de arbolado: cepa vacante, tocón o árbol muerto);
   - **descargas**: tipo y nombre del archivo.
 - **No registra:**
   - la ubicación de «Mi ubicación», que nunca sale del teléfono;
