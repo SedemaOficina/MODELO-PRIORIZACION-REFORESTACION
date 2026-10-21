@@ -19,6 +19,9 @@
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib'), cp = require('child_process');
 const L = require('./lib_pruebas.js');
 const SAL = process.env.SALIDA || fs.mkdtempSync(path.join(os.tmpdir(), 'espgc-'));
+// lo que baja la versión anterior va en su propia carpeta: con el mismo nombre de archivo, el segundo reemplazaría al primero y se
+// compararía el archivo nuevo consigo mismo (así pasó hasta la v1.39)
+const SAL_ANT = path.join(SAL, 'version_anterior'); fs.mkdirSync(SAL_ANT, { recursive: true });
 const ok = L.Registro('espacio gobierno central');
 const D = L.decodificar(); const M = D.META;
 const RAIZ = path.join(__dirname, '..');
@@ -193,7 +196,9 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
     ok('Excel de tramos: los tramos distintos y los km = las cifras de la pantalla', +dic('Tramos distintos (id_tramo)') === ex.recsp.size && Math.abs(kmX - ex.kmp) < 0.001, `${dic('Tramos distintos (id_tramo)')} tramos · ${kmX.toFixed(2)} km`); }
   { const x = await L.descargar(page, '#dl-avenidas', SAL, 240000); const X = x ? xlsx(x.ruta) : { datos: [], dic: [] }; const col = X.datos[0] || [];
     const kmp = X.datos.slice(1).reduce((s, r) => s + r[col.indexOf('km_prioritario')], 0), kmt = X.datos.slice(1).reduce((s, r) => s + r[col.indexOf('km_total')], 0);
-    ok('Excel de avenidas con «Cepa vacante»: sus km prioritarios y totales suman los del recálculo, y lo declara', !!x && Math.abs(kmp - ex.kmp) < 0.05 && Math.abs(kmt - ex.kmt) < 0.05 && x.nombre.includes('_con_cepa_vacante') && X.dic.some(r => r[0] === 'Filtro «Espacio»'), `${kmp.toFixed(2)} vs ${ex.kmp.toFixed(2)} · ${x && x.nombre}`); }
+    // v1.40: la lista trae las avenidas de «Mostrar» (las que tienen km prioritarios que pasan el filtro), con todos sus km que lo pasan
+    const avP = new Set(ex.partesP.map(i => D.VP[i].nom)), kmtL = ex.partes.filter(i => avP.has(D.VP[i].nom)).reduce((s, i) => s + D.VP[i].len / 1000, 0);
+    ok('Excel de avenidas con «Cepa vacante»: sus km prioritarios y totales suman los del recálculo, y lo declara', !!x && Math.abs(kmp - ex.kmp) < 0.05 && Math.abs(kmt - kmtL) < 0.05 && x.nombre.includes('_con_cepa_vacante') && X.dic.some(r => r[0] === 'Filtro «Espacio»'), `${kmp.toFixed(2)} vs ${ex.kmp.toFixed(2)} · ${kmt.toFixed(2)} vs ${kmtL.toFixed(2)} · ${x && x.nombre}`); }
   { const g = await L.descargar(page, '#dl-geojson', SAL); const J = g ? JSON.parse(fs.readFileSync(g.ruta, 'utf8')) : { features: [] };
     ok('GeoJSON con «Cepa vacante»: solo esas partes, y lo declara', J.features.length === ex.partesP.length && J.features.every(f => f.properties.quien_atiende === 'Gobierno Central') && /solo tramos con cepa vacante/.test(J.name || '') && (J.descripcion || '').includes('camellón') && g.nombre.includes('_con_cepa_vacante'), `${J.features.length} vs ${ex.partesP.length} · ${g && g.nombre}`);
     const k = await L.descargar(page, '#dl-kml', SAL); const K = k ? fs.readFileSync(k.ruta, 'utf8') : '';
@@ -345,10 +350,11 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
       ok(`con el filtro apagado, pantalla y listas iguales que en ${REF} (Gobierno Central, las dos redes y alcaldías; ${apagado.length + 1} consultas)`, !difA.length, difA.join(' | '));
       // descargas con el filtro apagado: Excel de tramos y de avenidas, GeoJSON y ficha de vialidades (Gobierno Central, Iztapalapa)
       { await irA(pA.page, sAnt.url + `?modo=ligero&r=gc&a=${M.muns[IZT]}#nomap`); await irA(pN.page, base + `&r=gc&a=${M.muns[IZT]}#nomap`); const difD = [];
-        for (const id of ['#dl-tramos', '#dl-avenidas']) { const a = await L.descargar(pA.page, id, SAL, 240000), b = await L.descargar(pN.page, id, SAL, 240000);
-          if (!a || !b || a.nombre !== b.nombre || JSON.stringify(sinFecha(xlsx(a.ruta))) !== JSON.stringify(sinFecha(xlsx(b.ruta)))) difD.push(id); }
-        { const a = await L.descargar(pA.page, '#dl-geojson', SAL), b = await L.descargar(pN.page, '#dl-geojson', SAL); if (!a || !b || quitaVer(geoSinEsp(fs.readFileSync(a.ruta, 'utf8'))) !== quitaVer(geoSinEsp(fs.readFileSync(b.ruta, 'utf8')))) difD.push('geojson'); }
-        { const a = await L.descargar(pA.page, '#dl-ficha-vpalc', SAL, 180000), b = await L.descargar(pN.page, '#dl-ficha-vpalc', SAL, 180000); if (!a || !b || a.nombre !== b.nombre || quitaVer(pdf(a.ruta)) !== quitaVer(pdf(b.ruta))) difD.push('ficha de vialidades'); }
+        for (const id of ['#dl-tramos', '#dl-avenidas']) { const a = await L.descargar(pA.page, id, SAL_ANT, 240000), b = await L.descargar(pN.page, id, SAL, 240000);
+          const lst = id === '#dl-avenidas';   // v1.40: nombres, textos y la lista en el orden de «Mostrar» (lib_pruebas: nombreAntes, excelAntes)
+          if (!a || !b || !L.mismoNombre(a.nombre, b.nombre) || JSON.stringify(sinFecha(L.excelAntes(xlsx(a.ruta), lst))) !== JSON.stringify(sinFecha(L.excelAntes(xlsx(b.ruta), lst)))) difD.push(id); }
+        { const a = await L.descargar(pA.page, '#dl-geojson', SAL_ANT), b = await L.descargar(pN.page, '#dl-geojson', SAL); if (!a || !b || !L.mismoNombre(a.nombre, b.nombre) || quitaVer(geoSinEsp(fs.readFileSync(a.ruta, 'utf8'))) !== quitaVer(geoSinEsp(L.textoAntes(fs.readFileSync(b.ruta, 'utf8'))))) difD.push('geojson'); }
+        { const a = await L.descargar(pA.page, '#dl-ficha-vpalc', SAL_ANT, 180000), b = await L.descargar(pN.page, '#dl-ficha-vpalc', SAL, 180000); if (!a || !b || !L.mismoNombre(a.nombre, b.nombre) || quitaVer(L.textoAntes(pdf(a.ruta))) !== quitaVer(L.textoAntes(pdf(b.ruta)))) difD.push('ficha de vialidades'); }
         ok(`con el filtro apagado, Excel de tramos y de avenidas, GeoJSON y ficha de vialidades iguales que en ${REF}`, !difD.length, difD.join(', ')); }
       // con «Alcaldías»: el filtro y el orden por cepas dan lo mismo
       const conFiltro = [[`&a=${M.muns[TLA]}&e=cv`, 'Tláhuac cepa'], [`&a=${M.muns[TLA]}&e=cv,to,am`, 'Tláhuac los tres'], [`&a=${M.muns[IZT]}&e=cv&b=con`, 'Iztapalapa cepa y banqueta'], [`&c=${COLT}&e=to`, 'colonia tocón'], ['&r=alc&e=am', 'ciudad árbol muerto']];
@@ -360,8 +366,8 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
         const d = await compara(q, ordena(v), true); if (d.length) difO.push(`${n}: ${d.join(', ')}`); }
       ok(`con «Alcaldías», el orden por cepas vacantes (listas completas) igual que en ${REF}`, !difO.length, difO.join(' | '));
       { await irA(pA.page, sAnt.url + `?modo=ligero&c=${COLT}&e=cv#nomap`); await irA(pN.page, base + `&c=${COLT}&e=cv#nomap`);
-        const a = await L.descargar(pA.page, '#dl-frentes', SAL, 240000), b = await L.descargar(pN.page, '#dl-frentes', SAL, 240000);
-        ok(`con «Alcaldías» y «Cepa vacante», el Excel de frentes de una colonia igual que en ${REF}`, !!a && !!b && a.nombre === b.nombre && JSON.stringify(sinFecha(xlsx(a.ruta))) === JSON.stringify(sinFecha(xlsx(b.ruta))), a && a.nombre); }
+        const a = await L.descargar(pA.page, '#dl-frentes', SAL_ANT, 240000), b = await L.descargar(pN.page, '#dl-frentes', SAL, 240000);
+        ok(`con «Alcaldías» y «Cepa vacante», el Excel de frentes de una colonia igual que en ${REF}`, !!a && !!b && L.mismoNombre(a.nombre, b.nombre) && JSON.stringify(sinFecha(L.excelAntes(xlsx(a.ruta)))) === JSON.stringify(sinFecha(L.excelAntes(xlsx(b.ruta)))), a && a.nombre); }
       ok(`la versión anterior (${REF}) abrió sin errores de JavaScript`, !errAnt.length, errAnt.slice(0, 2).join(' | '));
       await pA.ctx.close(); await pN.ctx.close(); sAnt.close();
       try { fs.rmSync(ANT, { recursive: true, force: true }); } catch (e) {}

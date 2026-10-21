@@ -90,26 +90,27 @@ function renderScopeTitle(){
 function renderActions(){
   const m=$('act-main'), f=$('act-ficha'), lbl=$('act-main-lbl'), hint=$('act-hint');
   let main=null, ficha=null, txt='', why='';
-  if (isGC()){ main='dl-tramos'; txt='Descargar tramos prioritarios (Excel)'; if ($('dl-tramos').disabled) why='Este ámbito no tiene tramos de prioridad Muy Alta, Alta o Media que descargar.'; ficha = selAv!==null? 'dl-ficha-av' : sel!==null? 'dl-ficha-vpalc' : null; }
+  // lo principal es la lista para repartir el trabajo (la de «Mostrar»); con una avenida, sus tramos; con una calle, sus frentes
+  if (isGC()){ main = selAv!==null? 'dl-tramos' : 'dl-avenidas'; txt = selAv!==null? 'Descargar tramo por tramo (Excel)' : 'Descargar lista de avenidas (Excel)';
+    if ($(main).disabled) why='Este ámbito no tiene tramos de prioridad Muy Alta, Alta o Media que descargar.'; ficha = selAv!==null? 'dl-ficha-av' : sel!==null? 'dl-ficha-vpalc' : null; }
   else {
-    txt='Descargar frentes prioritarios (Excel)';
     const vacia = selCol!==null && sum(colStat(selCol).n)===0;
-    main = (sel!==null && !vacia)? 'dl-frentes' : null;
+    if (sel===null){ main='dl-alcaldias'; txt='Descargar las 16 alcaldías (Excel)'; why='Para la lista de calles de una alcaldía, elígela arriba.'; }
+    else { main = vacia? null : 'dl-calles'; txt='Descargar lista de calles (Excel)'; }
     ficha = vacia? null : selCol!==null? 'dl-ficha' : sel!==null? 'dl-ficha-alc' : null;
-    why = vacia? 'Esta colonia no tiene frentes a cargo de la alcaldía que descargar.' : sel===null? 'Elige una alcaldía o una colonia para descargar su listado.' : '';
-    // en teléfono, un listado de decenas de miles de frentes pesa demasiado: se ofrece primero el resumen por calle
-    if (main==='dl-frentes' && isPhone() && selCol===null){ const fsG = frSumm(), nG = sumPrio(fsG.n);
-      if (nG>GRANDE){ main='dl-calles'; txt='Descargar resumen por calle (Excel)'; why=`En teléfono se ofrece primero el resumen por calle. El listado completo (${fmt.format(nG)} frentes) está en la pestaña Descargas.`; } }
+    if (vacia) why='Esta colonia no tiene frentes a cargo de la alcaldía que descargar.';
     // con una calle consultada, los botones principales son los de la calle
     const calle = calleSel();
-    if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frentes de la calle (Excel)';
+    if (calle){ main='dl-calle'; ficha='dl-ficha-calle'; txt='Descargar frente por frente de la calle (Excel)';
       why = `Calle consultada: ${calle.nombre}. ` + (sel===null? 'Para descargar un ámbito completo, elige primero una alcaldía.' : `Los archivos de la ${selCol!==null? 'colonia' : 'alcaldía'} completa están en la pestaña Descargas.`); }
   }
   lbl.textContent = txt; m.disabled = !main || $(main).disabled; m.dataset.target = main||''; f.hidden = !ficha; f.dataset.target = ficha||'';
   $('panel-actions').classList.toggle('sin-descarga', m.disabled && f.hidden);   // en el celular el pie no ocupa lugar si no hay nada que descargar
   hint.hidden = !why; hint.textContent = why;
-  // Descargas: si nada se puede descargar (toda la ciudad con «Alcaldías»), queda solo el motivo, arriba, sin botones apagados
-  const dls = [...document.querySelectorAll('#tp-dl .btns button')].filter(b=> !b.hidden);
+  // en Descargas, solo lo principal va relleno de guinda (decisión C6-01); el resto, con contorno
+  document.querySelectorAll('#tp-dl .btns .btn').forEach(b=> b.classList.toggle('secondary', b.id!==main));
+  // Descargas: si nada se puede descargar, queda solo el motivo, arriba, sin botones apagados
+  const dls = [...document.querySelectorAll('#tp-dl .btns button')].filter(b=> !b.hidden && !b.closest('[hidden]'));
   $('tp-dl').classList.toggle('sin-descarga', dls.length>0 && dls.every(b=> b.disabled)); }
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };

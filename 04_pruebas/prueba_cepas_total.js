@@ -21,6 +21,9 @@
 const fs = require('fs'), path = require('path'), os = require('os'), zlib = require('zlib'), cp = require('child_process');
 const L = require('./lib_pruebas.js');
 const SAL = process.env.SALIDA || fs.mkdtempSync(path.join(os.tmpdir(), 'cepast-'));
+// lo que baja la versión anterior va en su propia carpeta: con el mismo nombre de archivo, el segundo reemplazaría al primero y se
+// compararía el archivo nuevo consigo mismo (así pasó hasta la v1.39)
+const SAL_ANT = path.join(SAL, 'version_anterior'); fs.mkdirSync(SAL_ANT, { recursive: true });
 const ok = L.Registro('orden por cepas con su total y columnas de espacios');
 const D = L.decodificar(); const M = D.META;
 // los nombres de colonia que la herramienta muestra (los que cambia 03_procesamiento_datos/7_nombres_colonias.py, en config.js)
@@ -228,7 +231,9 @@ const geoSinVer = txt => { const J = JSON.parse(txt); J.descripcion = String(J.d
     ok('Excel de tramos: la suma de cada columna = recálculo propio, y el Diccionario las declara (con el camellón)', tot.join() === suma(partes, cV).join() && declara(X, 'camellón'), `cepas ${tot[0]} · tocones ${tot[1]} · muertos ${tot[2]}`); }
   { const x = await L.descargar(page, '#dl-avenidas', SAL, 240000); const X = x ? xlsx(x.ruta) : { datos: [[]], dic: [] }; const h = X.datos[0], iV = h.indexOf('vialidad'), iC = h.indexOf(COLS3[0]);
     const S = new Map(); D.VP.forEach((v, i) => { if (v.mun !== IZT) return; const s = S.get(v.nom) || [0, 0, 0]; const c = cV(i); S.set(v.nom, [s[0] + c[0], s[1] + c[1], s[2] + c[2]]); });
-    const exp = [...S].map(([a, c]) => `${M.vp.nomenclat[a]}|${c.join('|')}`).sort(), rec = X.datos.slice(1).map(r => `${r[iV] ?? ''}|${r.slice(iC, iC + 3).join('|')}`).sort();   // un nombre vacío llega como celda vacía
+    // v1.40: la lista trae las avenidas de «Mostrar» por km, las que tienen km prioritarios en el ámbito
+    const conP = new Set(D.VP.filter(v => v.mun === IZT && v.prio >= L.PRIO_MIN).map(v => v.nom));
+    const exp = [...S].filter(([a]) => conP.has(a)).map(([a, c]) => `${M.vp.nomenclat[a]}|${c.join('|')}`).sort(), rec = X.datos.slice(1).map(r => `${r[iV] ?? ''}|${r.slice(iC, iC + 3).join('|')}`).sort();   // un nombre vacío llega como celda vacía
     ok('resumen por avenida de Iztapalapa: las tres columnas = suma de todas sus partes en el ámbito (recálculo propio), y el Diccionario las declara', !!x && al3(X) && rec.length === exp.length && rec.every((r, k) => r === exp[k]) && declara(X, 'de cualquier prioridad'), `${rec.length} avenidas · ${rec.find((r, k) => r !== exp[k]) || ''}`); }
 
   // ---------- 7) GeoJSON y KML ----------
@@ -299,12 +304,15 @@ const geoSinVer = txt => { const J = JSON.parse(txt); J.descripcion = String(J.d
       ok(`los órdenes que siguen (por km, habitantes y alcaldías iguales; por cepas, lo que ya listaba, en el mismo orden y con sus cifras) iguales que en ${REF} (${ordenes.length} listas completas)`, !difO.length, difO.join(' | '));
       // descargas: iguales, columnas de espacios incluidas
       const difD = [];
-      const xl = async (q, id) => { await ambas(q); const a = await L.descargar(pA.page, id, SAL, 240000), b = await L.descargar(pN.page, id, SAL, 240000);
-        if (!a || !b || a.nombre !== b.nombre) { difD.push(`${q} ${id}`); return; } const A = xlsx(a.ruta), B = xlsx(b.ruta);
-        if (JSON.stringify(A.datos) !== JSON.stringify(B.datos) || quitaVer(JSON.stringify(sinFecha(A))) !== quitaVer(JSON.stringify(sinFecha(B)))) difD.push(`${q} ${id}`); };
+      const xl = async (q, id) => { await ambas(q); const a = await L.descargar(pA.page, id, SAL_ANT, 240000), b = await L.descargar(pN.page, id, SAL, 240000);
+        // v1.40: nombres, textos y las listas en el orden de «Mostrar» (lib_pruebas: nombreAntes, excelAntes)
+        const lst = id === '#dl-calles' || id === '#dl-avenidas';
+        if (!a || !b || !L.mismoNombre(a.nombre, b.nombre)) { difD.push(`${q} ${id} (nombre: ${a && a.nombre} · ${b && b.nombre})`); return; } const A = L.excelAntes(xlsx(a.ruta), lst), B = L.excelAntes(xlsx(b.ruta), lst);
+        const dA = quitaVer(JSON.stringify(sinFecha(A))), dB = quitaVer(JSON.stringify(sinFecha(B))); let k = 0; while (k < dA.length && dA[k] === dB[k]) k++;
+        if (JSON.stringify(A.datos) !== JSON.stringify(B.datos)) difD.push(`${q} ${id} (renglones)`); else if (dA !== dB) difD.push(`${q} ${id} (diccionario: «${dA.slice(k, k + 80)}» · «${dB.slice(k, k + 80)}»)`); };
       await xl(`&c=${COLX}`, '#dl-frentes'); await xl(`&c=${COLX}&e=cv`, '#dl-frentes'); await xl(`&a=${M.muns[TLA]}`, '#dl-calles'); await xl(`&r=gc&a=${M.muns[IZT]}`, '#dl-tramos'); await xl(`&r=gc&a=${M.muns[IZT]}`, '#dl-avenidas'); await xl(`&r=gc&a=${M.muns[IZT]}&e=to`, '#dl-tramos');
-      for (const q of [`&c=${COLX}`, `&r=gc&a=${M.muns[IZT]}`]) { await ambas(q); const a = await L.descargar(pA.page, '#dl-geojson', SAL), b = await L.descargar(pN.page, '#dl-geojson', SAL);
-        if (!a || !b || a.nombre !== b.nombre || geoSinVer(fs.readFileSync(a.ruta, 'utf8')) !== geoSinVer(fs.readFileSync(b.ruta, 'utf8'))) difD.push(`${q} geojson`); }
+      for (const q of [`&c=${COLX}`, `&r=gc&a=${M.muns[IZT]}`]) { await ambas(q); const a = await L.descargar(pA.page, '#dl-geojson', SAL_ANT), b = await L.descargar(pN.page, '#dl-geojson', SAL);
+        if (!a || !b || !L.mismoNombre(a.nombre, b.nombre) || geoSinVer(fs.readFileSync(a.ruta, 'utf8')) !== geoSinVer(L.textoAntes(fs.readFileSync(b.ruta, 'utf8')))) difD.push(`${q} geojson`); }
       ok(`Excel (frentes, calles, tramos y avenidas) y GeoJSON iguales que en ${REF} (renglones, columnas, orden y diccionario)`, !difD.length, difD.join(' | '));
       ok(`la versión anterior (${REF}) abrió sin errores de JavaScript`, !errAnt.length, errAnt.slice(0, 2).join(' | '));
       await pA.ctx.close(); await pN.ctx.close(); sAnt.close();

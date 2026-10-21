@@ -85,7 +85,8 @@ async function abrir(browser, url, opciones = {}, errores = []) {
 const estado = page => page.evaluate(() => {
   const T = s => { const e = document.querySelector(s); return e ? e.innerText.replace(/\s+/g, ' ').trim() : null; };
   const vis = e => !!e && !e.hidden && getComputedStyle(e).display !== 'none' && getComputedStyle(e).visibility !== 'hidden';
-  const btn = id => { const e = document.getElementById(id); return e ? { visible: vis(e), disabled: e.disabled, txt: e.innerText.replace(/\s+/g, ' ').trim() } : null; };
+  // v1.40: los botones de «Descargas» van en bloques por red (.dl-grupo); un bloque oculto oculta sus botones
+  const btn = id => { const e = document.getElementById(id); return e ? { visible: vis(e) && !e.closest('.dl-grupo[hidden]'), disabled: e.disabled, txt: e.innerText.replace(/\s+/g, ' ').trim() } : null; };
   const dl = {}; ['dl-frentes', 'dl-calles', 'dl-tramos', 'dl-avenidas', 'dl-calle', 'dl-ficha-calle', 'dl-ficha-vpalc', 'dl-ficha-av', 'dl-ficha-alc', 'dl-ficha'].forEach(i => dl[i] = btn(i));
   const kpis = [...document.querySelectorAll('#kpis .kpi')].map(k => ({ v: k.querySelector('.v').innerText.replace(/\s+/g, ' ').trim(), l: k.querySelector('.l').innerText.replace(/\s+/g, ' ').trim() }));
   const barras = sel => [...document.querySelectorAll(sel + ' .val')].map((v, i) => ({ lab: document.querySelectorAll(sel + ' .lab')[i].innerText.trim(), val: v.innerText.replace(/\s+/g, ' ').trim(), ancho: document.querySelectorAll(sel + ' .fill')[i].style.width }));
@@ -117,9 +118,38 @@ const sinTotal = t => String(t).replace(/ · [\d,]+ en total/, '').replace(/sin 
 const sinFiltroAlFinal = t => t == null ? t : String(t).replace(/( · (con banqueta|sin banqueta o por verificar|con (cepa vacante|tocón|árbol muerto)[^·]*))+$/, '');
 const notaComparable = t => t == null ? t : String(t).replace(/ ?Además, [\d,]+ km de frentes sobre vialidades primarias[^.]*\) quedan a cargo del Gobierno Central y no se cuentan aquí\./, '')
   .replace(/\b(\d[\d,]*) frentes? \(/g, '$1 frentes (').replace(/ que pasan los filtros no tienen/, ' no tienen');
+// En la v1.40 la pestaña «Descargas» se ordenó por red: los botones tienen otros nombres, en toda la ciudad el bloque de la alcaldía ya no
+// se muestra con sus botones deshabilitados (se ofrece «Las 16 alcaldías») y el aviso de toda la ciudad dice otra cosa. Se compara qué
+// botones se pueden usar (visibles y habilitados), no su texto.
+const dlComparable = dl => Object.fromEntries(Object.entries(dl || {}).map(([k, v]) => [k, v && v.visible && !v.disabled]));
+const DL_STATUS_V140 = ['Para la lista de calles de una alcaldía, elígela arriba.', 'Selecciona una alcaldía para descargar su listado.'];
 function comparable(e) { const c = { ...e }; for (const k of ROTULOS_V127) delete c[k];
   c.kpis = (e.kpis || []).map(k => k.v); c.lista = (e.lista || []).map(l => ({ ...l, t: sinTotal(l.t) }));
-  c.listCount = sinFiltroAlFinal(e.listCount); c.lgScope = sinFiltroAlFinal(e.lgScope); c.nota = notaComparable(e.nota); return c; }
+  c.listCount = sinFiltroAlFinal(e.listCount); c.lgScope = sinFiltroAlFinal(e.lgScope); c.nota = notaComparable(e.nota);
+  c.dl = dlComparable(e.dl); c.dlStatus = e.dlStatus == null ? e.dlStatus : e.dlStatus.replace(...DL_STATUS_V140); return c; }
+// También en la v1.40, los archivos: el nombre dice lo mismo que su botón, las fuentes nombran el inventario y dos textos del diccionario
+// dicen «Frente por frente» y «lista». Las listas de calles y de avenidas siguen el orden de «Mostrar», sin renglones sin km prioritarios,
+// y llevan cepas_vacantes_prioritario (C1-01; prueba_descargas.js las compara con la pantalla): contra una versión anterior se comparan
+// sus renglones con km prioritarios, como conjunto. nombreAntes, excelAntes y textoAntes llevan lo nuevo a la forma anterior.
+const NOMBRES_V140 = [[/^frente_por_frente_calle_/, 'frentes_calle_'], [/^frente_por_frente_/, 'frentes_prioritarios_'], [/^lista_de_calles_/, 'resumen_calles_prioritarias_'],
+  [/^tramo_por_tramo_/, 'tramos_prioritarios_'], [/^lista_de_avenidas_/, 'resumen_avenidas_prioritarias_'], [/^mapa_vialidades_primarias_prioritarias_/, 'calles_prioritarias_mapa_vialidades_primarias_'],
+  [/^mapa_calles_prioritarias_/, 'calles_prioritarias_mapa_'], [/^mapa_calles_y_vialidades_primarias_/, 'calles_prioritarias_mapa_']];
+const nombreAntes = n => { if (n == null) return n; const r = NOMBRES_V140.find(([re]) => re.test(n)); return r ? n.replace(r[0], r[1]) : n; };
+// el nombre de la versión anterior y el de la nueva, sin la fecha (las dos descargas pueden quedar a ambos lados de la medianoche)
+const mismoNombre = (antes, nuevo) => antes != null && nuevo != null && antes.replace(/_\d{8}\./, '.') === nombreAntes(nuevo).replace(/_\d{8}\./, '.');
+// Y lo que la v1.37 cambió en las descargas del Gobierno Central (B2-02), que hasta la v1.39 no se notó porque el archivo de la versión
+// anterior se guardaba en la misma carpeta que el nuevo, con el mismo nombre, y se comparaba el nuevo consigo mismo: dos renglones del
+// diccionario cambiaron de nombre y de regla (su cifra la revisa prueba_descargas.js contra el Resumen) y la ficha de vialidades dice
+// «km sobre tramos prioritarios». excelAntes quita esos renglones de los dos lados; textoAntes deja la frase de la ficha sin la cifra.
+const DIC_GC_V137 = ['Prioritario del ámbito, km de frente a cargo del Gobierno Central', 'Km de frente a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo)',
+  'Equivalente prioritario (Muy Alta, Alta y Media) en km de frente de manzana', 'Equivalente en km de frente de manzana de los tramos prioritarios (Muy Alta, Alta y Media)'];
+const textoAntes = t => typeof t !== 'string' ? t : t.replace(/\(aceras con manzana enfrente\), [\d,.]+ km (sobre tramos prioritarios|prioritarios)\./g, '(aceras con manzana enfrente), N km prioritarios.').replace(/ Espacios para plantar \(cepas vacantes, tocones y árboles muertos\): [^.]*\./g, '')
+  .replace(/Excel «Frente por frente»/g, 'Excel de frentes').replace('no incluidos en esta lista', 'no incluidos en este resumen');
+function excelAntes(X, lista) { let datos = X.datos || [], dic = (X.dic || []).filter(r => !DIC_GC_V137.includes(r[0])).map(r => r.map(textoAntes));
+  if (lista) { const h = datos[0] || [], k = h.indexOf('cepas_vacantes_prioritario'), iK = h.indexOf('km_prioritario'); const sin = r => k < 0 ? r : r.filter((_, j) => j !== k);
+    datos = [sin(h), ...datos.slice(1).filter(r => r[iK] > 0).map(sin).map(r => JSON.stringify(r)).sort().map(r => JSON.parse(r))];
+    dic = dic.filter(r => !['Orden', 'cepas_vacantes_prioritario', 'Contenido', 'Registros'].includes(r[0])); }
+  return { ...X, datos, dic }; }
 const MALOS = /\bNaN\b|undefined|Infinity|\bnull\b|(^|[\s(])-0(?![\d.,])|\[object/;
 const negativos = t => (String(t).match(/(^|[\s(])[-−]\d[\d,.]*\s*(km|m|%|hab|frentes|tramos)/g) || []);
 async function buscar(page, q, espera = 500) { await page.fill('#omni', ''); await page.fill('#omni', q); await page.waitForTimeout(espera); return page.$$eval('#omni-list li', ls => ls.map(l => ({ c: l.className, t: l.innerText.replace(/\s+/g, ' ').trim() }))); }
@@ -144,4 +174,4 @@ function Registro(nombre) {
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { PRIO_MIN, sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { PRIO_MIN, sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, nombreAntes, mismoNombre, textoAntes, excelAntes, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

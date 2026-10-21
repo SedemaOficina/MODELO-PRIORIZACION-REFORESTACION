@@ -105,6 +105,11 @@ let iniOrden = 'kmp', iniN = 10;
 // cepas: el inventario avanza muy distinto en cada alcaldía y ese orden diría más del avance del inventario que de dónde plantar.
 const INI_CV = new Set(['cv', 'callescv', 'avcv']);
 let iniPend = null;   // orden por cepas pedido mientras baja el archivo
+// la vista que muestra la lista: la elegida si existe en este ámbito; sin las cepas cargadas no hay números que mostrar y queda la primera
+function vistaLista(){ const vistas = iniVistas();
+  let v = vistas.includes(iniOrden)? iniOrden : iniOrden==='callescv' && selCol!==null? 'cv' : vistas[0];
+  if (INI_CV.has(v) && !ESP_CV) v = vistas[0];
+  return v; }
 // renglón del orden por cepas: las de lo prioritario (las que ordenan) y el total de cualquier prioridad, «48 cepas vacantes · 62 en total»;
 // cada cifra con su texto no se parte entre renglones (espacios no separables) y la cifra puede ocupar dos (span.cep)
 const cepasTxt = (cv, cvt) => { const n = (v, t) => (fmt.format(v) + ' ' + t).replace(/ /g, '\u00a0');
@@ -156,6 +161,15 @@ function filasColonias(ul, ord){
       : [kmFull(s.kmp), `${fmt.format(s.np)} de ${fmt.format(sum(s.n))} frentes son prioritarios`];
     ul.appendChild(iniFila(k+1, c.n, `${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.pob && ord!=='pob'? ' · '+fmt.format(c.pob)+' hab.':''}`, v, sm, ()=>pickColonia(i), c.p>=0? T.prio[c.p]:null)); });
   return items.length; }
+// Calles y avenidas de «Mostrar» (sin búsqueda): las mismas filas, en el mismo orden, en la pantalla y en los Excel «Lista de calles» y
+// «Lista de avenidas» (C1-01, v1.40). Con cepas entran también las que no tienen km prioritarios pero sí cepas; con el mismo número de cepas,
+// por km prioritarios y por km en total (como siempre); las que no tienen km prioritarios, al final, por su total. Items: [clave, s].
+const callesLista = cepas => [...streetIdx].filter(([, s])=> (s.kmp>0 || (cepas && s.cvt>0)) && META.names[s.nid]);
+const avenidasLista = cepas => [...avIdx].filter(([, s])=> s.kmp>0 || (cepas && s.cvt>0));
+const ordenaLista = (items, cepas) => cepas? items.sort((a,b)=> b[1].cv-a[1].cv || b[1].kmp-a[1].kmp || (a[1].kmp? 0 : b[1].cvt-a[1].cvt) || b[1].km-a[1].km)
+  : items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
+// el orden por cepas que eligió la persona en «Mostrar» (el de la vista que se ve: sin las cepas cargadas, la lista vuelve a km)
+const ordenCepas = red => { const v = vistaLista(); return red==='av'? v==='avcv' : v==='cv' || v==='callescv'; };
 // calles de la colonia o de la alcaldía (cada una dentro de su colonia), o las que coinciden con el filtro; con cepas, por cepas vacantes de
 // sus frentes prioritarios, con el total de cualquier prioridad en el renglón; al final, las calles sin km prioritarios que tienen cepas
 function filasCalles(ul, q, qRaw, cepas=false){
@@ -165,18 +179,16 @@ function filasCalles(ul, q, qRaw, cepas=false){
     if (sel===null && selCol===null && new Set(items.map(x=>x[1].col)).size>1) return renderUbicar(ul, items, qRaw);
     if (sel!==null && selCol===null) locChips(`<button type="button" class="lchip" data-m="">Buscar «${qRaw.replace(/[<>&"]/g,'')}» en otra alcaldía</button>`);
     $('ini-title').textContent = `Calles encontradas en ${lugar}`; }
-  else { for(const [key,s] of streetIdx){ if((s.kmp>0 || (cepas && s.cvt>0)) && META.names[s.nid]) items.push([key,s]); }
+  else { items.push(...callesLista(cepas));
     $('ini-title').textContent = `Calles de ${selCol!==null? META.colonias[selCol].n : META.munNames[sel]} por atender primero`; }
-  // con las mismas cepas, por km prioritarios y por km en total (como siempre); las que no tienen km prioritarios, al final, por su total
-  if (cepas) items.sort((a,b)=> b[1].cv-a[1].cv || b[1].kmp-a[1].kmp || (a[1].kmp? 0 : b[1].cvt-a[1].cvt) || b[1].km-a[1].km);
-  else items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
+  ordenaLista(items, cepas);
   const total = items.length;
   $('ini-count').textContent = cepas? `${fmt.format(total)} calle${total===1?'':'s'}${selCol!==null? '' : ', contadas por colonia'}, por cepas vacantes en frentes prioritarios`
     : selCol!==null
     ? `${fmt.format(total)} calle${total===1?'':'s'}${q?'':' con frente prioritario'}`
     : q ? `${fmt.format(total)} resultado${total===1?'':'s'}, cada uno en su colonia`
     : `${fmt.format(total)} calles con frente prioritario, contadas por colonia`;
-  const sinNom = !q && sinNombre.kmp>0? `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI («Ninguno» o «Manzana o edificación contigua»). No aparecen en esta lista, pero sí en el Excel de frentes.` : '';
+  const sinNom = !q && sinNombre.kmp>0? `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI («Ninguno» o «Manzana o edificación contigua»). No aparecen en esta lista, pero sí en el Excel «Frente por frente».` : '';
   if (cepas) iniNota(`Calles ${selCol!==null? 'de la colonia' : 'de la alcaldía'} ordenadas por cepas vacantes del inventario de arbolado en sus frentes prioritarios (Muy Alta, Alta y Media): ahí se puede plantar directo.${selCol!==null? '' : ' Una calle que pasa por varias colonias aparece una vez en cada una.'} Selecciona una calle para ubicarla en el mapa y ver sus tramos.`,
     [cepasDet('la calle', 'frentes'), cepasNota('una calle'), sinNom].filter(Boolean).join(' '));
   else iniNota(q? 'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
@@ -196,10 +208,8 @@ function filasAvenidas(ul, q, cepas=false){
   const en = sel===null? 'en toda la ciudad' : 'en la alcaldía '+META.munNames[sel];
   const items = [];
   if (q){ for(const [a,s] of avIdx){ if (AV_N[a].includes(q) || [...s.nombres].some(n=>norm(n).includes(q))) items.push([a,s]); } $('ini-title').textContent = `Avenidas encontradas ${en}`; }
-  else { for(const [a,s] of avIdx){ if(s.kmp>0 || (cepas && s.cvt>0)) items.push([a,s]); } $('ini-title').textContent = `Avenidas ${sel===null? 'de la ciudad' : 'de la alcaldía '+META.munNames[sel]} por atender primero`; }
-  // con las mismas cepas, por km prioritarios y por km en total (como siempre); las que no tienen km prioritarios, al final, por su total
-  if (cepas) items.sort((a,b)=> b[1].cv-a[1].cv || b[1].kmp-a[1].kmp || (a[1].kmp? 0 : b[1].cvt-a[1].cvt) || b[1].km-a[1].km);
-  else items.sort((a,b)=> b[1].kmp-a[1].kmp || b[1].km-a[1].km);
+  else { items.push(...avenidasLista(cepas)); $('ini-title').textContent = `Avenidas ${sel===null? 'de la ciudad' : 'de la alcaldía '+META.munNames[sel]} por atender primero`; }
+  ordenaLista(items, cepas);
   const total = items.length;
   $('ini-count').textContent = cepas? `${fmt.format(total)} avenida${total===1?'':'s'}, por cepas vacantes en tramos prioritarios`
     : `${fmt.format(total)} avenida${total===1?'':'s'}${q?'':' con km prioritarios'}`;
@@ -241,9 +251,7 @@ function renderInicio(){
   const qRaw = qEl.value.trim(), q = qRaw.length>=2? norm(qRaw) : '';
   const ph = isGC()? `Buscar una avenida ${sel===null? 'de la ciudad' : 'de la alcaldía'}` : `Buscar una calle ${selCol!==null? 'de la colonia' : sel===null? 'de la ciudad' : 'de la alcaldía'}`;
   if (qEl.placeholder!==ph){ qEl.placeholder = ph; qEl.setAttribute('aria-label', ph); }
-  const vistas = iniVistas();
-  let v = vistas.includes(iniOrden)? iniOrden : iniOrden==='callescv' && selCol!==null? 'cv' : vistas[0];
-  if (INI_CV.has(v) && !ESP_CV) v = vistas[0];   // sin las cepas cargadas no hay números que mostrar
+  const vistas = iniVistas(), v = vistaLista();
   const ops = vistas.join() + (selCol!==null? '|col' : '');
   if (sv.dataset.ops!==ops){ sv.innerHTML = vistas.filter(k=>INI_VISTA[k]).map(k=>`<option value="${k}">${iniOp(k)}</option>`).join(''); sv.dataset.ops = ops; }
   // mientras bajan las cepas, el selector muestra lo pedido y la lista sigue con el orden anterior (con sus cifras reales)

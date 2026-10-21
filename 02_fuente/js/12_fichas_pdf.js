@@ -12,6 +12,8 @@ function cortaTxt(doc, t, w){ const ls = doc.splitTextToSize(t, w); if (ls.lengt
 // título de ficha: se reduce hasta caber en el ancho útil
 // Propiedades del documento: idioma, autoría y, al titular la ficha, su título. La librería no puede etiquetar el PDF.
 function propsPDF(doc){ try { doc.setLanguage('es-MX'); doc.setProperties({ author:'Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental', creator:'Modelo de priorización de reforestación urbana, versión ' + VERSION.v, subject:'Priorización de calles para reforestación urbana', keywords:'reforestación, arbolado urbano, Ciudad de México, frentes de manzana' }); } catch(e){} }
+// subtítulo de la ficha: con filtros es largo; se achica (hasta 8 pt) antes de cortarlo, para que no quede «… frente…»
+function subFicha(doc, t, w, x, y){ let fs=10.5; doc.setFontSize(fs); while (fs>8 && doc.getTextWidth(t)>w){ fs-=0.5; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 function tituloFicha(doc, t, w, x, y){ try { doc.setProperties({ title: 'Ficha · ' + t }); } catch(e){} let fs=22; doc.setFontSize(fs); while (fs>13 && doc.getTextWidth(t)>w){ fs-=1; doc.setFontSize(fs); } doc.text(cortaTxt(doc, t, w), x, y); }
 const LOGO_IMG = document.querySelector('.panel-head .logo'), LOGO_W = 2229, LOGO_H = 142;  // jsPDF acepta la imagen ya cargada (incrustada o en img/)
 function alcBounds(i){ let w=180,s=90,e=-180,n=-90; for(const part of ALC_PARTS){ if(part.i!==i) continue; for(const q of part.poly){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } } const fb=META.bounds[META.muns[i]]; return [Math.min(w,fb[0]),Math.min(s,fb[1]),Math.max(e,fb[2]),Math.max(n,fb[3])]; }
@@ -38,7 +40,7 @@ function fichaPDF(kind){
   else if (isVpAlc){ const s=VPC.summ[META.muns[sel]]; cs={n:s.n, km:s.km, kmp:kmPrio(s), np:VP_RECS[sel].rp.size, ntot:VP_RECS[sel].r.size}; }
   else { cs={n:av.n, km:av.kmByP, kmp:av.kmp, np:av.recsp.size, ntot:av.recs.size}; }
   const tot = sum(cs.km); const ntot = isVP? cs.ntot : sum(cs.n);
-  const hoy = new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'});
+  const hoy = hoyCDMX();
   const unit = isVP? 'tramos' : 'frentes';
   // encabezado
   const lw = 108, lh = lw*LOGO_H/LOGO_W; ponLogo(doc, M, 12, lw, lh);   // logotipo en una fila: Gobierno · SEDEMA · SIA · Reforestación Urbana
@@ -55,7 +57,7 @@ function fichaPDF(kind){
     : `${redesTxt(av.nombres, 9)? redesTxt(av.nombres, 9)+' · ' : ''}${[...av.muns].map(m=>META.munNames[m]).join(', ')} · ${fmt1.format(tot)} km · ${fmt.format(ntot)} tramos`;
   // con filtro de banqueta o de espacio las cifras de la ficha son las filtradas: el subtítulo lo dice primero, para que no se corte
   const subB = (isCol||isAlc) && hayFiltro()? filtroTxt().replace(/^solo frentes /, 'Solo ') + ' · ' : espVP? espTxtVP().replace(/^solo tramos /, 'Solo tramos ') + ' · ' : '';
-  doc.text(cortaTxt(doc, subB + sub, W-2*M), M, 44);
+  subFicha(doc, subB + sub, W-2*M, M, 44);
   const pk = isCol? c.p : isAlc? (hayFiltro()? dom({km:cs.km}) : ALC_DOM[sel]) : isVpAlc? (espVP? dom({km:cs.km}) : VP_DOM[sel]) : dom({km:av.kmByP}); const pc = pk>=0? T.prio[pk] : GRIS;
   doc.setFillColor(pc[0],pc[1],pc[2]); doc.setDrawColor(200,194,184); doc.setLineWidth(0.15); doc.circle(M+2, 51.2, 1.8, 'FD');
   const l1 = isCol? `Prioridad de la colonia: ${pk>=0? META.prio[pk]:'—'}` : `Prioridad predominante: ${META.prio[pk]} (${pct(cs.km[pk],tot)} de los ${isVpAv? 'km de la avenida' : isVP? 'km de vialidad primaria de la alcaldía' : 'km de frente de la alcaldía'})`;
@@ -172,12 +174,12 @@ function fichaPDF(kind){
   if(!rows.length){ doc.setTextColor(...GRIS); doc.text('Sin registros prioritarios.', M+1.5, y+6); }
   // frentes prioritarios sin nombre de calle: no caben en una tabla por calle, pero se reportan
   if ((isCol||isAlc) && sinNombre.kmp>0){ doc.setFontSize(8); doc.setTextColor(...GRIS);
-    doc.text(doc.splitTextToSize(`Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${isCol?'de la colonia':'de la alcaldía'} no tienen nombre de calle en INEGI (${fmt.format(sinNombre.np)} frentes); no aparecen en los listados por calle, pero sí en el Excel de frentes.`, W-2*M-3).slice(0,2), M+1.5, y+6+Math.max(rows.length,1)*6.2-1.5, {lineHeightFactor:1.2}); }
+    doc.text(doc.splitTextToSize(`Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${isCol?'de la colonia':'de la alcaldía'} no tienen nombre de calle en INEGI (${fmt.format(sinNombre.np)} frentes); no aparecen en los listados por calle, pero sí en el Excel «Frente por frente».`, W-2*M-3).slice(0,2), M+1.5, y+6+Math.max(rows.length,1)*6.2-1.5, {lineHeightFactor:1.2}); }
   // pie
   doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
   const fuentes = isVP
     ? `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. Prioridad predominante = categoría con más kilómetros. Las vialidades primarias y de acceso controlado corresponden al Gobierno de la Ciudad de México. Fuentes: SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); modelo de priorización del Sistema de Información Ambiental. La meta se mide sobre los ${fmt.format(Math.round(VPC.cov.km_total))} km de la red primaria completa.${espVP? ` Filtro «Espacio»: ${INV.fuente}, corte: ${INV.corte}.` : ''} Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`
-    : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX). Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`;
+    : `Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. ${isCol?'':'Prioridad predominante = categoría con más kilómetros de frente en la alcaldía. '}Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025) y capa de vialidades primarias (ago. 2026); catálogo de colonias SEDEMA-SIA e Índice de Desarrollo Social por unidad territorial (EVALÚA CDMX).${filtroEsp? ` Filtro «Espacio»: ${INV.fuente}, corte: ${INV.corte}.` : ''} Generado el ${hoy} desde la herramienta Modelo de priorización de reforestación urbana. ${VERSION_TXT}.`;
   doc.text(doc.splitTextToSize(fuentes, W-2*M), M, 258);
   const fname = isCol? `ficha_colonia_${slug(META.munNames[sel])}_${slug(colNombre(selCol))}${filtroSlug()}.pdf` : isAlc? `ficha_alcaldia_${slug(META.munNames[sel])}${filtroSlug()}.pdf` : isVpAlc? `ficha_vialidades_primarias_${slug(META.munNames[sel])}${espSlug()}.pdf` : `ficha_avenida_${slug(VPC.nomenclat[selAv])}_toda_la_ciudad${espSlug()}.pdf`;
   deliverBlob(fname, doc.output('blob'));
@@ -204,7 +206,7 @@ function fichaCallePDF(){
   doc.setTextColor(...INK); doc.setFont('helvetica','bold'); tituloFicha(doc, c.nombre, W-2*M, M, 38);
   doc.setFont('helvetica','normal'); doc.setFontSize(10.5); doc.setTextColor(...GRIS);
   const sub = `${colNoms.length>3? colNoms.length+' colonias' : colNoms.join(', ')} · ${muns.join(', ')} · ${fmt.format(ntot)} frentes de manzana · ${kmFull(tot)}`;
-  doc.text(cortaTxt(doc, sub, W-2*M), M, 44);
+  subFicha(doc, sub, W-2*M, M, 44);
   const pk = dom({km}); const pc = T.prio[pk];
   doc.setFillColor(pc[0],pc[1],pc[2]); doc.setDrawColor(200,194,184); doc.setLineWidth(0.15); doc.circle(M+2, 51.2, 1.8, 'FD');
   const l1 = `Prioridad predominante: ${META.prio[pk]} (${pct(km[pk],tot)} de los km de la calle)`;
@@ -261,10 +263,10 @@ function fichaCallePDF(){
   doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK);
   rows.forEach((r,i)=>{ const yy=y+6+i*6.2; if(i%2){ doc.setFillColor(252,251,249); doc.rect(M,yy-4.2,W-2*M,6.2,'F'); }
     r.forEach((v,k)=>{ const wcol = (k<cols.length-1? cols[k+1][0] : W-M) - cols[k][0] - 3; doc.text(doc.splitTextToSize(String(v), wcol)[0]||'', cols[k][0]+1.5, yy); }); });
-  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} ${trs? 'tramos; el Excel de la calle trae todos' : 'colonias; el Excel de la calle trae todas'}.`, M+1.5, y+6+14*6.2); }
+  if (items.length>14){ doc.setFontSize(8); doc.setTextColor(...GRIS); doc.text(`Se muestran 14 de ${items.length} ${trs? 'tramos; el Excel «Frente por frente de la calle» trae todos' : 'colonias; el Excel «Frente por frente de la calle» trae todas'}.`, M+1.5, y+6+14*6.2); }
   // pie
   doc.setDrawColor(...LINE); doc.line(M,254,W-M,254); doc.setFontSize(7.5); doc.setTextColor(...GRIS);
-  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA. Generada el ' + new Date().toLocaleDateString('es-MX',{day:'numeric',month:'long',year:'numeric'}) + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
+  doc.text(doc.splitTextToSize('Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA). Prioritario = categorías Muy Alta, Alta y Media. Prioridad predominante = categoría con más kilómetros de frente en la calle. Una calle se compone de frentes de manzana: cada lado de la calle frente a una manzana es un frente. Los tramos se arman con una regla geométrica y sus vialidades delimitantes son aproximadas; se confirman en campo. Los frentes sobre vialidades primarias corresponden al Gobierno Central y no se incluyen. Fuentes: INEGI, Características del Entorno Urbano 2020; SEDEMA, modelo de priorización de frentes de manzana (nov. 2025); catálogo de colonias SEDEMA-SIA.' + (filtroEsp? ` Filtro «Espacio»: ${INV.fuente}, corte: ${INV.corte}.` : '') + ' Generada el ' + hoyCDMX() + '. ' + VERSION_TXT + '.', W-2*M), M, 258);
   deliverBlob(`ficha_calle_${slug(c.nombre)}_${munSet.size===1? slug(muns[0]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${filtroSlug()}.pdf`, doc.output('blob'));
 }
 $('dl-ficha-calle').onclick = ()=> loadLib('jspdf.js', 'jspdf')
@@ -277,16 +279,18 @@ $('dl-ficha-av').onclick = ()=>conPDF('vpav');
 // ---------- estado de las descargas visible desde donde se piden, y un archivo por clic ----------
 // El aviso de estado vive en la pestaña Descargas; el pie fijo lo repite, porque sus botones funcionan desde cualquier pestaña.
 // Mientras un archivo se prepara, los botones de descarga no aceptan otro clic.
-let GENERANDO = false, genT = null;
-const EN_CURSO = /^Preparando/;
-function finGenera(){ GENERANDO = false; clearTimeout(genT); document.body.classList.remove('generando'); }
+// Un doble toque nervioso no da dos archivos (B3-04): la ficha se arma en menos de 300 ms, así que el mismo botón no acepta otro clic
+// hasta GEN_PAUSA ms después de entregar.
+let GENERANDO = false, genT = null, genUlt = '', genFin = 0;
+const EN_CURSO = /^Preparando/, GEN_PAUSA = 1500;
+function finGenera(){ GENERANDO = false; genFin = Date.now(); clearTimeout(genT); document.body.classList.remove('generando'); }
 new MutationObserver(()=>{ const t = $('dl-status').textContent.trim(); const a = $('act-status');
   const esDescarga = /^(Preparando|Descargado|Guardado|Descarga cancelada|No fue posible|No se pudo)/.test(t);
   if (a){ a.textContent = esDescarga? t : ''; a.hidden = !esDescarga; }
   if (GENERANDO && !EN_CURSO.test(t)) finGenera();
 }).observe($('dl-status'), {childList:true, characterData:true, subtree:true});
-['dl-frentes','dl-calles','dl-tramos','dl-avenidas','dl-calle','dl-ficha-calle','dl-ficha-vpalc','dl-ficha-av','dl-ficha-alc','dl-ficha','dl-kml','dl-geojson'].forEach(id=>{ const b = $(id), h = b.onclick; if (!h) return;
-  b.onclick = e=>{ if (GENERANDO || b.disabled) return; GENERANDO = true; document.body.classList.add('generando'); $('dl-status').textContent = 'Preparando archivo…';
+['dl-alcaldias','dl-frentes','dl-calles','dl-tramos','dl-avenidas','dl-calle','dl-ficha-calle','dl-ficha-vpalc','dl-ficha-av','dl-ficha-alc','dl-ficha','dl-kml','dl-geojson'].forEach(id=>{ const b = $(id), h = b.onclick; if (!h) return;
+  b.onclick = e=>{ if (GENERANDO || b.disabled || (genUlt===id && Date.now()-genFin<GEN_PAUSA)) return; GENERANDO = true; genUlt = id; document.body.classList.add('generando'); $('dl-status').textContent = 'Preparando archivo…';
     // un Excel grande en un equipo lento puede pasar de 90 s: primero se avisa que sigue en proceso y solo a los 5 min se da por fallido
     // (darlo por fallido antes soltaría los botones y el archivo llegaría después: la persona lo pediría dos veces)
     genT = setTimeout(()=>{ if (!GENERANDO) return;

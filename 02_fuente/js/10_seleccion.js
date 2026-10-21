@@ -33,14 +33,17 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); invNota(); espAviso(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito(); rotuloInfo();
   const gc = isGC();
-  $('dl-frentes').hidden = !respOn.alc; $('dl-calles').hidden = !respOn.alc; $('dl-tramos').hidden = !respOn.gc; $('dl-avenidas').hidden = !respOn.gc;
+  // Descargas: un bloque por red (v1.40). Las calles de las alcaldías piden una alcaldía; toda la ciudad tiene el Excel de las 16 alcaldías
+  const conAlc = respOn.alc && sel!==null;
+  $('dl-g-ciudad').hidden = sel!==null; $('dl-g-alc').hidden = !conAlc; $('dl-g-gc').hidden = !respOn.gc;
+  $('dl-frentes').hidden = $('dl-calles').hidden = !conAlc; $('dl-tramos').hidden = $('dl-avenidas').hidden = !respOn.gc;
   // sin registros que entregar: el botón se deshabilita y se dice por qué, en lugar de entregar un archivo vacío
   const fsD = (respOn.alc && sel!==null)? frSumm() : null; const nFrD = fsD? sum(fsD.n) : 1, nPrD = fsD? sumPrio(fsD.n) : 1;
   const nTrD = respOn.gc? vpSumm().recsp.size : 1;
   $('dl-frentes').disabled = $('dl-calles').disabled = (sel===null || nPrD===0);
   $('dl-ficha').disabled = nFrD===0; $('dl-tramos').disabled = nTrD===0;
   $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && selCol===null && nTrD>0));
-  $('dl-status').textContent = (respOn.alc && sel===null)? 'Selecciona una alcaldía para descargar su listado.'
+  $('dl-status').textContent = (respOn.alc && sel===null)? 'Para la lista de calles de una alcaldía, elígela arriba.'
     : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha que descargar.'
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta, Alta o Media: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? `Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta, Alta o Media${filtroEsp? ' con '+espLista()+' (filtro «Espacio»)' : ''}: el listado de tramos prioritarios estaría vacío.` : '';
@@ -80,7 +83,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
     const e = espDeTexto(p.get('e')); if (e!==espQuiero) setEspacio(e);
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
-function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-calle').hidden = !c; $('dl-ficha-calle').hidden = !c;
+function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-g-calle').hidden = $('dl-calle').hidden = $('dl-ficha-calle').hidden = !c;
   const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista de «Dónde empezar» para descargar su Excel o su ficha.`; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';

@@ -60,8 +60,14 @@
 /* las cifras del ámbito viven en la pestaña Resumen */
 #tp-res .kpis{margin-top:10px}
 
-/* descargas para abrir en un mapa (KML y GeoJSON) */
-.geo-title{margin-top:16px}
+/* Descargas: un bloque por red; debajo de cada botón, qué trae y para qué sirve (su texto se oculta con el botón) */
+#tp-dl .dl-grupo + .dl-grupo{margin-top:16px}
+#tp-dl .btns .dl-que{margin:-4px 2px 6px;font-size:.8125rem;line-height:1.35;color:var(--ink-3)}
+#tp-dl .btns .btn[hidden] + .dl-que{display:none}
+#tp-dl .btns .btn[disabled] + .dl-que{opacity:.7}
+#tp-dl .dl-dic{margin:14px 2px 6px;font-size:.8125rem;line-height:1.35;color:var(--ink-3)}
+/* los archivos para mapas, plegados al final (details.mas.siempre) */
+#geo-archivos .dl-que{margin:6px 2px 0;font-size:.8125rem;line-height:1.35;color:var(--ink-3)}
 
 /* entrada en dos pasos: qué red se consulta (alcaldías o Gobierno Central) y dónde */
 .entrada-resp{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -127,10 +133,10 @@
 /* lo que se consulta (Colonias, Calles, Avenidas…) se destaca en el título de la lista */
 .section-title h2 b.unidad{color:var(--guinda);font-weight:700}
 /* Descargas: sin nada que descargar, solo el motivo (#dl-status, arriba) */
-#tp-dl.sin-descarga .btns,#tp-dl.sin-descarga .section-title,#tp-dl.sin-descarga #geo-archivos{display:none}
+#tp-dl.sin-descarga .dl-grupo,#tp-dl.sin-descarga .dl-dic,#tp-dl.sin-descarga #geo-archivos{display:none}
 #tp-dl #dl-status:empty{display:none}
 #tp-dl #dl-status:not(:empty){margin-bottom:10px}
-#tp-dl .section-title:first-child,#tp-dl #dl-status + .section-title{margin-top:0}
+#tp-dl .dl-grupo .section-title{margin-top:0}
 #tp-dl.sin-descarga #dl-status{font-size:.875rem;color:var(--ink)}
 /* el título del ámbito recibe el foco al elegir (para lectores de pantalla); sin marco, para que no parezca un campo de texto */
 #scope-title:focus{outline:none}

@@ -18,5 +18,5 @@ Antes de cambiar algo, leer `ARQUITECTURA.md` (dónde está cada cosa, reglas de
 ## Verificar
 
 - Rápidas (menos de un minuto): `node 04_pruebas/correr_todas.js rapidas`
-- Todas (unos 45 minutos): `node 04_pruebas/correr_todas.js`. Cuántas son y cuánto tarda cada una: `04_pruebas/LEEME.md`, el único lugar donde se escribe; si cambia, cambiar aquí también la duración (`prueba_docs_coherencia.js` lo revisa).
+- Todas (unos 50 minutos): `node 04_pruebas/correr_todas.js`. Cuántas son y cuánto tarda cada una: `04_pruebas/LEEME.md`, el único lugar donde se escribe; si cambia, cambiar aquí también la duración (`prueba_docs_coherencia.js` lo revisa).
 - En este equipo Windows, Python se llama `python` (no `python3`). La carpeta está en OneDrive: solo una sesión trabaja sobre ella a la vez.

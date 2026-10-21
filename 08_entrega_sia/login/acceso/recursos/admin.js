@@ -7,8 +7,8 @@
   const ALC = { '002': 'Azcapotzalco', '003': 'Coyoacán', '004': 'Cuajimalpa de Morelos', '005': 'Gustavo A. Madero', '006': 'Iztacalco', '007': 'Iztapalapa',
     '008': 'La Magdalena Contreras', '009': 'Milpa Alta', '010': 'Álvaro Obregón', '011': 'Tláhuac', '012': 'Tlalpan', '013': 'Xochimilco', '014': 'Benito Juárez',
     '015': 'Cuauhtémoc', '016': 'Miguel Hidalgo', '017': 'Venustiano Carranza' };
-  const ARCHIVO = { excel_frentes: 'Excel · frentes prioritarios', excel_calles: 'Excel · resumen por calle', excel_tramos: 'Excel · tramos de vialidad primaria',
-    excel_avenidas: 'Excel · resumen de avenidas', excel_calle: 'Excel · frentes de una calle', csv: 'CSV (sin conexión para Excel)', ficha_alcaldia: 'Ficha PDF · alcaldía',
+  const ARCHIVO = { excel_frentes: 'Excel · frente por frente', excel_calles: 'Excel · lista de calles', excel_tramos: 'Excel · tramo por tramo (vialidades primarias)',
+    excel_avenidas: 'Excel · lista de avenidas', excel_calle: 'Excel · frente por frente de una calle', excel_alcaldias: 'Excel · las 16 alcaldías', csv: 'CSV (sin conexión para Excel)', ficha_alcaldia: 'Ficha PDF · alcaldía',
     ficha_colonia: 'Ficha PDF · colonia', ficha_vialidades: 'Ficha PDF · vialidades primarias', ficha_avenida: 'Ficha PDF · avenida', ficha_calle: 'Ficha PDF · calle',
     kml: 'Mapa KML (Google Earth)', geojson: 'Mapa GeoJSON (SIG)', otro: 'Otro' };
   const fmt = new Intl.NumberFormat('es-MX'), fecha = d => d ? new Date(d).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' }) : '—';

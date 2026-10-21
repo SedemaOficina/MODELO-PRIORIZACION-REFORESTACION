@@ -51,7 +51,7 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
     await ctx.close(); }
   { const { page, ctx } = await L.abrir(browser, U, { viewport: { width: 390, height: 844 } }, errores);
     await page.evaluate(i => { const s = document.getElementById('alc'); s.value = String(i); s.dispatchEvent(new Event('change')); }, izt); await page.waitForTimeout(700); const e = await L.estado(page);
-    ok('en teléfono, con un listado grande, el botón principal ofrece el resumen por calle', e.actMain.target === 'dl-calles' && /resumen por calle/i.test(e.actMain.txt) && /pestaña Descargas/.test(e.actHint || ''), `${e.actMain.txt} · ${e.actHint}`);
+    ok('en teléfono, con una alcaldía grande, el botón principal ofrece la lista de calles (v1.40: es lo principal en todos los equipos)', e.actMain.target === 'dl-calles' && /lista de calles/i.test(e.actMain.txt) && !e.actMain.disabled, `${e.actMain.txt} · ${e.actHint}`);
     await ctx.close(); }
 
   // ---------- modo ligero ----------
