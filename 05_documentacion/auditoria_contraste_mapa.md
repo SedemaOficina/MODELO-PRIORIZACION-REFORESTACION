@@ -65,7 +65,7 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MC43 | --ink-2 #55585A sobre --panel al 80 % al 80 % sobre --ground #FDFCFC | 6.99:1 | 4.5:1 | Cumple | Crédito (#attrib) con «Sin fondo», y su enlace (hereda el color, subrayado) |
 | MC44 | --ink-2 #55585A sobre --panel al 80 % al 80 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #D1D1D1 | 4.69:1 | 4.5:1 | Cumple | Crédito del satélite y su enlace «Esri» (peor caso: imagen negra bajo el fondo translúcido) |
 | MC45 | --ink-2 #55585A sobre --panel #FFFFFF | 7.16:1 | 4.5:1 | Cumple | Etiqueta «Modo ligero» |
-| MC46 | #fff #FFFFFF sobre --ink #24262A | 15.15:1 | 4.5:1 | Cumple | Aviso «Dibujando calles…» |
+| MC46 | --blanco #FFFFFF sobre --ink #24262A | 15.15:1 | 4.5:1 | Cumple | Aviso «Dibujando calles…» |
 | MC47 | --ink-2 #55585A sobre --panel #FFFFFF | 7.16:1 | 4.5:1 | Cumple | Avisos sobre el mapa (modo ligero y errores): texto |
 | MC48 | --ink #24262A sobre --panel #FFFFFF | 15.15:1 | 4.5:1 | Cumple | Avisos sobre el mapa: texto en negritas |
 | MC49 | --guinda #9D2148 sobre --panel #FFFFFF | 7.65:1 | 4.5:1 | Cumple | Aviso de error: botón «Recargar la página» |
@@ -73,14 +73,14 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MC51 | --ink-2 #55585A sobre --panel #FFFFFF | 7.16:1 | 4.5:1 | Cumple | Botones del mapa (+, −, ?, casa, capas, Mi ubicación) |
 | MC52 | --guinda #9D2148 sobre --panel #FFFFFF | 7.65:1 | 4.5:1 | Cumple | Botones del mapa al pasar el ratón |
 | MC53 | --ink-2 #55585A sobre --panel #FFFFFF | 7.16:1 | 4.5:1 | Cumple | Botón para ocultar el panel |
-| MC54 | #fff #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 4.5:1 | Cumple | Celular: «Volver a la información» (blanco sobre guinda) |
-| MC55 | #fff al 92 % #F7EDF0 sobre --guinda #9D2148 | 6.67:1 | 4.5:1 | Cumple | Celular: lugar consultado bajo «Volver a la información» |
+| MC54 | --blanco #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 4.5:1 | Cumple | Celular: «Volver a la información» (blanco sobre guinda) |
+| MC55 | --blanco al 92 % #F7EDF0 sobre --guinda #9D2148 | 6.67:1 | 4.5:1 | Cumple | Celular: lugar consultado bajo «Volver a la información» |
 | MC56 | --ink #24262A sobre --panel #FFFFFF | 15.15:1 | 4.5:1 | Cumple | Descripción emergente al pasar el ratón |
 | MC57 | --ink-3 #666A6D sobre --panel #FFFFFF | 5.45:1 | 4.5:1 | Cumple | Descripción emergente: texto gris |
-| MC58 | --ink-2 #55585A sobre rgba(255,255,255,.88) al 88 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #E3E3E3 | 5.58:1 | 4.5:1 | Cumple | Barra de escala: texto (peor caso: satélite negro bajo su fondo translúcido) |
+| MC58 | --ink-2 #55585A sobre --blanco-rgb al 88 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #E3E3E3 | 5.58:1 | 4.5:1 | Cumple | Barra de escala: texto (peor caso: satélite negro bajo su fondo translúcido) |
 | MC59 | --ink-3 #666A6D sobre --panel #FFFFFF | 5.45:1 | 4.5:1 | Cumple | Leyenda: km de una prioridad apagada |
 | MC60 | --ink #24262A sobre --panel #FFFFFF | 15.15:1 | 4.5:1 | Cumple | Filtros «Atiende», «Banqueta» y «Espacio»: texto de un chip sin elegir |
-| MC61 | #fff #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 4.5:1 | Cumple | Filtros «Atiende», «Banqueta» y «Espacio»: texto del chip elegido (blanco sobre guinda) |
+| MC61 | --blanco #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 4.5:1 | Cumple | Filtros «Atiende», «Banqueta» y «Espacio»: texto del chip elegido (blanco sobre guinda) |
 | MN01 | --p0 Muy Baja #F9E7BF sobre --map-filete #666A6D | 4.47:1 | 3:1 | Cumple | Línea de prioridad Muy Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN02 | --p1 Baja #F4C56E sobre --map-filete #666A6D | 3.39:1 | 3:1 | Cumple | Línea de prioridad Baja (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
 | MN03 | --p2 Media #E88A2E sobre --map-filete #666A6D | 2.10:1 | 3:1 | Aceptado | Línea de prioridad Media (frentes de manzana; también vialidades primarias con Gobierno Central) sobre el suelo del fondo «Calles», desde el zoom 14, contra su filete --map-filete de 1 px a cada lado (el filete contra el fondo, en los pares «Filete de las clases claras») |
@@ -185,7 +185,7 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MN102 | --map-halo #FFFFFF sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 17.75:1 | 3:1 | Cumple | Satélite: contorno blanco de Mi ubicación sobre la imagen (peor caso: imagen negra) |
 | MN103 | --guinda #9D2148 sobre --map-halo #FFFFFF | 7.65:1 | 3:1 | Cumple | Punto buscado por coordenadas: --guinda contra su contorno blanco de 3 px |
 | MN104 | --map-halo #FFFFFF sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 17.75:1 | 3:1 | Cumple | Satélite: contorno blanco del punto buscado sobre la imagen (peor caso: imagen negra) |
-| MN105 | --focus #5A1029 sobre #fff #FFFFFF | 13.62:1 | 3:1 | Cumple | Anillo de foco del teclado (--focus, 3 px) contra su halo blanco de 2 px |
+| MN105 | --focus #5A1029 sobre --blanco #FFFFFF | 13.62:1 | 3:1 | Cumple | Anillo de foco del teclado (--focus, 3 px) contra su halo blanco de 2 px |
 | MN106 | --focus #5A1029 sobre --fondo-calle #FFFFFF | 13.62:1 | 3:1 | Cumple | Anillo de foco sobre el suelo del fondo «Calles» |
 | MN107 | --focus #5A1029 sobre --ground #F4F2EE | 12.18:1 | 3:1 | Cumple | Anillo de foco sobre «Sin fondo» |
 | MN108 | --focus #5A1029 sobre --fondo-manzana #E2DED6 | 10.15:1 | 3:1 | Cumple | Anillo de foco sobre una manzana |
@@ -196,16 +196,16 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MN113 | --ink #24262A sobre --panel #FFFFFF | 15.15:1 | 3:1 | Cumple | Leyenda: casilla marcada |
 | MN114 | --guinda #9D2148 sobre --panel #FFFFFF | 7.65:1 | 3:1 | Cumple | Ficha: íconos de «Cómo llegar», «Street View»… |
 | MN115 | --loc #1A73E8 sobre --panel #FFFFFF | 4.50:1 | 3:1 | Cumple | Botón Mi ubicación encendido: ícono azul |
-| MN116 | #fff #FFFFFF sobre --loc #1A73E8 | 4.50:1 | 3:1 | Cumple | Botón Mi ubicación en «Seguirme»: ícono blanco sobre azul |
-| MN117 | --ink-2 #55585A sobre rgba(255,255,255,.88) al 88 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #E3E3E3 | 5.58:1 | 3:1 | Cumple | Barra de escala: trazo (peor caso: satélite negro bajo su fondo translúcido) |
-| MN118 | borde rgba(36,38,42,.45) sobre --p0 #99907C sobre --panel #FFFFFF | 3.16:1 | 3:1 | Cumple | Leyenda: borde de la muestra Muy Baja (lo que la separa del panel) |
-| MN119 | borde rgba(36,38,42,.45) sobre --p0 #99907C sobre --panel #FFFFFF | 3.16:1 | 3:1 | Cumple | Leyenda compacta: borde de la muestra Muy Baja |
+| MN116 | --blanco #FFFFFF sobre --loc #1A73E8 | 4.50:1 | 3:1 | Cumple | Botón Mi ubicación en «Seguirme»: ícono blanco sobre azul |
+| MN117 | --ink-2 #55585A sobre --blanco-rgb al 88 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #E3E3E3 | 5.58:1 | 3:1 | Cumple | Barra de escala: trazo (peor caso: satélite negro bajo su fondo translúcido) |
+| MN118 | borde --tinta-rgb sobre --p0 #99907C sobre --panel #FFFFFF | 3.16:1 | 3:1 | Cumple | Leyenda: borde de la muestra Muy Baja (lo que la separa del panel) |
+| MN119 | borde --tinta-rgb sobre --p0 #99907C sobre --panel #FFFFFF | 3.16:1 | 3:1 | Cumple | Leyenda compacta: borde de la muestra Muy Baja |
 | MN120 | --ctl #8A8478 sobre --panel #FFFFFF | 3.71:1 | 3:1 | Cumple | Filtros: borde de un chip sin elegir (--ctl) sobre el panel |
 | MN121 | --ctl #8A8478 sobre --panel #FFFFFF | 3.71:1 | 3:1 | Cumple | Filtros: borde de la casilla o del círculo de un chip sin elegir (--ctl) |
 | MN122 | --guinda #9D2148 sobre --panel #FFFFFF | 7.65:1 | 3:1 | Cumple | Filtros: relleno del chip elegido sobre el panel |
 | MN123 | --guinda #9D2148 sobre --panel #FFFFFF | 7.65:1 | 3:1 | Cumple | Filtros: borde del chip elegido sobre el panel |
-| MN124 | #fff #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 3:1 | Cumple | Filtros: casilla o círculo blanco del chip elegido sobre el guinda |
-| MN125 | --guinda #9D2148 sobre #fff #FFFFFF | 7.65:1 | 3:1 | Cumple | Filtros: palomita o punto guinda dentro de la casilla o el círculo blanco |
+| MN124 | --blanco #FFFFFF sobre --guinda #9D2148 | 7.65:1 | 3:1 | Cumple | Filtros: casilla o círculo blanco del chip elegido sobre el guinda |
+| MN125 | --guinda #9D2148 sobre --blanco #FFFFFF | 7.65:1 | 3:1 | Cumple | Filtros: palomita o punto guinda dentro de la casilla o el círculo blanco |
 | MN126 | --map-filete #666A6D sobre --fondo-calle #FFFFFF | 5.45:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre suelo |
 | MN127 | --map-filete #666A6D sobre --fondo-manzana #E2DED6 | 4.06:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre manzana |
 | MN128 | --map-filete #666A6D sobre --fondo-verde #D9EAD0 | 4.32:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre verde (parques, ANP y AVA) |
@@ -304,8 +304,8 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 Ninguno.
 ## Notas
 
-- .chip[aria-pressed="true"] i { background } se declara 2 veces con valores distintos: transparent en css/02_base.css; #fff en css/03_controles.css. Se mide el último, que es el que gana.
-- Mismo color con dos nombres: --panel y --fondo-calle y --map-halo (#FFFFFF).
+- .chip[aria-pressed="true"] i { background } se declara 2 veces con valores distintos: transparent en css/02_base.css; var(--blanco) en css/03_controles.css. Se mide el último, que es el que gana.
+- Mismo color con dos nombres: --panel y --fondo-calle y --map-halo y --blanco (#FFFFFF).
 - Mismo color con dos nombres: --ink-2 y --map-label (#55585A).
 - Mismo color con dos nombres: --ink-3 y --map-alc y --map-vp y --map-filete (#666A6D).
 - ANP y AVA se pintan con el mismo verde que parques y jardines (--fondo-verde #D9EAD0): en el mapa no se distinguen entre sí.

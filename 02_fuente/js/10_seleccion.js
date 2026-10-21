@@ -25,15 +25,19 @@ function renderAvInfo(){
   box.hidden=false; box.innerHTML = `${dot(pc)}<b>Prioridad predominante de la avenida: ${META.prio[d]}</b>${masDet(`${pct(s.kmByP[d], s.km)} de los km de la avenida en toda la ciudad<br>${redesTxt(s.nombres, 9)? 'Red vial: '+redesTxt(s.nombres, 9)+' · ' : ''}${fmt1.format(s.km)} km de la avenida en toda la ciudad · Cruza: ${[...s.muns].map(m=>META.munNames[m]).join(', ')}`)}${sel!==null? `<br><span class="gcline">Las cifras de abajo son solo del tramo en la alcaldía ${META.munNames[sel]}${filtroEsp? ', '+espTxtVP() : ''}: ${kmFull(kmA)} de esta avenida, ${kmFull(kmpA)} prioritarios${kmpA===0? (filtroEsp? ' (ningún tramo con '+espLista()+' de esta avenida en la alcaldía resultó Muy Alta, Alta o Media)' : ' (ningún tramo de esta avenida en la alcaldía resultó Muy Alta, Alta o Media)'):''}.</span>`:''}${avGruposTxt(selAv)? `<br><span class="gcline">${avGruposTxt(selAv)}; elige una alcaldía para consultar una sola.</span>`:''}`;
 }
 let keepView = false;
-// Anuncio para lectores de pantalla: al cambiar la consulta se dice el ámbito y su cifra principal.
+// Anuncio para lectores de pantalla: al cambiar la consulta se dice el ámbito y su cifra principal; con una calle consultada, la calle,
+// su colonia y sus km prioritarios.
 let anuncioT = null;
 function anunciaAmbito(){ clearTimeout(anuncioT); anuncioT = setTimeout(()=>{ const m=$('mapsum'), s=$('sr-estado'); if (!m || !s) return;
-  const t = m.innerText.replace(/\s+/g,' ').trim(); if (t && s.textContent!==t) s.textContent = t; }, 250); }
+  const c = calleSel(), l = c? tramosSel() : null;
+  const t = c? `Calle ${c.nombre}${selCol!==null? ', colonia '+META.colonias[selCol].n : sel!==null? ', '+META.munNames[sel] : ''}${l? ', '+kmFull(l.reduce((a, x)=>a+sumPrio(x.km), 0))+' prioritarios' : ''}`
+    : m.innerText.replace(/\s+/g,' ').trim();
+  if (t && s.textContent!==t) s.textContent = t; }, 250); }
 function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de ámbito hecho a mano manda sobre Mi ubicación
   buildColors(); buildVP(); buildStreets(); buildAvenues(); renderSummary(); iniN = 10; renderInicio(); renderAlcInfo(); renderColInfo(); renderAvInfo(); renderLegendNote(); invNota(); espAviso(); rerender(); if (!keepView) flyTo(scopeView());
   anunciaAmbito(); rotuloInfo();
   const gc = isGC();
-  // Descargas: un bloque por red (v1.40). Las calles de las alcaldías piden una alcaldía; toda la ciudad tiene el Excel de las 16 alcaldías
+  // Descargas: un bloque por red. Las calles de las alcaldías piden una alcaldía; toda la ciudad tiene el Excel de las 16 alcaldías
   const conAlc = respOn.alc && sel!==null;
   $('dl-g-ciudad').hidden = sel!==null; $('dl-g-alc').hidden = !conAlc; $('dl-g-gc').hidden = !respOn.gc;
   $('dl-frentes').hidden = $('dl-calles').hidden = !conAlc; $('dl-tramos').hidden = $('dl-avenidas').hidden = !respOn.gc;
@@ -44,7 +48,7 @@ function refresh(){ if (!locSel && !restaurando) locManual();   // un cambio de 
   $('dl-ficha').disabled = nFrD===0; $('dl-tramos').disabled = nTrD===0;
   $('dl-kml').disabled = $('dl-geojson').disabled = !((respOn.alc && sel!==null && nPrD>0) || (respOn.gc && selCol===null && nTrD>0));
   $('dl-status').textContent = (respOn.alc && sel===null)? 'Para la lista de calles de una alcaldía, elígela arriba.'
-    : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha que descargar.'
+    : nFrD===0? 'Este ámbito no tiene frentes de manzana a cargo de la alcaldía: no hay listado ni ficha PDF que descargar.'
     : nPrD===0? 'Este ámbito no tiene frentes de prioridad Muy Alta, Alta o Media: el listado de frentes prioritarios estaría vacío.'
     : nTrD===0? `Este ámbito no tiene tramos de vialidad primaria de prioridad Muy Alta, Alta o Media${filtroEsp? ' con '+espLista()+' (filtro «Espacio»)' : ''}: el listado de tramos prioritarios estaría vacío.` : '';
   $('dl-ficha').hidden = !(respOn.alc && selCol!==null); $('dl-ficha-alc').hidden = !(respOn.alc && sel!==null && selCol===null);
@@ -56,7 +60,7 @@ function usoConsulta(){ if (!USO_URL || restaurando || locSel) return; clearTime
   usoT = setTimeout(()=>{ if (sel===null && selAv===null) return; const a = ambitoUso(), k = JSON.stringify(a); if (k===usoUlt) return; usoUlt = k; avisaUso({ evento:'consulta', ...a }); }, 1500); }
 // ---------- la consulta queda en la dirección ----------
 // r = quién atiende (gc | both), a = clave de la alcaldía, c = colonia, v = avenida, b = banqueta (con | sin), e = espacio (cv, to, am separados
-// por coma: cepa vacante, tocón, árbol muerto; un código desconocido se ignora; desde la v1.24 también con r=gc). Atrás y Adelante recorren las consultas,
+// por coma: cepa vacante, tocón, árbol muerto; un código desconocido se ignora; también con r=gc). Atrás y Adelante recorren las consultas,
 // la consulta sobrevive a una recarga y la dirección se puede compartir.
 function urlEstado(){ const p = new URLSearchParams(location.search); ['r','a','c','v','b','e'].forEach(k=>p.delete(k));
   if (resp!=='alc') p.set('r', resp);
@@ -84,7 +88,7 @@ function aplicarURL(){ const p = new URLSearchParams(location.search); const r =
   } finally { restaurando = antes; } }
 addEventListener('popstate', ()=>{ if (history.state && history.state.ayuda) return; aplicarURL(); });
 function syncCalleBtns(){ renderTramos(); renderCrumb(); const c = calleSel(); $('dl-g-calle').hidden = $('dl-calle').hidden = $('dl-ficha-calle').hidden = !c;
-  const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista de «Dónde empezar» para descargar su Excel o su ficha.`; }
+  const h = callesHomonimas(); if (h && !isGC()) $('dl-status').textContent = `Hay calles con este nombre en ${fmt.format(h)} colonias. Elige una en la lista de «Dónde empezar» para descargar su Excel o su ficha PDF.`; }
 function setSel(v){
   sel = v===''? null : +v; selCol=null; selAv=null; highlight=null; hideCard(); $('q').value='';
   alaRespuesta(); refresh();

@@ -7,11 +7,12 @@
 #scope-title:focus{outline:none}
 #scope-title:focus-visible{outline:3px solid var(--focus);outline-offset:3px;border-radius:4px}
 /* indicador de foco de dos tonos: anillo oscuro con halo claro, visible sobre blanco, sobre el mapa y sobre el botón guinda */
-:root{--ctl:#8A8478}   /* --focus está en 01_variables.css */
-:focus-visible{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 2px #fff!important}
-.combo input:focus,.search input:focus{border-color:var(--focus);box-shadow:0 0 0 2px #fff,0 0 0 5px var(--focus)!important;outline:none}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px;box-shadow:0 0 0 2px var(--blanco)!important}
+.combo input:focus,.search input:focus{border-color:var(--focus);box-shadow:0 0 0 2px var(--blanco),0 0 0 5px var(--focus)!important;outline:none}
 /* los renglones de los listados muestran dónde está el foco */
-.results li:focus-visible,.tramos li:focus-visible,.lchip:focus-visible{outline:3px solid var(--focus);outline-offset:-3px;box-shadow:none!important;background:var(--panel-2)}
+.results .fila:focus-visible,.tramos .fila:focus-visible,.lchip:focus-visible{outline:3px solid var(--focus);outline-offset:-3px;box-shadow:none!important;background:var(--panel-2)}
+/* renglón elegido: el texto secundario en --ink-2, que sobre el dorado claro llega a 4.5:1 (con --ink-3 daba 4.07:1) */
+.results li.active .t,.results li.active .k small,.tramos li.active .t{color:var(--ink-2)}
 .card:focus{outline:none}
 .card:focus-visible{outline:3px solid var(--focus);outline-offset:-3px}
 /* bordes de campos, casillas y controles con contraste de 3:1 o más */
@@ -20,7 +21,7 @@
 .tool{border-top-color:var(--line-strong)}
 .toolbar{border-color:var(--ctl)}
 /* muestras de la leyenda: borde fino para que Muy Baja y Baja se distingan del panel */
-.legend .row i,.desg i,.bars .sw,.tip .pr{box-shadow:inset 0 0 0 1px rgba(36,38,42,.45)}
+.legend .row i,.desg i,.bars .sw,.tip .pr{box-shadow:inset 0 0 0 1px rgba(var(--tinta-rgb),.45)}
 /* objetivos táctiles en teléfono: 44 px en barra de herramientas, pestañas y selector; 38 px en las casillas de capas */
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   .tool{width:44px;height:44px}
@@ -32,6 +33,14 @@
   .attrib.sat{font-size:.75rem}
 }
 @media (min-width:861px), (min-width:601px) and (max-height:480px){ .legend .row{min-height:26px} }
+/* pantalla táctil de cualquier tamaño, también el celular en horizontal (que usa la disposición de la computadora): objetivos de 44 px */
+@media (pointer:coarse){
+  .tool{width:44px;height:44px}
+  .tabs button{min-height:44px}
+  .crumb select,.crumb .cr-city,.ini-orden select{min-height:44px}
+  .resp-row .chip{min-height:44px}
+  .card .close{min-width:44px;min-height:44px}
+}
 /* en teléfono las tablas de la ayuda se apilan (cada celda con su etiqueta, si la tiene) y la lámina se ajusta al ancho */
 .tbl-wrap{overflow-x:auto}
 @media (max-width:600px){
@@ -48,7 +57,7 @@
 /* impresión: la respuesta completa en una columna, sin controles; el mapa se imprime si el navegador lo permite */
 @media print{
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
-  html,body{height:auto!important;overflow:visible!important;background:#fff!important}
+  html,body{height:auto!important;overflow:visible!important;background:var(--blanco)!important}
   .app{display:block!important;height:auto!important}
   .panel{position:static!important;width:auto!important;max-width:none!important;height:auto!important;max-height:none!important;overflow:visible!important;box-shadow:none!important;border:0!important;transform:none!important}
   .panel-head{display:block!important;position:static!important}
@@ -56,10 +65,10 @@
   .tabpanel[hidden]{display:block!important}
   .tabpanel#tp-dl,.tabs,.panel-actions,.btn-vista,.query .omni,#reset-all,#open-info,.search,.toolbar,.legend-head,.legend .lg-sec,.legend .lg-note,.mapbar,.card .close,.card .field-acts,.modal,.salto,.dibujando,.loader,#locchips,.etq-ligero{display:none!important}
   .mapwrap{position:static!important;height:auto!important;break-before:page;margin-top:12px}
-  #map{position:relative!important;height:15cm!important;border:1px solid #999}
-  .legend{position:static!important;display:block!important;width:auto!important;max-width:none!important;box-shadow:none!important;border:1px solid #999!important;margin-top:8px;transform:none!important}
+  #map{position:relative!important;height:15cm!important;border:1px solid var(--borde-impresion)}
+  .legend{position:static!important;display:block!important;width:auto!important;max-width:none!important;box-shadow:none!important;border:1px solid var(--borde-impresion)!important;margin-top:8px;transform:none!important}
   .legend #legend-body{display:block!important}
-  .card{position:static!important;width:auto!important;max-width:none!important;box-shadow:none!important;border:1px solid #999!important;margin-top:8px;transform:none!important;break-inside:avoid}
+  .card{position:static!important;width:auto!important;max-width:none!important;box-shadow:none!important;border:1px solid var(--borde-impresion)!important;margin-top:8px;transform:none!important;break-inside:avoid}
   .scalebar,.attrib{position:static!important;display:inline-block!important;margin-top:6px}
   .results{max-height:none!important;overflow:visible!important}
   .results li,.tramos li,.kpis,.bars,.colinfo{break-inside:avoid}

@@ -57,10 +57,28 @@ for (const [nombre, t] of [['02_fuente/plantilla.html', plantilla], ['docs/index
     [/\((?:prioritarias|todas)\)/, 'las opciones «(prioritarias)» y «(todas)» de «Mostrar» (retiradas en la v1.27)'],
     [/hoja mínima/i, '«hoja mínima» (retirada en la v1.11)'],
     [/\bCompartir\b/, '«Compartir» (se retiró el botón)'],
+    [/tel[ée]fono/i, '«teléfono» (se dice «celular»; C5-04)'],
+    [/\b(clases?|categorías?) (de prioridad|Muy Alta)/i, '«clase» ni «categoría» de prioridad (se dice «prioridad»; C5-04)'],
+    [/\b(ene|feb|mar|abr|may|jun|jul|ago|sep|oct|nov|dic)\. \d{4}\b/, 'meses abreviados como «nov. 2025» (van completos; C5-04)'],
   ];
   for (const [re, nom] of RETIRADOS) { const donde = textos.filter(([, t]) => re.test(t)).map(([n]) => n);
     ok(`sin ${nom} en la herramienta`, donde.length === 0, lista(donde)); }
 }
+
+// ---------- colores en un solo lugar (A6-02): 01_variables.css; las demás hojas y la ficha PDF usan sus variables ----------
+{ const con = [];
+  for (const a of fs.readdirSync(path.join(F, 'css')).filter(x => x.endsWith('.css') && x !== '01_variables.css')) {
+    const t = leer('02_fuente', 'css', a).replace(/\/\*[\s\S]*?\*\//g, '');
+    for (const m of t.matchAll(/#[0-9A-Fa-f]{3,8}\b|(?<![\w-])white(?![\w-])|rgba?\(\s*\d/g)) con.push(`css/${a}:${t.slice(0, m.index).split('\n').length} ${m[0]}`); }
+  const pdf = js['12_fichas_pdf.js']; for (const m of pdf.matchAll(/\[\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\]|set(?:Fill|Draw|Text)Color\(\s*\d/g)) con.push(`js/12_fichas_pdf.js:${pdf.slice(0, m.index).split('\n').length} ${m[0]}`);
+  ok('colores solo en 01_variables.css: ninguno escrito a mano en las demás hojas ni en la ficha PDF', con.length === 0, lista(con)); }
+
+// ---------- el código no cuenta su historia (F1-01): la historia está en Git y en la bitácora ----------
+{ const con = [];
+  for (const [d, ext] of [['js', '.js'], ['css', '.css']]) for (const a of fs.readdirSync(path.join(F, d)).filter(x => x.endsWith(ext)))
+    leer('02_fuente', d, a).split('\n').forEach((l, i) => { if (/\bv1\.\d+\b|\bv17\.\d+\b/.test(l)) con.push(`02_fuente/${d}/${a}:${i + 1}`); });
+  leer('02_fuente', 'plantilla.html').split('\n').forEach((l, i) => { if (/\bv1\.\d+\b/.test(l)) con.push(`02_fuente/plantilla.html:${i + 1}`); });
+  ok('sin números de versión («v1.24») en los comentarios del código', con.length === 0, lista(con)); }
 
 // ---------- claves, llaves y direcciones internas ----------
 { let archivos;

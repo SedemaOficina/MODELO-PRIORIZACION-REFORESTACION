@@ -80,10 +80,10 @@ const REC_PASOS = [
   { sel:'#card .field-acts a[href*="pano"]', mapa:true, lado:'#card', prep:recFicha, titulo:'Pre-evalúa con Street View', texto:'Toca una calle del mapa para abrir su ficha: prioridad, banqueta según INEGI y coordenadas. Antes de salir, abre Street View y revisa si hay banqueta, si su ancho permite plantar y si hay cocheras, postes, cables o árboles. Así decides qué calles visitar y cuáles necesitan reconocimiento en sitio.' },
   { sel:'.rec-punto, #inv-sec', mapa:true, prep:recEspacios, titulo:'Espacios para plantar', texto:'Al acercar el mapa a nivel de calle aparecen los espacios del inventario de arbolado: cepa vacante (anillo verde), tocón (círculo café) y árbol muerto (círculo gris con ×). Toca uno para ver su ficha y revisarlo en Street View. Se ocultan con el botón de capas, en «Espacios para plantar».' },
   { sel:'#panel-actions, #tab-dl', panel:true, titulo:'Tu lista de campo', texto:()=> (isGC()
-      ? 'Elige una alcaldía o una avenida y descarga su lista de avenidas en Excel, en el mismo orden que ves, y su ficha en PDF.'
-      : 'Elige una alcaldía o una colonia y descarga su lista de calles en Excel, en el mismo orden que ves, y su ficha en PDF.')
+      ? 'Elige una alcaldía o una avenida y descarga su lista de avenidas en Excel, en el mismo orden que ves, y su ficha PDF.'
+      : 'Elige una alcaldía o una colonia y descarga su lista de calles en Excel, en el mismo orden que ves, y su ficha PDF.')
       + ' En «Descargas» cada archivo dice qué trae y para qué sirve; al final están los de Google Earth (KML). Todos respetan los filtros. Los Excel y los archivos para mapas traen además las cepas vacantes, los tocones y los árboles muertos de cada calle; la ficha PDF no los trae.' },
-  { sel:'#zloc', mapa:true, titulo:'En campo', texto:'«Mi ubicación» dice en qué colonia estás y qué calles prioritarias tienes cerca. Tu ubicación no sale del teléfono.' },
+  { sel:'#zloc', mapa:true, titulo:'En campo', texto:'«Mi ubicación» dice en qué colonia estás y qué calles prioritarias tienes cerca. Tu ubicación no sale del celular.' },
   { sel:'#cuenta-btn', con:'#cuenta-menu', panel:true, si:()=>!!SESION.cierre, prep:recCuenta, titulo:'Mi cuenta', texto:()=> SESION.inicio
       ? 'En «Mi cuenta» puedes cambiar tu contraseña o cerrar sesión. Al cambiarla regresas a la misma consulta.'
       : 'En «Mi cuenta» puedes cerrar sesión.' },
@@ -141,13 +141,13 @@ function recorrido(){ if (REC) return; if (!entradaEl.hidden || !infoModal.hidde
     <div class="rec-acc"><button type="button" class="rec-salir">Salir del recorrido</button><button type="button" class="btn secondary rec-ant">Anterior</button><button type="button" class="btn rec-sig">Siguiente</button></div>`;
   document.body.append(velo, foco, globo);
   REC = { k:0, velo, foco, globo, origen:document.activeElement, ficha:false, punto:null, leyenda:false, cuenta:false, lista:recPasos() };
-  appEl.inert = true; document.body.classList.add('recorrido');
+  inerte(true); document.body.classList.add('recorrido');
   globo.querySelector('.rec-salir').onclick = recFin;
   globo.querySelector('.rec-ant').onclick = ()=> recPaso(REC.k-1);
   globo.querySelector('.rec-sig').onclick = ()=> REC.k===REC.lista.length-1? recFin() : recPaso(REC.k+1);
   recPaso(0); }
 function recFin(){ if (!REC) return; recDeshace(); const R = REC; REC = null; recMarca();
-  R.velo.remove(); R.foco.remove(); R.globo.remove(); appEl.inert = false; document.body.classList.remove('recorrido');
+  R.velo.remove(); R.foco.remove(); R.globo.remove(); inerte(false); document.body.classList.remove('recorrido');
   if (isPhone()) verInfo();
   const o = R.origen; if (o && o.isConnected && o!==document.body) o.focus(); else $('scope-title').focus(); }
 // teclado: Esc sale, flechas avanzan y retroceden, Tab no sale del globo. En captura, antes que el Esc general de 13_interfaz.js.

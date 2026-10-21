@@ -101,7 +101,7 @@ const POB = (()=>{ const alc = META.muns.map(()=>({t:0,p:0})); let t=0,p=0;
     const pb=c.pob||0; alc[m].t+=pb; t+=pb; if(esPrio(c.p)){ alc[m].p+=pb; p+=pb; } }
   return {alc, city:{t,p}}; })();
 const hab = n => n>=1e6? fmt1.format(n/1e6)+' millones de habitantes' : fmt.format(n)+' habitantes';
-const habC = n => n>=1e6? fmt1.format(n/1e6)+' M' : fmt.format(n);
+const habC = n => n>=1e6? fmt1.format(n/1e6)+' millones' : fmt.format(n);
 const CITY = META.city;
 const cityPrioKm = kmPrio(CITY), cityTotKm = sum(CITY.km);
 const VCITY = VPC.city, vCityPrioKm = kmPrio(VCITY), vCityTotKm = sum(VCITY.km);
@@ -137,7 +137,7 @@ function kpiHtml(s, opts){
   const tot = sum(s.km); const prio = kmPrio(s); const nprio = opts.nprio;
   return `<div class="kpi"><div class="v">${kmTxt(prio)}<small>${kmUn(prio)}</small></div><div class="l">${opts.l1}</div></div>
     <div class="kpi"><div class="v">${tot? fmt1.format(100*prio/tot):'0'}<small>%</small></div><div class="l">de ${kmFull(tot)}</div></div>
-    <div class="kpi"><div class="v">${nprio>=10000? fmt1.format(nprio/1000)+'<small>mil</small>' : fmt.format(nprio)}</div><div class="l">${opts.l3}</div></div>`;
+    <div class="kpi"><div class="v">${fmt.format(nprio)}</div><div class="l">${opts.l3}</div></div>`;
 }
 function barsHtml(s){ const tot=sum(s.km); const max = Math.max(...s.km, 0.001); return META.prio.map((p,k)=>`
     <div class="lab"><i data-st="background:var(--p${k})"></i>${p}</div>
@@ -149,12 +149,12 @@ function renderSummary(){
   const fs = frSumm(); const nprioF = sumPrio(fs.n);
   const emptyCol = selCol!==null && sum(fs.n)===0;  // colonia sin frentes a cargo de la alcaldía
   const EMPTY_MSG = 'Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. Puede ser una unidad habitacional o un predio sin vía pública propia.';
-  // Resumen en bloques (v1.27): «Prioritario = …» una vez arriba; un bloque por red (encabezado, unidad y cifras con etiquetas cortas que no
+  // Resumen en bloques: «Prioritario = …» una vez arriba; un bloque por red (encabezado, unidad y cifras con etiquetas cortas que no
   // repiten el ámbito) y al final la comparación de los dos responsables. Con una sola red, su bloque y la comparación.
-  const kFr = emptyCol? `<div class="kpi-empty"><b>Sin frentes a cargo de la alcaldía</b>${EMPTY_MSG.replace('Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. ','')}</div>` : kpiHtml(fs, {nprio:nprioF, l1:`km prioritarios${hayFiltro()? '<br><b class="banq-tag">'+filtroTxt()+'</b>' : ''}`, l3:'frentes prioritarios'});
+  const kFr = emptyCol? `<div class="kpi-empty"><b>Sin frentes a cargo de la alcaldía</b>${EMPTY_MSG.replace('Esta colonia no tiene frentes de manzana a cargo de la alcaldía en el modelo. ','')}</div>` : kpiHtml(fs, {nprio:nprioF, l1:`prioritarios${hayFiltro()? '<br><b class="banq-tag">'+filtroTxt()+'</b>' : ''}`, l3:'frentes prioritarios'});
   const vs = (resp!=='alc')? vpSumm() : null;
   const ambV1 = selAv!==null? (sel===null? 'de la avenida' : 'de la avenida en la alcaldía') : sel===null? 'de la ciudad' : 'de la alcaldía';
-  const kVp = vs? kpiHtml(vs, {nprio:vs.recsp.size, l1:`km prioritarios${filtroEsp? '<br><b class="banq-tag">'+espTxtVP()+'</b>' : ''}`, l3:`de ${fmt.format(vs.recs.size)} tramos prioritarios`}) : '';
+  const kVp = vs? kpiHtml(vs, {nprio:vs.recsp.size, l1:`prioritarios${filtroEsp? '<br><b class="banq-tag">'+espTxtVP()+'</b>' : ''}`, l3:`tramos prioritarios de ${fmt.format(vs.recs.size)}`}) : '';
   // encabezados de los bloques: quién atiende (en mayúsculas por estilo) y qué se mide
   const cabAlc = sel===null? 'Alcaldías' : 'Alcaldía', subAlc = `Frentes de manzana${selCol!==null? ' en la colonia' : ''} · km por cada acera`;
   const subGC = `${selAv!==null? (sel===null? 'Toda la avenida' : 'La avenida en la alcaldía') : 'Vialidades primarias'} · km sobre el eje${resp==='both' && selCol!==null? ' · de toda la alcaldía' : ''}`;

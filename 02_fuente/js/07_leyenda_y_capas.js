@@ -29,7 +29,7 @@ function setResp(v, sinRefresh){
   $('banq-row').hidden = v==='gc';   // la banqueta es de los frentes de las alcaldías
   // con solo Gobierno Central la fila no se ve: su filtro se suelta para que ninguna cifra quede filtrada por algo que no está a la vista
   if (v==='gc' && filtroBanq!=='todas'){ filtroBanq = 'todas'; document.querySelectorAll('button[data-banq]').forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq==='todas'))); }
-  $('esp-row').hidden = !INV;   // el espacio aplica a las dos redes desde la v1.24 (el archivo único no trae el inventario)
+  $('esp-row').hidden = !INV;   // el espacio aplica a las dos redes (el archivo único no trae el inventario)
   espTitulos(v);
   if (resp===v) return; resp=v;
   document.body.dataset.resp = v;
@@ -58,7 +58,7 @@ banqBtns.forEach(b=>{ b.onclick = ()=> setBanq(b.dataset.banq); });
 // Tres casillas independientes, como «Atiende»: todas apagadas = sin filtro; con una o varias, los frentes que tienen al menos un punto de
 // alguno de esos tipos. Se combina con «Banqueta». La primera vez se piden los datos (espCargar): las casillas cambian al instante y las
 // cifras cuando llegan; espQuiero es lo que marcan las casillas y filtroEsp lo que ya se aplica.
-// Con Gobierno Central (v1.24) acota los tramos de vialidad primaria (pasaEspacioVP); con las dos redes, a las dos.
+// Con Gobierno Central acota los tramos de vialidad primaria (pasaEspacioVP); con las dos redes, a las dos.
 const espBtns = document.querySelectorAll('button[data-esp]');
 // la descripción de cada casilla dice qué acota según la red consultada
 const ESP_QUE = ['al menos una cepa vacante del inventario de arbolado: se puede plantar directo', 'al menos un tocón del inventario de arbolado: hay que retirarlo antes de plantar', 'al menos un árbol muerto del inventario de arbolado: requiere sustitución'];

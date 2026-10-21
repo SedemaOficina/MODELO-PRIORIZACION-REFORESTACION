@@ -3,11 +3,11 @@
 .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}
 .seg{grid-template-columns:repeat(3,minmax(0,1fr))}
 .bars{grid-template-columns:auto minmax(0,1fr) auto}
-.results li{grid-template-columns:minmax(0,1fr) auto}
+.results .fila{grid-template-columns:minmax(0,1fr) auto}
 .chip{grid-template-columns:26px minmax(0,1fr)}
 .card dl{grid-template-columns:auto minmax(0,1fr)}
-.kpi,.kpi .l,.results li > div,.chip > span{min-width:0}
-.kpi .l,.results li > div{overflow-wrap:break-word}
+.kpi,.kpi .l,.results .fila > span,.chip > span{min-width:0}
+.kpi .l,.results .fila > span{overflow-wrap:break-word}
 .kpi .v{white-space:nowrap;font-size:1.25rem}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){
   .app{grid-template-columns:minmax(0,1fr)!important}
@@ -16,7 +16,7 @@
   html,body{overflow-x:hidden}
 }
 /* barra de escala */
-.scalebar{position:absolute;right:16px;bottom:40px;z-index:5;display:flex;align-items:center;gap:6px;background:rgba(255,255,255,.88);border-radius:6px;padding:3px 8px;font-size:.75rem;color:var(--ink-2);pointer-events:none}
+.scalebar{position:absolute;right:16px;bottom:40px;z-index:5;display:flex;align-items:center;gap:6px;background:rgba(var(--blanco-rgb),.88);border-radius:6px;padding:3px 8px;font-size:.75rem;color:var(--ink-2);pointer-events:none}
 .scalebar i{display:block;height:6px;border:1.5px solid var(--ink-2);border-top:0}
 @media (max-width:860px) and (min-height:481px), (max-width:600px){.scalebar{right:62px;bottom:10px}}
 /* capas y leyenda-filtro sobre el mapa */

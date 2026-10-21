@@ -59,7 +59,7 @@ let filtroEsp = 0, ESP_FR = null, ESP_CV = null, ESP_FRN = null;
 const ESP_TIPOS = [{k:'cv', n:'cepa vacante', s:'cepa_vacante'}, {k:'to', n:'tocón', s:'tocon'}, {k:'am', n:'árbol muerto', s:'arbol_muerto'}];
 const pasaEspacio = i => filtroEsp===0 || (ESP_FR!==null && (ESP_FR[i] & filtroEsp)!==0);
 const enAmbito = i => enTerritorio(i) && pasaFiltros(i);
-// El mismo filtro para el Gobierno Central (v1.24): una parte de vialidad primaria pasa si tiene al menos un punto de los tipos elegidos.
+// El mismo filtro para el Gobierno Central: una parte de vialidad primaria pasa si tiene al menos un punto de los tipos elegidos.
 // Cuentan los puntos de sus frentes de manzana a cargo del Gobierno Central y los del camellón (sin frente y a 25 m o menos de su eje);
 // los de los frentes de las alcaldías no. ESP_VP (Uint8Array de NV) trae los tipos de cada parte y ESP_VPN (Uint16Array de 3·NV) cuántos
 // puntos de cada tipo (ficha del tramo y orden «Avenidas con más cepas vacantes»); los baja espCargar() junto con ESP_FR. pasaEspacioVP es la

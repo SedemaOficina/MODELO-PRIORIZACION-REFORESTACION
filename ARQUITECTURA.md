@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.42 (21 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.43 (21 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -130,9 +130,9 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 **Accesibilidad:**
 - *Anuncios:* `anunciaAmbito()` (`10_seleccion.js`) escribe el ámbito y su cifra en `#sr-estado` (región viva); el conteo del listado, el estado de las descargas y el mensaje del cargador tienen `role="status"`; los errores de carga, `role="alert"`.
-- *Foco:* al elegir en el buscador el foco pasa a `#scope-title`; `showCard` enfoca la ficha (`enfocaFicha`) y `hideCard(true)` lo devuelve al control de origen; Esc cierra ayuda, ficha y capas (`13_interfaz.js`); con la ayuda abierta `.app` queda `inert`. En teléfono, si el foco llega a un control tapado por la ficha, la ficha se cierra.
+- *Foco:* después de elegir, `enfocaRespuesta()` (`13_interfaz.js`) lo pasa a `#scope-title` o, en el celular con el mapa a la vista, a la ficha abierta o a «Volver a la información»; nunca queda en la página ni dentro de algo inerte. `showCard` enfoca la ficha (`enfocaFicha`) y `hideCard(true)` lo devuelve al control de origen; con Esc en el celular, si la ficha se abrió desde un renglón de la información, regresa a la información y a ese renglón. Esc cierra ayuda, ficha y capas (`13_interfaz.js`); con la ayuda, la entrada o el recorrido abiertos, `inerte()` deja `inert` a `.app` y al enlace «Saltar a la respuesta». En teléfono, si el foco llega a un control tapado por la ficha, la ficha se cierra.
 - *Entrada y recuerdo del territorio:* sin consulta en la dirección, `16_arranque.js` abre en la última alcaldía consultada (`localStorage`, clave `cp_inicio`: clave de alcaldía o `ciudad`; y la red en `cp_red`: `alc`, `gc` o `both`); si no hay nada recordado, `abreEntrada()` pregunta, en dos pasos, la red (alcaldías o Gobierno Central) y el territorio. Un enlace con consulta manda sobre lo recordado y no lo modifica. Si el navegador no permite `localStorage`, la herramienta pregunta en cada visita.
-- *Listados:* los renglones son `li` con `role="button"`, se activan con Entrar o barra espaciadora (delegado en `09_listados.js`). Elegir un tramo abre la ficha de su frente de mayor prioridad: es la vía de teclado a la ficha de un frente.
+- *Listados:* cada renglón es un `li` con un `<button class="fila">` que lo ocupa todo (la lista conserva su semántica); el botón se activa con Entrar o barra espaciadora sin código propio, y si la lista se vuelve a armar el foco regresa al renglón elegido o a la respuesta (delegado en `09_listados.js`). Elegir un tramo abre la ficha de su frente de mayor prioridad: es la vía de teclado a la ficha de un frente.
 - *Mapa:* el lienzo lleva `role="application"` y un nombre que remite al listado; el texto está en `data-nombre` de `#map`.
 - *Documentos:* `propsPDF` y `propsExcel` ponen idioma, título y autoría. Las fichas no están etiquetadas (jsPDF no puede).
 
@@ -144,7 +144,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 
 | Archivo | Contenido |
 |---|---|
-| `01_variables.css` | Paleta institucional, rampa de prioridad (`--p0` Muy Baja … `--p4` Muy Alta), colores del mapa, `--loc`. **Cambiar un color aquí lo cambia en toda la herramienta**, mapa incluido. |
+| `01_variables.css` | Paleta institucional, rampa de prioridad (`--p0` Muy Baja … `--p4` Muy Alta), colores del mapa, `--loc`. **Cambiar un color aquí lo cambia en toda la herramienta**, mapa y fichas PDF incluidos (`pdfPaleta()` de `12_fichas_pdf.js` los lee). Las transparencias usan canales: `rgba(var(--tinta-rgb),.14)`. Ninguna otra hoja escribe colores a mano (lo revisa `prueba_consistencia.js`). |
 | `02_base.css` | Tipografía, panel, cifras, barras, mapa, leyenda, tarjetas, ventana, cargador, teléfono |
 | `03_controles.css` | Foco, campos, menús, barra de herramientas, barra de resumen, casillas |
 | `04_pantalla_y_leyenda.css` | Sin desborde en teléfono, barra de escala, leyenda-filtro, encabezado compacto, estados vacíos y acciones de campo |

@@ -1,7 +1,7 @@
 /* Mi ubicación: estados del botón y tarjeta "Tu ubicación". */
 #zloc.on{color:var(--loc)}
-#zloc.follow{background:var(--loc);color:#fff}
-#zloc.follow svg circle:first-child{fill:#fff}
+#zloc.follow{background:var(--loc);color:var(--blanco)}
+#zloc.follow svg circle:first-child{fill:var(--blanco)}
 #zloc.busy svg{animation:locpulse 1s ease-in-out infinite}
 @keyframes locpulse{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){#zloc.busy svg{animation:none}}

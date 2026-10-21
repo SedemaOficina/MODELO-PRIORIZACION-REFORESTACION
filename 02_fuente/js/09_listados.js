@@ -30,7 +30,7 @@ const NAMES_N = META.names.map(norm);
 const AV_N = VPC.nomenclat.map(norm);
 // desglose de una calle por prioridad: una calle reúne frentes de prioridades distintas, por eso no tiene una sola
 function desgHtml(s){ const d = dom({km:s.kp}); const partes = []; for(let p=4;p>=0;p--) if (s.kp[p]>0) partes.push(`<span><i data-st="background:var(--p${p})"></i>${META.prio[p]} ${kmFull(s.kp[p])}</span>`);
-  return `<div class="desg" aria-label="Kilómetros de frente de la calle por prioridad">${partes.join('')}</div>${partes.length>1? `<div class="t">Prioridad predominante: ${META.prio[d]} · ${kmFull(s.km)} de frente en total</div>` : ''}`; }
+  return `<span class="desg">${partes.join('')}</span>${partes.length>1? `<span class="t">Prioridad predominante: ${META.prio[d]} · ${kmFull(s.km)} de frente en total</span>` : ''}`; }
 const PLACEHOLDER = new Set(META.names.map((n,i)=>[norm(n),i]).filter(([n])=> n==='' || n==='sin referencia' || n==='sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion')).map(x=>x[1]));
 // Nombre de un frente, igual en tarjeta, listados, Mi ubicación, Excel y fichas: los nombres genéricos de INEGI
 // («Ninguno», «Sin Referencia», «Manzana o Edificación Contigua» y variantes como «Privada Ninguno») no son nombres de calle.
@@ -65,13 +65,13 @@ function renderUbicar(ul, items, qRaw){
   const dist = s => { let d=Infinity; for (const i of s.idx){ const dd=Math.hypot((midLon(i)-myPos.lon)*111320*c0, (midLat(i)-myPos.lat)*110540); if(dd<d) d=dd; } return d; };
   const filas = items.map(([key,s])=>({key, s, m:F.mun[s.idx[0]], col: s.col? META.colonias[s.col].n : 'Colonia no identificada', d: myPos? dist(s) : 0}));
   filas.sort((a,b)=> myPos? a.d-b.d : (META.munNames[a.m].localeCompare(META.munNames[b.m],'es') || a.col.localeCompare(b.col,'es') || (META.names[a.s.nid]||'').localeCompare(META.names[b.s.nid]||'','es')));
-  for (const f of filas.slice(0, iniN)){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button'); li.className='ubica';
+  for (const f of filas.slice(0, iniN)){ const li=document.createElement('li'); li.className='ubica';
     const tl=[...f.s.tipos].filter(Boolean).slice(0,2).join(', ');
-    li.innerHTML = `<div><div class="n">${META.names[f.s.nid]||'Sin nombre'}</div><div class="t">${f.col} · ${META.munNames[f.m]}${tl? ' · '+tl : ''}</div></div><div class="k"><small>${myPos? 'a '+distTxt(f.d) : ''}</small></div>`;
+    li.innerHTML = `<button type="button" class="fila"><span><span class="n">${META.names[f.s.nid]||'Sin nombre'}</span><span class="t">${f.col} · ${META.munNames[f.m]}${tl? ' · '+tl : ''}</span></span><span class="k"><small>${myPos? 'a '+distTxt(f.d) : ''}</small></span></button>`;
     // al elegir, la consulta queda en la alcaldía de la calle y la calle resaltada
     const go = ()=>{ selEl.value=String(f.m); sel=f.m; selCol=null; selAv=null; highlight=null; hideCard(); keepView=true; refresh(); keepView=false;
       const st=streetIdx.get(f.key); if (st){ highlightStreet(f.key, st); renderInicio(); } };
-    li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; ul.appendChild(li); }
+    li.onclick=go; ul.appendChild(li); }
   return filas.length; }
 // calle consultada en la red de las alcaldías (la resaltada): nombre y frentes; null si no hay
 function calleSel(){ if (!highlight || highlight.avId!==undefined || isGC() || !highlight.idx.length) return null;
@@ -86,7 +86,7 @@ function highlightStreet(nid, s){
   highlight = {nameId:nid, idx:s.idx};
   let w=180,sN=90,e=-180,n=-90; for(const i of s.idx){ for(let k=start[i];k<start[i+1];k++){ const x=POS[2*k],y=POS[2*k+1]; if(x<w)w=x; if(x>e)e=x; if(y<sN)sN=y; if(y>n)n=y; } }
   const pad = 0.0015; const vs = fitTo([w-pad,sN-pad,e+pad,n+pad], 60); vs.zoom = Math.min(vs.zoom, 16.5);
-  hideCard(); if (!restaurando) verMapa({desdeLista:true}); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns(); rotuloInfo();
+  hideCard(); if (!restaurando) verMapa({desdeLista:true}); flyTo(vs, 1000); rerender(); renderActions(); syncCalleBtns(); rotuloInfo(); anunciaAmbito();
 }
 
 // ---------- pestaña «Dónde empezar»: la lista del ámbito ----------
@@ -99,7 +99,7 @@ let iniOrden = 'kmp', iniN = 10;
 // orden se conserva al bajar de la alcaldía a la colonia y al volver); 'callescv', las calles de la alcaldía por cepas; 'avcv', las avenidas
 // del Gobierno Central por cepas de sus partes prioritarias en el ámbito, con el filtro «Espacio» (buildAvenues). Ordena por las cepas de los
 // frentes (o tramos) prioritarios que pasan enAmbito(i), con los filtros de banqueta y espacio; cada renglón dice además el total de
-// cualquier prioridad, y lo que no tiene km prioritarios pero sí cepas va al final (v1.27, en lugar de los órdenes «(todas)» de la v1.25).
+// cualquier prioridad, y lo que no tiene km prioritarios pero sí cepas va al final.
 // Necesita espacios_frentes.bin: se baja la primera vez que se elige (espCargar); mientras llega, la lista sigue con el orden anterior y un
 // aviso dice que está cargando. El archivo único no trae el inventario y no lo ofrece. La vista «Alcaldías» de la ciudad no se ordena por
 // cepas: el inventario avanza muy distinto en cada alcaldía y ese orden diría más del avance del inventario que de dónde plantar.
@@ -119,7 +119,7 @@ const cepasK = (cv, cvt) => `<span class="cep">${cepasTxt(cv, cvt)}</span>`;
 const cepasNota = que => `Cuenta solo lo inventariado hasta ${INV.corte} (inventario en curso): ${que} con 0 puede no estar inventariada todavía.`;
 // opciones de «Mostrar»: cortas, para que la lista desplegable no se salga del panel en el celular
 const INI_VISTA = {
-  kmp: { op:'Colonias · más km prioritarios', tit:'por kilómetros de frente prioritario', val:s=>s.kmp, nota:'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una colonia para ver sus calles.' },
+  kmp: { op:'Colonias · más km prioritarios', tit:'por kilómetros de frente prioritario', val:s=>s.kmp, nota:'Prioritario = prioridades Muy Alta, Alta y Media. Selecciona una colonia para ver sus calles.' },
   cv:  { op:'Colonias · más cepas vacantes', opCol:'Calles · más cepas vacantes', tit:'por cepas vacantes en frentes prioritarios', val:s=>s.cv, nota:'Ordenadas por cepas vacantes del inventario de arbolado en los frentes prioritarios (Muy Alta, Alta y Media) a cargo de la alcaldía: ahí se puede plantar directo. Selecciona una colonia para ver sus calles.' },
   pob: { op:'Colonias · más habitantes', tit:'por habitantes', val:(s,c)=>c.pob||0, nota:'Población residente de la colonia (Censo 2020) entre las colonias con frente prioritario; no equivale a población atendida.' },
   calles: { op:'Calles · más km prioritarios' },
@@ -137,9 +137,11 @@ function iniVistas(){
   return ['kmp', ...cv, 'pob', ...(sel===null? ['alc'] : ['calles', ...(INV? ['callescv'] : [])])]; }
 // el nombre de la opción: con una colonia elegida, «cv» son sus calles por cepas
 const iniOp = k => k==='cv' && selCol!==null? INI_VISTA[k].opCol : INI_VISTA[k].op;
-function iniFila(pos, nombre, sub, k, small, go, dotc, extra=''){ const li=document.createElement('li'); li.tabIndex=0; li.setAttribute('role','button');
-  li.innerHTML = `<div><div class="n"><span class="pos">${pos}</span>${dotc? dot(dotc):''}${nombre}</div>${sub? `<div class="t">${sub}</div>` : ''}${extra}</div><div class="k">${k}<small>${small}</small></div>`;
-  li.onclick=go; li.onkeydown=e=>{ if(e.key==='Enter') go(); }; return li; }
+// cada renglón es un elemento de la lista con un botón que lo ocupa todo: la lista conserva su semántica y el botón se activa con
+// Entrar y con la barra espaciadora sin código propio
+function iniFila(pos, nombre, sub, k, small, go, dotc, extra=''){ const li=document.createElement('li');
+  li.innerHTML = `<button type="button" class="fila"><span><span class="n"><span class="pos">${pos}</span>${dotc? dot(dotc):''}${nombre}</span>${sub? `<span class="t">${sub}</span>` : ''}${extra}</span><span class="k">${k}<small>${small}</small></span></button>`;
+  li.onclick=go; return li; }
 const iniVacio = (ul, t) => { ul.innerHTML = `<li class="empty">${t}</li>`; return 0; };
 // nota bajo la lista; lo complementario va en «Más detalles» (plegado en el celular)
 function iniNota(txt, extra){ const n=$('ini-note'); n.textContent = txt; if (extra) n.insertAdjacentHTML('beforeend', masDet(extra)); }
@@ -162,7 +164,7 @@ function filasColonias(ul, ord){
     ul.appendChild(iniFila(k+1, c.n, `${sel===null? META.munNames[munIndex[c.m]]+' · ':''}Prioridad de colonia ${c.p>=0? META.prio[c.p]:'—'}${c.pob && ord!=='pob'? ' · '+fmt.format(c.pob)+' hab.':''}`, v, sm, ()=>pickColonia(i), c.p>=0? T.prio[c.p]:null)); });
   return items.length; }
 // Calles y avenidas de «Mostrar» (sin búsqueda): las mismas filas, en el mismo orden, en la pantalla y en los Excel «Lista de calles» y
-// «Lista de avenidas» (C1-01, v1.40). Con cepas entran también las que no tienen km prioritarios pero sí cepas; con el mismo número de cepas,
+// «Lista de avenidas». Con cepas entran también las que no tienen km prioritarios pero sí cepas; con el mismo número de cepas,
 // por km prioritarios y por km en total (como siempre); las que no tienen km prioritarios, al final, por su total. Items: [clave, s].
 const callesLista = cepas => [...streetIdx].filter(([, s])=> (s.kmp>0 || (cepas && s.cvt>0)) && META.names[s.nid]);
 const avenidasLista = cepas => [...avIdx].filter(([, s])=> s.kmp>0 || (cepas && s.cvt>0));
@@ -191,7 +193,7 @@ function filasCalles(ul, q, qRaw, cepas=false){
   const sinNom = !q && sinNombre.kmp>0? `Además, ${kmFull(sinNombre.kmp)} de frente prioritario ${selCol!==null?'de esta colonia':'de la alcaldía'} no tienen nombre de vialidad en INEGI («Ninguno» o «Manzana o edificación contigua»). No aparecen en esta lista, pero sí en el Excel «Frente por frente».` : '';
   if (cepas) iniNota(`Calles ${selCol!==null? 'de la colonia' : 'de la alcaldía'} ordenadas por cepas vacantes del inventario de arbolado en sus frentes prioritarios (Muy Alta, Alta y Media): ahí se puede plantar directo.${selCol!==null? '' : ' Una calle que pasa por varias colonias aparece una vez en cada una.'} Selecciona una calle para ubicarla en el mapa y ver sus tramos.`,
     [cepasDet('la calle', 'frentes'), cepasNota('una calle'), sinNom].filter(Boolean).join(' '));
-  else iniNota(q? 'Prioritario = categorías Muy Alta, Alta y Media. Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
+  else iniNota(q? 'Prioritario = prioridades Muy Alta, Alta y Media. Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
     : selCol!==null? 'Calles de la colonia ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media). Selecciona una calle para ubicarla en el mapa y ver sus tramos.'
     : 'Calles de la alcaldía ordenadas por kilómetros de frente prioritario (Muy Alta, Alta y Media); una calle que pasa por varias colonias aparece una vez en cada una. Selecciona una calle para ubicarla en el mapa y ver sus tramos.',
     sinNom);
@@ -282,10 +284,9 @@ function iniCarga(estado){ const n = $('ini-carga'); if (!n) return; n.classList
 function iniCepas(k){ iniPend = k; iniCarga('carga');
   espCargar().then(()=>{ if (iniPend!==k) return; iniPend = null; iniCarga(); iniOrden = k; buildStreets(); buildAvenues(); renderInicio(); },
     e=>{ console.warn('orden por cepas vacantes', e); if (iniPend!==k) return; iniPend = null; iniCarga(e); renderInicio(); }); }
-$('ini-mas').onclick = ()=>{ const n = iniN; iniN += 10; renderInicio(); const li = $('ini-list').children[n]; if (li) li.focus(); };
-// Renglones de la lista y de los tramos: se activan también con la barra espaciadora y, como la lista se vuelve a armar al elegir,
-// el foco pasa al título de la respuesta (cambio de ámbito) o regresa al renglón elegido (calle consultada).
-for (const id of ['ini-list','tramos']) $(id).addEventListener('keydown', e=>{ const li = e.target; if (!li.matches || !li.matches('li[tabindex]')) return;
-  if (e.key===' '){ e.preventDefault(); li.click(); } if (e.key!==' ' && e.key!=='Enter') return;
-  setTimeout(()=>{ const a = document.activeElement; if (a && a!==document.body && a.isConnected) return;
-    ($('ini-list').querySelector('li.active') || $('scope-title')).focus(); }, 60); });
+$('ini-mas').onclick = ()=>{ const n = iniN; iniN += 10; renderInicio(); const b = $('ini-list').children[n] && $('ini-list').children[n].querySelector('.fila'); if (b) b.focus(); };
+// Renglones de la lista y de los tramos: como la lista se vuelve a armar al elegir, con el teclado (un clic con detail 0) el foco regresa
+// al renglón elegido (calle consultada) o pasa a la respuesta (cambio de ámbito).
+for (const id of ['ini-list','tramos']) $(id).addEventListener('click', e=>{ if (e.detail!==0 || !e.target.closest || !e.target.closest('.fila')) return;
+  setTimeout(()=>{ const a = document.activeElement; if (a && a!==document.body && a.isConnected && !a.closest('[inert]')) return;
+    const b = $('ini-list').querySelector('li.active .fila'); if (b && !b.closest('[inert]')) b.focus(); else enfocaRespuesta(); }, 60); });

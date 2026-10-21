@@ -53,7 +53,7 @@ const encimados = page => page.evaluate(() => { const b = document.getElementByI
       await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
       await L.elegirTipo(page, 'Progreso Tizapan', 'Col'); await page.waitForTimeout(500);
       e = await estado(page); ok(t + 'elegir una colonia se queda en la información; «Col. …»', e.info && /^Col\. Progreso Tizap/.test(e.rotulo), JSON.stringify(e));
-      await L.clic(page, '#tab-ini'); const fila = await page.$('#ini-list li[tabindex]');
+      await L.clic(page, '#tab-ini'); const fila = await page.$('#ini-list li:has(.fila)');
       const nomFila = fila ? await fila.evaluate(li => [...li.querySelector('.n').childNodes].filter(x => x.nodeType === 3).map(x => x.textContent).join('').trim()) : '';
       if (fila) { await fila.click(); await page.waitForTimeout(800); }
       e = await estado(page); ok(t + 'elegir una calle de la lista lleva al mapa; el botón dice su nombre', !!fila && e.mapa && !!nomFila && e.rotulo === nomFila, `${nomFila} · ${JSON.stringify(e)}`);

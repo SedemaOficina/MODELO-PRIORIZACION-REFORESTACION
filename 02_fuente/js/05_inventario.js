@@ -4,7 +4,7 @@
 // Aparte, el filtro «Espacio» (07_leyenda_y_capas.js, filtroEsp en 03_estado.js) sí acota cifras, listas y descargas cuando la persona lo
 // prende: usa espacios_frentes.bin (puntos de cada tipo por frente), que se pide con espCargar() la primera vez que se usa. El mismo
 // archivo da las cepas vacantes por frente (ESP_CV) del orden «más cepas vacantes» de «Dónde empezar» (09_listados.js). Con él llega
-// espacios_vp.bin (v1.24): los puntos de cada tipo de cada parte de vialidad primaria del Gobierno Central (ESP_VP, ESP_VPN), por sus frentes
+// espacios_vp.bin: los puntos de cada tipo de cada parte de vialidad primaria del Gobierno Central (ESP_VP, ESP_VPN), por sus frentes
 // a cargo del Gobierno Central o en el camellón; los puntos del camellón traen en su archivo la parte de vialidad (p.vp) para su ficha.
 // Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
 // (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.

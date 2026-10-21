@@ -3,7 +3,10 @@
 const omni=$('omni'), omniList=$('omni-list'), omniClear=$('omni-clear');
 const OMNI_AB = Object.assign({}, ABREV, {calz:'calzada', clz:'calzada', av:'avenida', avda:'avenida', ave:'avenida', blvd:'boulevard', cda:'cerrada', priv:'privada', and:'andador', circ:'circuito', cto:'circuito', dr:'doctor', ing:'ingeniero', lic:'licenciado', mtro:'maestro', pdte:'presidente', fco:'francisco', gpe:'guadalupe', ma:'maria', col:'colonia', sn:'san', sta:'santa', sto:'santo'});
 const STOP = new Set(['de','del','la','las','los','el','y','en']);
-const toks = s => norm(s||'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>OMNI_AB[t]||t).join(' ').split(' ');
+// palabras normalizadas, con las abreviaturas desarrolladas; solo signos no da ninguna (antes daba una vacía, que coincidía con todo)
+const toks = s => norm(s||'').replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(Boolean).map(t=>OMNI_AB[t]||t).join(' ').split(' ').filter(Boolean);
+// un texto pegado muy largo no se busca (congelaba la página): se pide escribir solo el nombre
+const OMNI_MAX_LETRAS = 120, OMNI_MAX_PALABRAS = 8;
 function lev1(a,b){ if(a===b) return true; const la=a.length, lb=b.length; if(Math.abs(la-lb)>1) return false; let i=0,j=0,e=0;
   while(i<la && j<lb){ if(a[i]===b[j]){ i++; j++; continue; } if(++e>1) return false; if(la>lb) i++; else if(lb>la) j++; else { i++; j++; } }
   return e + (la-i) + (lb-j) <= 1; }
@@ -92,6 +95,8 @@ function omniRender(){
       li.innerHTML = `<span class="ty">Punto</span><span class="nm">Ir a ${crd(co.lat)}, ${crd(co.lon)}</span><span class="m">${w.alc===null? 'Fuera de la Ciudad de México' : (w.col!==null? META.colonias[w.col].n+' · ' : '')+META.munNames[w.alc]}</span>`;
       omniItems.push({t:'pto', ...co}); li.onmousedown = e=>{ e.preventDefault(); omniPick(omniItems[0]); }; }
     omniList.appendChild(li); omniMuestra(); return; }
+  if (omni.value.length > OMNI_MAX_LETRAS || toks(omni.value).filter(t=>!STOP.has(t)).length > OMNI_MAX_PALABRAS){
+    omniList.innerHTML = `<li class="empty">Escribe solo el nombre de la alcaldía, la colonia, la avenida o la calle (hasta ${OMNI_MAX_PALABRAS} palabras).</li>`; omniMuestra(); return; }
   const R = omniSearch(omni.value);
   if (!R){ omniList.hidden=true; omni.setAttribute('aria-expanded','false'); return; }
   const groups = [['alc','Alcaldías'],['col','Colonias'],['av','Avenidas · Gobierno Central'],['st','Calles · alcaldías']].filter(([k])=>R[k].length).sort((a,b)=> R[b[0]][0].s - R[a[0]][0].s);
@@ -135,8 +140,8 @@ function omniPick(it){
       const idx = []; for (const st of streetIdx.values()) if (st.nid===it.nid) for (const i of st.idx) idx.push(i);
       if (idx.length) highlightStreet('nombre-'+it.nid, {idx}); } }
   if (it.t==='st') verMapa({desdeLista:true}); else alaRespuesta();
-  // el foco pasa al título de la respuesta: quien usa teclado o lector de pantalla continúa desde ahí
-  setTimeout(()=>{ try { $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }, 0); }
+  // el foco pasa a la respuesta: quien usa teclado o lector de pantalla continúa desde ahí
+  setTimeout(enfocaRespuesta, 0); }
 omni.addEventListener('input', ()=>{ omniClear.hidden = !omni.value; omniTodas=false; omniRender(); });
 omni.addEventListener('focus', ()=>{ if (isPhone()) document.body.classList.add('buscando'); if (omni.value.trim().length>=2) omniRender(); });
 omni.addEventListener('blur', ()=> setTimeout(()=>{ omniClose(); document.body.classList.remove('buscando'); }, 150));

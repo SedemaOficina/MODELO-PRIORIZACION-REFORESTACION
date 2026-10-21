@@ -73,14 +73,14 @@ function locHtml(){
   const p = myPos;
   const accTxt = `precisión ±${fmt0.format(Math.max(1, Math.round(p.acc)))} m`;
   const head = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación · ${accTxt}</span>`;
-  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`;
+  const privacy = `<div class="cardnote">Tu ubicación solo se usa en este celular; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`;
   // con cualquier precisión se responde colonia y calles cercanas (en computadora la ubicación viene de la red y puede errar cientos de metros); el aviso dice cuánto confiar
   const aviso = p.acc > LOC_PRECISO? `<div class="empty-note"><b>Ubicación aproximada (±${fmt0.format(Math.round(p.acc))} m).</b> En computadora la ubicación se calcula por la red y puede no ser exacta: la colonia y las calles son las del punto que indica el navegador. Si no es tu zona, busca la colonia por su nombre.</div>`
     : p.acc>50? `<div class="empty-note"><b>Ubicación aproximada.</b> El GPS indica ±${fmt0.format(Math.round(p.acc))} m; al aire libre la precisión mejora. Confirma el tramo en la calle.</div>` : '';
   const z = zonaHtml(p.lon, p.lat, true, aviso);
   return head + z.html + (z.fuera? '' : `<div class="acts"><button class="btn secondary act" id="loc-follow" type="button" aria-pressed="${locFollow}">${locFollow? 'Dejar de seguirme' : 'Seguirme mientras camino'}</button></div>`) + privacy;
 }
-function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este teléfono; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
+function locMsg(title, body){ const c=$('card'); pinned={kind:'loc', i:0}; c.innerHTML = `<button class="close" aria-label="Cerrar">×</button><span class="pill"><i data-st="background:rgb(${LOC_BLUE})"></i>Tu ubicación</span><h3>${title}</h3><div class="empty-note">${body}</div><div class="cardnote">Tu ubicación solo se usa en este celular; la herramienta no la envía ni la guarda. Si enciendes el satélite, su proveedor (Esri) recibe la zona del mapa que estás viendo.</div>`; const era=c.hidden; c.hidden=false; c.querySelector('.close').onclick=hideCard; if (era) enfocaFicha(); }
 function wireLocCard(c){
   c.querySelectorAll('.loc-list button').forEach(b=> b.onclick = ()=>{ const k=b.dataset.k, i=+b.dataset.i; stopFollow();
     if (k==='fr'){ const cid=F.col[i]; if (cid && cid!==selCol){ keepView=true; pickColonia(cid); keepView=false; } showCard('fr', i); flyTo({...viewState, longitude:midLon(i), latitude:midLat(i), zoom:Math.max(viewState.zoom, 17.5)}, 700); }
@@ -113,14 +113,14 @@ function onPos(pos, first){
 function locError(e){
   locBtn.classList.remove('busy'); stopFollow();
   const enMarco = window.self!==window.top;
-  if (e && e.code===1) locMsg('No se permitió usar tu ubicación', enMarco? '<b>Esta vista incrustada no puede pedir la ubicación.</b> Abre la herramienta directamente en el navegador de tu teléfono.' :
+  if (e && e.code===1) locMsg('No se permitió usar tu ubicación', enMarco? '<b>Esta vista incrustada no puede pedir la ubicación.</b> Abre la herramienta directamente en el navegador de tu celular.' :
     '<b>Actívala y vuelve a tocar el botón.</b> Android (Chrome): toca el candado junto a la dirección › Permisos › Ubicación › Permitir. iPhone: Ajustes › Privacidad y seguridad › Localización › Safari › Mientras se usa la app; después recarga la página.');
   else if (e && e.code===3) locMsg('El GPS tardó demasiado', '<b>Intenta de nuevo al aire libre.</b> Dentro de edificios la señal es débil.');
-  else locMsg('No se pudo obtener tu ubicación', '<b>Revisa que la ubicación del teléfono esté encendida</b> y vuelve a intentarlo.');
+  else locMsg('No se pudo obtener tu ubicación', '<b>Revisa que la ubicación del celular esté encendida</b> y vuelve a intentarlo.');
 }
 function locate(){
   if (!navigator.geolocation || !window.isSecureContext){ locMsg('Tu navegador no permite usar la ubicación', '<b>Abre la herramienta desde su dirección segura (https)</b> en Chrome o Safari.'); return; }
-  locBtn.classList.add('busy'); locMsg('Buscando tu ubicación…', 'El navegador puede pedirte permiso. <b>Tu ubicación solo se usa en este teléfono.</b><div class="acts"><button class="btn secondary act" id="loc-cancel" type="button">Cancelar</button></div>');
+  locBtn.classList.add('busy'); locMsg('Buscando tu ubicación…', 'El navegador puede pedirte permiso. <b>Tu ubicación solo se usa en este celular.</b><div class="acts"><button class="btn secondary act" id="loc-cancel" type="button">Cancelar</button></div>');
   locLastSel = null; locAuto = true; const req = ++locReq;
   const cn = $('card').querySelector('#loc-cancel'); if (cn) cn.onclick = ()=>{ locReq++; locBtn.classList.remove('busy'); hideCard(); };
   // si mientras tanto la persona hizo otra consulta o canceló, la respuesta del GPS ya no se aplica

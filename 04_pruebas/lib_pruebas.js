@@ -143,7 +143,8 @@ const notaComparable = t => t == null ? t : String(t).replace(/ ?Además, [\d,]+
 const dlComparable = dl => Object.fromEntries(Object.entries(dl || {}).map(([k, v]) => [k, v && v.visible && !v.disabled]));
 const DL_STATUS_V140 = ['Para la lista de calles de una alcaldía, elígela arriba.', 'Selecciona una alcaldía para descargar su listado.'];
 function comparable(e) { const c = { ...e }; for (const k of ROTULOS_V127) delete c[k];
-  c.kpis = (e.kpis || []).map(k => k.v); c.lista = (e.lista || []).map(l => ({ ...l, t: sinTotal(l.t) }));
+  // v1.43 (C5-03): las cifras de 10,000 o más ya no se abrevian («71 mil» pasó a «70,953»): se comparan como las escribía la versión anterior
+  c.kpis = (e.kpis || []).map(k => k.v).map(v => { const m = /^\d{1,3}(,\d{3})+$/.test(v) ? +v.replace(/,/g, '') : 0; return m >= 10000 ? f1.format(m / 1000) + 'mil' : v; }); c.lista = (e.lista || []).map(l => ({ ...l, t: sinTotal(l.t) }));
   c.listCount = sinFiltroAlFinal(e.listCount); c.lgScope = sinFiltroAlFinal(e.lgScope); c.nota = notaComparable(e.nota);
   c.dl = dlComparable(e.dl); c.dlStatus = e.dlStatus == null ? e.dlStatus : e.dlStatus.replace(...DL_STATUS_V140); return c; }
 // También en la v1.40, los archivos: el nombre dice lo mismo que su botón, las fuentes nombran el inventario y dos textos del diccionario
@@ -162,8 +163,13 @@ const mismoNombre = (antes, nuevo) => antes != null && nuevo != null && antes.re
 // «km sobre tramos prioritarios». excelAntes quita esos renglones de los dos lados; textoAntes deja la frase de la ficha sin la cifra.
 const DIC_GC_V137 = ['Prioritario del ámbito, km de frente a cargo del Gobierno Central', 'Km de frente a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo)',
   'Equivalente prioritario (Muy Alta, Alta y Media) en km de frente de manzana', 'Equivalente en km de frente de manzana de los tramos prioritarios (Muy Alta, Alta y Media)'];
-// v1.42 (C5-02): «Gobierno de la Ciudad (de México)» pasó a «Gobierno Central» en los textos de la herramienta
-const textoAntes = t => typeof t !== 'string' ? t : t.replace(/Gobierno de la Ciudad( de México)?/g, 'Gobierno Central').replace(/\(aceras con manzana enfrente\), [\d,.]+ km (sobre tramos prioritarios|prioritarios)\./g, '(aceras con manzana enfrente), N km prioritarios.').replace(/ Espacios para plantar \(cepas vacantes, tocones y árboles muertos\): [^.]*\./g, '')
+// v1.42 (C5-02): «Gobierno de la Ciudad (de México)» pasó a «Gobierno Central» en los textos de la herramienta.
+// v1.43 (C5-04): «prioridad» en lugar de «clase» y «categoría», «ficha PDF» y meses completos («noviembre de 2025», antes «nov. 2025»). La frase de los espacios para plantar se quita antes de abreviar los meses (el punto de «sep.» la cortaría).
+const MESES_C5 = { enero: 'ene', febrero: 'feb', marzo: 'mar', abril: 'abr', mayo: 'may', junio: 'jun', julio: 'jul', agosto: 'ago', septiembre: 'sep', octubre: 'oct', noviembre: 'nov', diciembre: 'dic' };
+const vocabC5 = t => t.replace(/\b(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre) de (\d{4})\b/g, (m, a, b) => MESES_C5[a] + '. ' + b)
+  .replace(/\b(clases|categorías|prioridades) (Muy Alta, Alta y Media)/g, '$2').replace(/en todas las (clases de prioridad|clases|prioridades)/g, 'en todas las prioridades')
+  .replace(/Clase de prioridad del /g, 'Prioridad del ').replace(/Prioridad predominante = (categoría con|la que tiene) más/g, 'Prioridad predominante = más').replace(/(fichas?) (en )?PDF/g, '$1');
+const textoAntes = t => typeof t !== 'string' ? t : vocabC5(t.replace(/ Espacios para plantar \(cepas vacantes, tocones y árboles muertos\): [^.]*\./g, '')).replace(/Gobierno de la Ciudad( de México)?/g, 'Gobierno Central').replace(/\(aceras con manzana enfrente\), [\d,.]+ km (sobre tramos prioritarios|prioritarios)\./g, '(aceras con manzana enfrente), N km prioritarios.')
   .replace(/Excel «Frente por frente»/g, 'Excel de frentes').replace('no incluidos en esta lista', 'no incluidos en este resumen');
 function excelAntes(X, lista) { let datos = X.datos || [], dic = (X.dic || []).filter(r => !DIC_GC_V137.includes(r[0])).map(r => r.map(textoAntes));
   if (lista) { const h = datos[0] || [], k = h.indexOf('cepas_vacantes_prioritario'), iK = h.indexOf('km_prioritario'); const sin = r => k < 0 ? r : r.filter((_, j) => j !== k);

@@ -313,7 +313,7 @@ const geoSinVer = txt => { const J = JSON.parse(txt); J.descripcion = String(J.d
         if (JSON.stringify(A.datos) !== JSON.stringify(B.datos)) difD.push(`${q} ${id} (renglones)`); else if (dA !== dB) difD.push(`${q} ${id} (diccionario: «${dA.slice(k, k + 80)}» · «${dB.slice(k, k + 80)}»)`); };
       await xl(`&c=${COLX}`, '#dl-frentes'); await xl(`&c=${COLX}&e=cv`, '#dl-frentes'); await xl(`&a=${M.muns[TLA]}`, '#dl-calles'); await xl(`&r=gc&a=${M.muns[IZT]}`, '#dl-tramos'); await xl(`&r=gc&a=${M.muns[IZT]}`, '#dl-avenidas'); await xl(`&r=gc&a=${M.muns[IZT]}&e=to`, '#dl-tramos');
       for (const q of [`&c=${COLX}`, `&r=gc&a=${M.muns[IZT]}`]) { await ambas(q); const a = await L.descargar(pA.page, '#dl-geojson', SAL_ANT), b = await L.descargar(pN.page, '#dl-geojson', SAL);
-        if (!a || !b || !L.mismoNombre(a.nombre, b.nombre) || geoSinVer(fs.readFileSync(a.ruta, 'utf8')) !== geoSinVer(L.textoAntes(fs.readFileSync(b.ruta, 'utf8')))) difD.push(`${q} geojson`); }
+        if (!a || !b || !L.mismoNombre(a.nombre, b.nombre) || geoSinVer(L.textoAntes(fs.readFileSync(a.ruta, 'utf8'))) !== geoSinVer(L.textoAntes(fs.readFileSync(b.ruta, 'utf8')))) difD.push(`${q} geojson`); }
       ok(`Excel (frentes, calles, tramos y avenidas) y GeoJSON iguales que en ${REF} (renglones, columnas, orden y diccionario)`, !difD.length, difD.join(' | '));
       ok(`la versión anterior (${REF}) abrió sin errores de JavaScript`, !errAnt.length, errAnt.slice(0, 2).join(' | '));
       await pA.ctx.close(); await pN.ctx.close(); sAnt.close();

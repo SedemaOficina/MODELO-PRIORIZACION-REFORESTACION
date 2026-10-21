@@ -84,8 +84,12 @@ function showCard(kind, i){ if (kind==='loc') return showLoc(); pinned={kind,i};
     const fb=()=>{ const r=document.createRange(); r.selectNodeContents(lab); lab.textContent=t; const sl=getSelection(); sl.removeAllRanges(); sl.addRange(r); };
     try { navigator.clipboard.writeText(t).then(ok, fb); } catch(e){ fb(); } };
 }
-function hideCard(devuelve){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
-  if (devuelve===true || dentro){ const o = cardOrigen && cardOrigen.isConnected && cardOrigen.offsetParent!==null? cardOrigen : $('scope-title'); cardOrigen=null; try { o.focus({preventScroll:true}); } catch(e){} } }
+// alaInfo (Esc): en el celular, si la ficha se abrió desde un renglón de la información, se regresa a la información y a ese renglón
+function hideCard(devuelve, alaInfo){ const c=$('card'); const dentro = c.contains(document.activeElement) || document.activeElement===c; pinned=null; c.hidden=true;
+  if (devuelve===true || dentro){ let o = cardOrigen && cardOrigen.isConnected? cardOrigen : null; cardOrigen=null;
+    if (o && alaInfo && isPhone() && PANTALLA==='mapa' && panelEl.contains(o)) verInfo();
+    if (!o || o.offsetParent===null || o.closest('[inert]')) o = $('scope-title');
+    try { o.focus({preventScroll:true}); } catch(e){} } }
 // En el celular sin mapa, la ficha se abre sobre la información: si el foco llega a un control tapado, la ficha se cierra (WCAG 2.4.11).
 // Con mapa no pasa: la ficha es de la pantalla del mapa y mientras se ve, el panel está inerte.
 document.addEventListener('focusin', e=>{ const c=$('card'); if (c.hidden || !isPhone() || c.contains(e.target) || !e.target.closest || !e.target.closest('.panel')) return;

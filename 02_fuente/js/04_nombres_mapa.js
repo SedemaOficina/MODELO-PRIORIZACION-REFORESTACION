@@ -8,7 +8,7 @@
 // - Una calle solo lleva nombre donde un tramo recto mide al menos lo que su texto; los tramos seguidos y en línea se encadenan.
 // Contorno de los nombres: deck.gl lo dibuja con el campo de distancia de las letras (SDF), que solo llega a `radius` px de la letra
 // en su atlas de 64 px. outlineWidth se divide entre ese radio: grosor en pantalla ≈ (outlineWidth / radius) × radius × 0.75 × tamaño / 64.
-// Con radio 20 y outlineWidth 16, unos 2.3 px a 12 px de letra (antes, radio 12 y 6: 0.8 px): tapa las líneas que cruzan el nombre.
+// Con radio 20 y outlineWidth 16, unos 2.3 px a 12 px de letra: tapa las líneas que cruzan el nombre.
 const ETQ_LETRA = {sdf:true, fontSize:64, buffer:8, radius:20}, ETQ_CONTORNO = 16;
 const ETQ_PASO = 0.2, ETQ_CUAD = 260, ETQ_REPITE = 240, ETQ_TAM = 12, ETQ_HOLGURA = 2;
 const ETQ_AVENIDA = new Set(['Avenida','Boulevard','Calzada','Circuito','Diagonal','Eje Vial','Periférico','Viaducto','Carretera','Autopista']);

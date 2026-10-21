@@ -21,6 +21,7 @@ Uso:  python 03_procesamiento_datos/verificar_datos.py               verifica; t
       python 03_procesamiento_datos/verificar_datos.py --actualizar  registra las sumas de los datos actuales (después de regenerarlos a propósito)
 Requiere únicamente Python 3.
 """
+import re
 import gzip
 import hashlib
 import json
@@ -58,6 +59,17 @@ def lector(raw):
 crudo = {n: gzip.decompress(open(os.path.join(DATOS, n + '.bin'), 'rb').read()) for n in ('meta', 'data', 'vp')}
 actual = {n + '.bin': hashlib.sha256(b).hexdigest() for n, b in crudo.items()}
 META = json.loads(crudo['meta'].decode('utf-8'))
+
+# Los nombres de los catálogos (calles, colonias, alcaldías, avenidas) se insertan en la página como HTML sin escapar: hoy ninguno trae
+# «<», «>» ni «&». Si un catálogo nuevo (por ejemplo, homologado por el SIA) los trae, hay que escaparlos antes de publicar (E1-09).
+def textos(x):
+    if isinstance(x, str): yield x
+    elif isinstance(x, dict):
+        for v in x.values(): yield from textos(v)
+    elif isinstance(x, list):
+        for v in x: yield from textos(v)
+con_html = sorted({t for t in textos(META) if re.search(r'[<>&]', t)})
+ok('ningún nombre de los catálogos trae «<», «>» ni «&» (se pintan como HTML)', not con_html, ' · '.join(con_html[:5]))
 
 # ---------- coherencia interna ----------
 rv = lector(crudo['data'])

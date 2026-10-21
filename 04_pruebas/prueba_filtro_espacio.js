@@ -104,6 +104,8 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   const clicEsp = async t => { await page.$eval(`button[data-esp="${t}"]`, b => b.click()); await page.waitForFunction(() => window.__INV.esp().filtro === window.__INV.esp().casillas, null, { timeout: 60000 }); await L.quieto(page); };
 
   // ---------- 2) apagado: abre sin filtro, sin pedir el archivo; con las casillas se recorren las siete combinaciones (Tláhuac) ----------
+  // se cuentan los pedidos desde aquí: el de la página inicial puede llegar tarde si el equipo está cargado (la falla intermitente)
+  await page.goto('about:blank'); pedidos.length = 0;
   await ir(page, `&a=${M.muns[TLA]}`, false);
   const fila = await page.evaluate(() => { const b = document.getElementById('banq-row').getBoundingClientRect(), e = document.getElementById('esp-row').getBoundingClientRect();
     return { vis: !document.getElementById('esp-row').hidden, lab: document.getElementById('esp-label').textContent, debajo: e.top >= b.bottom - 1 }; });

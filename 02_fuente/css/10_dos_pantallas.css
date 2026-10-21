@@ -13,7 +13,7 @@
   body.ver-info:not(.sin-mapa) .card,body.ver-info .mapwrap .aviso-ligero:not(.aviso-error){visibility:hidden}
   /* botones de cambio de pantalla: color de la marca, 44 px o más, ícono de línea de 20 px */
   .btn-vista{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 16px;border:0;border-radius:999px;
-    background:var(--guinda);color:#fff;font:600 .9375rem/1.1 Cabin,sans-serif;cursor:pointer;white-space:nowrap;box-shadow:0 6px 18px rgba(157,33,72,.25)}
+    background:var(--guinda);color:var(--blanco);font:600 .9375rem/1.1 Cabin,sans-serif;cursor:pointer;white-space:nowrap;box-shadow:0 6px 18px rgba(var(--guinda-rgb),.25)}
   .btn-vista:hover{background:var(--guinda-ink)}
   .btn-vista svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btn-vista:focus-visible{outline:3px solid var(--ink);outline-offset:2px}

@@ -111,8 +111,8 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     const estilo = await page.evaluate(() => { const g = s => { const e = document.querySelector(s); return e ? getComputedStyle(e) : null; }; const b = g('#bars .fill'), l = g('#legend-rows .row i'), o = [...document.querySelectorAll('#tp-dl .btn[hidden]')];
       return { barra: b ? parseFloat(b.width) : 0, leyenda: l ? l.backgroundColor : '', ocultos: o.filter(x => getComputedStyle(x).display !== 'none').length, cuerpo: getComputedStyle(document.body).margin }; });
     f.barras = estilo.barra > 20; f.leyenda = !/rgba\(0, 0, 0, 0\)|transparent/.test(estilo.leyenda); f.ocultos = estilo.ocultos === 0;
-    await L.clic(page, '#tab-ini'); await page.selectOption('#ini-orden', 'calles'); await page.waitForTimeout(400); await page.evaluate(() => document.querySelector('#ini-list li[tabindex]').click()); await page.waitForTimeout(1500);
-    f.tramos = await page.evaluate(() => { const t = document.querySelector('#tramos li[tabindex]'); if (!t) return false; t.click(); return true; }); await page.waitForTimeout(800);
+    await L.clic(page, '#tab-ini'); await page.selectOption('#ini-orden', 'calles'); await page.waitForTimeout(400); await page.evaluate(() => document.querySelector('#ini-list li .fila').click()); await page.waitForTimeout(1500);
+    f.tramos = await page.evaluate(() => { const t = document.querySelector('#tramos li .fila'); if (!t) return false; t.click(); return true; }); await page.waitForTimeout(800);
     f.ficha = await page.evaluate(() => { const c = document.getElementById('card'); const d = c.querySelector('.pill i'); return !c.hidden && !!d && !/rgba\(0, 0, 0, 0\)/.test(getComputedStyle(d).backgroundColor); });
     await page.keyboard.press('Escape');
     await L.clic(page, '#zcapas'); await page.evaluate(() => { if (!document.querySelector('.legend').classList.contains('open')) document.getElementById('zcapas').click(); }); await page.$eval('.seg.fondo button[data-fondo="calles"]', b => b.click()); await page.waitForTimeout(3000);

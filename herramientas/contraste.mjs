@@ -117,6 +117,9 @@ export function leerFuentes(raiz = RAIZ_DEF) {
   const colorCSS = (sel, prop, media) => { const { v } = regla(sel, prop, media);
     const mix = v.match(/color-mix\(\s*in srgb\s*,\s*(var\((--[\w-]+)\)|#[0-9a-f]+)\s+([\d.]+)%\s*,\s*transparent\s*\)/i);
     if (mix) { const base = mix[2] ? variable(mix[2]) : C(mix[1], rgbDe(mix[1]).rgb); return conA(base, +mix[3] / 100, `${base.n} al ${mix[3]} %`); }
+    // transparencia sobre los canales de una variable: rgba(var(--tinta-rgb),.45)
+    const rv = v.match(/rgba?\(\s*var\((--[\w-]+)\)\s*,\s*([\d.]+)\s*\)/i);
+    if (rv) { const c = rgbDe(`rgb(${resolver(`var(${rv[1]})`)})`); return conA(C(rv[1], c.rgb), +rv[2]); }
     const vr = v.match(/var\((--[\w-]+)\)/); if (vr) return variable(vr[1]);
     const lit = v.match(/#[0-9a-f]{3,6}\b|rgba?\([^)]*\)|\bwhite\b/i); if (!lit) throw new Error(`«${prop}» de «${sel}» no trae un color: ${v}`);
     const c = rgbDe(lit[0]); return C(lit[0], c.rgb, c.a); };

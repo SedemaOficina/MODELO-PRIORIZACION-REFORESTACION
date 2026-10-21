@@ -18,4 +18,11 @@ img{max-width:100%}
   --shadow: 0 8px 28px rgba(36,38,42,.14);
   --inv-cepa:#1B8A3C; --inv-tocon:#7A5534; --inv-muerto:#3C4043;   /* espacios para plantar: cepa vacante, tocón y árbol muerto (fuera de la rampa de prioridad) */
   --loc:#1A73E8;   /* punto y botón de Mi ubicación (azul convencional de "tu ubicación")*/
+  /* colores de la interfaz que antes estaban escritos a mano en las hojas 02 a 11 */
+  --blanco:#FFFFFF; --ctl:#8A8478;   /* --ctl: borde de los controles (campos, chips, casillas), 3:1 sobre el panel */
+  --resalte-busqueda:#FCE7A8; --dorado-tenue:#FBF6EE; --borde-impresion:#999999;
+  --fila-alterna:#FCFBF9;   /* renglones alternos de las tablas de la ficha PDF */
+  --pdf-borde-muestra:#C8C2B8; --pdf-linea-contexto:#C8C4BE; --pdf-linea-tenue:#D6D1C9;   /* ficha PDF: borde de las muestras de color, límites de contexto y líneas tenues del mapa */
+  /* canales para las transparencias: rgba(var(--tinta-rgb),.14) */
+  --tinta-rgb:36,38,42; --guinda-rgb:157,33,72; --dorado-rgb:178,142,92; --blanco-rgb:255,255,255; --negro-rgb:0,0,0; --velo-rgb:20,22,26;
 }

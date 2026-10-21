@@ -1,40 +1,40 @@
 /* Refinamiento de controles: foco, campos, menús, barra de herramientas, barra de resumen sobre el mapa, leyenda plegable y casillas. */
 /* --- refinamiento de controles --- */
 :focus-visible{border-radius:4px}
-.combo input,.search input{border-color:var(--line);box-shadow:0 1px 2px rgba(36,38,42,.05);transition:border-color .12s ease,box-shadow .12s ease}
+.combo input,.search input{border-color:var(--line);box-shadow:0 1px 2px rgba(var(--tinta-rgb),.05);transition:border-color .12s ease,box-shadow .12s ease}
 .combo input:hover,.search input:hover{border-color:var(--ink-3)}
-.combo input:focus,.search input:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(178,142,92,.22);outline:none}
-.seg.pills button{box-shadow:0 1px 2px rgba(36,38,42,.05);transition:background .12s ease,border-color .12s ease}
+.combo input:focus,.search input:focus{border-color:var(--dorado);box-shadow:0 0 0 3px rgba(var(--dorado-rgb),.22);outline:none}
+.seg.pills button{box-shadow:0 1px 2px rgba(var(--tinta-rgb),.05);transition:background .12s ease,border-color .12s ease}
 .seg.pills button:hover:not([aria-pressed="true"]){border-color:var(--ink-3)}
-.seg.pills button[aria-pressed="true"]{box-shadow:0 1px 2px rgba(178,142,92,.28)}
-.btn{border-radius:8px;box-shadow:0 1px 2px rgba(36,38,42,.06);transition:background .12s ease,border-color .12s ease,box-shadow .12s ease}
+.seg.pills button[aria-pressed="true"]{box-shadow:0 1px 2px rgba(var(--dorado-rgb),.28)}
+.btn{border-radius:8px;box-shadow:0 1px 2px rgba(var(--tinta-rgb),.06);transition:background .12s ease,border-color .12s ease,box-shadow .12s ease}
 .btn:active{transform:translateY(1px)}
 .reset{border:1px solid transparent;border-radius:6px;padding:3px 8px;transition:background .12s ease,border-color .12s ease}
 .reset:hover{background:var(--panel-2);border-color:var(--line)}
 /* menús de autocompletado con filas redondeadas */
-.combo-list{padding:6px;border-radius:10px;border-color:var(--line);box-shadow:0 10px 30px rgba(36,38,42,.16)}
+.combo-list{padding:6px;border-radius:10px;border-color:var(--line);box-shadow:0 10px 30px rgba(var(--tinta-rgb),.16)}
 .combo-list li{border-radius:6px;padding:7px 9px}
 .results{border-radius:10px}
-.results li{transition:background .12s ease}
+.results .fila{transition:background .12s ease}
 /* barra de herramientas del mapa agrupada */
-.toolbar{gap:0;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 4px 14px rgba(36,38,42,.12);overflow:hidden}
+.toolbar{gap:0;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 4px 14px rgba(var(--tinta-rgb),.12);overflow:hidden}
 .tool{width:34px;height:34px;border:0;border-radius:0;box-shadow:none;border-top:1px solid var(--line);transition:background .12s ease,color .12s ease}
 .tool:first-child{border-top:0}
 .tool:hover{background:var(--panel-2)}
-.legend{border-radius:10px;box-shadow:0 6px 22px rgba(36,38,42,.13)}
+.legend{border-radius:10px;box-shadow:0 6px 22px rgba(var(--tinta-rgb),.13)}
 .legend .row{border-radius:5px;padding:3px 5px;margin:0 -5px;transition:background .12s ease}
 .legend .row:hover{background:var(--panel-2)}
 .legend .row.static:hover{background:transparent}
-.card{border-radius:10px;box-shadow:0 10px 30px rgba(36,38,42,.16)}
+.card{border-radius:10px;box-shadow:0 10px 30px rgba(var(--tinta-rgb),.16)}
 /* --- barra de resumen sobre el mapa --- */
 .mapbar{position:absolute;left:16px;top:16px;z-index:6;display:flex;align-items:stretch;gap:8px;max-width:calc(100% - 74px)}
-.panel-toggle{width:34px;flex:none;border:1px solid var(--line);border-radius:9px;background:var(--panel);box-shadow:0 4px 14px rgba(36,38,42,.12);cursor:pointer;display:grid;place-items:center;color:var(--ink-2);transition:background .12s ease,color .12s ease}
+.panel-toggle{width:34px;flex:none;border:1px solid var(--line);border-radius:9px;background:var(--panel);box-shadow:0 4px 14px rgba(var(--tinta-rgb),.12);cursor:pointer;display:grid;place-items:center;color:var(--ink-2);transition:background .12s ease,color .12s ease}
 .panel-toggle:hover{background:var(--panel-2);color:var(--guinda)}
 .panel-toggle svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;transition:transform .18s ease}
 body.panel-off .panel{display:none}
 body.panel-off .app{grid-template-columns:1fr}
 body.panel-off .panel-toggle svg{transform:rotate(180deg)}
-.mapsum{display:flex;align-items:center;gap:14px;min-width:0;padding:8px 15px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 14px rgba(36,38,42,.12)}
+.mapsum{display:flex;align-items:center;gap:14px;min-width:0;padding:8px 15px;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 4px 14px rgba(var(--tinta-rgb),.12)}
 .mapsum .scope{display:flex;flex-direction:column;min-width:0}
 .mapsum .scope b{font-family:Cabin,sans-serif;font-size:.875rem;font-weight:700;line-height:1.15;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:34ch}
 .mapsum .scope span{font-size:.75rem;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);font-weight:600;font-family:Cabin,sans-serif}
@@ -76,14 +76,14 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
   .combo input,.search input{font-size:1rem}
   .combo-list{max-height:44dvh}
   .combo-list li{padding:10px 10px}
-  .results li{padding:11px 12px}
+  .results .fila{padding:11px 12px}
   .legend{left:10px;bottom:10px;right:auto;max-width:min(74vw,250px);padding:9px 11px}
   .seg.pills button{padding:9px 13px}
   .lg-long{display:none}
   .lg-short{display:inline}
   .legend{max-width:none;width:auto}
   .legend .row{padding:5px 5px}
-  .card{position:fixed;left:0;right:0;bottom:0;width:auto;max-height:64dvh;overflow-y:auto;border-radius:12px 12px 0 0;z-index:12;box-shadow:0 -10px 30px rgba(36,38,42,.22)}
+  .card{position:fixed;left:0;right:0;bottom:0;width:auto;max-height:64dvh;overflow-y:auto;border-radius:12px 12px 0 0;z-index:12;box-shadow:0 -10px 30px rgba(var(--tinta-rgb),.22)}
   .card .close{width:34px;height:34px;font-size:1.25rem}
   .modal{padding:0}
 }
@@ -99,7 +99,7 @@ body.panel-off .panel-toggle svg{transform:rotate(180deg)}
 .chip i{width:14px;height:14px;right:9px;top:11px}
 .seg.pills button i{width:13px;height:13px;margin-right:7px;vertical-align:-2px}
 .chip i::after,.seg.pills button i::after{content:"";position:absolute;left:0;top:0;right:0;bottom:0;width:auto;height:auto;border:0;transform:none;background:transparent;-webkit-mask:var(--check) center/78% no-repeat;mask:var(--check) center/78% no-repeat}
-.chip[aria-pressed="true"] i{background:#fff;border-color:#fff}
+.chip[aria-pressed="true"] i{background:var(--blanco);border-color:var(--blanco)}
 .chip[aria-pressed="true"] i::after{left:0;top:0;right:0;bottom:0;width:auto;height:auto;border:0;transform:none;background:var(--guinda)}
 .seg.pills button[aria-pressed="true"] i{background:var(--guinda-ink);border-color:var(--guinda-ink)}
 .seg.pills button[aria-pressed="true"] i::after{background:var(--dorado-soft)}

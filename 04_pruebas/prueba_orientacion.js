@@ -7,7 +7,7 @@ const ok = L.Registro('orientación');
 const D = L.decodificar(), M = D.META;
 const num = t => +String(t).replace(/,/g, '').match(/[\d.]+/)[0];
 const noCrece = a => a.every((v, i) => i === 0 || v <= a[i - 1] + 1e-9);
-const filas = page => page.$$eval('#ini-list li[role=button]', ls => ls.map(l => ({ nombre: l.querySelector('.n').innerText.slice(l.querySelector('.pos').innerText.length).trim(), pos: l.querySelector('.pos').innerText.trim(), k: l.querySelector('.k').firstChild.textContent.trim(), small: l.querySelector('.k small').innerText.trim() })));
+const filas = page => page.$$eval('#ini-list li:has(.fila)', ls => ls.map(l => ({ nombre: l.querySelector('.n').innerText.slice(l.querySelector('.pos').innerText.length).trim(), pos: l.querySelector('.pos').innerText.trim(), k: l.querySelector('.k').firstChild.textContent.trim(), small: l.querySelector('.k small').innerText.trim() })));
 const orden = async (page, v) => { await page.selectOption('#ini-orden', v); await L.quieto(page); return filas(page); };
 
 (async () => {
@@ -52,7 +52,7 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('con Gobierno Central, el segundo paso pregunta por las vialidades primarias', /vialidades primarias/.test(await page.$eval('#entrada-q', x => x.textContent)));
     ok('con Gobierno Central, la línea de lo elegido lo dice', (await page.$eval('#entrada-eleg', x => x.innerText.trim())) === 'Vialidades primarias del Gobierno Central');
     await page.evaluate(() => [...document.querySelectorAll('.entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await L.quieto(page);
-    const g = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, url: location.search, red: localStorage.getItem('cp_red'), gc: document.querySelector('button[data-resp="gc"]').getAttribute('aria-pressed'), mapsum: document.getElementById('mapsum').innerText }));
+    const g = await page.evaluate(() => ({ resp: document.body.dataset.resp, titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li:has(.fila)').length, url: location.search, red: localStorage.getItem('cp_red'), gc: document.querySelector('button[data-resp="gc"]').getAttribute('aria-pressed'), mapsum: document.getElementById('mapsum').innerText }));
     ok('entrar por Gobierno Central abre las vialidades primarias de la alcaldía, con sus avenidas en «Dónde empezar»', g.resp === 'gc' && g.titulo === 'Iztapalapa' && /^Avenidas de la alcaldía Iztapalapa/.test(g.ini) && g.n > 0 && g.gc === 'true', JSON.stringify(g));
     ok('la red queda en la dirección y se recuerda', /r=gc/.test(g.url) && /a=007/.test(g.url) && g.red === 'gc');
     await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await L.quieto(page);
@@ -113,11 +113,11 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('hay tres pestañas: «Dónde empezar», «Resumen» y «Descargas»', pes.join('|') === 'Dónde empezar|Resumen|Descargas' && !(await page.$('#tab-list, #tp-list, #results')), pes.join(' | '));
     // las calles de la alcaldía, cada una en su colonia y con su desglose por prioridad
     f = await orden(page, 'calles');
-    const ca = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, desg: [...document.querySelectorAll('#ini-list li[role=button]')].filter(l => l.querySelector('.desg')).length, t: (document.querySelector('#ini-list li .t') || {}).textContent }));
+    const ca = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, desg: [...document.querySelectorAll('#ini-list li:has(.fila)')].filter(l => l.querySelector('.desg')).length, t: (document.querySelector('#ini-list li .t') || {}).textContent }));
     ok('«Mostrar: calles» lista diez calles de la alcaldía con su colonia y su desglose por prioridad', /^Calles de Iztapalapa/.test(ca.tit) && f.length === 10 && ca.desg === 10 && noCrece(f.map(x => num(x.k) * (/\bm$/.test(x.k) ? 0.001 : 1))), JSON.stringify(ca));
     // filtro por nombre dentro de «Dónde empezar»
     await page.fill('#q', 'ayuntamiento'); await L.quieto(page);
-    const fl = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, todas: [...document.querySelectorAll('#ini-list li[role=button] .n')].every(n => /ayuntamiento/i.test(n.textContent)), orden: document.getElementById('ini-orden-box').hidden, ph: document.getElementById('q').placeholder }));
+    const fl = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li:has(.fila)').length, todas: [...document.querySelectorAll('#ini-list li:has(.fila) .n')].every(n => /ayuntamiento/i.test(n.textContent)), orden: document.getElementById('ini-orden-box').hidden, ph: document.getElementById('q').placeholder }));
     ok('el campo de «Dónde empezar» filtra las calles de la alcaldía por nombre', /^Calles encontradas en la alcaldía Iztapalapa/.test(fl.tit) && fl.n > 0 && fl.todas && fl.orden && /Buscar una calle de la alcaldía/.test(fl.ph), JSON.stringify(fl));
     await page.fill('#q', ''); await L.quieto(page);
     // v1.27: «Mostrar» con opciones cortas; sin el porcentaje prioritario ni «sin arbolado y con banqueta» (sus cifras siguen en el Resumen y los Excel)
@@ -125,10 +125,10 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
       ok('alcaldía: «Mostrar» ofrece colonias por km, por cepas y por habitantes, y calles por km y por cepas, con textos cortos', ops.join('|') === 'kmp=Colonias · más km prioritarios|cv=Colonias · más cepas vacantes|pob=Colonias · más habitantes|calles=Calles · más km prioritarios|callescv=Calles · más cepas vacantes', ops.join(' | ')); }
     f = await orden(page, 'pob'); ok('orden por habitantes: no creciente', f.length === 10 && noCrece(f.map(x => num(x.k))) && f.every(x => /hab/.test(x.k)), f.map(x => x.k).join(' | '));
     await page.evaluate(() => document.getElementById('ini-mas').click()); await L.quieto(page);
-    ok('«Ver 10 más» agrega diez renglones y enfoca el primero nuevo', (await filas(page)).length === 20 && await page.evaluate(() => document.activeElement === document.getElementById('ini-list').children[10]));
+    ok('«Ver 10 más» agrega diez renglones y enfoca el primero nuevo', (await filas(page)).length === 20 && await page.evaluate(() => document.activeElement === document.getElementById('ini-list').children[10].querySelector('.fila')));
     f = await orden(page, 'kmp'); const primera = f[0].nombre;
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await L.quieto(page);
-    const col = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, orden: document.getElementById('ini-orden-box').hidden, ops: [...document.querySelectorAll('#ini-orden option')].map(o => o.value).join(), v: document.getElementById('ini-orden').value }));
+    const col = await page.evaluate(() => ({ titulo: document.getElementById('scope-title').textContent, ini: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li:has(.fila)').length, orden: document.getElementById('ini-orden-box').hidden, ops: [...document.querySelectorAll('#ini-orden option')].map(o => o.value).join(), v: document.getElementById('ini-orden').value }));
     // desde la v1.23 la colonia tiene selector: sus calles por km prioritarios (lo predeterminado) o por cepas vacantes del inventario
     ok('elegir una colonia la consulta y la pestaña pasa a sus calles, por km prioritarios (o por cepas vacantes, en el selector)', col.titulo === 'Col. ' + primera && col.ini.includes('Calles de ' + primera) && col.n > 0 && !col.orden && col.ops === 'calles,cv' && col.v === 'calles', JSON.stringify(col));
     const una = await page.evaluate(n => ({ rotulo: !!document.getElementById('scope-label'), res: document.getElementById('tp-res').textContent.includes(n), cab: document.getElementById('res-cab').textContent, sub: document.getElementById('res-sub').textContent,
@@ -145,16 +145,16 @@ const orden = async (page, v) => { await page.selectOption('#ini-orden', v); awa
     ok('el título de «Dónde empezar» destaca lo que se consulta', ti.b === 'Calles' && /^Calles de /.test(ti.t), JSON.stringify(ti));
     // ciudad y Gobierno Central
     await L.clic(page, '#zcity'); await L.quieto(page);
-    const cd = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, sub: document.querySelector('#ini-list li .t').textContent }));
+    const cd = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li:has(.fila)').length, sub: document.querySelector('#ini-list li .t').textContent }));
     ok('en toda la ciudad lista colonias con su alcaldía', /Colonias de la ciudad/.test(cd.tit) && cd.n === 10 && / · Prioridad de colonia/.test(cd.sub), cd.tit + ' · ' + cd.sub);
     f = await orden(page, 'alc');
     ok('en toda la ciudad, «Mostrar: alcaldías» da las 16 alcaldías de diez en diez', /^Alcaldías por kilómetros de frente prioritario/.test(await page.$eval('#ini-title', x => x.textContent)) && f.length === 10 && await page.$eval('#ini-mas', b => !b.hidden && /Ver 6 más/.test(b.textContent)), f.map(x => x.nombre).slice(0, 3).join(', '));
     await orden(page, 'kmp');
     await L.ponResp(page, 'gc'); await L.quieto(page);
-    const gc = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length, orden: document.getElementById('ini-orden-box').hidden }));
+    const gc = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li:has(.fila)').length, orden: document.getElementById('ini-orden-box').hidden }));
     ok('con Gobierno Central lista avenidas; en toda la ciudad se pueden ver también por cepas vacantes (v1.24) y las alcaldías', /^Avenidas de la ciudad/.test(gc.tit) && gc.n === 10 && !gc.orden && (await page.$$eval('#ini-orden option', o => o.map(x => x.value).join())) === 'av,avcv,alc', JSON.stringify(gc));
     await page.evaluate(() => document.querySelector('#ini-list li').click()); await L.quieto(page);
-    const av = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li[role=button]').length }));
+    const av = await page.evaluate(() => ({ tit: document.getElementById('ini-title').textContent, n: document.querySelectorAll('#ini-list li:has(.fila)').length }));
     ok('con una avenida elegida, la lista da las alcaldías que cruza', /^Tramos de .+ por alcaldía$/.test(av.tit) && av.n > 0, JSON.stringify(av));
     await L.clic(page, '#zcity');
     await L.ponResp(page, 'alc');

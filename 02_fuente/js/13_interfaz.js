@@ -4,10 +4,12 @@ const infoModal = $('info-modal'); let lastFocus = null;
 // La ventana se cierra con la × (siempre visible), con "Volver al mapa" al final, con Esc, tocando fuera
 // de ella o con el botón Atrás del teléfono (se registra un paso en el historial al abrirla).
 // Mientras la ayuda está abierta, el resto de la página queda inerte: el foco no sale de la ventana
-const appEl = document.querySelector('.app');
-function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; appEl.inert = true; infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
+// El enlace «Saltar a la respuesta» está fuera de .app: se vuelve inerte junto con ella, para que el tabulador no salga de la ventana
+const appEl = document.querySelector('.app'), saltoEl = document.querySelector('.salto');
+const inerte = v => { appEl.inert = v; if (saltoEl) saltoEl.inert = v; };
+function openInfo(){ lastFocus=document.activeElement; infoModal.hidden=false; inerte(true); infoModal.querySelector('.modal-card').scrollTop=0; $('info-close').focus();
   try { history.pushState({ayuda:true}, ''); } catch(e){} }
-function hideInfo(){ infoModal.hidden=true; appEl.inert = false; if(lastFocus && lastFocus.isConnected) lastFocus.focus(); }
+function hideInfo(){ infoModal.hidden=true; inerte(false); if(lastFocus && lastFocus.isConnected) lastFocus.focus(); }
 function closeInfo(){ if (history.state && history.state.ayuda){ history.back(); setTimeout(()=>{ if(!infoModal.hidden) hideInfo(); }, 400); } else hideInfo(); }
 addEventListener('popstate', ()=>{ if (!infoModal.hidden) hideInfo(); });
 $('open-info').onclick = openInfo; $('info-btn').onclick = openInfo; $('info-close').onclick = closeInfo; $('info-back').onclick = closeInfo;
@@ -16,7 +18,7 @@ infoModal.addEventListener('click', e=>{ if(e.target===infoModal) closeInfo(); }
 addEventListener('keydown', e=>{ if (e.key!=='Escape' || e.defaultPrevented) return;
   if (!entradaEl.hidden) return cierraEntrada(null);
   if (!infoModal.hidden) return closeInfo();
-  if (!$('card').hidden){ e.preventDefault(); return hideCard(true); }
+  if (!$('card').hidden){ e.preventDefault(); return hideCard(true, true); }
   if (legendEl.classList.contains('open') && legendEl.contains(document.activeElement)){ setLegend(false); capasBtn.focus(); } });
 // cifras del cruce en la metodología
 $('m-vp-km').textContent = fmt0.format(VPC.cov.km_total); $('m-vp-prio').textContent = fmt0.format(vCityPrioKm); $('m-vp-pct').textContent = pct(vCityPrioKm, vCityTotKm);
@@ -44,6 +46,10 @@ function pantalla(p, op={}){
     // lo elegido desde una lista: «atrás» regresa a la lista
     if (p==='mapa' && op.desdeLista) history.pushState({...(history.state || {}), pantalla:'mapa'}, ''); } }
 const verMapa = op=> pantalla('mapa', op), verInfo = op=> pantalla('info', op);
+// después de elegir algo, el foco va a la respuesta: el título del ámbito o, si en el celular se pasó al mapa (el panel queda inerte),
+// la ficha abierta o «Volver a la información»; nunca se queda en la página ni dentro de algo inerte
+function enfocaRespuesta(){ try { if (isPhone() && PANTALLA==='mapa'){ if (!$('card').hidden) enfocaFicha(); else $('ver-info').focus({preventScroll:true}); }
+  else $('scope-title').focus({preventScroll: isPhone()}); } catch(e){} }
 // el botón del mapa dice «Volver a la información» y, abajo, el lugar consultado
 function rotuloInfo(){ const t = $('ver-info-t'); if (!t) return;
   const s = highlight && highlight.avId!==undefined? VPC.nomenclat[highlight.avId] : highlight? (META.names[F.name[highlight.idx[0]]] || 'Calle sin nombre')
@@ -143,7 +149,7 @@ for (const id of ['ini-title']){ const el = $(id); if (!el) continue; resaltaUni
 // La red queda en la dirección (r=gc o r=both) y en este navegador (cp_red), como cualquier cambio de «Atiende».
 const entradaEl = $('entrada'); let entradaRed = 'alc';
 let trasEntrada = null;   // lo que sigue a la entrada en la primera visita: el recorrido guiado (17_recorrido.js)
-function cierraEntrada(m){ entradaEl.hidden = true; appEl.inert = false;
+function cierraEntrada(m){ entradaEl.hidden = true; inerte(false);
   if (resp!==entradaRed) setResp(entradaRed);
   if (m!==null){ selEl.value = String(m); setSel(String(m)); } else recuerdaInicio();
   $('scope-title').focus();
@@ -155,7 +161,7 @@ function entradaPaso(n){ $('entrada-p1').hidden = n!==1; $('entrada-p2').hidden 
     $('entrada-q').textContent = entradaRed==='gc'? '¿En qué alcaldía quieres ver las vialidades primarias?' : '¿Qué alcaldía quieres revisar?'; $('entrada-q').focus(); } }
 function abreEntrada(){ const g = $('entrada-grid');
   if (!g.children.length) META.muns.map((m,i)=>i).sort((a,b)=>META.munNames[a].localeCompare(META.munNames[b],'es')).forEach(i=>{ const b = document.createElement('button'); b.type = 'button'; b.className = 'entrada-op'; b.textContent = META.munNames[i]; b.onclick = ()=>cierraEntrada(i); g.appendChild(b); });
-  entradaEl.hidden = false; appEl.inert = true; entradaPaso(1); }
+  entradaEl.hidden = false; inerte(true); entradaPaso(1); }
 entradaEl.querySelectorAll('.entrada-red').forEach(b=>{ b.onclick = ()=>{ entradaRed = b.dataset.red; entradaPaso(2); }; });
 $('entrada-volver').onclick = ()=>entradaPaso(1);
 $('entrada-cdmx').onclick = ()=>cierraEntrada(null);

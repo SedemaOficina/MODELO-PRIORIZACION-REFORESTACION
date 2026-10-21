@@ -12,7 +12,7 @@ const conFecha = name => name.replace(/(\.[a-z0-9]+)$/i, `_${fechaCDMX()}$1`);
 // ámbito de la consulta para el registro de usos (solo se envía con sesión; ver avisaUso en 01_utilidades.js)
 function ambitoUso(){ const c = calleSel(); return { red: resp, alcaldia: sel!==null? META.munNames[sel] : '', colonia: selCol!==null? colNombre(selCol) : '',
   avenida: selAv!==null? VPC.nomenclat[selAv] : '', calle: c? c.nombre : '', banqueta: filtroBanq, ...(filtroEsp? {espacio: espCodigo()} : {}) }; }
-// los nombres de archivo dicen lo mismo que su botón (v1.40); el tipo se conserva para que el reporte de usos siga comparable
+// los nombres de archivo dicen lo mismo que su botón; el tipo se conserva para que el reporte de usos siga comparable
 const TIPO_ARCHIVO = [[/^frente_por_frente_calle_/, 'excel_calle'], [/^frente_por_frente_/, 'excel_frentes'], [/^lista_de_calles_/, 'excel_calles'], [/^tramo_por_tramo_/, 'excel_tramos'],
   [/^las_16_alcaldias/, 'excel_alcaldias'], [/^lista_de_avenidas_/, 'excel_avenidas'], [/^ficha_alcaldia_/, 'ficha_alcaldia'], [/^ficha_colonia_/, 'ficha_colonia'],
   [/^ficha_vialidades_primarias_/, 'ficha_vialidades'], [/^ficha_avenida_/, 'ficha_avenida'], [/^ficha_calle_/, 'ficha_calle']];
@@ -40,9 +40,9 @@ const scopeSlugVP = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (se
 const scopeSlug = ()=> (sel===null? 'ciudad' : slug(META.munNames[sel])) + (selCol!==null? '_'+slug(colNombre(selCol)) : '') + (selAv!==null? '_'+slug(VPC.nomenclat[selAv]) : '') + filtroSlug();
 // ---------- diccionario de datos ----------
 const NOTAS_COMUNES = [
-  'Prioritario = clases Muy Alta, Alta y Media de la escala de cinco niveles (Muy Alta, Alta, Media, Baja, Muy Baja).',
+  'Prioritario = prioridades Muy Alta, Alta y Media de la escala de cinco niveles (Muy Alta, Alta, Media, Baja, Muy Baja).',
   'Una calle no es una sola línea: se divide en tramos. En la red de las alcaldías cada tramo es el frente de una manzana y los dos lados de la calle son tramos distintos; en las vialidades primarias cada tramo va de cruce a cruce y se corta al cambiar de alcaldía.',
-  'Los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y no aparecen en los listados, cifras ni fichas de las alcaldías.',
+  'Los frentes de manzana que dan a una vialidad primaria se asignan al Gobierno Central y no aparecen en los listados, cifras ni fichas PDF de las alcaldías.',
   'Coordenadas en grados decimales, WGS84 (EPSG:4326), del punto a media longitud del frente o del tramo, medido sobre su línea (no el promedio de sus extremos).',
   'Cobertura: la herramienta incluye los frentes de manzana del ámbito urbano de INEGI. Algunos frentes no tienen colonia asignada en el catálogo: se cuentan en las cifras de su alcaldía y en su Excel «Frente por frente», pero no en las consultas por colonia.',
   'El contexto social se reporta con el Índice de Desarrollo Social por unidad territorial de EVALÚA CDMX. El modelo de priorización vigente clasificó el rezago social con el grado de marginación urbana CONAPO 2020; la actualización del modelo con el IDS está en proceso.',
@@ -52,13 +52,13 @@ const NOTAS_COMUNES = [
   'De lo prioritario se reportan los kilómetros de frente sin arbolado y los que además tienen banqueta. «Sin arbolado» es la clase del modelo; «con banqueta» es el registro de INEGI 2020 y no garantiza espacio de plantación.',
   'El Índice de Desarrollo Social y la población en pobreza corresponden a la unidad territorial de EVALÚA CDMX en la que se ubica la colonia, no a la colonia; no deben sumarse entre colonias.'
 ];
-const FUENTES = 'Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); SEDEMA, modelo de priorización de frentes de manzana, Sistema de Información Ambiental (nov. 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (ago. 2026); EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial; CONAPO, índice de marginación urbana 2020 (criterio de rezago social del modelo vigente); catálogo de colonias SEDEMA-SIA.' + (INV? ` Espacios para plantar (cepas vacantes, tocones y árboles muertos): ${INV.fuente}, en curso; corte: ${INV.corte}.` : '');
+const FUENTES = 'Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); SEDEMA, modelo de priorización de frentes de manzana, Sistema de Información Ambiental (noviembre de 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (agosto de 2026); EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial; CONAPO, índice de marginación urbana 2020 (criterio de rezago social del modelo vigente); catálogo de colonias SEDEMA-SIA.' + (INV? ` Espacios para plantar (cepas vacantes, tocones y árboles muertos): ${INV.fuente}, en curso; corte: ${INV.corte}.` : '');
 const DIC = {
   frentes: { titulo:'Frente por frente', contenido:'Un renglón por frente de manzana con prioridad Muy Alta, Alta o Media a cargo de la alcaldía.',
     cols:[10,11,30,16,13,28,28,7,16,18,26,14,18,20,11,20,11,11],
     campos:[
       ['id_frente','Identificador del frente de manzana en esta versión de los datos (ver «Corte de los datos»). Permite cruzar el renglón con la capa geográfica y detectar duplicados; no cambia mientras no cambie el corte.','Entero'],
-      ['prioridad','Clase de prioridad del frente de manzana.','Muy Alta, Alta o Media'],
+      ['prioridad','Prioridad del frente de manzana.','Muy Alta, Alta o Media'],
       ['vialidad','Nombre de la calle a la que da el frente. Cuando INEGI no registra un nombre de calle («Ninguno», «Sin Referencia», «Manzana o Edificación Contigua»), dice «Frente sin nombre de calle (INEGI)».','Texto'],
       ['tipo_vialidad','Tipo de vialidad registrado por INEGI.','Calle, Avenida, Cerrada, Calzada, Eje Vial…'],
       ['quien_atiende','Quién atiende el frente: la alcaldía o el Gobierno Central.','Alcaldía'],
@@ -75,7 +75,7 @@ const DIC = {
       ['banqueta_inegi','Disponibilidad de banqueta registrada por INEGI (2020). Es una condición por verificar: no indica ancho, estado ni espacio de plantación.','Dispone, No dispone, Conjunto habitacional, No aplica, No especificado'],
       ['lat','Latitud del punto a media longitud del frente, sobre su línea.','Grados decimales'],
       ['lon','Longitud del punto a media longitud del frente, sobre su línea.','Grados decimales'] ] },
-  calle: { titulo:'Frente por frente de la calle', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las clases de prioridad, a cargo de la alcaldía. La calle es la de la colonia indicada en el ámbito; las calles con el mismo nombre en otras colonias no se incluyen.',
+  calle: { titulo:'Frente por frente de la calle', contenido:'Un renglón por frente de manzana de la calle consultada, en todas las prioridades, a cargo de la alcaldía. La calle es la de la colonia indicada en el ámbito; las calles con el mismo nombre en otras colonias no se incluyen.',
     cols:[10,11,30,16,13,28,28,7,16,18,26,14,18,20,11,20,8,44,11,11], campos:null },
   calles: { titulo:'Lista de calles', contenido:'Un renglón por calle dentro de su colonia, con la suma de sus frentes de manzana: las mismas calles y en el mismo orden que la lista «Dónde empezar» con «Mostrar» en calles (ver «Orden»). Dos calles con el mismo nombre en colonias distintas son renglones distintos. Los frentes sin nombre de vialidad en INEGI no se incluyen; están en el Excel «Frente por frente».',
     cols:[30,30,30,8,22,20,13,15,12,13,11,15,11,24,11],
@@ -94,12 +94,12 @@ const DIC = {
       ['km_alta','Kilómetros de frente con prioridad Alta.','Kilómetros'],
       ['km_media','Kilómetros de frente con prioridad Media.','Kilómetros'],
       ['km_prioritario','Suma de Muy Alta, Alta y Media.','Kilómetros'],
-      ['km_total','Kilómetros de frente de la calle en el ámbito, en todas las clases.','Kilómetros'] ] },
+      ['km_total','Kilómetros de frente de la calle en el ámbito, en todas las prioridades.','Kilómetros'] ] },
   tramos: { titulo:'Tramo por tramo', contenido:'Un renglón por parte de tramo de vialidad primaria o de acceso controlado con prioridad Muy Alta, Alta o Media, a cargo del Gobierno Central. Un tramo (id_tramo) ocupa más de un renglón cuando cruza un límite de alcaldía o su trazo tiene varias partes; la herramienta cuenta los tramos por id_tramo, por eso el número de renglones puede ser mayor que el número de tramos que muestra la pantalla. Los kilómetros coinciden.',
     cols:[10,11,30,24,22,9,26,20,24,11,11,17,11,11],
     campos:[
       ['id_tramo','Identificador del tramo en la capa de vialidades primarias. Se repite cuando el tramo ocupa varios renglones.','Entero'],
-      ['prioridad','Clase de prioridad del tramo en la capa de vialidades primarias.','Muy Alta, Alta o Media'],
+      ['prioridad','Prioridad del tramo en la capa de vialidades primarias.','Muy Alta, Alta o Media'],
       ['vialidad','Nombre en calle del tramo.','Texto'],
       ['nombre_red_vial','Identificador del tramo dentro de la red vial primaria.','Eje, Radial, Ruta, Circuito, Anillo Periférico…'],
       ['tipo','Clasificación de la vialidad.','Vía primaria o Vía de acceso controlado'],
@@ -138,15 +138,15 @@ DIC.alcaldias = { titulo:'Las 16 alcaldías', contenido:'Un renglón por alcald�
     ['km_alta','Kilómetros de frente con prioridad Alta a cargo de la alcaldía.','Kilómetros'],
     ['km_media','Kilómetros de frente con prioridad Media a cargo de la alcaldía.','Kilómetros'],
     ['km_frente_prioritario_alcaldia','Suma de Muy Alta, Alta y Media a cargo de la alcaldía.','Kilómetros de frente'],
-    ['km_frente_total_alcaldia','Kilómetros de frente a cargo de la alcaldía, en todas las clases.','Kilómetros de frente'],
+    ['km_frente_total_alcaldia','Kilómetros de frente a cargo de la alcaldía, en todas las prioridades.','Kilómetros de frente'],
     ['km_prioritario_sin_arbolado','De lo prioritario de la alcaldía, km de frente sin arbolado (ver «Notas»).','Kilómetros de frente'],
     ['km_prioritario_sin_arbolado_con_banqueta','De lo anterior, km con banqueta registrada por INEGI 2020. No garantiza espacio de plantación.','Kilómetros de frente'],
     ['tramos_prioritarios_gobierno_central','Tramos de vialidad primaria con prioridad Muy Alta, Alta o Media dentro de la alcaldía (por id_tramo).','Entero'],
     ['km_vialidad_prioritaria_gobierno_central','Kilómetros de vialidad primaria prioritaria dentro de la alcaldía, medidos sobre el eje.','Kilómetros de vialidad'],
-    ['km_vialidad_total_gobierno_central','Kilómetros de vialidad primaria dentro de la alcaldía, en todas las clases, medidos sobre el eje.','Kilómetros de vialidad'],
+    ['km_vialidad_total_gobierno_central','Kilómetros de vialidad primaria dentro de la alcaldía, en todas las prioridades, medidos sobre el eje.','Kilómetros de vialidad'],
     ['km_frente_prioritario_gobierno_central','Km de frente de manzana a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo).','Kilómetros de frente'],
     ['km_frente_prioritario_total','Suma de km_frente_prioritario_alcaldia y km_frente_prioritario_gobierno_central.','Kilómetros de frente'] ] };
-DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Clase de prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
+DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
 DIC.calle.campos.splice(DIC.calle.campos.findIndex(f=>f[0]==='lat'), 0,
   ['tramo','Número del tramo de la calle al que pertenece el frente. Un tramo va de esquina a esquina y reúne los frentes de sus dos lados; se numera a lo largo de la calle. Se arma con una regla geométrica (frentes casi paralelos, en lados opuestos y traslapados) y debe confirmarse en campo.','Entero'],
   ['tramo_entre','Vialidades más cercanas a los extremos del tramo.','Texto']);
@@ -260,7 +260,7 @@ function prioExtra(){ const R = repStat(sel, selCol); const k = v => num(v.toFix
     ['De lo prioritario, km de frente sin arbolado', k(sumPrio(R.sa[0]))],
     ['De lo prioritario, km de frente sin arbolado y con banqueta (INEGI)', k(sumPrio(R.sb[0]))],
     ['Km de frente a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo)', k(sumPrio(R.km[1]))]]; }
-// ---------- espacios para plantar en las descargas (v1.25) ----------
+// ---------- espacios para plantar en las descargas ----------
 // Tres columnas al final de cada Excel (y tres propiedades en el GeoJSON y el KML): cepas vacantes, tocones y árboles muertos del
 // inventario de arbolado. Por frente de manzana, los puntos asignados a ese frente (ESP_FRN); por parte de vialidad primaria, los de sus
 // frentes del Gobierno Central y los del camellón (ESP_VPN); en los resúmenes por calle y por avenida, la suma de sus frentes o partes del
@@ -393,7 +393,7 @@ const geoFr = (i, conEsp) => ({ id_frente:i, prioridad:META.prio[F.prio[i]], via
 const geoVp = (i, conEsp) => ({ id_tramo:VP.rec[i], prioridad:META.prio[VP.prio[i]], vialidad:VPC.nomenclat[VP.nom[i]], nombre_red_vial:VPC.nombres[VP.nombre[i]]||'', quien_atiende:'Gobierno Central', alcaldia:META.munNames[VP.mun[i]], longitud_m:VP.len[i], ...(conEsp? espProps(espDeParte(i)) : {}) });
 // con las dos redes, cada filtro se declara para la red a la que aplica (la banqueta, solo a los frentes de las alcaldías)
 const geoConFr = () => respOn.alc && sel!==null, geoConVp = () => respOn.gc && selCol===null;
-// al final, la frase de los espacios para plantar (v1.25): fuente, corte y regla, o por qué no vienen las propiedades
+// al final, la frase de los espacios para plantar: fuente, corte y regla, o por qué no vienen las propiedades
 const geoEspTxt = esp => !esp? '' : esp.ok
   ? ` Propiedades cepas_vacantes, tocones y arboles_muertos: Inventario de arbolado de la Ciudad de México, CIGA-UNAM y SEDEMA; en curso, corte: ${INV.corte}. Cada punto cuenta para el frente de manzana a ${INV.dist} m o menos; en vialidades primarias, también los del camellón (puntos sin frente de manzana) a ${INV.vp.dist} m o menos del eje.`
   : esp.unico? ' Esta copia (archivo único) no trae el inventario: sin propiedades de espacios (cepas_vacantes, tocones, arboles_muertos).'
@@ -429,7 +429,7 @@ async function geoKML(g, esp, f){ const e = !!(esp && esp.ok); const kc = p => {
 function geoDescarga(tipo){ const st = $('dl-status'); const g = geoSel(); const n = g.fr.length + g.vp.length;
   if (!n){ st.textContent = (respOn.alc && sel===null && !respOn.gc)? 'Elige una alcaldía o una colonia para descargar sus calles como mapa.' : 'Este ámbito no tiene calles de prioridad Muy Alta, Alta o Media que descargar.'; return; }
   // en teléfono un archivo de decenas de miles de líneas pesa demasiado: se pide acotar a una colonia (mismo criterio que el Excel)
-  if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un teléfono. Elige una colonia o descárgalo desde una computadora.`; return; }
+  if (isPhone() && n>GRANDE){ st.textContent = `El mapa de este ámbito tendría ${fmt.format(n)} líneas y es demasiado pesado para un celular. Elige una colonia o descárgalo desde una computadora.`; return; }
   st.textContent = n>GRANDE? `Preparando un archivo grande: ${fmt.format(n)} líneas, alrededor de ${fmt0.format(Math.max(1, n*(tipo==='kml'? 0.0006 : 0.00033)))} MB…` : 'Preparando archivo…';
   // el nombre dice qué trae (B3-02): calles de la alcaldía, vialidades primarias o las dos
   const base = g.fr.length && g.vp.length? `mapa_calles_y_vialidades_primarias_${scopeSlug()}` : g.fr.length? `mapa_calles_prioritarias_${scopeSlug()}` : `mapa_vialidades_primarias_prioritarias_${scopeSlugVP()}`;
