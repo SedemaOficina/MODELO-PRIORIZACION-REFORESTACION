@@ -110,9 +110,11 @@ function capaTeselas(id, url, f, op, avisa){
 // fondo_base.bin al encender el fondo; las manzanas de cada alcaldía, desde el zoom FONDO_Z y solo de las alcaldías a la vista.
 // El archivo único no los trae (window.SIA_FONDO no existe): allí el fondo «Calles» lo dice en la nota del panel de capas.
 const FONDO_ESCALA = 200000, FONDO_Z = 13;   // coordenadas en 1/200,000 de grado (ESCALA en 6_fondo.py)
-const FONDO = {base:null, pidiendo:false, intentos:0, mz:new Map(), pend:new Set(), fallo:new Set()};
+// fallo: archivo → cuándo falló; se vuelve a pedir pasados 30 s (al mover el mapa), al volver la red o con «Reintentar» (B5-02)
+const FONDO = {base:null, pidiendo:false, falloBase:0, mz:new Map(), pend:new Set(), fallo:new Map()}, FONDO_REINTENTO = 30000;
+const fondoToca = t => Date.now() - (t || 0) >= FONDO_REINTENTO;
 async function fondoLeer(n){ const v = (window.SIA_FONDO || {})[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/fondo/' + n + '?v=' + v); if (!r.ok) throw new Error(n + ': ' + r.status);
+  let r; try { r = await fetch('datos/fondo/' + n + '?v=' + v); } catch(e){ e.red = true; throw e; } if (!r.ok) throw new Error(n + ': ' + r.status);
   const b = await gunzip(new Uint8Array(await r.arrayBuffer())); let q=0, x=0, y=0;
   const val = ()=>{ let res=0, sh=0, c; do { c=b[q++]; res += (c & 0x7f)*Math.pow(2, sh); sh += 7; } while (c & 0x80); return res%2? -((res+1)/2) : res/2; };
   // cada llamada lee la siguiente lista de polígonos (las coordenadas van en diferencias a lo largo de todo el archivo)
@@ -124,16 +126,16 @@ async function fondoLeer(n){ const v = (window.SIA_FONDO || {})[n]; if (!v) thro
 const ALC_BB = ALC.map(a=>{ let w=180,s=90,e=-180,n=-90; for(const p of a.polys) for(const q of p){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } return [w,s,e,n]; });
 function fondoPropio(){ const L = [];
   if (!window.SIA_FONDO){ const n=$('fondo-note'); n.hidden=false; n.textContent='El fondo «Calles» no viene en el archivo único: ábrelo desde el sitio.'; return L; }
-  if (!FONDO.base && !FONDO.pidiendo && FONDO.intentos<3){ FONDO.pidiendo = true; FONDO.intentos++;
-    fondoLeer('fondo_base.bin').then(lee=>{ FONDO.base = {verde:lee(), agua:lee(), protegida:lee()}; FONDO.pidiendo = false; if (fondo==='calles') rerender(); })
-      .catch(()=>{ FONDO.pidiendo = false; if (FONDO.intentos>=3) avisoFondo(); }); }
+  if (!FONDO.base && !FONDO.pidiendo && fondoToca(FONDO.falloBase)){ FONDO.pidiendo = true;
+    fondoLeer('fondo_base.bin').then(lee=>{ FONDO.base = {verde:lee(), agua:lee(), protegida:lee()}; FONDO.pidiendo = false; FONDO.falloBase = 0; fondoBien(); if (fondo==='calles') rerender(); })
+      .catch(e=>{ console.warn('fondo', e); FONDO.pidiendo = false; FONDO.falloBase = Date.now(); avisoFondo(e); }); }
   if (viewState.zoom >= FONDO_Z){ const b = new WebMercatorViewport({...viewState, width:mapEl.clientWidth||800, height:mapEl.clientHeight||600}).getBounds();
     ALC.forEach((a,k)=>{ const bb=ALC_BB[k]; if (bb[2]<b[0] || bb[0]>b[2] || bb[3]<b[1] || bb[1]>b[3]) return;
       const n = 'fondo_mz_' + a.cve + '.bin', d = FONDO.mz.get(n);
       if (d) L.push(new PolygonLayer({id:'fondo-mz-'+a.cve, data:d, getPolygon:p=>p, getFillColor:T.manzana, stroked:false, filled:true, pickable:false, updateTriggers:{getFillColor:[T.manzana]}}));
-      else if (!FONDO.pend.has(n) && !FONDO.fallo.has(n)){ FONDO.pend.add(n);
-        fondoLeer(n).then(lee=>{ FONDO.mz.set(n, lee()); FONDO.pend.delete(n); if (fondo==='calles') rerender(); })
-          .catch(()=>{ FONDO.pend.delete(n); FONDO.fallo.add(n); avisoFondo(); }); } }); }
+      else if (!FONDO.pend.has(n) && fondoToca(FONDO.fallo.get(n))){ FONDO.pend.add(n); FONDO.fallo.delete(n);
+        fondoLeer(n).then(lee=>{ FONDO.mz.set(n, lee()); FONDO.pend.delete(n); fondoBien(); if (fondo==='calles') rerender(); })
+          .catch(e=>{ console.warn('fondo', n, e); FONDO.pend.delete(n); FONDO.fallo.set(n, Date.now()); avisoFondo(e); }); } }); }
   if (FONDO.base) for(const [id, dat, col] of [['fondo-protegida', FONDO.base.protegida, T.fverde], ['fondo-verde', FONDO.base.verde, T.fverde], ['fondo-agua', FONDO.base.agua, T.fagua]])
     L.push(new PolygonLayer({id, data:dat, getPolygon:p=>p, getFillColor:col, stroked:false, filled:true, pickable:false, updateTriggers:{getFillColor:[col]}}));
   return L; }

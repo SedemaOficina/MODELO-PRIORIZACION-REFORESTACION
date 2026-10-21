@@ -105,7 +105,17 @@ function fondoUI(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!==
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
 function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }
 addEventListener('resize', ajustaEscala);
-function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
+// aviso del fondo: por la conexión (o las teselas de otro proveedor) o por un archivo del fondo propio dañado o no entregado, con «Reintentar» (B5-02)
+function avisoFondo(e){ const n = $('fondo-note'); n.hidden = false; n.dataset.falla = '1';
+  avisoReintento(n, !e || e.red? 'No fue posible cargar el mapa de fondo (revisa la conexión a internet). Se volverá a intentar al mover el mapa.'
+    : 'No fue posible leer el mapa de fondo: el archivo llegó dañado o el servidor no lo entregó. Vuelve a intentarlo; si sigue igual, avisa al Sistema de Información Ambiental.', fondoReintenta); }
+function fondoReintenta(){ FONDO.fallo.clear(); FONDO.falloBase = 0; fondoFallas = 0; fondoBien(); rerender(); }
+// se quita el aviso cuando lo que faltaba llega
+function fondoBien(){ const n = $('fondo-note'); if (n && n.dataset.falla && !FONDO.fallo.size && !FONDO.falloBase){ n.hidden = true; delete n.dataset.falla; } }
+addEventListener('online', ()=>{ if (FONDO.fallo.size || FONDO.falloBase || fondoFallas) fondoReintenta(); });
+// un aviso con su botón «Reintentar» (inventario y fondo)
+function avisoReintento(n, texto, alTocar){ n.textContent = texto + ' ';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn reintentar'; b.textContent = 'Reintentar'; b.onclick = alTocar; n.appendChild(b); }
 document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
 $('reset-all').onclick = ()=>{ invReinicia(); espReinicia();
   filtroBanq = 'todas'; banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq==='todas')));   // «Reiniciar» apaga los dos filtros (setSel redibuja)

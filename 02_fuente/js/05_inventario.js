@@ -9,8 +9,15 @@
 // Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
 // (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.
 // window.SIA_INVENTARIO (config.js) trae la huella de cada archivo, el corte, los puntos por tipo y el avance del inventario por alcaldía.
-// El archivo único no lo trae: allí la sección del panel de capas lo dice.
-const INV = window.SIA_INVENTARIO || null;
+// El archivo único no lo trae: allí la sección del panel de capas lo dice. Si config.js lo trae con otra forma (B5-01), la herramienta
+// abre igual, sin inventario, y lo dice.
+const esObj = x => !!x && typeof x==='object' && !Array.isArray(x), tres = x => Array.isArray(x) && x.length===3 && x.every(Number.isFinite);
+const invForma = x => esObj(x) && esObj(x.v) && typeof x.corte==='string' && typeof x.fuente==='string' && Number.isFinite(x.dist)
+  && esObj(x.n) && Object.values(x.n).every(tres) && esObj(x.avance) && Object.keys(x.avance).length>0 && Object.values(x.avance).every(Number.isFinite)
+  && [x.fr, x.vp].every(a=> esObj(a) && typeof a.archivo==='string' && Number.isFinite(a.formato) && Number.isFinite(a.n) && tres(a.tipos) && tres(a.puntos))
+  && Number.isFinite(x.vp.dist);
+const INV = invForma(window.SIA_INVENTARIO)? window.SIA_INVENTARIO : null;
+if (!INV && window.SIA_INVENTARIO!==undefined) console.warn('SIA_INVENTARIO de config.js no tiene la forma esperada: la herramienta sigue sin inventario');
 const INV_ESCALA = 200000, INV_Z = 15, INV_Z_LIGERO = 16;   // coordenadas en 1/200,000 de grado (ESCALA en 9_inventario_espacios.py)
 const INV_TIPOS = [
   {id:'cepa', n:'Cepa vacante', pl:'Cepas vacantes', que:'Se puede plantar directo'},
@@ -18,24 +25,33 @@ const INV_TIPOS = [
   {id:'muerto', n:'Árbol muerto', pl:'Árboles muertos', que:'Requiere sustitución'}];
 const INV_CAPAS = ['inv-cepa', 'inv-tocon', 'inv-muerto'];   // las capas que se pueden tocar (una por tipo)
 const invOn = [true, true, true];                            // casillas del panel de capas
-const INVD = {mz:new Map(), pend:new Set(), fallo:new Set(), cache:null};
+// fallo: alcaldía → cuándo falló. Se vuelve a pedir pasados INV_REINTENTO ms (al mover el mapa), al volver la red o con «Reintentar» (B5-02).
+const INVD = {mz:new Map(), pend:new Set(), fallo:new Map(), cache:null}, INV_REINTENTO = 30000;
 const invZ = ()=> modoLigero? INV_Z_LIGERO : INV_Z;
 const invVisible = ()=> !!INV && invOn.some(Boolean) && viewState.zoom >= invZ();
 // lee el archivo de una alcaldía (formato 2): FORMATO, n y por punto dx, dy, tipo, dfrente, dletras, duga, dnúmero (en diferencias) y la
 // parte de vialidad primaria + 1 de un punto del camellón (0 en los demás; no va en diferencias)
+// pide un archivo del inventario; si la red falla, el error lo dice (e.red) para que el aviso hable de la conexión y no de un archivo dañado
+async function invPide(n){ let r; try { r = await fetch('datos/inventario/' + n + '?v=' + INV.v[n]); } catch(e){ e.red = true; throw e; }
+  if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
+  return gunzip(new Uint8Array(await r.arrayBuffer()), INV.crc? INV.crc[n] : null); }
 async function invLeer(cve){ const n = 'inv_' + cve + '.bin', v = INV.v[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
-  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const b = await invPide(n); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==2) throw new Error(n + ': formato ' + formato);
   const P = new Array(k); let x=0, y=0, fr=0, pre=0, uga=0, num=0;
-  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); const vp = rv()-1;
+  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); if (!(t>=0 && t<INV_TIPOS.length)) throw new Error(n + ': tipo ' + t); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); const vp = rv()-1;
     P[i] = {lon:x/INV_ESCALA, lat:y/INV_ESCALA, t, fr:fr-1, pre, uga, num, a:cve, vp: vp>=0 && vp<NV? vp : -1}; }
   if (rv.pos()!==b.length) throw new Error(n + ': sobran bytes');
   return P; }
 // clave del inventario (AAA-000-0000): las letras vienen como número en base 26
 const invClave = p => String.fromCharCode(65+Math.floor(p.pre/676), 65+Math.floor(p.pre/26)%26, 65+p.pre%26) + '-' + String(p.uga).padStart(3,'0') + '-' + String(p.num).padStart(4,'0');
+// aviso de una falla: por la conexión o por el archivo (dañado o no entregado), con «Reintentar» (B5-02)
 function invAviso(e){ const n = $('inv-falla'); if (!n) return; n.hidden = false;
-  if (e && e.sesion) avisoSesion(n); else n.textContent = 'No fue posible cargar los espacios para plantar de esta zona (revisa la conexión a internet).'; }
+  if (e && e.sesion){ avisoSesion(n); return; }
+  avisoReintento(n, e && e.red? 'No fue posible cargar los espacios para plantar de esta zona (revisa la conexión a internet). Se volverá a intentar al mover el mapa.'
+    : 'No fue posible leer los espacios para plantar de esta zona: el archivo llegó dañado o el servidor no lo entregó. Vuelve a intentarlo; si sigue igual, avisa al Sistema de Información Ambiental.', invReintenta); }
+function invReintenta(){ INVD.fallo.clear(); const n = $('inv-falla'); if (n) n.hidden = true; rerender(); }
+addEventListener('online', ()=>{ if (INVD.fallo.size) invReintenta(); });
 // capas del mapa: pide los archivos de las alcaldías a la vista y dibuja cada tipo con su símbolo (sin depender del color):
 // cepa = anillo verde con centro hueco; tocón = círculo café relleno; árbol muerto = círculo gris oscuro con «×». Todos con contorno
 // blanco, para verse sobre el fondo «Calles» y sobre el satélite.
@@ -44,9 +60,9 @@ function invCapas(){ const L = []; const zn = $('inv-zoom'); if (zn) zn.hidden =
   const b = new WebMercatorViewport({...viewState, width:mapEl.clientWidth||800, height:mapEl.clientHeight||600}).getBounds(); const cves = [];
   ALC.forEach((a,k)=>{ const bb = ALC_BB[k]; if (bb[2]<b[0] || bb[0]>b[2] || bb[3]<b[1] || bb[1]>b[3]) return;
     if (INVD.mz.has(a.cve)) cves.push(a.cve);
-    else if (!INVD.pend.has(a.cve) && !INVD.fallo.has(a.cve)){ INVD.pend.add(a.cve);
-      invLeer(a.cve).then(P=>{ INVD.mz.set(a.cve, P); INVD.pend.delete(a.cve); if (invVisible()) rerender(); })
-        .catch(e=>{ console.warn('inventario', a.cve, e); INVD.pend.delete(a.cve); INVD.fallo.add(a.cve); invAviso(e); }); } });
+    else if (!INVD.pend.has(a.cve) && !(Date.now() - (INVD.fallo.get(a.cve) || 0) < INV_REINTENTO)){ INVD.pend.add(a.cve); INVD.fallo.delete(a.cve);
+      invLeer(a.cve).then(P=>{ INVD.mz.set(a.cve, P); INVD.pend.delete(a.cve); if (!INVD.fallo.size){ const n = $('inv-falla'); if (n) n.hidden = true; } if (invVisible()) rerender(); })
+        .catch(e=>{ console.warn('inventario', a.cve, e); INVD.pend.delete(a.cve); INVD.fallo.set(a.cve, Date.now()); invAviso(e); }); } });
   // un objeto de datos por tipo; se rehace solo si cambian las alcaldías cargadas a la vista (deck.gl reprocesa cada objeto nuevo)
   const key = cves.join(',');
   if (!INVD.cache || INVD.cache.key!==key){ const D = [[],[],[]]; for (const c of cves) for (const p of INVD.mz.get(c)) D[p.t].push(p); INVD.cache = {key, D}; }
@@ -93,14 +109,16 @@ function invHtml(p, compact){ const ti = INV_TIPOS[p.t], fr = p.fr, hay = fr>=0 
     ${fieldActs(p.lat, p.lon)}`; }
 // ---------- sección del panel de capas: casillas, conteos y avance del inventario ----------
 function invNota(){ if (!INV) return; const cve = sel!==null? META.muns[sel] : null, todas = Object.values(INV.n);
-  const n = cve? INV.n[cve] : [0,1,2].map(t=> todas.reduce((s,a)=>s+a[t], 0));
+  const n = cve? (INV.n[cve] || [0,0,0]) : [0,1,2].map(t=> todas.reduce((s,a)=>s+a[t], 0));
   INV_TIPOS.forEach((_, k)=>{ const e = $('inv-n'+k); if (e) e.textContent = fmt.format(n[k]); });
   const av = Object.entries(INV.avance).sort((a,b)=>a[1]-b[1]), nom = c=> META.munNames[munIndex[c]];
   $('inv-avance').textContent = cve
     ? `En esta alcaldía van ${fmt.format(INV.avance[cve]||0)} registros del inventario (árboles, cepas, tocones y árboles muertos).`
     : `En toda la ciudad van ${fmt.format(av.reduce((s,a)=>s+a[1], 0))} registros del inventario. El avance es desigual: de ${fmt.format(av[0][1])} en ${nom(av[0][0])} a ${fmt.format(av[av.length-1][1])} en ${nom(av[av.length-1][0])}.`; }
 function invReinicia(){ for (let t=0;t<3;t++) invOn[t] = true; document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.checked = true; }); }
-if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #inv-nota, #inv-zoom').forEach(e=>{ e.hidden = true; }); $('inv-avance').textContent = 'Los espacios para plantar no vienen en el archivo único: ábrelo desde el sitio.'; } }
+if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #inv-nota, #inv-zoom').forEach(e=>{ e.hidden = true; });
+  $('inv-avance').textContent = window.SIA_DATOS? 'Los espacios para plantar no están disponibles en esta copia de la herramienta. Avisa al Sistema de Información Ambiental.'
+    : 'Los espacios para plantar no vienen en el archivo único: ábrelo desde el sitio.'; } }
 else { $('inv-corte').textContent = INV.corte;
   document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.onchange = ()=>{ invOn[+c.dataset.inv] = c.checked;
     if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
@@ -111,8 +129,7 @@ else { $('inv-corte').textContent = INV.corte;
 // Comprueba las cifras de control de config.js (INV.fr).
 let ESP_P = null;
 async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
-  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const b = await invPide(n); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==fr.formato || formato!==2 || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
   const A = new Uint8Array(N), CV = new Uint16Array(N), C = new Uint16Array(3*N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
   for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=N) throw new Error(n + ': frente ' + f); let bits = 0;
@@ -124,8 +141,7 @@ async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!
 // Gobierno Central o en el camellón). De ahí ESP_VP (tipos en bits, el filtro) y ESP_VPN (puntos de cada tipo: ficha del tramo y orden por
 // cepas de las avenidas). Comprueba las cifras de control de config.js (INV.vp).
 async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
-  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const b = await invPide(n); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==vc.formato || formato!==1 || k!==vc.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' partes');
   const A = new Uint8Array(NV), C = new Uint16Array(3*NV), partes = [0,0,0], puntos = [0,0,0]; let f = -1;
   for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=NV) throw new Error(n + ': parte ' + f); let bits = 0;
@@ -134,7 +150,7 @@ async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if 
   if (rv.pos()!==b.length || partes.join()!==vc.tipos.join() || puntos.join()!==vc.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
   return {A, C}; }
 // los dos archivos se piden juntos (el filtro aplica a las dos redes); si uno falla, se puede volver a pedir
-function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
+function espCargar(){ if (!INV) return Promise.reject(new Error('Esta copia no trae el inventario de arbolado'));
   if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_FRN = d.C; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
   return ESP_P; }
 // lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
@@ -151,7 +167,7 @@ function espFichaVP(i){ if (!INV || ESP_VPN) return;
   espCargar().then(()=> pon(espVpTxt(i)), e=>{ console.warn('ficha del tramo', e); pon(e && e.sesion? SESION_TXT : 'No fue posible cargar el inventario de arbolado (revisa la conexión a internet).'); }); }
 
 // Solo para las pruebas automáticas (04_pruebas/prueba_inventario_espacios.js): con window.SIA_PRUEBA se puede leer el estado de la capa.
-if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo],
+if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo.keys()],
   puntos: cve=> (INVD.mz.get(cve) || []).map(p=>({...p, clave:invClave(p)})), z: ()=>invZ(), on: ()=>invOn.slice(),
   capas: ()=> dk.props.layers.filter(l=>l && l.id.startsWith('inv-')).map(l=>({id:l.id, n:l.props.data.length})),
   mide: async cve=>{ const t = performance.now(); const P = await invLeer(cve); return {ms: Math.round(performance.now()-t), n: P.length}; },

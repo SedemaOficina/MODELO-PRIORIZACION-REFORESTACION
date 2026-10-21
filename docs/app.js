@@ -21,6 +21,10 @@ const sumPrio = a => { let t = 0; for (let k = PRIO_MIN; k < a.length; k++) t +=
 const VERSION = Object.assign({v:'', fecha:'', corte:''}, window.SIA_VERSION || {});
 const VERSION_TXT = `Versión ${VERSION.v}${VERSION.fecha? ' · Última actualización: '+VERSION.fecha : ''} · Datos: ${VERSION.corte}`;
 // Errores con mensaje para la persona usuaria: `amable` es lo que se muestra; el detalle técnico va a la consola.
+// CRC-32 (el de zlib): la huella de un archivo que llegó ya descomprimido (B5-04; ver gunzip en 02_datos.js)
+let CRC_T = null;
+function crc32(b){ if (!CRC_T){ CRC_T = new Uint32Array(256); for (let n=0;n<256;n++){ let c = n; for (let k=0;k<8;k++) c = c & 1? 0xEDB88320 ^ (c>>>1) : c>>>1; CRC_T[n] = c>>>0; } }
+  let c = 0xFFFFFFFF; for (let i=0;i<b.length;i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c>>>8); return (c ^ 0xFFFFFFFF)>>>0; }
 function errAmable(msg, detalle){ const e = new Error(detalle || msg); e.amable = msg; return e; }
 // ---------- política de seguridad de contenido ----------
 // Una política estricta rechaza los atributos style escritos en el HTML. Los estilos calculados (color de cada prioridad, ancho
@@ -71,9 +75,12 @@ const MQ_TEL = '(max-width:860px) and (min-height:481px), (max-width:600px)';
 // Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin y vp.bin, descompresión y decodificación a arreglos (frentes F, geometría POS, vialidades primarias VP).
 // ---------- lectura y decodificación ----------
 function b64ToBytes(s){ const bin = atob(s); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
-async function gunzip(bytes){
-  // Si un servidor intermedio ya descomprimió el archivo (no trae la firma gzip 1f 8b), se usa tal cual
-  if (bytes.length>1 && !(bytes[0]===0x1f && bytes[1]===0x8b)) return bytes;
+async function gunzip(bytes, crc){
+  // Si un servidor intermedio ya descomprimió el archivo (no trae la firma gzip 1f 8b), se usa tal cual, si coincide con su huella (crc,
+  // de config.js): sin la comprobación de gzip, es la que dice que no lo alteró (B5-04)
+  if (bytes.length>1 && !(bytes[0]===0x1f && bytes[1]===0x8b)){
+    if (crc!=null && crc32(bytes)!==crc) throw errAmable('Un archivo de datos llegó alterado: no coincide con su huella. Recarga la página; si sigue igual, avisa al Sistema de Información Ambiental.', 'huella distinta');
+    return bytes; }
   if (typeof DecompressionStream !== 'undefined'){
     try{ const ds = new DecompressionStream('gzip'); const ab = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer(); return new Uint8Array(ab); }
     catch(e){ console.warn('DecompressionStream falló, usando pako', e); }
@@ -87,9 +94,10 @@ const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar
 const DATOS = window.SIA_DATOS || null;
 let dlDone = 0, dlShow = true;
 function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .03 + .72*Math.min(1, dlDone/DATOS.total)); }
+// el primer intento usa el pedido que ya empezó config.js (SIA_PEDIDOS); sin él, se pide aquí
 async function fetchBytes(name){
-  let r;
-  try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
+  let r; const ya = window.SIA_PEDIDOS && window.SIA_PEDIDOS[name]; if (ya) window.SIA_PEDIDOS[name] = null;
+  try { r = await (ya || fetch('datos/' + name + '?v=' + DATOS.v[name])); }
   catch(e){ throw errAmable(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/priorizacion_reforestacion.html.' : 'No se pudieron descargar los datos. Revisa tu conexión a internet.', 'fetch ' + name + ': ' + (e && e.message || e)); }
   if (esSesion(r)) throw errSesion(name + ' ' + r.status + ' ' + (r.headers.get('content-type')||''));
   if (!r.ok) throw errAmable(`No se encontró un archivo de datos en el servidor (${name}, respuesta ${r.status}).`, name + ' ' + r.status);
@@ -108,7 +116,8 @@ const DATOS_CORTOS = () => errAmable('Un archivo de datos llegó incompleto: su 
 function reader(raw){ let rp=0; const f = ()=>{ let res=0, shift=0, b; do{ if (rp>=raw.length) throw DATOS_CORTOS(); b=raw[rp++]; res += (b & 0x7f) * Math.pow(2,shift); shift+=7; }while(b & 0x80); return (res % 2) ? -((res+1)/2) : res/2; }; f.pos = ()=>rp; return f; }
 
 setLoad(DATOS ? 'Descargando datos…' : 'Descomprimiendo catálogos…', .02);
-let META; try { META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta))); }
+const crcDe = n => DATOS && DATOS.crc? DATOS.crc[n] : null;
+let META; try { META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta, crcDe('meta.bin')))); }
 catch(e){ throw e.amable? e : errAmable('El catálogo de la herramienta (meta.bin) llegó dañado o incompleto.', 'meta: ' + (e && e.message || e)); }
 // catálogos: se neutraliza cualquier marcado antes de usarlos en la interfaz
 META.names = META.names.map(limpioCat); META.munNames = META.munNames.map(limpioCat);
@@ -121,7 +130,7 @@ for (const [k, n] of Object.entries(window.SIA_NOMBRES_COL || {})){ const c = ME
 const Q = META.Q;
 const rawGz = await pData; dlShow = false;
 setLoad('Descomprimiendo 372 mil frentes…', .78);
-const raw = await gunzip(rawGz);
+const raw = await gunzip(rawGz, crcDe('data.bin'));
 setLoad('Construyendo geometría…', .84);
 await new Promise(r=>setTimeout(r,20));
 
@@ -153,7 +162,7 @@ const midLat = i => puntoMedio(POS, start[i], start[i+1])[1];
 
 // vialidades primarias (Gobierno Central)
 setLoad('Cargando vialidades primarias…', .9);
-const vraw = await gunzip(await pVp);
+const vraw = await gunzip(await pVp, crcDe('vp.bin'));
 rv = reader(vraw);
 const NV = rv();
 const VP = { nom:new Int32Array(NV), nombre:new Int32Array(NV), tipo:new Uint8Array(NV), car:new Uint8Array(NV), circ:new Uint8Array(NV), alct:new Uint8Array(NV), mun:new Uint8Array(NV), prio:new Uint8Array(NV), len:new Uint32Array(NV), clave:new Int32Array(NV), rec:new Int32Array(NV) };
@@ -484,9 +493,11 @@ function capaTeselas(id, url, f, op, avisa){
 // fondo_base.bin al encender el fondo; las manzanas de cada alcaldía, desde el zoom FONDO_Z y solo de las alcaldías a la vista.
 // El archivo único no los trae (window.SIA_FONDO no existe): allí el fondo «Calles» lo dice en la nota del panel de capas.
 const FONDO_ESCALA = 200000, FONDO_Z = 13;   // coordenadas en 1/200,000 de grado (ESCALA en 6_fondo.py)
-const FONDO = {base:null, pidiendo:false, intentos:0, mz:new Map(), pend:new Set(), fallo:new Set()};
+// fallo: archivo → cuándo falló; se vuelve a pedir pasados 30 s (al mover el mapa), al volver la red o con «Reintentar» (B5-02)
+const FONDO = {base:null, pidiendo:false, falloBase:0, mz:new Map(), pend:new Set(), fallo:new Map()}, FONDO_REINTENTO = 30000;
+const fondoToca = t => Date.now() - (t || 0) >= FONDO_REINTENTO;
 async function fondoLeer(n){ const v = (window.SIA_FONDO || {})[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/fondo/' + n + '?v=' + v); if (!r.ok) throw new Error(n + ': ' + r.status);
+  let r; try { r = await fetch('datos/fondo/' + n + '?v=' + v); } catch(e){ e.red = true; throw e; } if (!r.ok) throw new Error(n + ': ' + r.status);
   const b = await gunzip(new Uint8Array(await r.arrayBuffer())); let q=0, x=0, y=0;
   const val = ()=>{ let res=0, sh=0, c; do { c=b[q++]; res += (c & 0x7f)*Math.pow(2, sh); sh += 7; } while (c & 0x80); return res%2? -((res+1)/2) : res/2; };
   // cada llamada lee la siguiente lista de polígonos (las coordenadas van en diferencias a lo largo de todo el archivo)
@@ -498,16 +509,16 @@ async function fondoLeer(n){ const v = (window.SIA_FONDO || {})[n]; if (!v) thro
 const ALC_BB = ALC.map(a=>{ let w=180,s=90,e=-180,n=-90; for(const p of a.polys) for(const q of p){ if(q[0]<w)w=q[0]; if(q[0]>e)e=q[0]; if(q[1]<s)s=q[1]; if(q[1]>n)n=q[1]; } return [w,s,e,n]; });
 function fondoPropio(){ const L = [];
   if (!window.SIA_FONDO){ const n=$('fondo-note'); n.hidden=false; n.textContent='El fondo «Calles» no viene en el archivo único: ábrelo desde el sitio.'; return L; }
-  if (!FONDO.base && !FONDO.pidiendo && FONDO.intentos<3){ FONDO.pidiendo = true; FONDO.intentos++;
-    fondoLeer('fondo_base.bin').then(lee=>{ FONDO.base = {verde:lee(), agua:lee(), protegida:lee()}; FONDO.pidiendo = false; if (fondo==='calles') rerender(); })
-      .catch(()=>{ FONDO.pidiendo = false; if (FONDO.intentos>=3) avisoFondo(); }); }
+  if (!FONDO.base && !FONDO.pidiendo && fondoToca(FONDO.falloBase)){ FONDO.pidiendo = true;
+    fondoLeer('fondo_base.bin').then(lee=>{ FONDO.base = {verde:lee(), agua:lee(), protegida:lee()}; FONDO.pidiendo = false; FONDO.falloBase = 0; fondoBien(); if (fondo==='calles') rerender(); })
+      .catch(e=>{ console.warn('fondo', e); FONDO.pidiendo = false; FONDO.falloBase = Date.now(); avisoFondo(e); }); }
   if (viewState.zoom >= FONDO_Z){ const b = new WebMercatorViewport({...viewState, width:mapEl.clientWidth||800, height:mapEl.clientHeight||600}).getBounds();
     ALC.forEach((a,k)=>{ const bb=ALC_BB[k]; if (bb[2]<b[0] || bb[0]>b[2] || bb[3]<b[1] || bb[1]>b[3]) return;
       const n = 'fondo_mz_' + a.cve + '.bin', d = FONDO.mz.get(n);
       if (d) L.push(new PolygonLayer({id:'fondo-mz-'+a.cve, data:d, getPolygon:p=>p, getFillColor:T.manzana, stroked:false, filled:true, pickable:false, updateTriggers:{getFillColor:[T.manzana]}}));
-      else if (!FONDO.pend.has(n) && !FONDO.fallo.has(n)){ FONDO.pend.add(n);
-        fondoLeer(n).then(lee=>{ FONDO.mz.set(n, lee()); FONDO.pend.delete(n); if (fondo==='calles') rerender(); })
-          .catch(()=>{ FONDO.pend.delete(n); FONDO.fallo.add(n); avisoFondo(); }); } }); }
+      else if (!FONDO.pend.has(n) && fondoToca(FONDO.fallo.get(n))){ FONDO.pend.add(n); FONDO.fallo.delete(n);
+        fondoLeer(n).then(lee=>{ FONDO.mz.set(n, lee()); FONDO.pend.delete(n); fondoBien(); if (fondo==='calles') rerender(); })
+          .catch(e=>{ console.warn('fondo', n, e); FONDO.pend.delete(n); FONDO.fallo.set(n, Date.now()); avisoFondo(e); }); } }); }
   if (FONDO.base) for(const [id, dat, col] of [['fondo-protegida', FONDO.base.protegida, T.fverde], ['fondo-verde', FONDO.base.verde, T.fverde], ['fondo-agua', FONDO.base.agua, T.fagua]])
     L.push(new PolygonLayer({id, data:dat, getPolygon:p=>p, getFillColor:col, stroked:false, filled:true, pickable:false, updateTriggers:{getFillColor:[col]}}));
   return L; }
@@ -807,8 +818,15 @@ const etqDesfasado = vs=> (ETQ_Z!==null && Math.round(vs.zoom/ETQ_PASO)*ETQ_PASO
 // Datos en datos/inventario/ (03_procesamiento_datos/9_inventario_espacios.py): un archivo por alcaldía que se pide al acercar el mapa
 // (desde INV_Z; en modo ligero, desde INV_Z_LIGERO) y solo de las alcaldías a la vista, como las manzanas del fondo propio.
 // window.SIA_INVENTARIO (config.js) trae la huella de cada archivo, el corte, los puntos por tipo y el avance del inventario por alcaldía.
-// El archivo único no lo trae: allí la sección del panel de capas lo dice.
-const INV = window.SIA_INVENTARIO || null;
+// El archivo único no lo trae: allí la sección del panel de capas lo dice. Si config.js lo trae con otra forma (B5-01), la herramienta
+// abre igual, sin inventario, y lo dice.
+const esObj = x => !!x && typeof x==='object' && !Array.isArray(x), tres = x => Array.isArray(x) && x.length===3 && x.every(Number.isFinite);
+const invForma = x => esObj(x) && esObj(x.v) && typeof x.corte==='string' && typeof x.fuente==='string' && Number.isFinite(x.dist)
+  && esObj(x.n) && Object.values(x.n).every(tres) && esObj(x.avance) && Object.keys(x.avance).length>0 && Object.values(x.avance).every(Number.isFinite)
+  && [x.fr, x.vp].every(a=> esObj(a) && typeof a.archivo==='string' && Number.isFinite(a.formato) && Number.isFinite(a.n) && tres(a.tipos) && tres(a.puntos))
+  && Number.isFinite(x.vp.dist);
+const INV = invForma(window.SIA_INVENTARIO)? window.SIA_INVENTARIO : null;
+if (!INV && window.SIA_INVENTARIO!==undefined) console.warn('SIA_INVENTARIO de config.js no tiene la forma esperada: la herramienta sigue sin inventario');
 const INV_ESCALA = 200000, INV_Z = 15, INV_Z_LIGERO = 16;   // coordenadas en 1/200,000 de grado (ESCALA en 9_inventario_espacios.py)
 const INV_TIPOS = [
   {id:'cepa', n:'Cepa vacante', pl:'Cepas vacantes', que:'Se puede plantar directo'},
@@ -816,24 +834,33 @@ const INV_TIPOS = [
   {id:'muerto', n:'Árbol muerto', pl:'Árboles muertos', que:'Requiere sustitución'}];
 const INV_CAPAS = ['inv-cepa', 'inv-tocon', 'inv-muerto'];   // las capas que se pueden tocar (una por tipo)
 const invOn = [true, true, true];                            // casillas del panel de capas
-const INVD = {mz:new Map(), pend:new Set(), fallo:new Set(), cache:null};
+// fallo: alcaldía → cuándo falló. Se vuelve a pedir pasados INV_REINTENTO ms (al mover el mapa), al volver la red o con «Reintentar» (B5-02).
+const INVD = {mz:new Map(), pend:new Set(), fallo:new Map(), cache:null}, INV_REINTENTO = 30000;
 const invZ = ()=> modoLigero? INV_Z_LIGERO : INV_Z;
 const invVisible = ()=> !!INV && invOn.some(Boolean) && viewState.zoom >= invZ();
 // lee el archivo de una alcaldía (formato 2): FORMATO, n y por punto dx, dy, tipo, dfrente, dletras, duga, dnúmero (en diferencias) y la
 // parte de vialidad primaria + 1 de un punto del camellón (0 en los demás; no va en diferencias)
+// pide un archivo del inventario; si la red falla, el error lo dice (e.red) para que el aviso hable de la conexión y no de un archivo dañado
+async function invPide(n){ let r; try { r = await fetch('datos/inventario/' + n + '?v=' + INV.v[n]); } catch(e){ e.red = true; throw e; }
+  if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
+  return gunzip(new Uint8Array(await r.arrayBuffer()), INV.crc? INV.crc[n] : null); }
 async function invLeer(cve){ const n = 'inv_' + cve + '.bin', v = INV.v[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
-  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const b = await invPide(n); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==2) throw new Error(n + ': formato ' + formato);
   const P = new Array(k); let x=0, y=0, fr=0, pre=0, uga=0, num=0;
-  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); const vp = rv()-1;
+  for(let i=0;i<k;i++){ x+=rv(); y+=rv(); const t=rv(); if (!(t>=0 && t<INV_TIPOS.length)) throw new Error(n + ': tipo ' + t); fr+=rv(); pre+=rv(); uga+=rv(); num+=rv(); const vp = rv()-1;
     P[i] = {lon:x/INV_ESCALA, lat:y/INV_ESCALA, t, fr:fr-1, pre, uga, num, a:cve, vp: vp>=0 && vp<NV? vp : -1}; }
   if (rv.pos()!==b.length) throw new Error(n + ': sobran bytes');
   return P; }
 // clave del inventario (AAA-000-0000): las letras vienen como número en base 26
 const invClave = p => String.fromCharCode(65+Math.floor(p.pre/676), 65+Math.floor(p.pre/26)%26, 65+p.pre%26) + '-' + String(p.uga).padStart(3,'0') + '-' + String(p.num).padStart(4,'0');
+// aviso de una falla: por la conexión o por el archivo (dañado o no entregado), con «Reintentar» (B5-02)
 function invAviso(e){ const n = $('inv-falla'); if (!n) return; n.hidden = false;
-  if (e && e.sesion) avisoSesion(n); else n.textContent = 'No fue posible cargar los espacios para plantar de esta zona (revisa la conexión a internet).'; }
+  if (e && e.sesion){ avisoSesion(n); return; }
+  avisoReintento(n, e && e.red? 'No fue posible cargar los espacios para plantar de esta zona (revisa la conexión a internet). Se volverá a intentar al mover el mapa.'
+    : 'No fue posible leer los espacios para plantar de esta zona: el archivo llegó dañado o el servidor no lo entregó. Vuelve a intentarlo; si sigue igual, avisa al Sistema de Información Ambiental.', invReintenta); }
+function invReintenta(){ INVD.fallo.clear(); const n = $('inv-falla'); if (n) n.hidden = true; rerender(); }
+addEventListener('online', ()=>{ if (INVD.fallo.size) invReintenta(); });
 // capas del mapa: pide los archivos de las alcaldías a la vista y dibuja cada tipo con su símbolo (sin depender del color):
 // cepa = anillo verde con centro hueco; tocón = círculo café relleno; árbol muerto = círculo gris oscuro con «×». Todos con contorno
 // blanco, para verse sobre el fondo «Calles» y sobre el satélite.
@@ -842,9 +869,9 @@ function invCapas(){ const L = []; const zn = $('inv-zoom'); if (zn) zn.hidden =
   const b = new WebMercatorViewport({...viewState, width:mapEl.clientWidth||800, height:mapEl.clientHeight||600}).getBounds(); const cves = [];
   ALC.forEach((a,k)=>{ const bb = ALC_BB[k]; if (bb[2]<b[0] || bb[0]>b[2] || bb[3]<b[1] || bb[1]>b[3]) return;
     if (INVD.mz.has(a.cve)) cves.push(a.cve);
-    else if (!INVD.pend.has(a.cve) && !INVD.fallo.has(a.cve)){ INVD.pend.add(a.cve);
-      invLeer(a.cve).then(P=>{ INVD.mz.set(a.cve, P); INVD.pend.delete(a.cve); if (invVisible()) rerender(); })
-        .catch(e=>{ console.warn('inventario', a.cve, e); INVD.pend.delete(a.cve); INVD.fallo.add(a.cve); invAviso(e); }); } });
+    else if (!INVD.pend.has(a.cve) && !(Date.now() - (INVD.fallo.get(a.cve) || 0) < INV_REINTENTO)){ INVD.pend.add(a.cve); INVD.fallo.delete(a.cve);
+      invLeer(a.cve).then(P=>{ INVD.mz.set(a.cve, P); INVD.pend.delete(a.cve); if (!INVD.fallo.size){ const n = $('inv-falla'); if (n) n.hidden = true; } if (invVisible()) rerender(); })
+        .catch(e=>{ console.warn('inventario', a.cve, e); INVD.pend.delete(a.cve); INVD.fallo.set(a.cve, Date.now()); invAviso(e); }); } });
   // un objeto de datos por tipo; se rehace solo si cambian las alcaldías cargadas a la vista (deck.gl reprocesa cada objeto nuevo)
   const key = cves.join(',');
   if (!INVD.cache || INVD.cache.key!==key){ const D = [[],[],[]]; for (const c of cves) for (const p of INVD.mz.get(c)) D[p.t].push(p); INVD.cache = {key, D}; }
@@ -891,14 +918,16 @@ function invHtml(p, compact){ const ti = INV_TIPOS[p.t], fr = p.fr, hay = fr>=0 
     ${fieldActs(p.lat, p.lon)}`; }
 // ---------- sección del panel de capas: casillas, conteos y avance del inventario ----------
 function invNota(){ if (!INV) return; const cve = sel!==null? META.muns[sel] : null, todas = Object.values(INV.n);
-  const n = cve? INV.n[cve] : [0,1,2].map(t=> todas.reduce((s,a)=>s+a[t], 0));
+  const n = cve? (INV.n[cve] || [0,0,0]) : [0,1,2].map(t=> todas.reduce((s,a)=>s+a[t], 0));
   INV_TIPOS.forEach((_, k)=>{ const e = $('inv-n'+k); if (e) e.textContent = fmt.format(n[k]); });
   const av = Object.entries(INV.avance).sort((a,b)=>a[1]-b[1]), nom = c=> META.munNames[munIndex[c]];
   $('inv-avance').textContent = cve
     ? `En esta alcaldía van ${fmt.format(INV.avance[cve]||0)} registros del inventario (árboles, cepas, tocones y árboles muertos).`
     : `En toda la ciudad van ${fmt.format(av.reduce((s,a)=>s+a[1], 0))} registros del inventario. El avance es desigual: de ${fmt.format(av[0][1])} en ${nom(av[0][0])} a ${fmt.format(av[av.length-1][1])} en ${nom(av[av.length-1][0])}.`; }
 function invReinicia(){ for (let t=0;t<3;t++) invOn[t] = true; document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.checked = true; }); }
-if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #inv-nota, #inv-zoom').forEach(e=>{ e.hidden = true; }); $('inv-avance').textContent = 'Los espacios para plantar no vienen en el archivo único: ábrelo desde el sitio.'; } }
+if (!INV){ const s = $('inv-sec'); if (s){ s.querySelectorAll('.inv-casillas, #inv-nota, #inv-zoom').forEach(e=>{ e.hidden = true; });
+  $('inv-avance').textContent = window.SIA_DATOS? 'Los espacios para plantar no están disponibles en esta copia de la herramienta. Avisa al Sistema de Información Ambiental.'
+    : 'Los espacios para plantar no vienen en el archivo único: ábrelo desde el sitio.'; } }
 else { $('inv-corte').textContent = INV.corte;
   document.querySelectorAll('#inv-sec input[data-inv]').forEach(c=>{ c.onchange = ()=>{ invOn[+c.dataset.inv] = c.checked;
     if (pinned && pinned.kind==='inv' && !invOn[pinned.i.t]) hideCard(); rerender(); }; }); }
@@ -909,8 +938,7 @@ else { $('inv-corte').textContent = INV.corte;
 // Comprueba las cifras de control de config.js (INV.fr).
 let ESP_P = null;
 async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
-  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const b = await invPide(n); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==fr.formato || formato!==2 || k!==fr.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' frentes');
   const A = new Uint8Array(N), CV = new Uint16Array(N), C = new Uint16Array(3*N), frentes = [0,0,0], puntos = [0,0,0]; let f = -1;
   for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=N) throw new Error(n + ': frente ' + f); let bits = 0;
@@ -922,8 +950,7 @@ async function espLeer(){ const fr = INV.fr, n = fr.archivo, v = INV.v[n]; if (!
 // Gobierno Central o en el camellón). De ahí ESP_VP (tipos en bits, el filtro) y ESP_VPN (puntos de cada tipo: ficha del tramo y orden por
 // cepas de las avenidas). Comprueba las cifras de control de config.js (INV.vp).
 async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if (!v) throw new Error('sin ' + n);
-  const r = await fetch('datos/inventario/' + n + '?v=' + v); if (esSesion(r)) throw errSesion(n); if (!r.ok) throw new Error(n + ': ' + r.status);
-  const b = await gunzip(new Uint8Array(await r.arrayBuffer())); const rv = reader(b);
+  const b = await invPide(n); const rv = reader(b);
   const formato = rv(), k = rv(); if (formato!==vc.formato || formato!==1 || k!==vc.n) throw new Error(n + ': formato ' + formato + ', ' + k + ' partes');
   const A = new Uint8Array(NV), C = new Uint16Array(3*NV), partes = [0,0,0], puntos = [0,0,0]; let f = -1;
   for(let j=0;j<k;j++){ f += rv(); if (f<0 || f>=NV) throw new Error(n + ': parte ' + f); let bits = 0;
@@ -932,7 +959,7 @@ async function espLeerVP(){ const vc = INV.vp, n = vc.archivo, v = INV.v[n]; if 
   if (rv.pos()!==b.length || partes.join()!==vc.tipos.join() || puntos.join()!==vc.puntos.join()) throw new Error(n + ': no cuadra con las cifras de control');
   return {A, C}; }
 // los dos archivos se piden juntos (el filtro aplica a las dos redes); si uno falla, se puede volver a pedir
-function espCargar(){ if (!INV) return Promise.reject(new Error('El archivo único no trae el inventario de arbolado'));
+function espCargar(){ if (!INV) return Promise.reject(new Error('Esta copia no trae el inventario de arbolado'));
   if (!ESP_P) ESP_P = Promise.all([espLeer(), espLeerVP()]).then(([d, v])=>{ ESP_FR = d.A; ESP_CV = d.CV; ESP_FRN = d.C; ESP_VP = v.A; ESP_VPN = v.C; return d; }, e=>{ ESP_P = null; throw e; });
   return ESP_P; }
 // lo que declaran el Excel, el GeoJSON y el KML cuando el filtro está activo
@@ -949,7 +976,7 @@ function espFichaVP(i){ if (!INV || ESP_VPN) return;
   espCargar().then(()=> pon(espVpTxt(i)), e=>{ console.warn('ficha del tramo', e); pon(e && e.sesion? SESION_TXT : 'No fue posible cargar el inventario de arbolado (revisa la conexión a internet).'); }); }
 
 // Solo para las pruebas automáticas (04_pruebas/prueba_inventario_espacios.js): con window.SIA_PRUEBA se puede leer el estado de la capa.
-if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo],
+if (window.SIA_PRUEBA===true) window.__INV = { cargadas: ()=>[...INVD.mz.keys()], pendientes: ()=>INVD.pend.size, fallas: ()=>[...INVD.fallo.keys()],
   puntos: cve=> (INVD.mz.get(cve) || []).map(p=>({...p, clave:invClave(p)})), z: ()=>invZ(), on: ()=>invOn.slice(),
   capas: ()=> dk.props.layers.filter(l=>l && l.id.startsWith('inv-')).map(l=>({id:l.id, n:l.props.data.length})),
   mide: async cve=>{ const t = performance.now(); const P = await invLeer(cve); return {ms: Math.round(performance.now()-t), n: P.length}; },
@@ -1283,7 +1310,17 @@ function fondoUI(k){ fondo = k; fondoFallas = 0; const f = FONDOS[k], con = k!==
 // la atribución del fondo ocupa una o varias líneas: la barra de escala se coloca justo encima
 function ajustaEscala(){ $('scalebar').style.bottom = (fondo!=='no' && !isPhone())? (16 + $('attrib').offsetHeight + 6)+'px' : ''; }
 addEventListener('resize', ajustaEscala);
-function avisoFondo(){ const n = $('fondo-note'); n.hidden = false; n.textContent = 'No fue posible cargar el mapa de fondo (revisa la conexión a internet).'; }
+// aviso del fondo: por la conexión (o las teselas de otro proveedor) o por un archivo del fondo propio dañado o no entregado, con «Reintentar» (B5-02)
+function avisoFondo(e){ const n = $('fondo-note'); n.hidden = false; n.dataset.falla = '1';
+  avisoReintento(n, !e || e.red? 'No fue posible cargar el mapa de fondo (revisa la conexión a internet). Se volverá a intentar al mover el mapa.'
+    : 'No fue posible leer el mapa de fondo: el archivo llegó dañado o el servidor no lo entregó. Vuelve a intentarlo; si sigue igual, avisa al Sistema de Información Ambiental.', fondoReintenta); }
+function fondoReintenta(){ FONDO.fallo.clear(); FONDO.falloBase = 0; fondoFallas = 0; fondoBien(); rerender(); }
+// se quita el aviso cuando lo que faltaba llega
+function fondoBien(){ const n = $('fondo-note'); if (n && n.dataset.falla && !FONDO.fallo.size && !FONDO.falloBase){ n.hidden = true; delete n.dataset.falla; } }
+addEventListener('online', ()=>{ if (FONDO.fallo.size || FONDO.falloBase || fondoFallas) fondoReintenta(); });
+// un aviso con su botón «Reintentar» (inventario y fondo)
+function avisoReintento(n, texto, alTocar){ n.textContent = texto + ' ';
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'linkbtn reintentar'; b.textContent = 'Reintentar'; b.onclick = alTocar; n.appendChild(b); }
 document.querySelectorAll('.seg.fondo button').forEach(b=>{ b.onclick = ()=>{ if (b.dataset.fondo!==fondo) setFondo(b.dataset.fondo); }; });
 $('reset-all').onclick = ()=>{ invReinicia(); espReinicia();
   filtroBanq = 'todas'; banqBtns.forEach(b=>b.setAttribute('aria-pressed', String(b.dataset.banq==='todas')));   // «Reiniciar» apaga los dos filtros (setSel redibuja)

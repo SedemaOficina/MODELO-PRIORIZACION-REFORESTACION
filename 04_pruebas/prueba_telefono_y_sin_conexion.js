@@ -1,6 +1,6 @@
 // Teléfono y rendimiento.
 // GPS impreciso y respuesta tardía, Excel grande sin congelar la página, avance de la carga, modo ligero,
-// teléfono en horizontal y uso sin conexión después de la primera visita.
+// teléfono en horizontal. El uso sin conexión lo revisa prueba_sin_conexion.js (v1.41), con la red cortada en el servidor.
 // Uso: node 04_pruebas/prueba_telefono_y_sin_conexion.js   · termina con código ≠ 0 si algo falla.
 const fs = require('fs'), path = require('path'), os = require('os');
 const L = require('./lib_pruebas.js');
@@ -82,19 +82,10 @@ const ok = L.Registro('teléfono y sin conexión'); const D = L.decodificar(); c
     await ctx.close(); }
 
   // ---------- sin conexión después de la primera visita ----------
-  { const ctx = await browser.newContext({ acceptDownloads: true, locale: 'es-MX', viewport: { width: 1440, height: 900 } }); await L.sinEntrada(ctx); await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); const page = await ctx.newPage();
-    await page.goto(U); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 300000 });
-    const pre = await page.evaluate(async () => { await navigator.serviceWorker.ready; for (let k = 0; k < 120; k++) { const ks = await caches.keys(); if (ks.length) { const c = await caches.open(ks[0]); const n = (await c.keys()).length; if (n >= 16) return { cache: ks[0], n }; } await new Promise(r => setTimeout(r, 500)); } const ks = await caches.keys(); return { cache: ks[0] || null, n: ks[0] ? (await (await caches.open(ks[0])).keys()).length : 0 }; });
-    ok('el proceso de servicio guarda los archivos de la herramienta', !!pre.cache && pre.n >= 16, JSON.stringify(pre));
-    await ctx.setOffline(true); let cargo = true;
-    try { await page.reload(); await page.waitForSelector('#loader[hidden]', { state: 'attached', timeout: 120000 }); await page.waitForTimeout(600); } catch (e) { cargo = false; }
-    ok('sin conexión, la herramienta vuelve a abrir', cargo && /Ciudad de México/.test((await L.estado(page)).titulo));
-    if (cargo) { await page.selectOption('#alc', String(coy)); await page.waitForTimeout(500);
-      const d1 = await L.descargar(page, '#dl-calles', SAL); ok('sin conexión se entrega Excel (no CSV)', !!d1 && /\.xlsx$/.test(d1.nombre), d1 && d1.nombre);
-      const d2 = await L.descargar(page, '#dl-ficha-alc', SAL); ok('sin conexión se genera la ficha PDF', !!d2 && /\.pdf$/.test(d2.nombre) && d2.bytes > 20000, d2 && d2.nombre); }
-    const sw = fs.readFileSync(path.join(L.DOCS, 'sw.js'), 'utf8');
-    ok('el proceso de servicio no guarda respuestas con error ni redirigidas (convive con el login)', /r\.ok && !r\.redirected && r\.type === 'basic'/.test(sw));
-    await ctx.close(); }
+  // Desde la v1.41 lo revisa prueba_sin_conexion.js con la red cortada en el servidor: setOffline de Playwright no corta los pedidos del
+  // proceso de servicio y la prueba pasaba aunque la copia estuviera incompleta (A1-03). Aquí queda la regla de convivencia con el login.
+  { const sw = fs.readFileSync(path.join(L.DOCS, 'sw.js'), 'utf8');
+    ok('el proceso de servicio no guarda respuestas con error ni redirigidas (convive con el login)', /r\.ok && !r\.redirected && r\.type === 'basic'/.test(sw)); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));
   await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);

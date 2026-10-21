@@ -412,6 +412,8 @@ body.tab-dl .panel-actions{display:none}
 .legend .lg-sec .pills button{padding:5px 8px;font-size:.75rem;white-space:nowrap}
 .legend .lg-sec .pills button i{width:12px;height:12px;margin-right:5px}
 .legend .lg-note{margin:6px 0 0;font-size:.75rem;color:var(--ink-2);line-height:1.35}
+/* «Reintentar» dentro del aviso del fondo o del inventario: en el renglón, con área de toque de 24 px */
+.legend .lg-note .reintentar{margin:0;min-height:24px;font-size:inherit}
 #legend-rows .row{display:grid;grid-template-columns:14px 22px minmax(0,1fr) auto;gap:7px;align-items:center}
 .legend .lg-cb{width:14px;height:14px;border-radius:3px;border:1.5px solid var(--line-strong);background:var(--panel);position:relative;display:block}
 #legend-rows .row[aria-checked="true"] .lg-cb{background:var(--ink);border-color:var(--ink)}

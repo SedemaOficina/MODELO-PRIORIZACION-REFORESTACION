@@ -1,9 +1,12 @@
 // Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin y vp.bin, descompresión y decodificación a arreglos (frentes F, geometría POS, vialidades primarias VP).
 // ---------- lectura y decodificación ----------
 function b64ToBytes(s){ const bin = atob(s); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
-async function gunzip(bytes){
-  // Si un servidor intermedio ya descomprimió el archivo (no trae la firma gzip 1f 8b), se usa tal cual
-  if (bytes.length>1 && !(bytes[0]===0x1f && bytes[1]===0x8b)) return bytes;
+async function gunzip(bytes, crc){
+  // Si un servidor intermedio ya descomprimió el archivo (no trae la firma gzip 1f 8b), se usa tal cual, si coincide con su huella (crc,
+  // de config.js): sin la comprobación de gzip, es la que dice que no lo alteró (B5-04)
+  if (bytes.length>1 && !(bytes[0]===0x1f && bytes[1]===0x8b)){
+    if (crc!=null && crc32(bytes)!==crc) throw errAmable('Un archivo de datos llegó alterado: no coincide con su huella. Recarga la página; si sigue igual, avisa al Sistema de Información Ambiental.', 'huella distinta');
+    return bytes; }
   if (typeof DecompressionStream !== 'undefined'){
     try{ const ds = new DecompressionStream('gzip'); const ab = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer(); return new Uint8Array(ab); }
     catch(e){ console.warn('DecompressionStream falló, usando pako', e); }
@@ -17,9 +20,10 @@ const setLoad = (msg, p)=>{ $('load-msg').textContent = msg; const b=$('load-bar
 const DATOS = window.SIA_DATOS || null;
 let dlDone = 0, dlShow = true;
 function showDl(){ if (!dlShow || !DATOS) return; const mb = v => fmt1.format(v/1048576); setLoad('Descargando datos: ' + mb(dlDone) + ' de ' + mb(DATOS.total) + ' MB', .03 + .72*Math.min(1, dlDone/DATOS.total)); }
+// el primer intento usa el pedido que ya empezó config.js (SIA_PEDIDOS); sin él, se pide aquí
 async function fetchBytes(name){
-  let r;
-  try { r = await fetch('datos/' + name + '?v=' + DATOS.v[name]); }
+  let r; const ya = window.SIA_PEDIDOS && window.SIA_PEDIDOS[name]; if (ya) window.SIA_PEDIDOS[name] = null;
+  try { r = await (ya || fetch('datos/' + name + '?v=' + DATOS.v[name])); }
   catch(e){ throw errAmable(location.protocol==='file:' ? 'Esta versión se abre desde un servidor web (GitHub Pages o el SIA). Para abrirla con doble clic usa _local/priorizacion_reforestacion.html.' : 'No se pudieron descargar los datos. Revisa tu conexión a internet.', 'fetch ' + name + ': ' + (e && e.message || e)); }
   if (esSesion(r)) throw errSesion(name + ' ' + r.status + ' ' + (r.headers.get('content-type')||''));
   if (!r.ok) throw errAmable(`No se encontró un archivo de datos en el servidor (${name}, respuesta ${r.status}).`, name + ' ' + r.status);
@@ -38,7 +42,8 @@ const DATOS_CORTOS = () => errAmable('Un archivo de datos llegó incompleto: su 
 function reader(raw){ let rp=0; const f = ()=>{ let res=0, shift=0, b; do{ if (rp>=raw.length) throw DATOS_CORTOS(); b=raw[rp++]; res += (b & 0x7f) * Math.pow(2,shift); shift+=7; }while(b & 0x80); return (res % 2) ? -((res+1)/2) : res/2; }; f.pos = ()=>rp; return f; }
 
 setLoad(DATOS ? 'Descargando datos…' : 'Descomprimiendo catálogos…', .02);
-let META; try { META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta))); }
+const crcDe = n => DATOS && DATOS.crc? DATOS.crc[n] : null;
+let META; try { META = JSON.parse(new TextDecoder().decode(await gunzip(await pMeta, crcDe('meta.bin')))); }
 catch(e){ throw e.amable? e : errAmable('El catálogo de la herramienta (meta.bin) llegó dañado o incompleto.', 'meta: ' + (e && e.message || e)); }
 // catálogos: se neutraliza cualquier marcado antes de usarlos en la interfaz
 META.names = META.names.map(limpioCat); META.munNames = META.munNames.map(limpioCat);
@@ -51,7 +56,7 @@ for (const [k, n] of Object.entries(window.SIA_NOMBRES_COL || {})){ const c = ME
 const Q = META.Q;
 const rawGz = await pData; dlShow = false;
 setLoad('Descomprimiendo 372 mil frentes…', .78);
-const raw = await gunzip(rawGz);
+const raw = await gunzip(rawGz, crcDe('data.bin'));
 setLoad('Construyendo geometría…', .84);
 await new Promise(r=>setTimeout(r,20));
 
@@ -83,7 +88,7 @@ const midLat = i => puntoMedio(POS, start[i], start[i+1])[1];
 
 // vialidades primarias (Gobierno Central)
 setLoad('Cargando vialidades primarias…', .9);
-const vraw = await gunzip(await pVp);
+const vraw = await gunzip(await pVp, crcDe('vp.bin'));
 rv = reader(vraw);
 const NV = rv();
 const VP = { nom:new Int32Array(NV), nombre:new Int32Array(NV), tipo:new Uint8Array(NV), car:new Uint8Array(NV), circ:new Uint8Array(NV), alct:new Uint8Array(NV), mun:new Uint8Array(NV), prio:new Uint8Array(NV), len:new Uint32Array(NV), clave:new Int32Array(NV), rec:new Int32Array(NV) };

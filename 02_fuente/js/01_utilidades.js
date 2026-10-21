@@ -18,6 +18,10 @@ const sumPrio = a => { let t = 0; for (let k = PRIO_MIN; k < a.length; k++) t +=
 const VERSION = Object.assign({v:'', fecha:'', corte:''}, window.SIA_VERSION || {});
 const VERSION_TXT = `Versión ${VERSION.v}${VERSION.fecha? ' · Última actualización: '+VERSION.fecha : ''} · Datos: ${VERSION.corte}`;
 // Errores con mensaje para la persona usuaria: `amable` es lo que se muestra; el detalle técnico va a la consola.
+// CRC-32 (el de zlib): la huella de un archivo que llegó ya descomprimido (B5-04; ver gunzip en 02_datos.js)
+let CRC_T = null;
+function crc32(b){ if (!CRC_T){ CRC_T = new Uint32Array(256); for (let n=0;n<256;n++){ let c = n; for (let k=0;k<8;k++) c = c & 1? 0xEDB88320 ^ (c>>>1) : c>>>1; CRC_T[n] = c>>>0; } }
+  let c = 0xFFFFFFFF; for (let i=0;i<b.length;i++) c = CRC_T[(c ^ b[i]) & 0xFF] ^ (c>>>8); return (c ^ 0xFFFFFFFF)>>>0; }
 function errAmable(msg, detalle){ const e = new Error(detalle || msg); e.amable = msg; return e; }
 // ---------- política de seguridad de contenido ----------
 // Una política estricta rechaza los atributos style escritos en el HTML. Los estilos calculados (color de cada prioridad, ancho

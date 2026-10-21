@@ -36,6 +36,7 @@ import json
 import os
 import sys
 import time
+import zlib
 
 FUENTE = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(FUENTE)
@@ -79,8 +80,8 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.40'
-ACTUALIZACION = '20 de octubre de 2026'
+VERSION = '1.41'
+ACTUALIZACION = '21 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de nov. 2025; vialidades primarias de ago. 2026'
 
 
@@ -228,6 +229,12 @@ VIGIA = ("(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=do
          " var cx=navigator.connection; if (cx && (cx.saveData || /2g|3g/.test(cx.effectiveType||''))){ var l0=document.getElementById('loader'); if (l0){ var n0=document.createElement('div'); n0.className='conex'; n0.textContent='Con esta conexión la primera carga puede tardar más de un minuto.'; l0.querySelector('div').appendChild(n0); } }"
          " setTimeout(function(){ aviso('La carga está tardando más de lo normal. Puede ser una conexión lenta; si no avanza, vuelve a intentarlo.'); }, 45000); })();\n")
 
+# Los tres archivos de datos se empiezan a pedir en config.js, el primer programa y el más chico, mientras bajan las librerías; 02_datos.js usa
+# esas mismas respuestas. Así se piden una sola vez en todos los navegadores: WebKit (Safari) no aprovechaba <link rel="preload" as="fetch">
+# y los pedía dos veces (B8-01).
+PEDIDOS = ("(function(){ var D=window.SIA_DATOS; if (!D || !window.fetch) return; window.SIA_PEDIDOS={};"
+           " ['meta.bin','data.bin','vp.bin'].forEach(function(n){ var p=fetch('datos/'+n+'?v='+D.v[n]); p['catch'](function(){}); window.SIA_PEDIDOS[n]=p; }); })();\n")
+
 
 def unir(carpeta, extension):
     nombres = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n.endswith(extension))
@@ -274,25 +281,30 @@ cuerpo += '<script>\n' + app + '</script>\n'
 unico = ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + ESTILOS_UNICO) + cuerpo + '</body></html>\n'
 
 # ---------- 2) sitio: cada pieza en su archivo, con huella ?v= para la caché del navegador ----------
-ver = {}
+# crc: CRC-32 del contenido ya descomprimido. La página lo compara solo si un intermediario de la red le entrega el archivo sin comprimir
+# (B5-04): así nota si además lo alteró. Comprimido, gzip ya trae su propia comprobación.
+crc = lambda b: zlib.crc32(gzip.decompress(b))
+ver, ver_crc = {}, {}
 for n in DATOS:
     b = leer('datos/%s.bin' % n, True)
     poner('datos/%s.bin' % n, b)
     ver[n + '.bin'] = huella(b)
+    ver_crc[n + '.bin'] = crc(b)
 total = sum(len(leer('datos/%s.bin' % n, True)) for n in DATOS)
 fondo_ver = {}
 for n in sorted(FONDO_SUMAS):
     b = leer('datos/fondo/' + n, True)
     poner('datos/fondo/' + n, b)
     fondo_ver[n] = huella(b)
-inv_ver = {}
+inv_ver, inv_crc = {}, {}
 for n in sorted(INV_SUMAS):
     b = leer('datos/inventario/' + n, True)
     poner('datos/inventario/' + n, b)
     inv_ver[n] = huella(b)
+    inv_crc[n] = crc(b)
 # lo que la página necesita sin descargar nada: huella de cada archivo, corte, puntos por tipo de cada alcaldía (los que contiene) y
 # registros del inventario por alcaldía (árboles vivos incluidos: dicen cuánto se ha avanzado)
-INVENTARIO = {'v': inv_ver, 'corte': INV_RES['corte'], 'fuente': INV_RES['fuente'], 'dist': INV_RES['distancia_max_m'],
+INVENTARIO = {'v': inv_ver, 'crc': inv_crc, 'corte': INV_RES['corte'], 'fuente': INV_RES['fuente'], 'dist': INV_RES['distancia_max_m'],
               'n': {c: a['puntos'] for c, a in INV_RES['por_alcaldia'].items()}, 'avance': {c: a['registros'] for c, a in INV_RES['por_alcaldia'].items()},
               # filtro «Espacio» y orden por cepas: archivo de puntos por tipo de cada frente y sus cifras de control (frentes con cada
               # tipo y puntos de cada tipo; 05_inventario.js las comprueba al leerlo)
@@ -316,7 +328,7 @@ for arch in FUENTES_PUBLICADAS:
     poner('fuentes/' + arch, b)
     fver[arch] = huella(b)
 estilos = css_fuentes(lambda a: 'fuentes/%s?v=%s' % (a, fver[a])) + estilos
-config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_INVENTARIO = %s;\nwindow.SIA_NOMBRES_COL = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'total': total}), json.dumps(fondo_ver), json.dumps(INVENTARIO, ensure_ascii=False, separators=(',', ':')), json.dumps(NOMBRES_COL, ensure_ascii=False, separators=(',', ':')), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA
+config = 'window.SIA_LIBS = "libs/";\nwindow.SIA_LIBS_V = ' + json.dumps({l: lver[l] for l in ('xlsx.js', 'jspdf.js', 'excel_worker.js')}) + ';\nwindow.SIA_SESION = ' + json.dumps(SESION) + ';\nwindow.SIA_DATOS = %s;\nwindow.SIA_FONDO = %s;\nwindow.SIA_INVENTARIO = %s;\nwindow.SIA_NOMBRES_COL = %s;\nwindow.SIA_ESRI_KEY = %s;\nwindow.SIA_VERSION = %s;\n' % (json.dumps({'v': ver, 'crc': ver_crc, 'total': total}), json.dumps(fondo_ver), json.dumps(INVENTARIO, ensure_ascii=False, separators=(',', ':')), json.dumps(NOMBRES_COL, ensure_ascii=False, separators=(',', ':')), json.dumps(ESRI_KEY), json.dumps({'v': VERSION, 'fecha': ACTUALIZACION, 'corte': CORTE_DATOS}, ensure_ascii=False)) + VIGIA + PEDIDOS
 poner('config.js', config)
 poner('estilos.css', estilos)
 poner('app.js', app)
@@ -328,14 +340,19 @@ for img in IMAGENES:
     sitio = sitio.replace('src="%s"' % img, 'src="%s?v=%s"' % (img, v(leer(img, True))))
 sitio = sitio.replace('<img src="img/composicion_frentes_manzana.jpg', '<img loading="lazy" src="img/composicion_frentes_manzana.jpg')
 assert sitio.count('Descomprimiendo datos…</div>') == 1
-sitio = sitio.replace('Descomprimiendo datos…</div>', 'Descargando la herramienta y sus datos (%.0f MB la primera vez)…</div>' % ((total + len(leer('libs/deck.js', True)) / 3.5) / 1048576))
+# Lo que baja la primera visita, como lo entrega el servidor (el texto comprimido; los .bin, las tipografías y las imágenes tal cual),
+# incluida la copia para usarse sin conexión (proceso de servicio, abajo): es la cifra que anuncia el cargador (B6-02).
+gz = lambda b: len(gzip.compress(b.encode('utf-8') if isinstance(b, str) else b, 6))
+primera = (gz(sitio) + gz(config) + gz(app) + gz(estilos) + sum(gz(leer('libs/' + l, True)) for l in ('deck.js', 'pako.js', 'xlsx.js', 'jspdf.js', 'excel_worker.js'))
+           + total + len(SALIDA['datos/fondo/fondo_base.bin']) + sum(len(SALIDA['datos/inventario/' + n]) for n in inv_ver)
+           + sum(len(SALIDA['fuentes/' + a]) for a in FUENTES.values()) + sum(len(SALIDA[img]) for img in IMAGENES))
+sitio = sitio.replace('Descomprimiendo datos…</div>', 'Descargando la herramienta y sus datos (%.0f MB la primera vez)…</div>' % (primera / 1048576))
 sitio += ('<script src="config.js?v=%s"></script>\n' % v(config)
           + '<script src="libs/deck.js?v=%s"></script>\n' % lver['deck.js']
           + '<script src="libs/pako.js?v=%s"></script>\n' % lver['pako.js']
           + '<script src="app.js?v=%s"></script>\n' % v(app))
-# que el navegador empiece a bajar los datos desde el primer momento, en paralelo con las librerías
-precarga = ''.join('<link rel="preload" href="datos/%s?v=%s" as="fetch" crossorigin>' % (n, ver[n]) for n in ('data.bin', 'meta.bin', 'vp.bin'))
-precarga += ''.join('<link rel="preload" href="fuentes/%s?v=%s" as="font" type="font/woff2" crossorigin>' % (a, fver[a]) for a in FUENTES.values())
+# las tipografías se piden desde el primer momento; los datos, desde config.js (PEDIDOS)
+precarga = ''.join('<link rel="preload" href="fuentes/%s?v=%s" as="font" type="font/woff2" crossorigin>' % (a, fver[a]) for a in FUENTES.values())
 pagina = (ESQUELETO.replace('{CABEZA}', ROBOTS + CABEZA_PL + precarga + HOJA) + '<!-- ' + AVISO % 'plantilla.html, css/ y js/' + ' -->\n'
           + sitio + '</body></html>\n')
 poner('index.html', pagina)
@@ -343,20 +360,30 @@ poner('index.html', pagina)
 # ---------- proceso de servicio: la herramienta abre sin conexión después de la primera visita ----------
 # Guarda solo archivos propios, por su dirección exacta (con huella). No guarda respuestas con error, redirigidas ni de otro origen,
 # para convivir con el inicio de sesión del SIA (un 401 o un 302 nunca quedan en la caché).
+# Desde la v1.41 (bloque 5 de la auditoría): guarda también el inventario de arbolado (unos 400 KB), para ver los espacios para plantar
+# y usar el filtro «Espacio» en campo, sin señal.
 PRE = (['./', 'config.js?v=%s' % v(config), 'app.js?v=%s' % v(app), 'estilos.css?v=%s' % v(estilos)]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('deck.js', 'pako.js')]
        + ['libs/%s?v=%s' % (l, lver[l]) for l in ('xlsx.js', 'jspdf.js')] + ['libs/excel_worker.js?v=%s&x=%s' % (lver['excel_worker.js'], lver['xlsx.js'])]
        + ['datos/%s?v=%s' % (n, ver[n]) for n in sorted(ver)] + ['datos/fondo/fondo_base.bin?v=%s' % fondo_ver['fondo_base.bin']]   # el fondo «Calles» abre por omisión
+       + ['datos/inventario/%s?v=%s' % (n, inv_ver[n]) for n in sorted(inv_ver)]
        + ['fuentes/%s?v=%s' % (a, fver[a]) for a in FUENTES.values()]
        + ['%s?v=%s' % (img, v(leer(img, True))) for img in IMAGENES])
 SW = '''// %s
 const CACHE = 'calles-%s';
 const PRE = %s;
 const sirve = r => r && r.ok && !r.redirected && r.type === 'basic';
-self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => Promise.all(PRE.map(u => fetch(u, {cache: 'reload'}).then(r => sirve(r) ? c.put(u, r) : null).catch(() => null)))).then(() => self.skipWaiting())));
+// Todo o nada: si un archivo no llega, la copia nueva se borra y la instalación falla, así sigue la versión anterior con su copia completa.
+// Los archivos llevan su huella en la dirección: se toman de la caché del navegador si la página ya los bajó; la página, que no la lleva, se
+// revalida con el servidor.
+self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => Promise.all(PRE.map(u => fetch(u, {cache: u === './' ? 'no-cache' : 'default'})
+  .then(r => { if (!sirve(r)) throw new Error(u + ': ' + r.status); return c.put(u, r); }))))
+  .then(() => self.skipWaiting(), err => caches.delete(CACHE).then(() => { throw err; }))));
 self.addEventListener('activate', e => e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith('calles-') && k !== CACHE).map(k => caches.delete(k))))));
+// La página se pide a la red y, sin red, sale la de la copia. La de la red no se guarda: la copia queda como se instaló, con su página y sus
+// archivos de la misma versión (una página nueva en la copia vieja pediría archivos que no están en ella).
 self.addEventListener('fetch', e => { const q = e.request; if (q.method !== 'GET' || new URL(q.url).origin !== location.origin) return;
-  if (q.mode === 'navigate') { e.respondWith(fetch(q).then(r => { if (sirve(r)) { const cp = r.clone(); caches.open(CACHE).then(c => c.put('./', cp)); } return r; }).catch(() => caches.open(CACHE).then(c => c.match('./')).then(m => m || Response.error()))); return; }
+  if (q.mode === 'navigate') { e.respondWith(fetch(q).catch(() => caches.open(CACHE).then(c => c.match('./')).then(m => m || Response.error()))); return; }
   e.respondWith(caches.open(CACHE).then(c => c.match(q)).then(m => m || fetch(q))); });
 ''' % (AVISO % 'construir.py', v(pagina + json.dumps(PRE)), json.dumps(PRE))
 poner('sw.js', SW)

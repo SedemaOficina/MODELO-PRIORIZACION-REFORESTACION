@@ -14,7 +14,7 @@ const RAPIDAS = [
   ['coherencia de los documentos', process.execPath, ['04_pruebas/prueba_docs_coherencia.js']],   // lee los documentos; no abre el navegador
   ['empaquetado para el SIA', process.execPath, ['04_pruebas/prueba_empaquetado.js']],   // en una carpeta temporal; no escribe el ZIP
 ];
-const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js', 'prueba_espacio_gobierno_central.js', 'prueba_cepas_total.js', 'prueba_cifras_gobierno_central.js', 'prueba_descargas.js']
+const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js', 'prueba_espacio_gobierno_central.js', 'prueba_cepas_total.js', 'prueba_cifras_gobierno_central.js', 'prueba_descargas.js', 'prueba_sin_conexion.js', 'prueba_datos_danados.js']
   .map(f => [f.replace('prueba_', '').replace('.js', '').replace(/_/g, ' '), process.execPath, ['04_pruebas/' + f]]);
 const lista = process.argv[2] === 'rapidas' ? RAPIDAS : RAPIDAS.concat(NAVEGADOR); const res = [];
 for (const [nombre, cmd, args] of lista) {
