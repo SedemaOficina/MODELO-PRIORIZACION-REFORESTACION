@@ -84,7 +84,8 @@ const norm = s => L.norm(s).trim();
   const srv = await L.servidor(0); const browser = await L.lanzar(); const errores = [];
   const pedidos = []; const hasta = async (pg, f, arg, t = 90000) => { try { await pg.waitForFunction(f, arg, { timeout: t }); return true; } catch (e) { return false; } };
   const { page, ctx } = await L.abrir(browser, srv.url, {}, errores);
-  page.on('request', r => { if (r.url().includes('/inventario/')) pedidos.push(r.url().split('/').pop()); });
+  // solo los archivos de la capa (inv_NNN.bin): espacios_frentes.bin y espacios_vp.bin los pide el «Resumen» al abrir, para sus cifras
+  page.on('request', r => { if (/\/inventario\/inv_/.test(r.url())) pedidos.push(r.url().split('/').pop()); });
   await hasta(page, () => window.SIA_LISTO && window.__INV);
   const zl = await page.evaluate(() => window.__INV.z());
   // de lejos: ni capa ni descargas

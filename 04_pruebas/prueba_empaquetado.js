@@ -44,9 +44,16 @@ try {
   for (const a of fs.readdirSync(E)) if (/\.(md|ejemplo|py)$/.test(a)) fs.copyFileSync(path.join(E, a), path.join(T, '08_entrega_sia', a));
   if (process.env.EMPAQUETAR) fs.copyFileSync(path.resolve(process.env.EMPAQUETAR), path.join(T, '08_entrega_sia', 'empaquetar.py'));
   for (const p of PARTES) copiar(path.join(E, p), path.join(T, '08_entrega_sia', p));
+  // en una copia de GitHub no vienen las capas .gpkg ni su manifiesto (no se publican): se ponen capas ficticias con su
+  // manifiesto, porque esta prueba revisa qué deja viajar el empaquetado, no las capas
+  const CG = path.join(T, '08_entrega_sia', 'capas_geoserver'), sinCapas = !fs.existsSync(path.join(CG, 'MANIFIESTO.sha256'));
+  if (sinCapas) { const sha = f => require('crypto').createHash('sha256').update(fs.readFileSync(f)).digest('hex');
+    const capas = fs.readdirSync(CG).filter(a => a.endsWith('.sld')).map(a => a.slice(0, -4));
+    for (const c of capas) fs.writeFileSync(path.join(CG, c + '.gpkg'), 'capa ficticia para la prueba del empaquetado\n');
+    fs.writeFileSync(path.join(CG, 'MANIFIESTO.sha256'), capas.flatMap(c => ['.gpkg', '.sld'].map(x => `${sha(path.join(CG, c + x))}  ${c + x}\n`)).join('')); }
   const fuera = path.relative(RAIZ, T);
   ok('copia de trabajo fuera del repositorio', (fuera.startsWith('..') || path.isAbsolute(fuera)) && fs.existsSync(path.join(T, '08_entrega_sia', 'empaquetar.py')),
-    `${Math.round((Date.now() - t0) / 1000)} s${process.env.EMPAQUETAR ? ' · guion: ' + process.env.EMPAQUETAR : ''}`);
+    `${Math.round((Date.now() - t0) / 1000)} s${process.env.EMPAQUETAR ? ' · guion: ' + process.env.EMPAQUETAR : ''}${sinCapas ? ' · sin las capas .gpkg (copia de GitHub): se usan capas ficticias' : ''}`);
   const sql = fs.readdirSync(path.join(E, 'login/backend/db/priorizacion_reforestacion')).filter(a => a.endsWith('.sql'));
   const loginEsperados = PARTES.filter(p => p.startsWith('login/')).reduce((s, p) => s + cuenta(path.join(E, p)), 0);
 

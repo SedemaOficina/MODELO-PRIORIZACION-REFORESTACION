@@ -27,7 +27,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   // ---------- Tecpinco: catálogo en Iztapalapa, frentes en Tláhuac ----------
   const tec = M.colonias.findIndex(c => c && c.n === 'Tecpinco' && c.m === '007');
   const espT = D.F.filter(f => !f.gc && f.col === tec && f.prio >= L.PRIO_MIN);
-  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
+  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await L.quieto(page);
   let e = await L.estado(page);
   ok('panel de Tecpinco = recálculo', num(e.kpis[2].v) === espT.length, `panel ${e.kpis[2].v} · recálculo ${espT.length}`);
   await L.clic(page, '#tab-ini'); e = await L.estado(page);
@@ -49,7 +49,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
     const ids = M.colonias.map((c, i) => [c, i]).filter(([c]) => c && c.n === nom).map(([, i]) => i);
     const id = ids.find(i => D.F.some(f => !f.gc && f.col === i && M.muns[f.mun] !== M.colonias[i].m)); if (id === undefined) { ok(`${nom}: colonia discordante localizada`, false); continue; }
     const esp = D.F.filter(f => !f.gc && f.col === id && f.prio >= L.PRIO_MIN).length;
-    await L.elegirTipo(page, nom, 'Col', M.munNames[M.muns.indexOf(M.colonias[id].m)]); await page.waitForTimeout(400);
+    await L.elegirTipo(page, nom, 'Col', M.munNames[M.muns.indexOf(M.colonias[id].m)]); await L.quieto(page);
     const dd = await baja('dl-frentes'); const xx = xlsx(dd.ruta); e = await L.estado(page);
     ok(`${nom}: panel = Excel = recálculo`, num(e.kpis[2].v) === esp && xx.datos.length - 1 === esp, `panel ${e.kpis[2].v} · Excel ${xx.datos.length - 1} · recálculo ${esp}`);
   }
@@ -57,13 +57,13 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   // ---------- la leyenda siempre lleva unidad ----------
   e = await L.estado(page);
   ok('leyenda de colonia con unidad en cada fila', e.leyenda.every(r => /\d (km|m)$/.test(r.t) || / 0 km$/.test(r.t)), e.leyenda.map(r => r.t).join(' | '));
-  await L.clic(page, '#zcity'); await page.selectOption('#alc', String(M.munNames.indexOf('Iztapalapa'))); await page.waitForTimeout(500);
+  await L.clic(page, '#zcity'); await page.selectOption('#alc', String(M.munNames.indexOf('Iztapalapa'))); await L.quieto(page);
   e = await L.estado(page);
   ok('leyenda de alcaldía con unidad en cada fila', e.leyenda.every(r => /\d (km|m)$/.test(r.t)), e.leyenda.map(r => r.t).join(' | '));
 
   // ---------- tramos: la pantalla cuenta id_tramo y el Excel lo declara ----------
   const izt = M.munNames.indexOf('Iztapalapa');
-  await L.ponResp(page, 'gc'); await page.waitForTimeout(500); e = await L.estado(page);
+  await L.ponResp(page, 'gc'); await L.quieto(page); e = await L.estado(page);
   const vpI = D.VP.filter(v => v.mun === izt && v.prio >= L.PRIO_MIN); const recsI = new Set(vpI.map(v => v.rec)).size;
   ok('panel: tramos prioritarios = tramos distintos del recálculo', num(e.kpis[2].v) === recsI, `panel ${e.kpis[2].v} · recálculo ${recsI}`);
   d = await baja('dl-tramos'); x = xlsx(d.ruta);
@@ -78,7 +78,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
 
   // ---------- avenida acotada a alcaldía ----------
   const avId = VPC.nomenclat.findIndex(n => /Calzada General Ignacio Zaragoza/i.test(n));
-  await L.elegirTipo(page, VPC.nomenclat[avId], 'Av'); await page.waitForTimeout(500);
+  await L.elegirTipo(page, VPC.nomenclat[avId], 'Av'); await L.quieto(page);
   e = await L.estado(page);
   ok('la consulta quedó en avenida + alcaldía', e.alcSel === String(izt) && /Zaragoza/.test(e.titulo + e.mapsum), `${e.titulo} · alc ${e.alcSel}`);
   d = await baja('dl-avenidas'); x = xlsx(d.ruta);
@@ -99,7 +99,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   // dos responsables + colonia: el Excel de tramos no declara la colonia
   await L.ponResp(page, 'both'); await L.clic(page, '#zcity'); await L.ponResp(page, 'both');
   const mey = M.colonias.findIndex(c => c && /Santa Cruz Meyehualco/i.test(c.n) && c.m === '007');
-  await L.elegirTipo(page, M.colonias[mey].n, 'Col', 'Iztapalapa'); await page.waitForTimeout(400); await L.ponResp(page, 'both'); await page.waitForTimeout(400);
+  await L.elegirTipo(page, M.colonias[mey].n, 'Col', 'Iztapalapa'); await L.quieto(page); await L.ponResp(page, 'both'); await L.quieto(page);
   e = await L.estado(page);
   if (e.dl['dl-tramos'].visible) { d = await baja('dl-tramos'); x = xlsx(d.ruta);
     ok('tramos con colonia elegida: el nombre no declara la colonia', !/meyehualco/.test(d.nombre), d.nombre);
@@ -108,10 +108,10 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   } else ok('caso de dos responsables con colonia reproducido', false, 'el botón de tramos no se ofrece en este estado');
 
   // ---------- calles homónimas ----------
-  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(300);
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await L.quieto(page);
   await L.buscar(page, 'Benito Juárez'); const ops = await page.$$('#omni-list li.opt');
   let hecho = false; for (const o of ops) { const t = await o.innerText(); if (t.trim().startsWith('Calle') && /calles con este nombre/.test(t)) { await o.dispatchEvent('mousedown'); hecho = true; break; } }
-  await page.waitForTimeout(800); e = await L.estado(page);
+  await L.quieto(page); e = await L.estado(page);
   ok('se eligió el nombre repetido en el buscador', hecho);
   ok('nombre repetido: no se ofrece Excel ni ficha «de la calle»', !e.dl['dl-calle'].visible && !e.dl['dl-ficha-calle'].visible);
   ok('nombre repetido: aviso para elegir una calle', /Elige una en la lista/.test(e.dlStatus || ''), e.dlStatus);
@@ -143,25 +143,25 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   ok('el diccionario del Excel no declara la asignación preliminar', !x.dic.some(r => /preliminar/.test(String(r[0]))));
   if (d) { const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', d.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('la ficha declara la versión, sin aviso de asignación preliminar', !/preliminar/.test(t) && t.includes('Versión ' + cfg.v), t.slice(-160)); }
-  await L.clic(page, '#zcity'); await page.selectOption('#alc', String(izt)); await page.waitForTimeout(400);
+  await L.clic(page, '#zcity'); await page.selectOption('#alc', String(izt)); await L.quieto(page);
   for (const id of ['dl-ficha-alc']) { const f = await baja(id); const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok(`${id}: versión en el pie, sin aviso de asignación preliminar`, !/preliminar/.test(t) && t.includes('Versión ' + cfg.v)); }
 
   // ---------- rótulos y cifras que salen de los datos ----------
-  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(400); e = await L.estado(page);
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await L.quieto(page); e = await L.estado(page);
   const kmpAlc = M.muns.map((m, i) => D.F.filter(f => !f.gc && f.mun === i && f.prio >= L.PRIO_MIN).reduce((t, f) => t + f.len, 0) / 1000);
   const totP = kmpAlc.reduce((a, b) => a + b, 0); const ord = kmpAlc.map((v, i) => [i, v]).sort((a, b) => b[1] - a[1]);
   const frase = `${M.munNames[ord[0][0]]} y ${M.munNames[ord[1][0]]} concentran ${L.f1.format(100 * (ord[0][1] + ord[1][1]) / totP)} %`;
   ok('las dos alcaldías con más km prioritarios se calculan de los datos', (e.nota || '').includes(frase), `${frase} · nota: ${(e.nota || '').slice(0, 160)}`);
   ok('la población, en una línea («… habitantes en colonias prioritarias (N %)»), se rotula como residente y no como atendida', /habitantes en colonias prioritarias \([\d.,]+ %\)/.test(e.pob || '') && /Población residente \(Censo 2020\); no equivale a población atendida/.test(e.pob || ''), e.pob);
-  await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500); e = await L.estado(page);
+  await page.selectOption('#alc', String(izt)); await L.quieto(page); e = await L.estado(page);
   const part = `${L.f1.format(100 * kmpAlc[izt] / totP)} % de los km prioritarios de la ciudad`;
   ok('el panel no ordena a la alcaldía por «lugar»', !/lugar de 16|º de 16/.test(e.panelTxt));
   ok('el panel da la participación de la alcaldía en los km prioritarios de la ciudad en su recuadro, no en las cifras principales del Resumen', (e.alcinfo || '').includes(part) && !e.kpisTxt.includes(part) && !/de la ciudad|de la alcaldía/.test(e.kpisTxt), `${part} · ${(e.alcinfo || '').slice(0, 140)} · ${e.kpisTxt.slice(0, 120)}`);
   const ay = await page.evaluate(() => ({ fr: document.getElementById('m-n-fr').textContent, alc: document.getElementById('m-n-alc').textContent, t: document.querySelector('.modal-card') ? document.querySelector('.modal-card').textContent : '' }));
   ok('la ayuda toma de los datos el total de frentes y los de alcaldías', num(ay.fr) === D.F.length && num(ay.alc) === D.F.filter(f => !f.gc).length, `${ay.fr} · ${ay.alc}`);
   ok('la ayuda nombra los controles como aparecen en pantalla', !/<b>Atribución<\/b>|casilla en Atribución/.test(await page.content()));
-  const tec2 = M.colonias.findIndex(c => c && c.n === 'Tecpinco' && c.m === '007'); await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); e = await L.estado(page);
+  const tec2 = M.colonias.findIndex(c => c && c.n === 'Tecpinco' && c.m === '007'); await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await L.quieto(page); e = await L.estado(page);
   ok('el desarrollo social se rotula como de la unidad territorial', /de su unidad territorial/.test(e.colinfo || '') && /unidad territorial/.test(e.pob || ''), `${(e.colinfo || '').slice(0, 120)} · ${e.pob}`);
 
   // ---------- reparto por responsable y calle por prioridad (prioritario = Muy Alta, Alta y Media) ----------
@@ -181,7 +181,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   const filaKm = (r, lab, a, g) => !!r && r[0] === lab && r[1] === k0(a) && r[2] === k0(g) && r[3] === k0(a + g);
   const filaEsp = (r, lab, a, g) => !!r && r[0] === lab && r[1] === fN(a) && r[2] === fN(g) && r[3] === fN(a + g);
   const sm = a => a.reduce((x, y) => x + y, 0);
-  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(500);
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await L.quieto(page);
   let R = rep(() => true), T = await cuadro(), E = espRep(() => true, () => true);
   ok('tabla de comparación: grupo de km (3 renglones) y grupo de espacios para plantar (3 renglones), sin desglose por prioridad', T.length === 8 && T[0][0] === 'Km de frente de manzana' && T[4][0] === 'Espacios para plantar (inventario en curso)' && (await page.$$eval('#reparto thead th', t => t.map(x => x.textContent).join('|'))) === 'Alcaldías|Gobierno Central|Total', T.map(r => r[0]).join(' | '));
   ok('ciudad: «Prioritario» por responsable = Muy Alta + Alta + Media del recálculo (km sin decimales)', filaKm(T[1], 'Prioritario', u3(R.km[0]), u3(R.km[1])), (T[1] || []).join(' | '));
@@ -196,7 +196,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
   e = await L.estado(page);
   const pobU = M.colonias.filter(c => c && c.n && c.p >= L.PRIO_MIN && M.muns.includes(c.m)).reduce((t, c) => t + (c.pob || 0), 0);
   ok('población en colonias prioritarias (Muy Alta, Alta y Media) = recálculo', (e.pob || '').includes(L.f1.format(pobU / 1e6) + ' millones de habitantes en colonias prioritarias') && /prioridad Muy Alta, Alta o Media/.test(e.pob || ''), (e.pob || '').slice(0, 260));
-  await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500);
+  await page.selectOption('#alc', String(izt)); await L.quieto(page);
   R = rep(f => f.mun === izt); T = await cuadro(); E = espRep(f => f.mun === izt, v => v.mun === izt);
   ok('alcaldía: km (prioritario, sin arbolado, todos) y espacios por responsable = recálculo', filaKm(T[1], 'Prioritario', u3(R.km[0]), u3(R.km[1])) && filaKm(T[2], 'De lo prioritario, sin arbolado', R.sa[0], R.sa[1]) && filaKm(T[3], 'Todos los frentes', sm(R.km[0]), sm(R.km[1]))
     && filaEsp(T[5], 'Cepas vacantes', E.a[0], E.g[0]) && filaEsp(T[6], 'Tocones', E.a[1], E.g[1]) && filaEsp(T[7], 'Árboles muertos', E.a[2], E.g[2]) && /Algunos puntos que no tienen un frente/.test(await page.$eval('#reparto', x => x.innerText)), T.map(r => r.join(' ')).join(' | '));
@@ -206,18 +206,18 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
     ok('resumen por calle: km_prioritario = km_muy_alta + km_alta + km_media en cada renglón, sin universo', h.indexOf('km_universo_intervencion') < 0 && ima > 0 && im > 0 && x.datos.slice(1).every(r => Math.abs(r[ip] - r[ima] - r[ia] - r[im]) < 0.021) && h.every(c => x.dic.some(q => q[0] === c))); }
   { const f = await baja('dl-ficha-alc'); const t = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('la ficha de alcaldía da el prioritario (Muy Alta, Alta y Media) = recálculo y no habla de universo', t.includes(`${L.kmTxt(u3(R.km[0]))} ${L.kmUn(u3(R.km[0]))}`) && /Muy Alta, Alta y Media/.test(t) && !/niverso de intervención/.test(t) && /Versión/.test(t), (t.match(/prioritario.{0,160}/) || [''])[0]); }
-  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500);
+  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await L.quieto(page);
   R = rep(f => f.col === tec2); T = await cuadro();
   { const a = [0, 0, 0], g = [0, 0, 0]; D.F.forEach((f, i) => { if (f.col !== tec2) return; const c = ESP_F.get(i); if (c) for (let t = 0; t < 3; t++) (f.gc ? g : a)[t] += c[t]; });
     ok('colonia: la tabla usa el mismo territorio que el panel (manda la colonia); del Gobierno Central, los puntos de sus frentes en la colonia', filaKm(T[1], 'Prioritario', u3(R.km[0]), u3(R.km[1])) && filaKm(T[3], 'Todos los frentes', sm(R.km[0]), sm(R.km[1])) && filaEsp(T[5], 'Cepas vacantes', a[0], g[0]) && filaEsp(T[7], 'Árboles muertos', a[2], g[2]), T.map(r => r.join(' ')).join(' | ')); }
   // con la colonia elegida, la lista de «Dónde empezar» es de calles
-  await page.click('#tab-ini'); await page.waitForTimeout(400);
+  await page.click('#tab-ini'); await L.quieto(page);
   { const li = await page.$$eval('#ini-list li', ls => ls.filter(l => l.querySelector('.desg')).map(l => ({ partes: [...l.querySelectorAll('.desg span')].map(s => s.textContent.trim()), pred: /Prioridad predominante/.test(l.textContent) })));
     ok('la lista de calles desglosa cada calle por prioridad', li.length > 0 && li.every(l => l.partes.length >= 1 && l.partes.every(p => /^(Muy Alta|Alta|Media|Baja|Muy Baja) [\d.,]+ (km|m)$/.test(p))), JSON.stringify(li[0] || {}));
     ok('las calles con más de una prioridad declaran la predominante', li.filter(l => l.partes.length > 1).every(l => l.pred)); }
 
   // ---------- tramos de la calle consultada ----------
-  { const li0 = await page.$('#ini-list li:not(.empty)'); const txt0 = (await li0.innerText()).replace(/\s+/g, ' '); await li0.click(); await page.waitForTimeout(700);
+  { const li0 = await page.$('#ini-list li:not(.empty)'); const txt0 = (await li0.innerText()).replace(/\s+/g, ' '); await li0.click(); await L.quieto(page);
     const nFr0 = +(txt0.match(/de (\d+) frentes prioritarios/) || [])[1];
     const tr = await page.$eval('#tramos', b => b.hidden ? null : [...b.querySelectorAll('ol.tramos li')].map(l => l.textContent.replace(/\s+/g, ' ')));
     ok('al elegir una calle se listan sus tramos', !!tr && tr.length > 0, tr ? `${tr.length} tramos · ${tr[0].slice(0, 110)}` : 'sin cuadro de tramos');
@@ -229,26 +229,26 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
     ok('la ficha de la calle trae la tabla de tramos', /TRAMOS DE LA CALLE/.test(t) && /confirman en campo/.test(t)); }
 
   // ---------- filtro de alcaldía y búsqueda de calle con su lugar ----------
-  await L.clic(page, '#zcity'); await page.waitForTimeout(400); await page.click('#tab-ini'); await page.fill('#q', 'Ayuntamiento'); await page.waitForTimeout(500);
+  await L.clic(page, '#zcity'); await L.quieto(page); await page.click('#tab-ini'); await page.fill('#q', 'Ayuntamiento'); await L.quieto(page);
   { const ch = await page.$$('#locchips button'); let bi = null; for (const b of ch) if (/Iztapalapa/.test(await b.innerText())) bi = b;
     const nI = bi ? +((await bi.innerText()).match(/(\d+)\s*$/) || [])[1] : -1; const espI = new Set(D.F.filter(f => !f.gc && f.mun === izt && L.norm(M.names[f.name]).includes('ayuntamiento')).map(f => f.name * 4096 + f.col)).size;
     ok('el conteo de la alcaldía en el filtro = recálculo', nI === espI, `filtro ${nI} · recálculo ${espI}`);
-    if (bi) await bi.evaluate(b => b.click()); await page.waitForTimeout(700); e = await L.estado(page);
+    if (bi) await bi.evaluate(b => b.click()); await L.quieto(page); e = await L.estado(page);
     ok('al elegir la alcaldía, la lista queda en ella y conserva la búsqueda', e.alcSel === String(izt) && e.q === 'Ayuntamiento' && e.lista.filter(l => !l.empty).length === espI && /frentes prioritarios/.test(e.lista[0].t), `alc ${e.alcSel} · q ${e.q} · ${e.lista.filter(l => !l.empty).length} renglones`);
     ok('con alcaldía elegida se ofrece buscar en otra alcaldía', /en otra alcaldía/.test(await page.$eval('#locchips', b => b.hidden ? '' : b.textContent))); }
-  await L.clic(page, '#zcity'); await page.waitForTimeout(300);
+  await L.clic(page, '#zcity'); await L.quieto(page);
   { const r = await L.buscar(page, 'ayuntamiento centro'); const op = r.find(o => /^Calle/.test(o.t) && /Centro/.test(o.t) && /Cuauht/.test(o.t));
     ok('el buscador acepta la calle con su colonia («ayuntamiento centro»)', !!op, r.map(o => o.t).slice(0, 4).join(' | ')); }
-  await page.fill('#omni', ''); await page.click('#tab-ini'); await page.fill('#q', 'ayuntamiento centro'); await page.waitForTimeout(500); e = await L.estado(page);
+  await page.fill('#omni', ''); await page.click('#tab-ini'); await page.fill('#q', 'ayuntamiento centro'); await L.quieto(page); e = await L.estado(page);
   ok('el filtro de la lista acepta la calle con su colonia', e.lista.filter(l => !l.empty).length >= 1 && e.lista.filter(l => !l.empty).every(l => /Centro/i.test(l.t)), e.lista.slice(0, 3).map(l => l.t).join(' | '));
   await page.fill('#q', '');
 
   // ---------- km de vialidad (eje) y su equivalente en km de frente; banqueta como condición ----------
-  await L.clic(page, '#zcity'); await page.waitForTimeout(300); await L.ponResp(page, 'gc'); await page.click('#tab-res'); await page.waitForTimeout(500);
+  await L.clic(page, '#zcity'); await L.quieto(page); await L.ponResp(page, 'gc'); await page.click('#tab-res'); await L.quieto(page);
   { const g = D.F.filter(f => f.gc); const kt = g.reduce((s, f) => s + f.len, 0) / 1000, kp = g.filter(f => prioDe(f) >= L.PRIO_MIN).reduce((s, f) => s + f.len, 0) / 1000;
     const t = await page.$eval('#univbox', b => b.hidden ? '' : b.textContent.replace(/\s+/g, ' '));
     ok('Gobierno Central, ciudad: equivalente en km de frente = recálculo', t.includes(`Equivalen a ${L.kmTxt(kt)} ${L.kmUn(kt)} de frente de manzana`) && t.includes(`${L.kmTxt(kp)} ${L.kmUn(kp)} sobre tramos prioritarios`) && /sobre el eje/.test(t), t.slice(-260));
-    await page.selectOption('#alc', String(izt)); await page.waitForTimeout(500);
+    await page.selectOption('#alc', String(izt)); await L.quieto(page);
     const gi = g.filter(f => f.mun === izt); const ki = gi.reduce((s, f) => s + f.len, 0) / 1000;
     const ti = await page.$eval('#univbox', b => b.hidden ? '' : b.textContent.replace(/\s+/g, ' '));
     ok('Gobierno Central, alcaldía: equivalente en km de frente = recálculo', ti.includes(`Equivalen a ${L.kmTxt(ki)} ${L.kmUn(ki)} de frente de manzana`), ti.slice(-200));
@@ -256,14 +256,14 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
     ok('el Excel de tramos declara la unidad y el equivalente en km de frente', /sobre el eje/.test(dicVal(x, 'Unidad de las longitudes') || '') && Math.abs(+dicVal(x, 'Equivalente del ámbito en km de frente de manzana (aceras con manzana enfrente)') - ki) < 0.006);
     const f = await baja('dl-ficha-vpalc'); const tf = cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', f.ruta, '-']).toString().replace(/\s+/g, ' ');
     ok('la ficha de vialidades primarias declara la unidad y el equivalente', /se miden sobre el eje/.test(tf) && tf.includes(`Equivalen a ${L.kmTxt(ki)} ${L.kmUn(ki)} de frente de manzana`), (tf.match(/Los kilómetros de esta ficha.{0,200}/) || [''])[0]); }
-  await L.ponResp(page, 'alc'); await page.waitForTimeout(300);
+  await L.ponResp(page, 'alc'); await L.quieto(page);
   { x = xlsx((await baja('dl-frentes')).ruta);
     ok('el diccionario trata la banqueta como condición por verificar', /condición por verificar/.test((x.dic.find(r => r[0] === 'banqueta_inegi') || [])[1] || '')); }
   ok('la ayuda explica las dos unidades', /No sumes kilómetros de calles con los de avenidas/.test(await page.content()) && /por acera y las avenidas por su línea central/.test(await page.content()));
 
   // ---------- nombres de calle, identificadores y coordenadas del Excel; avisos de cobertura, leyenda, colonias sin frentes, avenidas homónimas y ruta ----------
   const generico = n => { n = L.norm(n); return n === '' || n === 'sin referencia' || n === 'sin nombre' || n.startsWith('ninguno') || / ninguno$/.test(n) || n.startsWith('manzana o edificacion'); };
-  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(300); await page.selectOption('#alc', String(izt)); await page.waitForTimeout(600); e = await L.estado(page);
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await L.quieto(page); await page.selectOption('#alc', String(izt)); await L.quieto(page); e = await L.estado(page);
   { const espI = D.F.map((f, i) => [f, i]).filter(([f]) => !f.gc && f.mun === izt && f.prio >= L.PRIO_MIN);
     d = await baja('dl-frentes'); x = xlsx(d.ruta); const h = x.datos[0], iv = h.indexOf('vialidad'), ii = h.indexOf('id_frente'), ila = h.indexOf('lat'), ilo = h.indexOf('lon'), ip = h.indexOf('poblacion_colonia');
     const nSn = espI.filter(([f]) => generico(M.names[f.name])).length;
@@ -281,7 +281,7 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
     const kmMB = D.F.filter(f => !f.gc && f.mun === izt && f.prio === 0).reduce((s, f) => s + f.len, 0) / 1000; const bMB = (e.bars.find(b => b.lab === 'Muy Baja') || {}).val || '';
     ok('las barras redondean una sola vez desde la suma exacta', bMB.startsWith(`${L.kmTxt(kmMB)} ${L.kmUn(kmMB)}`), `${bMB} · exacto ${kmMB.toFixed(3)}`); }
   // frentes sin colonia
-  await L.clic(page, '#zcity'); await page.waitForTimeout(400); e = await L.estado(page);
+  await L.clic(page, '#zcity'); await L.quieto(page); e = await L.estado(page);
   { const sc = D.F.filter(f => !f.gc && !f.col); ok('el resumen de la ciudad reporta los frentes sin colonia = recálculo', (e.nota || '').includes(`${L.fN.format(sc.length)} frentes`) && /no tienen colonia asignada/.test(e.nota || ''), (e.nota || '').slice(-230));
     ok('la página declara su cobertura (ámbito urbano)', /Cobertura: frentes de manzana del ámbito urbano/.test(e.panelTxt)); }
   // filtro de la leyenda
@@ -289,18 +289,18 @@ const ESP_F = espacios('espacios_frentes.bin'), ESP_V = espacios('espacios_vp.bi
     ok('la leyenda solo avisa cuando no queda ninguna prioridad visible', n0 === true && /Ninguna prioridad está visible/.test(n1), n1); }
   // colonia sin frentes a cargo de la alcaldía
   { const conFr = new Set(D.F.filter(f => !f.gc).map(f => f.col)); const cid = M.colonias.findIndex((c, i) => i > 0 && c && c.n && !conFr.has(i) && M.colonias.filter(q => q && q.n === c.n).length === 1);
-    const cn = M.colonias[cid]; const hecho2 = await L.elegirTipo(page, cn.n, 'Col'); await page.waitForTimeout(600); e = await L.estado(page);
+    const cn = M.colonias[cid]; const hecho2 = await L.elegirTipo(page, cn.n, 'Col'); await L.quieto(page); e = await L.estado(page);
     ok('colonia sin frentes: descargas deshabilitadas con explicación', hecho2 && e.dl['dl-frentes'].disabled && e.dl['dl-calles'].disabled && e.dl['dl-ficha'].disabled && /no tiene frentes de manzana a cargo de la alcaldía/.test(e.dlStatus || ''), `${cn.n} · ${e.dlStatus}`); }
   // avenidas homónimas separadas
-  await L.clic(page, '#zcity'); await page.waitForTimeout(300); await L.ponResp(page, 'gc');
-  { const okAv = await L.elegirTipo(page, 'Avenida Chapultepec', 'Av'); await page.waitForTimeout(600); e = await L.estado(page);
+  await L.clic(page, '#zcity'); await L.quieto(page); await L.ponResp(page, 'gc');
+  { const okAv = await L.elegirTipo(page, 'Avenida Chapultepec', 'Av'); await L.quieto(page); e = await L.estado(page);
     ok('una avenida cuyo nombre reúne vialidades separadas lo advierte', okAv && /vialidades separadas entre sí/.test(e.avinfo || '') && /Xochimilco/.test(e.avinfo || ''), (e.avinfo || '').slice(-260)); }
-  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await page.waitForTimeout(300);
+  await L.ponResp(page, 'alc'); await L.clic(page, '#zcity'); await L.quieto(page);
   // la calle consultada aparece en la ruta y se puede soltar
-  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await page.waitForTimeout(500); await page.click('#tab-ini'); await page.waitForTimeout(300);
-  { await (await page.$('#ini-list li:not(.empty)')).evaluate(n => n.click()); await page.waitForTimeout(600); e = await L.estado(page);
+  await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa'); await L.quieto(page); await page.click('#tab-ini'); await L.quieto(page);
+  { await (await page.$('#ini-list li:not(.empty)')).evaluate(n => n.click()); await L.quieto(page); e = await L.estado(page);
     const tiene = /Quitar la calle|×/.test(await page.$eval('#cr-rest', r => r.innerHTML)) && (await page.$$('#cr-rest .cr-up[data-up="calle"]')).length === 1;
-    await page.$eval('#cr-rest .cr-up[data-up="calle"]', b => b.click()); await page.waitForTimeout(400); const e2 = await L.estado(page);
+    await page.$eval('#cr-rest .cr-up[data-up="calle"]', b => b.click()); await L.quieto(page); const e2 = await L.estado(page);
     ok('la calle consultada es un nivel de la ruta y se puede soltar', tiene && !e2.dl['dl-calle'].visible && e.dl['dl-calle'].visible, e.crRest); }
 
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 3).join(' | '));

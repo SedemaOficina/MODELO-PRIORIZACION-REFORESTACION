@@ -164,7 +164,7 @@
         </div></details>
       </div></div>
         <details class="source mas" id="fuentes" open><summary>Fuentes y versión</summary><div>
-        Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno de la Ciudad. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
+        Cobertura: frentes de manzana del ámbito urbano de INEGI. Frentes de manzana: INEGI, Características del Entorno Urbano 2020. Priorización: modelo de reforestación de frentes de manzana, Sistema de Información Ambiental, SEDEMA (nov. 2025). Colonias y prioridad por colonia: capa colonias_manzanas_verdes (SEDEMA-SIA). Contexto social: Índice de Desarrollo Social por unidad territorial, EVALÚA CDMX. Vialidades primarias y de acceso controlado con prioridad de reforestación: capa PRIMARIAS_REFORESTACION (SEDEMA, ago. 2026); su atención corresponde al Gobierno Central. <span id="n-total"></span><span class="autoria" id="ver-line"></span><span class="autoria">Elaboración: Secretaría del Medio Ambiente de la Ciudad de México · Sistema de Información Ambiental (SIA).</span>
       </div></details>
       </div>
     </div>
@@ -245,7 +245,7 @@
     <h2 id="entrada-title">Modelo de priorización de reforestación urbana</h2>
     <!-- paso 1: la presentación va solo aquí; el paso 2 dice en una línea lo elegido (js/13_interfaz.js, entradaPaso) -->
     <div id="entrada-p1">
-      <p class="lead">La Secretaría del Medio Ambiente pone esta herramienta a disposición de las alcaldías y del Gobierno de la Ciudad. Muestra dónde conviene plantar primero y dónde ya hay espacio para plantar: cepas vacantes, tocones y árboles muertos del inventario de arbolado.</p>
+      <p class="lead">La Secretaría del Medio Ambiente pone esta herramienta a disposición de las alcaldías y del Gobierno Central. Muestra dónde conviene plantar primero y dónde ya hay espacio para plantar: cepas vacantes, tocones y árboles muertos del inventario de arbolado.</p>
       <h3 id="entrada-q1">¿Qué quieres consultar?</h3>
       <div class="entrada-resp" role="group" aria-labelledby="entrada-q1">
         <button type="button" class="entrada-red" data-red="alc" data-eleg="Calles y colonias de las alcaldías"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M5 21V8l7-4 7 4v13M9.5 21v-4h5v4M9 11.5h1.5M13.5 11.5H15"/></svg><b>Calles y colonias</b><span>Frentes de manzana que atienden las alcaldías</span></button>
@@ -288,7 +288,7 @@
         <dt>Frente de manzana</dt><dd>Cada lado de la calle frente a una manzana; se prioriza por separado.</dd>
         <dt>Tramo</dt><dd>Parte de una calle entre dos esquinas, con su propia prioridad.</dd>
         <dt>Espacio para plantar</dt><dd>Cepa vacante, tocón o árbol muerto del inventario de arbolado (en curso): ahí ya hubo un árbol.</dd>
-        <dt>Atiende</dt><dd>Quién planta: la alcaldía (calles y colonias) o el Gobierno de la Ciudad (vialidades primarias).</dd>
+        <dt>Atiende</dt><dd>Quién planta: la alcaldía (calles y colonias) o el Gobierno Central (vialidades primarias).</dd>
       </dl>
     </section>
     <details class="mas metodo" id="metodologia" open><summary>Metodología: cómo se calculó la prioridad</summary><div>
@@ -358,11 +358,11 @@
 
     <h3><span class="step">3</span>Quién atiende cada calle</h3>
     <ul>
-      <li><b>Gobierno de la Ciudad:</b> las vialidades primarias y de acceso controlado (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales): <span id="m-vp-km">—</span> km, de los que <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</li>
+      <li><b>Gobierno Central:</b> las vialidades primarias y de acceso controlado (ejes viales, calzadas, Circuito Interior, Periférico, Viaducto y avenidas principales): <span id="m-vp-km">—</span> km, de los que <span id="m-vp-prio">—</span> km son prioritarios (<span id="m-vp-pct">—</span>).</li>
       <li><b>Alcaldías:</b> el resto de las calles: <span id="m-n-alc2">—</span> frentes (<span id="m-alc-km">—</span> km), de los que <span id="m-alc-prio">—</span> km son prioritarios (<span id="m-alc-pct">—</span>).</li>
     </ul>
-    <p><b>Para no contar dos veces,</b> los frentes que dan a una vialidad primaria cuentan para el Gobierno de la Ciudad y no para la alcaldía: <span id="m-gc-fr">—</span> frentes (<span id="m-gc-km">—</span> km). Un frente da a la avenida si va en su misma dirección (30° o menos de diferencia) y está a 18 m o menos de su línea central, o hasta a 60 m si la calle se llama igual (avenidas anchas, con camellón o laterales). Esos frentes llevan la prioridad de su tramo de vialidad primaria, la misma de las listas y descargas del Gobierno Central; la banqueta no les aplica y el filtro «Espacio» se les aplica por su tramo.</p>
-    <p>El <span id="m-cov">—</span> de los kilómetros de vialidad primaria tiene manzanas al lado; el resto son puentes, entronques y vías rápidas. La meta del Gobierno de la Ciudad se mide sobre los <span id="m-vp-km2">—</span> km completos.</p>
+    <p><b>Para no contar dos veces,</b> los frentes que dan a una vialidad primaria cuentan para el Gobierno Central y no para la alcaldía: <span id="m-gc-fr">—</span> frentes (<span id="m-gc-km">—</span> km). Un frente da a la avenida si va en su misma dirección (30° o menos de diferencia) y está a 18 m o menos de su línea central, o hasta a 60 m si la calle se llama igual (avenidas anchas, con camellón o laterales). Esos frentes llevan la prioridad de su tramo de vialidad primaria, la misma de las listas y descargas del Gobierno Central; la banqueta no les aplica y el filtro «Espacio» se les aplica por su tramo.</p>
+    <p>El <span id="m-cov">—</span> de los kilómetros de vialidad primaria tiene manzanas al lado; el resto son puentes, entronques y vías rápidas. La meta del Gobierno Central se mide sobre los <span id="m-vp-km2">—</span> km completos.</p>
     <p><b>Banqueta.</b> Es el dato de INEGI 2020 de cada frente de manzana; por eso el filtro solo aplica a las calles de las alcaldías. En las vialidades primarias, la ficha y el Resumen la dan como referencia.</p>
     <p><b>Espacios para plantar.</b> Vienen del inventario de arbolado de CIGA-UNAM y SEDEMA, que está en curso. Cada cepa vacante, tocón o árbol muerto cuenta para el frente más cercano a 20 m o menos; en las vialidades primarias, también los del camellón a 25 m o menos de la línea central. En una cepa vacante se planta directo; un tocón hay que retirarlo antes y un árbol muerto requiere sustitución. Los espacios <b>no cambian la prioridad</b> de ninguna calle: solo muestran dónde ya hay lugar. Una calle sin espacios puede no estar inventariada todavía.</p>
     <p><b>Fundamento.</b> Las alcaldías plantan en las calles secundarias y el Gobierno de la Ciudad en las vialidades primarias y de acceso controlado; no es una atribución nueva.</p>

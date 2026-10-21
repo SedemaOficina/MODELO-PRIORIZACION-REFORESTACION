@@ -154,3 +154,7 @@ function irAPunto(lon, lat){
   rerender();
   const c=$('card'); pinned={kind:'pto', i:0}; c.innerHTML = puntoHtml(); c.hidden=false;
   c.querySelector('.close').onclick = ()=>{ ptoBuscado = null; hideCard(); rerender(); }; wireLocCard(c); verMapa({desdeLista:true}); enfocaFicha(); }
+// Solo para las pruebas automáticas (04_pruebas/prueba_sesion_y_seguirme.js): con window.SIA_PRUEBA se puede leer dónde cae un punto,
+// el ámbito que se anotaría en el registro de usos y el estado de «Seguirme».
+if (window.SIA_PRUEBA===true) window.__UBIC = { donde: (lon, lat)=>{ const w = whereAmI(lon, lat); return { alcaldia: w.alc!==null? META.munNames[w.alc] : null, col: w.col, colonia: w.col!==null? colNombre(w.col) : null }; },
+  ambito: ()=>ambitoUso(), seguir: ()=>({ activo: locFollow, gps: locWatch!==null }) };

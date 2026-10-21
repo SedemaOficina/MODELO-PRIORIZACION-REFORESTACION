@@ -13,7 +13,7 @@
 //    en total), en el de tramos de Iztapalapa y en los resúmenes por calle y por avenida (sumas), declaradas en el Diccionario (con corte,
 //    fuente y regla); las mismas propiedades en el GeoJSON y el KML;
 //  · sin conexión al inventario, la descarga sale sin las columnas, el Diccionario y el GeoJSON lo dicen y la pantalla lo avisa;
-//  · contra la versión anterior (v1.26, tomada de Git; REF_ANTERIOR=<commit>, por omisión 6935635; REF_ANTERIOR=no lo omite): las cifras,
+//  · contra la versión anterior (v1.26, tomada de Git; REF_ANTERIOR=<commit>, por omisión 6935635; REF_ANTERIOR=no la omite y la prueba falla, porque no se verificó): las cifras,
 //    listas y órdenes que siguen (km prioritarios, habitantes, calles, avenidas; por cepas, lo que ya listaba y en el mismo orden) y los
 //    Excel y el GeoJSON, iguales;
 //  · celular de 390 px: las opciones caben enteras en el selector y la lista no desborda; sin errores de JavaScript.
@@ -279,7 +279,8 @@ const geoSinVer = txt => { const J = JSON.parse(txt); J.descripcion = String(J.d
 
   // ---------- 10) lo que ya existía, igual que en la versión anterior (v1.26) ----------
   const REF = process.env.REF_ANTERIOR || '6935635';   // v1.26
-  if (REF === 'no') console.log('OMITIDA comparación con la versión anterior (REF_ANTERIOR=no)');
+  // REF_ANTERIOR=no acorta la prueba mientras se trabaja, pero lo que no se comparó no cuenta como aprobado (A1-04): la prueba falla
+  if (REF === 'no') ok('comparación con la versión anterior', false, 'no se verificó: REF_ANTERIOR=no');
   else {
     let ANT = null; try { ANT = docsDe(REF); } catch (e) { ok(`se obtiene docs/ de la versión anterior (${REF}) desde Git`, false, String(e.message || e).slice(0, 160)); }
     if (ANT) {

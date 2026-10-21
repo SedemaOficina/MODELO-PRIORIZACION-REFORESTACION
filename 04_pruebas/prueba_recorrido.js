@@ -3,7 +3,7 @@
 // la bienvenida), están los pasos de banqueta, del filtro «Espacio», del orden por cepas, de Street View (con la ficha de una calle real) y
 // de los espacios para plantar (con un punto real del inventario), «Tu territorio» ilumina la ruta, el de «Mi cuenta» solo aparece con
 // sesión y abre su menú (que el globo no tapa y que se cierra al avanzar, al retroceder y al salir), el recorrido tiene 15 pasos o menos,
-// y al salir la página queda como estaba.
+// y al salir la página queda como estaba. También con «Las dos» y una colonia y una calle consultadas: al terminar, la consulta sigue igual.
 // Uso: node 04_pruebas/prueba_recorrido.js   · termina con código ≠ 0 si algo falla.
 const L = require('./lib_pruebas.js');
 const ok = L.Registro('recorrido guiado');
@@ -20,10 +20,10 @@ const CONTROL = { 'Busca un lugar': '.omni', 'Tu territorio': '#crumb', 'Quién 
   'Dónde empezar, cifras y descargas': '.tabs', 'Información y mapa': '#ver-mapa', 'Colores del mapa y capas': '#leymini, #zcapas', 'Pre-evalúa con Street View': '#card .field-acts a[href*="pano"]',
   'Espacios para plantar': '.rec-punto', 'Tu lista de campo': '#panel-actions, #tab-dl', 'En campo': '#zloc', 'Mi cuenta': '#cuenta-btn', 'Cuando lo necesites': '#open-info, #info-btn' };
 async function recorre(page, nombre, { sesion = false, gc = false } = {}) { const pasos = [];
-  // 900 ms: el globo se recoloca a los 380 ms (cuando terminan de moverse la hoja, el mapa o el desplazamiento) y el foco tarda .25 s en llegar
-  for (let k = 0; k < 20; k++) { await page.waitForTimeout(900); let p = await enPantalla(page); if (!p) break;
+  // quieto(): el globo se recoloca a los 380 ms (cuando terminan de moverse la hoja, el mapa o el desplazamiento) y el foco tarda .25 s en llegar
+  for (let k = 0; k < 20; k++) { await L.quieto(page); let p = await enPantalla(page); if (!p) break;
     if (p.titulo === 'Espacios para plantar') {   // el punto real llega cuando baja el inventario de la alcaldía
-      await page.waitForSelector('.rec-punto', { state: 'attached', timeout: 20000 }).catch(() => {}); await page.waitForTimeout(500); p = await enPantalla(page);
+      await page.waitForSelector('.rec-punto', { state: 'attached', timeout: 20000 }).catch(() => {}); await L.quieto(page); p = await enPantalla(page);
       p.punto = await page.evaluate(() => { const e = document.querySelector('.rec-punto'); if (!e) return null; const d = e.dataset;
         return { clave: d.clave, tipo: d.tipo, real: window.__INV.puntos(d.alc).some(x => x.clave === d.clave) }; }); }
     pasos.push(p);
@@ -31,8 +31,8 @@ async function recorre(page, nombre, { sesion = false, gc = false } = {}) { cons
     if (/Street View/.test(p.titulo)) p.ficha = await page.evaluate(() => !document.getElementById('card').hidden);
     if (p.titulo === 'Mi cuenta') { p.menu = await menuCuenta(page); p.sobre = p.menu.abarca; }
     const fin = await page.$eval('.rec-sig', b => b.textContent); await page.$eval('.rec-sig', b => b.click());
-    if (p.titulo === 'Mi cuenta') { await page.waitForTimeout(300); p.menuDespues = (await menuCuenta(page)).abierto; }
-    if (fin === 'Terminar') { await page.waitForTimeout(500); break; } }
+    if (p.titulo === 'Mi cuenta') { await L.quieto(page); p.menuDespues = (await menuCuenta(page)).abierto; }
+    if (fin === 'Terminar') { await L.quieto(page); break; } }
   const malos = pasos.filter(p => !p.cabe).map(p => p.titulo), t = x => pasos.find(p => p.titulo === x);
   ok(`${nombre}: todos los globos caben en la pantalla`, pasos.length >= 10 && malos.length === 0, `${pasos.length} pasos${malos.length ? ' · no caben: ' + malos.join(', ') : ''}`);
   ok(`${nombre}: el recorrido tiene 15 pasos o menos`, pasos.length <= 15, `${pasos.length} pasos`);
@@ -59,30 +59,30 @@ const menuCuenta = page => page.evaluate(() => { const m = document.getElementBy
   const dentro = x => !!fr && x.left >= fr.left - 0.5 && x.right <= fr.right + 0.5 && x.top >= fr.top - 0.5 && x.bottom <= fr.bottom + 0.5;
   return { abierto, opciones: [...m.querySelectorAll('a')].map(a => a.textContent.trim()).join('|'), abarca: dentro(q) && dentro(r), tapa: !!gr && !(gr.right < q.left || gr.left > q.right || gr.bottom < q.top || gr.top > q.bottom), btnExpandido: b.getAttribute('aria-expanded') }; });
 // recorre con las flechas hasta el paso con ese título
-const hasta = async (page, titulo) => { for (let k = 0; k < 16 && (await enPantalla(page)).titulo !== titulo; k++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(400); } await page.waitForTimeout(500); };
+const hasta = async (page, titulo) => { for (let k = 0; k < 16 && (await enPantalla(page)).titulo !== titulo; k++) { await page.keyboard.press('ArrowRight'); await L.quieto(page); } await L.quieto(page); };
 const limpio = page => page.evaluate(() => ({ velo: !!document.querySelector('.rec-velo, .rec-foco, .rec-globo, .rec-punto'), inerte: document.querySelector('.app').inert, ficha: !document.getElementById('card').hidden, capas: document.querySelector('.legend').classList.contains('open'), visto: localStorage.getItem('cp_recorrido') }));
 // con sesión: la instalación del SIA define las direcciones de la sesión en config.js; aquí se fijan antes de que cargue («Mi cuenta»)
 async function abrirConSesion(browser, url, op, errores) {
   const ctx = await browser.newContext({ locale: 'es-MX', serviceWorkers: 'block', viewport: { width: 1440, height: 900 }, ...op });
   await ctx.addInitScript(() => { window.SIA_PRUEBA = true;
     Object.defineProperty(window, 'SIA_SESION', { value: { inicio: '/acceso/', cierre: '/api/salir', uso: '/api/uso' }, writable: false, configurable: false }); });
-  await L.sinEntrada(ctx);
+  await L.sinEntrada(ctx); await L.vigia(ctx);
   const page = await ctx.newPage(); page.setDefaultTimeout(+process.env.T_ESPERA || 300000);
   page.on('pageerror', e => errores.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errores.push('console: ' + m.text()); });
   await page.route(u => u.hostname.startsWith('fonts.'), r => r.fulfill({ status: 200, body: '', contentType: 'text/css' }));
   await page.route(/\/api\//, r => r.fulfill({ status: 204, body: '' }));   // registro de usos: sin servidor de sesión en esta prueba
-  await page.goto(url); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+  await page.goto(url); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await L.quieto(page);
   return { ctx, page }; }
-const desdeAyuda = async page => { await page.evaluate(() => { document.getElementById('info-btn').click(); }); await page.waitForTimeout(400); await page.$eval('#rec-abrir', b => b.click()); await page.waitForTimeout(1200); };
+const desdeAyuda = async page => { await page.evaluate(() => { document.getElementById('info-btn').click(); }); await L.quieto(page); await page.$eval('#rec-abrir', b => b.click()); await L.quieto(page); };
 
 (async () => {
   const srv = await L.servidor(0); const browser = await L.lanzar(); const errores = []; const U = srv.url + '?modo=ligero#nomap';
   // ---------- 1) primera visita en escritorio: entrada y después el recorrido, solo ----------
   { const { page, ctx } = await L.abrir(browser, U, { entrada: true, recorrido: true }, errores);
     ok('primera visita: el recorrido espera a que termine la entrada', !(await page.$('.rec-globo')) && await page.evaluate(() => !document.getElementById('entrada').hidden));
-    await page.$eval('.entrada-red[data-red="alc"]', b => b.click()); await page.waitForTimeout(300);
-    await page.evaluate(() => [...document.querySelectorAll('#entrada-grid .entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await page.waitForTimeout(1800);
+    await page.$eval('.entrada-red[data-red="alc"]', b => b.click()); await L.quieto(page);
+    await page.evaluate(() => [...document.querySelectorAll('#entrada-grid .entrada-op')].find(b => b.textContent === 'Iztapalapa').click()); await L.quieto(page);
     const p0 = await enPantalla(page);
     ok('primera visita: al elegir la alcaldía arranca el recorrido en el paso 1', !!p0 && /^Paso 1 de \d+$/.test(p0.paso) && !p0.foco, p0 && p0.paso);
     ok('la bienvenida dice que el recorrido toma dos minutos y menciona el espacio para plantar', !!p0 && /dos minutos/.test(p0.texto) && /espacio para plantar/.test(p0.texto), p0 && p0.texto);
@@ -90,25 +90,25 @@ const desdeAyuda = async page => { await page.evaluate(() => { document.getEleme
     await recorre(page, 'escritorio');
     const z = await limpio(page);
     ok('al terminar se retira todo, la página deja de estar inerte, la ficha se cierra y queda anotado', !z.velo && !z.inerte && !z.ficha && z.visto === 'visto', JSON.stringify(z));
-    await page.reload(); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(1800);
+    await page.reload(); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await L.quieto(page);
     ok('la siguiente visita no repite el recorrido', !(await page.$('.rec-globo')));
     // ---------- 2) manual, desde «Cómo funciona»; Esc sale ----------
-    await page.$eval('#open-info', b => b.click()); await page.waitForTimeout(400);
+    await page.$eval('#open-info', b => b.click()); await L.quieto(page);
     const cta = await page.evaluate(() => { const b = document.getElementById('rec-abrir'); return b && b.getBoundingClientRect().height > 0 ? b.innerText.trim() : ''; });
     ok('«Cómo funciona» ofrece el recorrido guiado, con su duración', cta === 'Recorrido guiado · 2 minutos', cta);
     const ayuda = await page.$eval('.howto', e => e.innerText);
     ok('la ayuda de «Cómo funciona» nombra las dos redes, los filtros «Banqueta» y «Espacio», «Mostrar» y los espacios para plantar', /o las dos/.test(ayuda) && /«Espacio»/.test(ayuda) && /«Banqueta»/.test(ayuda) && /«Mostrar»/.test(ayuda) && /espacio para plantar/i.test(ayuda));
-    await page.$eval('#rec-abrir', b => b.click()); await page.waitForTimeout(1200);
+    await page.$eval('#rec-abrir', b => b.click()); await L.quieto(page);
     const m = await enPantalla(page); ok('desde «Cómo funciona» arranca en el paso 1, con la ayuda cerrada', !!m && /^Paso 1 /.test(m.paso) && await page.evaluate(() => document.getElementById('info-modal').hidden), m && m.paso);
-    await page.$eval('.rec-sig', b => b.click()); await page.waitForTimeout(500); await page.keyboard.press('ArrowRight'); await page.waitForTimeout(500);
+    await page.$eval('.rec-sig', b => b.click()); await L.quieto(page); await page.keyboard.press('ArrowRight'); await L.quieto(page);
     const m2 = await enPantalla(page); ok('con el teclado: las flechas avanzan', !!m2 && /^Paso 3 /.test(m2.paso), m2 && m2.paso);
-    await page.keyboard.press('Escape'); await page.waitForTimeout(400); const z2 = await limpio(page);
+    await page.keyboard.press('Escape'); await L.quieto(page); const z2 = await limpio(page);
     ok('Esc sale del recorrido y deja la página como estaba', !z2.velo && !z2.inerte, JSON.stringify(z2));
     // Esc a la mitad del paso de los espacios para plantar: no queda la marca del punto ni el panel de capas abierto
-    await page.$eval('#open-info', b => b.click()); await page.waitForTimeout(400); await page.$eval('#rec-abrir', b => b.click()); await page.waitForTimeout(1200);
-    for (let k = 0; k < 15 && (await enPantalla(page)).titulo !== 'Espacios para plantar'; k++) { await page.keyboard.press('ArrowRight'); await page.waitForTimeout(400); }
+    await page.$eval('#open-info', b => b.click()); await L.quieto(page); await page.$eval('#rec-abrir', b => b.click()); await L.quieto(page);
+    for (let k = 0; k < 15 && (await enPantalla(page)).titulo !== 'Espacios para plantar'; k++) { await page.keyboard.press('ArrowRight'); await L.quieto(page); }
     await page.waitForSelector('.rec-punto', { state: 'attached', timeout: 20000 }).catch(() => {});
-    await page.keyboard.press('Escape'); await page.waitForTimeout(400); const z3 = await limpio(page);
+    await page.keyboard.press('Escape'); await L.quieto(page); const z3 = await limpio(page);
     ok('Esc en el paso de los espacios para plantar no deja la marca del punto ni el panel de capas abierto', !z3.velo && !z3.inerte && !z3.capas, JSON.stringify(z3));
     await ctx.close(); }
   // ---------- 3) teléfono, con sesión ----------
@@ -119,8 +119,8 @@ const desdeAyuda = async page => { await page.evaluate(() => { document.getEleme
     ok('teléfono: al terminar, el menú de «Mi cuenta» queda cerrado', !(await menuCuenta(page)).abierto && await page.$eval('#cuenta-btn', b => b.getAttribute('aria-expanded')) === 'false');
     // «Anterior» y «Salir» desde el paso «Mi cuenta» también lo cierran
     await desdeAyuda(page); await hasta(page, 'Mi cuenta'); const a0 = await menuCuenta(page);
-    await page.$eval('.rec-ant', b => b.click()); await page.waitForTimeout(500); const a1 = await menuCuenta(page), pa = await enPantalla(page);
-    await hasta(page, 'Mi cuenta'); const a2 = await menuCuenta(page); await page.keyboard.press('Escape'); await page.waitForTimeout(400); const a3 = await menuCuenta(page), z4 = await limpio(page);
+    await page.$eval('.rec-ant', b => b.click()); await L.quieto(page); const a1 = await menuCuenta(page), pa = await enPantalla(page);
+    await hasta(page, 'Mi cuenta'); const a2 = await menuCuenta(page); await page.keyboard.press('Escape'); await L.quieto(page); const a3 = await menuCuenta(page), z4 = await limpio(page);
     ok('teléfono: «Mi cuenta» abre el menú; «Anterior» lo cierra y lo deja en el paso previo; Esc sale del recorrido y lo deja cerrado', a0.abierto && !a1.abierto && pa.titulo !== 'Mi cuenta' && a2.abierto && !a3.abierto && !z4.velo, JSON.stringify({ a0: a0.abierto, a1: a1.abierto, previo: pa.titulo, a2: a2.abierto, a3: a3.abierto }));
     await ctx.close(); }
   // ---------- 4) escritorio, Gobierno Central, con sesión ----------
@@ -129,6 +129,18 @@ const desdeAyuda = async page => { await page.evaluate(() => { document.getEleme
     await recorre(page, 'escritorio con Gobierno Central y sesión', { sesion: true, gc: true });
     const z = await limpio(page); ok('Gobierno Central: al terminar no queda nada encima', !z.velo && !z.inerte && !z.ficha, JSON.stringify(z));
     ok('escritorio: al terminar, el menú de «Mi cuenta» queda cerrado', !(await menuCuenta(page)).abierto);
+    await ctx.close(); }
+  // ---------- 5) escritorio, «Las dos», con una colonia y una calle consultadas (A1-02 de la auditoría del 19 oct 2026) ----------
+  { const { page, ctx } = await L.abrir(browser, U.replace('?', '?r=both&a=007&'), {}, errores);
+    await L.elegirTipo(page, 'Tecpinco', 'Col', 'Iztapalapa');
+    await page.evaluate(() => document.getElementById('tab-ini').click()); await L.quieto(page);
+    await page.$eval('#ini-list li', li => li.click()); await L.quieto(page);
+    const antes = await page.evaluate(() => window.__UBIC.ambito());
+    ok('«Las dos»: control, quedan elegidas las dos redes, una colonia y una calle', antes.red === 'both' && !!antes.colonia && !!antes.calle, JSON.stringify(antes));
+    await desdeAyuda(page);
+    await recorre(page, '«Las dos» con colonia y calle consultadas');
+    const despues = await page.evaluate(() => window.__UBIC.ambito()), z = await limpio(page);
+    ok('«Las dos»: al terminar, la consulta sigue igual (redes, colonia y calle) y no queda nada encima', JSON.stringify(despues) === JSON.stringify(antes) && !z.velo && !z.inerte, JSON.stringify({ antes, despues }));
     await ctx.close(); }
   ok('sin errores de JavaScript durante la prueba', errores.length === 0, errores.slice(0, 2).join(' | '));
   await browser.close(); srv.close(); process.exit(ok.fin() ? 1 : 0);

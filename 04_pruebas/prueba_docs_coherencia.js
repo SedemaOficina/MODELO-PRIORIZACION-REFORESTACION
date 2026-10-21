@@ -90,7 +90,8 @@ const nRap = (leeme.match(/\*\*(\d+) verificaciones rápidas\*\*/) || [])[1], nN
 ok('04_pruebas/LEEME.md dice cuántas verificaciones rápidas hay, igual que correr_todas.js', +nRap === rap.length, `LEEME: ${nRap ?? 'no lo dice'} · correr_todas.js: ${rap.length}`);
 ok('04_pruebas/LEEME.md dice cuántas pruebas de navegador hay, igual que correr_todas.js', +nNav === nav.length, `LEEME: ${nNav ?? 'no lo dice'} · correr_todas.js: ${nav.length}`);
 const tabla = leeme.split('\n').filter(l => l.startsWith('|')).join('\n');
-const nombresRap = rap.map(l => /ESLint/.test(l) ? 'ESLint' : ((l.match(/\['([^']+\.(?:py|js))'\]/) || [])[1] || '').split('/').pop());
+// el renglón se reconoce por el nombre del archivo; si la verificación no corre un archivo propio (el módulo de sesión), por su nombre
+const nombresRap = rap.map(l => /ESLint/.test(l) ? 'ESLint' : ((l.match(/\['([^']+\.(?:py|js))'\]/) || [])[1] || '').split('/').pop() || (l.match(/^\s*\['([^']+)'/) || [])[1]);
 const sinRenglon = nombresRap.concat(nav).filter(n => !n || !tabla.includes(n));
 ok('cada prueba de correr_todas.js tiene su renglón en la tabla de 04_pruebas/LEEME.md', sinRenglon.length === 0, sinRenglon.join(', '));
 const minLeeme = (leeme.match(/correr_todas\.js\s+todo[^\n]*?unos (\d+) minutos/) || [])[1];

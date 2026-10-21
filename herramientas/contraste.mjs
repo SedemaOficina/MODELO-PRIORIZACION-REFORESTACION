@@ -461,6 +461,24 @@ export function auditar(raiz = RAIZ_DEF) {
   // filete de las clases claras contra cada fondo (desde el zoom F.fileteZ); al final de MN para no mover la numeración anterior
   const fondosFilete = [...B5, ['el relleno de colonia que menos contrasta (fondo «Calles»)', peor(filSobre(F.suelo), rellenosCalles)], ['el relleno de colonia que menos contrasta («Sin fondo»)', peor(filSobre(F.sinfondo), rellenosSinf)]];
   for (const [txt, b] of fondosFilete) par(mn(), 'linea', filSobre(b), b, `Filete de las clases claras (${F.filete.n}, ${F.filetePx} px a cada lado de las líneas ${yLista(NOM.filter((_, k) => clara(k)))}, desde el zoom ${F.fileteZ}) sobre ${txt}`);
+  // capas nuevas sobre el satélite (A6-01 de la auditoría del 19 oct 2026), contra sus dos extremos: imagen negra y blanca.
+  // Al final de MN para no mover la numeración anterior.
+  const SAT = [['imagen negra', F.satOscuro], ['imagen blanca', F.satClaro]];
+  for (const [txt, b] of SAT) par(mn(), 'linea', filSobre(b), b, `Satélite (${txt}): filete de las clases claras (${F.filete.n})`);
+  // resalte de la calle o avenida consultada: basta que una de sus dos capas exteriores se distinga de la imagen (la franja
+  // sobre la imagen oscura, el halo sobre la clara)
+  for (const [txt, b] of SAT) { const fr = razon(F.rsFranja, b) >= razon(F.rsHalo, b), capa = fr ? F.rsFranja : F.rsHalo;
+    par(mn(), 'linea', capa, b, `Satélite (${txt}): calle o avenida consultada, su capa exterior que más contrasta (${fr ? 'franja' : 'halo'} ${capa.n}; ${fr ? 'el halo' : 'la franja'}: ${fmtR(razon(fr ? F.rsHalo : F.rsFranja, b))})`); }
+  for (const [txt, b] of SAT) par(mn(), 'linea', F.limAlc, b, `Satélite (${txt}): límite de alcaldía (${F.limAlc.n})`);
+  for (const [txt, b] of SAT) par(mn(), 'linea', sobre(limCol, b), b, `Satélite (${txt}): límite de colonia (${F.limCol.n}${F.aLimCol < 1 ? ', opacidad ' + F.aLimCol : ''})`);
+  // contorno de lo elegido: lleva su franja blanca en todo el borde (contornoElegido); cuenta la capa que más contrasta
+  for (const [txt, b] of SAT) { const fr = razon(F.selFranja, b) > razon(F.sel, b), capa = fr ? F.selFranja : F.sel;
+    par(mn(), 'linea', capa, b, `Satélite (${txt}): contorno de la colonia o alcaldía elegida, su capa que más contrasta (${fr ? 'franja ' + F.selFranja.n : 'contorno ' + F.sel.n}; ${fr ? 'el contorno' : 'la franja'}: ${fmtR(razon(fr ? F.sel : F.selFranja, b))})`); }
+  // inventario: sobre la imagen negra, el símbolo contra su contorno blanco; sobre la blanca el contorno no se distingue y cuenta el símbolo
+  for (const [nom, tipo, c] of SIM.slice(1)) par(mn(), tipo, c, sobre(F.invContorno, F.satOscuro), `Satélite (imagen negra): ${nom} contra su contorno blanco`);
+  for (const [nom, tipo, c] of SIM) par(mn(), tipo, c, F.satClaro, `Satélite (imagen blanca): ${nom} directo sobre la imagen (el contorno blanco no se distingue)`);
+  par(mn(), 'punto', F.loc, F.satClaro, 'Satélite (imagen blanca): punto de Mi ubicación directo sobre la imagen');
+  par(mn(), 'punto', F.pto, F.satClaro, 'Satélite (imagen blanca): punto buscado por coordenadas directo sobre la imagen');
 
   // ===== MI · informativos =====
   let m = 0; const mi = () => 'MI' + String(++m).padStart(2, '0'); const inf = (tipo, fg, bg, d) => par(mi(), tipo, fg, bg, d, { exige: false });

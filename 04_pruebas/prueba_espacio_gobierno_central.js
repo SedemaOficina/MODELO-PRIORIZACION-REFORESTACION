@@ -11,7 +11,7 @@
 //  · «Avenidas con más cepas vacantes» (número, ceros al final, nota del corte, carga diferida con aviso, falla y reintento);
 //  · ficha de un tramo con sus conteos y ficha de un punto del camellón;
 //  · las dos redes, «Reiniciar», celular de 390 px y sin errores de JavaScript.
-// Además compara contra la versión anterior (v1.23, tomada de Git; REF_ANTERIOR=<commit> para otra, REF_ANTERIOR=no para omitirlo):
+// Además compara contra la versión anterior (v1.23, tomada de Git; REF_ANTERIOR=<commit> para otra, REF_ANTERIOR=no para omitirlo, y entonces la prueba falla):
 // con el filtro apagado todo queda igual, y con «Alcaldías» el filtro y el orden por cepas dan exactamente las mismas cifras; los puntos del
 // inventario conservan su frente. Desde la v1.27, del Resumen se comparan las cifras sin sus rótulos y, en el orden por cepas, lo que la v1.23
 // ya listaba (L.comparable).
@@ -319,7 +319,8 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
 
   // ---------- 11) comparación con la versión anterior (v1.23) ----------
   const REF = process.env.REF_ANTERIOR || '67668b9';
-  if (REF === 'no') console.log('OMITIDA comparación con la versión anterior (REF_ANTERIOR=no)');
+  // REF_ANTERIOR=no acorta la prueba mientras se trabaja, pero lo que no se comparó no cuenta como aprobado (A1-04): la prueba falla
+  if (REF === 'no') ok('comparación con la versión anterior', false, 'no se verificó: REF_ANTERIOR=no');
   else {
     let ANT = null; try { ANT = docsDe(REF); } catch (e) { ok(`se obtiene docs/ de la versión anterior (${REF}) desde Git`, false, String(e.message || e).slice(0, 160)); }
     if (ANT) {

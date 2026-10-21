@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.41 (21 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.42 (21 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -26,8 +26,9 @@ MODELO-PRIORIZACION-REFORESTACION/
 ├── docs/                      ← LO QUE SE PUBLICA (generado; no editar a mano)
 ├── 03_procesamiento_datos/    scripts de Python que producen 02_fuente/datos/ y las listas de catálogos (ver su LEEME.md)
 ├── 04_pruebas/                correr_todas.js, las verificaciones rápidas y las pruebas de navegador (cuántas y cuánto tardan: su LEEME.md)
-├── package.json               versiones fijas de las herramientas de prueba (ESLint, Playwright) y órdenes abreviadas
-├── eslint.config.mjs          reglas de la revisión estática de docs/app.js
+├── package.json               herramientas de prueba (ESLint, Playwright) y órdenes abreviadas; package-lock.json fija las versiones exactas
+├── eslint.config.mjs          reglas de la revisión estática de docs/app.js, sw.js, config.js (ES5) y el worker de Excel
+├── .github/workflows/         verificar.yml: GitHub corre las verificaciones rápidas en cada Push
 ├── .gitattributes             docs/, libs/ y fuentes/ sin conversión de fin de línea: mismos bytes en cualquier equipo
 ├── 05_documentacion/          cifras de la construcción (generado), decisiones de despliegue en el SIA, revisión de experiencia de uso
 │                              y bitácora de decisiones (la bitácora solo en la copia local)
@@ -88,7 +89,7 @@ MODELO-PRIORIZACION-REFORESTACION/
 | `12_fichas_pdf.js` | Fichas PDF de colonia, alcaldía, vialidades primarias, avenida y calle | `conPDF`, `fichaPDF`, `fichaCallePDF` |
 | `13_interfaz.js` | «Mi cuenta» con sesión (cambiar contraseña y cerrar sesión; menú accesible, Esc y clic fuera lo cierran). Celular en dos pantallas: `pantalla`, `verMapa`, `verInfo`, `rotuloInfo` (texto del botón de abajo) e `inert` de la pantalla que no se ve. Ventana de ayuda (se cierra con ×, "Volver al mapa", Esc o Atrás), tres pestañas (Dónde empezar, Resumen, Descargas; un nombre desconocido abre «Dónde empezar»), acciones fijas (lo principal es la lista de «Mostrar»: «Lista de calles» o «Lista de avenidas»; en toda la ciudad, «Las 16 alcaldías»; con una calle, sus frentes; en «Descargas» solo lo principal va relleno de guinda; el pie no ocupa lugar sin nada que descargar), ruta de navegación, entrada por territorio (`abreEntrada`) y leyenda compacta | `openInfo`, `closeInfo`, `setTab`, `renderActions`, `renderCrumb` |
 | `14_buscador.js` | Lee también coordenadas pegadas (decimales, grados-minutos-segundos y enlaces largos de Google Maps; `leeCoordenadas`) y las manda a `irAPunto` (15_mi_ubicacion.js). Buscador único con abreviaturas y tolerancia a errores; nombre que distingue a las colonias homónimas de una alcaldía («parte k de n» o su CP), usado en archivos, fichas y «Ámbito consultado» | `omniIndex`, `omniSearch`, `omniPick`, `colNombre` |
-| `15_mi_ubicacion.js` | La ficha de la zona (`zonaHtml`: colonia, lo que está junto y calles prioritarias cercanas) la comparten «Mi ubicación» y el punto buscado por coordenadas (`irAPunto`, marcador `pto-buscado`). GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento | `locate`, `whereAmI`, `nearby`, `showLoc` |
+| `15_mi_ubicacion.js` | La ficha de la zona (`zonaHtml`: colonia, lo que está junto y calles prioritarias cercanas) la comparten «Mi ubicación» y el punto buscado por coordenadas (`irAPunto`, marcador `pto-buscado`). GPS, colonia donde está la persona, tramos prioritarios cercanos, seguimiento. Con `window.SIA_PRUEBA` deja leer a las pruebas dónde cae un punto, el ámbito del registro de usos y el estado de «Seguirme» (`window.__UBIC`) | `locate`, `whereAmI`, `nearby`, `showLoc` |
 | `16_arranque.js` | Estado inicial, consulta indicada en la dirección, aviso de errores inesperados y registro de `sw.js` | — |
 | `17_recorrido.js` | Pasos de unos dos minutos (12 a 14 según pantalla y sesión): incluye el filtro «Espacio», un punto real del inventario («Espacios para plantar», `recPunto`, `recEspacios`), el orden por cepas dentro de «Dónde empezar» y «Mi cuenta» solo con sesión; los textos pueden depender de la consulta y `prep` puede ser asíncrono (`recDeshace`). Recorrido guiado: velo, foco sobre cada control y globo con el texto; arranca solo la primera vez (después de la entrada, mediante `trasEntrada` de `13_interfaz.js`) y desde el botón de «Cómo funciona». El paso de Street View abre la ficha de un frente prioritario con nombre del ámbito. No arranca solo en las pruebas automáticas salvo que se pida (`window.SIA_RECORRIDO`) | `recorrido`, `recPaso`, `recColoca`, `recFin` |
 

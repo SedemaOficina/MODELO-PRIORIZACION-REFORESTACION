@@ -66,17 +66,36 @@ async function lanzar() {
 // `entrada: true` en abrir() deja la primera visita tal cual.
 // También marca como visto el recorrido guiado, para que no tape lo que revisan las pruebas; prueba_recorrido.js lo pide.
 const sinEntrada = ctx => ctx.addInitScript(() => { try { if (!sessionStorage.getItem('cp_p')) { localStorage.setItem('cp_inicio', 'ciudad'); localStorage.setItem('cp_recorrido', 'visto'); sessionStorage.setItem('cp_p', '1'); } } catch (e) {} });
+// Vigía (solo en las pruebas): cuenta los temporizadores cortos que la herramienta deja pendientes (setTimeout de 1.5 s o menos),
+// para que quieto() espere a que termine lo que programó en lugar de un tiempo fijo (A1-04 de la auditoría del 19 oct 2026).
+const vigia = ctx => ctx.addInitScript(() => { const p = new Set(), st = window.setTimeout, ct = window.clearTimeout;
+  window.setTimeout = function (f, ms, ...a) { const id = st.call(window, function () { p.delete(id); if (typeof f === 'function') return f.apply(this, a); }, ms);
+    if ((+ms || 0) <= 1500) p.add(id); return id; };
+  window.clearTimeout = id => { p.delete(id); ct.call(window, id); }; window.__pendientes = () => p.size; });
+// Espera a que la herramienta quede quieta: sin temporizadores cortos pendientes, sin transiciones ni animaciones de CSS en curso (las
+// que no se repiten sin fin) y con dos cuadros dibujados después. Si la página no tiene vigía (no se abrió con abrir() ni con vigia()),
+// espera lo de antes. No falla si algo se repite sin parar: sigue tras `tope` ms.
+async function quieto(page, tope = 10000) {
+  if (!(await page.evaluate(() => typeof window.__pendientes === 'function').catch(() => false))) return page.waitForTimeout(500);
+  const calma = () => window.__pendientes() === 0 && !document.getAnimations().some(a => a.playState === 'running' && a.effect && a.effect.getComputedTiming().iterations !== Infinity);
+  for (let i = 0; i < 3; i++) {
+    await page.waitForFunction(calma, null, { timeout: tope, polling: 25 }).catch(() => {});
+    await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+    if (await page.evaluate(calma)) return;
+  }
+}
 async function abrir(browser, url, opciones = {}, errores = []) {
-  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => k !== 'entrada' && k !== 'recorrido')) });
-  await ctx.addInitScript(() => { window.SIA_PRUEBA = true; });
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => !['entrada', 'recorrido', 'preparar'].includes(k))) });
+  await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); await vigia(ctx);
   if (opciones.recorrido) await ctx.addInitScript(() => { window.SIA_RECORRIDO = true; });   // el recorrido guiado arranca solo, como en una primera visita
   // Las pruebas parten de «toda la ciudad», como una visita que ya eligió territorio; `entrada: true` deja la primera visita tal cual.
   if (!opciones.entrada) await sinEntrada(ctx);
+  if (opciones.preparar) await opciones.preparar(ctx);   // lo que la prueba necesite antes de cargar (sesión simulada, rutas…)
   const page = await ctx.newPage(); page.setDefaultTimeout(+process.env.T_ESPERA || 300000);
   page.on('pageerror', e => errores.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errores.push('console: ' + m.text()); });
   await page.route(u => u.hostname.startsWith('fonts.'), r => r.fulfill({ status: 200, body: '', contentType: 'text/css' }));
-  await page.goto(url); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(600);
+  await page.goto(url); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await quieto(page);
   // las pruebas leen las cifras de la pestaña Resumen; la pestaña inicial («Dónde empezar») tiene su propia prueba
   if (!opciones.entrada) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); });
   return { ctx, page };
@@ -143,7 +162,8 @@ const mismoNombre = (antes, nuevo) => antes != null && nuevo != null && antes.re
 // «km sobre tramos prioritarios». excelAntes quita esos renglones de los dos lados; textoAntes deja la frase de la ficha sin la cifra.
 const DIC_GC_V137 = ['Prioritario del ámbito, km de frente a cargo del Gobierno Central', 'Km de frente a cargo del Gobierno Central sobre tramos prioritarios (sin filtro de banqueta; el espacio, por su tramo)',
   'Equivalente prioritario (Muy Alta, Alta y Media) en km de frente de manzana', 'Equivalente en km de frente de manzana de los tramos prioritarios (Muy Alta, Alta y Media)'];
-const textoAntes = t => typeof t !== 'string' ? t : t.replace(/\(aceras con manzana enfrente\), [\d,.]+ km (sobre tramos prioritarios|prioritarios)\./g, '(aceras con manzana enfrente), N km prioritarios.').replace(/ Espacios para plantar \(cepas vacantes, tocones y árboles muertos\): [^.]*\./g, '')
+// v1.42 (C5-02): «Gobierno de la Ciudad (de México)» pasó a «Gobierno Central» en los textos de la herramienta
+const textoAntes = t => typeof t !== 'string' ? t : t.replace(/Gobierno de la Ciudad( de México)?/g, 'Gobierno Central').replace(/\(aceras con manzana enfrente\), [\d,.]+ km (sobre tramos prioritarios|prioritarios)\./g, '(aceras con manzana enfrente), N km prioritarios.').replace(/ Espacios para plantar \(cepas vacantes, tocones y árboles muertos\): [^.]*\./g, '')
   .replace(/Excel «Frente por frente»/g, 'Excel de frentes').replace('no incluidos en esta lista', 'no incluidos en este resumen');
 function excelAntes(X, lista) { let datos = X.datos || [], dic = (X.dic || []).filter(r => !DIC_GC_V137.includes(r[0])).map(r => r.map(textoAntes));
   if (lista) { const h = datos[0] || [], k = h.indexOf('cepas_vacantes_prioritario'), iK = h.indexOf('km_prioritario'); const sin = r => k < 0 ? r : r.filter((_, j) => j !== k);
@@ -152,12 +172,16 @@ function excelAntes(X, lista) { let datos = X.datos || [], dic = (X.dic || []).f
   return { ...X, datos, dic }; }
 const MALOS = /\bNaN\b|undefined|Infinity|\bnull\b|(^|[\s(])-0(?![\d.,])|\[object/;
 const negativos = t => (String(t).match(/(^|[\s(])[-−]\d[\d,.]*\s*(km|m|%|hab|frentes|tramos)/g) || []);
-async function buscar(page, q, espera = 500) { await page.fill('#omni', ''); await page.fill('#omni', q); await page.waitForTimeout(espera); return page.$$eval('#omni-list li', ls => ls.map(l => ({ c: l.className, t: l.innerText.replace(/\s+/g, ' ').trim() }))); }
-async function elegir(page, q, n = 0) { await buscar(page, q); const o = await page.$$('#omni-list li.opt'); if (!o[n]) return false; await o[n].dispatchEvent('mousedown'); await page.waitForTimeout(500); return true; }
-const clic = (page, sel) => page.$eval(sel, b => b.click()).then(() => page.waitForTimeout(350));
+async function buscar(page, q, espera) { await page.fill('#omni', ''); await page.fill('#omni', q); await (espera === undefined ? quieto(page) : page.waitForTimeout(espera)); return page.$$eval('#omni-list li', ls => ls.map(l => ({ c: l.className, t: l.innerText.replace(/\s+/g, ' ').trim() }))); }
+async function elegir(page, q, n = 0) { await buscar(page, q); const o = await page.$$('#omni-list li.opt'); if (!o[n]) return false; await o[n].dispatchEvent('mousedown'); await quieto(page); return true; }
+const clic = (page, sel) => page.$eval(sel, b => b.click()).then(() => quieto(page));
+// El mismo botón no acepta otro clic hasta 1.5 s después de entregar (GEN_PAUSA de 12_fichas_pdf.js, contra el doble clic): si se vuelve
+// a pedir el mismo archivo antes, se espera lo que falta de esa pausa (medida desde que llegó la descarga anterior, que es después).
+const ULT_DESCARGA = new WeakMap(), GEN_PAUSA = 1500;
 async function descargar(page, sel, dir, t = 90000) {
+  const u = ULT_DESCARGA.get(page); if (u && u.sel === sel) { const falta = u.t + GEN_PAUSA + 100 - Date.now(); if (falta > 0) await page.waitForTimeout(falta); }
   const t0 = Date.now(); const [d] = await Promise.all([page.waitForEvent('download', { timeout: t }).catch(() => null), page.$eval(sel, b => b.click())]);
-  if (!d) return null; const nombre = d.suggestedFilename(); const ruta = path.join(dir, nombre); await d.saveAs(ruta); return { nombre, ruta, ms: Date.now() - t0, bytes: fs.statSync(ruta).size };
+  if (!d) return null; ULT_DESCARGA.set(page, { sel, t: Date.now() }); const nombre = d.suggestedFilename(); const ruta = path.join(dir, nombre); await d.saveAs(ruta); return { nombre, ruta, ms: Date.now() - t0, bytes: fs.statSync(ruta).size };
 }
 
 // ---- manejo de controles (compartido por las pruebas) ----
@@ -166,12 +190,12 @@ async function ponResp(page, v) { const act = async () => page.$$eval('button[da
   let a = await act(); for (const k of ['alc', 'gc']) if (RSP[v].includes(k) && !a[k]) await clic(page, `button[data-resp="${k}"]`);
   a = await act(); for (const k of ['alc', 'gc']) if (!RSP[v].includes(k) && a[k]) await clic(page, `button[data-resp="${k}"]`); }
 async function ponPrio(page, quiero) {   // quiero: arreglo de 5 en el orden de la leyenda (Muy Alta … Muy Baja)
-  const filas = await page.$$('#legend-rows .row'); for (let i = 0; i < 5; i++) { const esta = (await filas[i].getAttribute('aria-checked')) === 'true'; if (esta !== !!quiero[i]) { await filas[i].evaluate(r => r.click()); await page.waitForTimeout(150); } } }
+  const filas = await page.$$('#legend-rows .row'); for (let i = 0; i < 5; i++) { const esta = (await filas[i].getAttribute('aria-checked')) === 'true'; if (esta !== !!quiero[i]) { await filas[i].evaluate(r => r.click()); await quieto(page); } } }
 async function elegirTipo(page, q, tipo, debe = '') { await buscar(page, q); const ops = await page.$$('#omni-list li.opt');
-  for (const o of ops) { const t = await o.innerText(); if (t.trim().startsWith(tipo) && t.includes(debe)) { await o.dispatchEvent('mousedown'); await page.waitForTimeout(400); return true; } } return false; }
+  for (const o of ops) { const t = await o.innerText(); if (t.trim().startsWith(tipo) && t.includes(debe)) { await o.dispatchEvent('mousedown'); await quieto(page); return true; } } return false; }
 function Registro(nombre) {
   const r = []; const ok = (n, cond, det = '') => { r.push([!!cond, n, det]); console.log(`${cond ? 'OK   ' : 'FALLA'} ${n}${det ? ' · ' + det : ''}`); return !!cond; };
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { PRIO_MIN, sinEntrada, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, nombreAntes, mismoNombre, textoAntes, excelAntes, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { PRIO_MIN, sinEntrada, vigia, quieto, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, nombreAntes, mismoNombre, textoAntes, excelAntes, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

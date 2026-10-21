@@ -1,10 +1,10 @@
 # Contraste medido sobre cada fondo real
 
-Mapa de la herramienta «Modelo de priorización de reforestación urbana». Generado con `node herramientas/contraste.mjs --md` (2026-10-17); no editar a mano: si un color cambia en 02_fuente, se vuelve a generar.
+Mapa de la herramienta «Modelo de priorización de reforestación urbana». Generado con `node herramientas/contraste.mjs --md` (2026-10-21); no editar a mano: si un color cambia en 02_fuente, se vuelve a generar.
 
 Cada par se mide sobre el fondo donde aparece en el mapa. Texto: 4.5:1; líneas, puntos, aros, contornos y foco: 3:1 (WCAG 2.2, criterios 1.4.3 y 1.4.11). La razón se calcula con la luminancia relativa de WCAG 2.2, y herramientas/contraste.mjs la calcula por su lado leyendo los colores de 02_fuente/css y 02_fuente/js. Lo que se dibuja con transparencia (opacidad de la capa, `opPrio`, rellenos con alfa, halos al 92 %) se compone sobre su fondo antes de medir; el hex que se muestra es el color ya compuesto. La opacidad de la prioridad se mide en su valor de inicio (100 %). «Pendiente de decisión» es un par que se exige, que hoy no cumple y que espera la decisión de Liber. «Informativo» es un par que no se exige pero conviene ver; las razones se truncan a dos decimales (4.499 se muestra 4.49).
 
-**253 pares medidos: 188 cumplen, 5 aceptados por decisión, 0 pendientes de decisión y 60 informativos** (193 exigidos).
+**270 pares medidos: 205 cumplen, 5 aceptados por decisión, 0 pendientes de decisión y 60 informativos** (210 exigidos).
 
 Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 
@@ -213,6 +213,23 @@ Ids: MC = colores de texto (4.5:1); MN = no texto (3:1); MI = informativos.
 | MN130 | --map-filete #666A6D sobre --ground #F4F2EE | 4.88:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre «Sin fondo» |
 | MN131 | --map-filete #666A6D sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --fondo-calle #EDE0DE | 4.24:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre el relleno de colonia que menos contrasta (fondo «Calles») |
 | MN132 | --map-filete #666A6D sobre relleno de colonia --p4 (Muy Alta) al 14 % sobre --ground #E4D5D0 | 3.82:1 | 3:1 | Cumple | Filete de las clases claras (--map-filete, 1 px a cada lado de las líneas Muy Baja, Baja y Media, desde el zoom 14) sobre el relleno de colonia que menos contrasta («Sin fondo») |
+| MN133 | --map-filete #666A6D sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 3.25:1 | 3:1 | Cumple | Satélite (imagen negra): filete de las clases claras (--map-filete) |
+| MN134 | --map-filete #666A6D sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 5.40:1 | 3:1 | Cumple | Satélite (imagen blanca): filete de las clases claras (--map-filete) |
+| MN135 | --map-halo #FFFFFF sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 17.75:1 | 3:1 | Cumple | Satélite (imagen negra): calle o avenida consultada, su capa exterior que más contrasta (franja --map-halo; el halo: 2.32:1) |
+| MN136 | --guinda #9D2148 sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 7.58:1 | 3:1 | Cumple | Satélite (imagen blanca): calle o avenida consultada, su capa exterior que más contrasta (halo --guinda; la franja: 1.00:1) |
+| MN137 | --map-alc #666A6D sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 3.25:1 | 3:1 | Cumple | Satélite (imagen negra): límite de alcaldía (--map-alc) |
+| MN138 | --map-alc #666A6D sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 5.40:1 | 3:1 | Cumple | Satélite (imagen blanca): límite de alcaldía (--map-alc) |
+| MN139 | --map-col #7A766F sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 3.93:1 | 3:1 | Cumple | Satélite (imagen negra): límite de colonia (--map-col) |
+| MN140 | --map-col #7A766F sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 4.47:1 | 3:1 | Cumple | Satélite (imagen blanca): límite de colonia (--map-col) |
+| MN141 | --map-halo #FFFFFF sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #181818 | 17.75:1 | 3:1 | Cumple | Satélite (imagen negra): contorno de la colonia o alcaldía elegida, su capa que más contrasta (franja --map-halo; el contorno: 1.50:1) |
+| MN142 | --map-sel #273A45 sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 11.70:1 | 3:1 | Cumple | Satélite (imagen blanca): contorno de la colonia o alcaldía elegida, su capa que más contrasta (contorno --map-sel; la franja: 1.00:1) |
+| MN143 | --inv-tocon #7A5534 sobre blanco [255,255,255] (escrito en 05_inventario.js) al 92 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #EDEDED | 5.64:1 | 3:1 | Cumple | Satélite (imagen negra): Tocón (círculo) contra su contorno blanco |
+| MN144 | --inv-muerto #3C4043 sobre blanco [255,255,255] (escrito en 05_inventario.js) al 92 % sobre satélite, extremo oscuro (negro al 90 % sobre --ground) #EDEDED | 8.93:1 | 3:1 | Cumple | Satélite (imagen negra): Árbol muerto (círculo con ×) contra su contorno blanco |
+| MN145 | --inv-cepa #1B8A3C sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 4.38:1 | 3:1 | Cumple | Satélite (imagen blanca): Cepa vacante (anillo) directo sobre la imagen (el contorno blanco no se distingue) |
+| MN146 | --inv-tocon #7A5534 sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 6.55:1 | 3:1 | Cumple | Satélite (imagen blanca): Tocón (círculo) directo sobre la imagen (el contorno blanco no se distingue) |
+| MN147 | --inv-muerto #3C4043 sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 10.37:1 | 3:1 | Cumple | Satélite (imagen blanca): Árbol muerto (círculo con ×) directo sobre la imagen (el contorno blanco no se distingue) |
+| MN148 | --loc #1A73E8 sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 4.46:1 | 3:1 | Cumple | Satélite (imagen blanca): punto de Mi ubicación directo sobre la imagen |
+| MN149 | --guinda #9D2148 sobre satélite, extremo claro (blanco al 90 % sobre --ground) #FEFEFD | 7.58:1 | 3:1 | Cumple | Satélite (imagen blanca): punto buscado por coordenadas directo sobre la imagen |
 | MI01 | --fondo-manzana #E2DED6 sobre --fondo-calle #FFFFFF | 1.34:1 | 3:1 (ref.) | Informativo | Fondo «Calles»: manzana contra suelo (suave a propósito) |
 | MI02 | --fondo-verde #D9EAD0 sobre --fondo-calle #FFFFFF | 1.26:1 | 3:1 (ref.) | Informativo | Fondo «Calles»: verde contra suelo |
 | MI03 | --fondo-agua #BCD7E6 sobre --fondo-calle #FFFFFF | 1.49:1 | 3:1 (ref.) | Informativo | Fondo «Calles»: agua contra suelo |

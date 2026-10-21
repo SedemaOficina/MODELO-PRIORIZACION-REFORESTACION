@@ -95,18 +95,21 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   const srv = await L.servidor(0); const browser = await L.lanzar(); const errores = []; const base = srv.url + '?modo=ligero';
   // siempre se recarga la página: una dirección igual a la actual (la consulta ya anotada en el historial) solo cambiaría el ancla
   // ir: la consulta, en el Resumen (que pide el inventario para su comparación, v1.27); res = false: se queda en «Dónde empezar», sin bajar nada
-  const ir = async (page, q, res = true) => { await page.goto('about:blank'); await page.goto(base + q + '#nomap'); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await page.waitForTimeout(700); if (res) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
+  const ir = async (page, q, res = true) => { await page.goto('about:blank'); await page.goto(base + q + '#nomap'); await page.waitForSelector('#loader[hidden]', { state: 'attached' }); await L.quieto(page); if (res) await page.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
   const pedidos = [];
   const { page, ctx } = await L.abrir(browser, base + '#nomap', {}, errores);
   page.on('request', r => { if (r.url().includes('espacios_frentes')) pedidos.push(r.url()); });
   const casillas = () => page.$$eval('button[data-esp]', bs => bs.map(b => b.getAttribute('aria-pressed') === 'true'));
   const aviso = () => page.$eval('#esp-aviso', x => ({ vis: !x.hidden && x.offsetParent !== null, t: x.textContent }));
-  const clicEsp = async t => { await page.$eval(`button[data-esp="${t}"]`, b => b.click()); await page.waitForFunction(() => window.__INV.esp().filtro === window.__INV.esp().casillas, null, { timeout: 60000 }); await page.waitForTimeout(400); };
+  const clicEsp = async t => { await page.$eval(`button[data-esp="${t}"]`, b => b.click()); await page.waitForFunction(() => window.__INV.esp().filtro === window.__INV.esp().casillas, null, { timeout: 60000 }); await L.quieto(page); };
 
   // ---------- 2) apagado: abre sin filtro, sin pedir el archivo; con las casillas se recorren las siete combinaciones (Tláhuac) ----------
   await ir(page, `&a=${M.muns[TLA]}`, false);
-  const fila = await page.evaluate(() => ({ vis: !document.getElementById('esp-row').hidden, lab: document.getElementById('esp-label').textContent }));
-  ok('la fila «Espacio» se ve debajo de «Banqueta» y abre con las tres casillas apagadas, sin pedir el archivo', fila.vis && fila.lab === 'Espacio' && (await casillas()).every(v => !v) && pedidos.length === 0 && await page.evaluate(() => { const b = document.getElementById('banq-row').getBoundingClientRect(), e = document.getElementById('esp-row').getBoundingClientRect(); return e.top >= b.bottom - 1; }));
+  const fila = await page.evaluate(() => { const b = document.getElementById('banq-row').getBoundingClientRect(), e = document.getElementById('esp-row').getBoundingClientRect();
+    return { vis: !document.getElementById('esp-row').hidden, lab: document.getElementById('esp-label').textContent, debajo: e.top >= b.bottom - 1 }; });
+  const cas0 = await casillas();   // el detalle dice qué parte falló (antes fallaba de vez en cuando sin decir cuál)
+  ok('la fila «Espacio» se ve debajo de «Banqueta» y abre con las tres casillas apagadas, sin pedir el archivo', fila.vis && fila.lab === 'Espacio' && fila.debajo && cas0.every(v => !v) && pedidos.length === 0,
+    `${JSON.stringify(fila)} · casillas ${JSON.stringify(cas0)} · pedidos del archivo ${pedidos.length}`);
   await page.evaluate(() => document.getElementById('tab-res').click()); await page.waitForFunction(() => !/cargando/.test(document.getElementById('rp-esp').textContent), null, { timeout: 60000 }).catch(() => {});
   ok('al abrir el Resumen se pide el archivo una vez, para los espacios de su comparación; el filtro sigue apagado', pedidos.length === 1 && (await casillas()).every(v => !v) && await page.evaluate(() => window.__INV.esp().filtro === 0), `${pedidos.length} pedido(s)`);
   const e0 = await L.estado(page);
@@ -168,13 +171,13 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
     const t = p ? cp.execFileSync('pdftotext', ['-enc', 'UTF-8', '-layout', p.ruta, '-']).toString().replace(/\s+/g, ' ') : '';
     ok('la ficha de la colonia con «Cepa vacante» lo declara y trae el desglose por banqueta completo', !!p && p.nombre.includes('_con_cepa_vacante') && /Solo con cepa vacante/.test(t) && /Consulta filtrada: solo frentes con cepa vacante/.test(t) && t.includes(`corte: ${RES.corte}`) && /reconocimiento en sitio/.test(t), p && p.nombre); }
   // apagado, el Excel de la misma colonia es el de siempre
-  await page.$eval('button[data-esp="0"]', b => b.click()); await page.waitForTimeout(800);
+  await page.$eval('button[data-esp="0"]', b => b.click()); await L.quieto(page);
   { const x = await L.descargar(page, '#dl-frentes', SAL, 240000); const X = x ? xlsx(x.ruta) : { datos: [], dic: [] };
     ok('apagado, el Excel de la colonia trae todos sus frentes prioritarios, sin el filtro en el nombre ni en el diccionario', !!x && X.datos.length - 1 === RC0.n && !/_con_/.test(x.nombre) && !X.dic.some(r => r[0] === 'Filtro «Espacio»') && !/inventario/.test((X.dic.find(r => r[0] === 'Ámbito consultado') || [])[1] || ''), `${X.datos.length - 1} vs ${RC0.n} · ${x && x.nombre}`); }
 
   // ---------- 6) «Reiniciar», Gobierno Central y las dos redes ----------
   await ir(page, `&a=${M.muns[TLA]}&b=con&e=cv,am`);
-  await page.$eval('#reset-all', b => b.click()); await page.waitForTimeout(900); e = await L.estado(page);
+  await page.$eval('#reset-all', b => b.click()); await L.quieto(page); e = await L.estado(page);
   ok('«Reiniciar» apaga los dos filtros: casillas de espacio apagadas, banqueta en «Todas», sin aviso y sin «e=» ni «b=» en la dirección', (await casillas()).every(v => !v) && !(await aviso()).vis && !/[?&][eb]=/.test(e.url) && await page.evaluate(() => window.__INV.esp().filtro === 0 && document.querySelector('button[data-banq="todas"]').getAttribute('aria-pressed') === 'true'), e.url.replace(srv.url, ''));
   await ir(page, `&r=gc&a=${M.muns[IZT]}&e=cv`);
   // desde la v1.24 el filtro aplica también al Gobierno Central (sus cifras las revisa prueba_espacio_gobierno_central.js); la banqueta no
@@ -189,9 +192,9 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   ok('con el teclado (barra espaciadora) se prende una casilla', (await casillas()).join() === 'false,true,false' && await page.evaluate(() => window.__INV.esp().filtro === 2));
 
   // ---------- 9) orden «más cepas vacantes» de «Dónde empezar» ----------
-  const tabIni = p => p.evaluate(() => document.getElementById('tab-ini').click()).then(() => p.waitForTimeout(200));
+  const tabIni = p => p.evaluate(() => document.getElementById('tab-ini').click()).then(() => L.quieto(p));
   const verTodo = async p => { for (let k = 0; k < 400 && await p.$eval('#ini-mas', x => !x.hidden); k++) await p.$eval('#ini-mas', b => b.click()); return (await L.estado(p)).lista; };
-  const orden = async (p, v) => { await p.selectOption('#ini-orden', v); await p.waitForFunction(v2 => window.__INV.esp().orden === v2 && window.__INV.esp().pendiente === null, v, { timeout: 60000 }); await p.waitForTimeout(200); };
+  const orden = async (p, v) => { await p.selectOption('#ini-orden', v); await p.waitForFunction(v2 => window.__INV.esp().orden === v2 && window.__INV.esp().pendiente === null, v, { timeout: 60000 }); await L.quieto(p); };
   const opciones = p => p.$$eval('#ini-orden option', o => o.map(x => x.value + '=' + x.textContent));
   const nota = p => p.$eval('#ini-note', x => x.textContent.replace(/\s+/g, ' '));
   const carga = p => p.$eval('#ini-carga', x => ({ vis: !x.hidden && x.offsetParent !== null, t: x.textContent, warn: x.classList.contains('warn') }));
@@ -202,10 +205,10 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   pedidos.length = 0; await ir(page, `&a=${M.muns[TLA]}`, false); await tabIni(page);
   { const ops = await opciones(page), antes = await L.estado(page);
     ok('alcaldía: «Mostrar» ofrece «Colonias · más cepas vacantes» y «Calles · más cepas vacantes», sin bajar nada al abrir «Dónde empezar»', ops.includes('cv=Colonias · más cepas vacantes') && ops.includes('callescv=Calles · más cepas vacantes') && pedidos.length === 0, ops.map(o => o.split('=')[0]).join(', '));
-    await page.selectOption('#ini-orden', 'cv'); await page.waitForTimeout(300);
+    await page.selectOption('#ini-orden', 'cv'); await L.quieto(page);
     const a = await carga(page), d = await L.estado(page), sv = await page.$eval('#ini-orden', s => s.value);
     ok('mientras baja el archivo: aviso breve, el selector dice lo pedido y la lista sigue con el orden anterior y sus cifras reales (no se vacía ni muestra cepas)', a.vis && !a.warn && a.t === 'Cargando las cepas vacantes del inventario de arbolado…' && sv === 'cv' && antes.lista.length === 10 && JSON.stringify(d.lista) === JSON.stringify(antes.lista) && d.listCount === antes.listCount && !d.lista.some(l => /cepa/.test(l.t)) && pedidos.length === 1, `${a.t} · ${d.listCount}`);
-    await page.waitForFunction(() => window.__INV.esp().orden === 'cv', null, { timeout: 60000 }); await page.waitForTimeout(300);
+    await page.waitForFunction(() => window.__INV.esp().orden === 'cv', null, { timeout: 60000 }); await L.quieto(page);
     ok('al llegar el archivo, el aviso se quita y la lista se ordena por cepas', !(await carga(page)).vis && /por cepas vacantes en frentes prioritarios/.test((await L.estado(page)).listCount)); }
   await ctx.unroute(RUTA);
   // Tláhuac: toda la lista contra el recálculo; ceros al final
@@ -222,7 +225,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
     ok('Tláhuac, «Calles con más cepas vacantes»: las 10 primeras y el número de calles = recálculo propio (cada calle en su colonia)', !malas.length && e.lista.length === 10 && L.numEs(e.listCount) === exp.length && (await nota(page)).includes(NOTA_CALLE), malas.slice(0, 2).join(' | ') || `${exp.length} calles · ${exp.slice(0, 3).map(x => `${x.n} ${x.cv}`).join(', ')}`); }
   // una colonia elegida desde la lista por cepas: sus calles, por cepas (el orden se conserva)
   const COLC = colCepas(CV, TLA)[0].c;
-  { await orden(page, 'cv'); await page.$eval('#ini-list li', li => li.click()); await page.waitForTimeout(1200); await tabIni(page);
+  { await orden(page, 'cv'); await page.$eval('#ini-list li', li => li.click()); await L.quieto(page); await tabIni(page);
     const ops = await opciones(page), sv = await page.$eval('#ini-orden', s => s.value), exp = callesCepas(CV, f => f.col === COLC), filas = await verTodo(page), e = await L.estado(page), malas = comparaFilas(filas, exp);
     ok(`colonia ${M.colonias[COLC].n} elegida desde la lista por cepas: el selector ofrece km prioritarios y cepas, y sigue en cepas`, ops.join('|') === 'calles=Calles · más km prioritarios|cv=Calles · más cepas vacantes' && sv === 'cv' && new URL(e.url).searchParams.get('c') === String(COLC), `${ops.join(' | ')} · ${sv}`);
     ok('las calles de la colonia por cepas vacantes: todas, en orden y con su número = recálculo propio; nota del corte', !malas.length && filas.length === exp.length && L.numEs(e.listCount) === exp.length && /por cepas vacantes/.test(e.listCount) && (await nota(page)).includes(NOTA_CALLE),
@@ -260,7 +263,7 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
 
   // ---------- 8) celular de 390 × 844 ----------
   { const { page: m, ctx: mc } = await L.abrir(browser, base + `&a=${M.muns[TLA]}&e=cv,to,am#nomap`, { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true }, errores);
-    await m.evaluate(() => { const t = document.getElementById('tab-ini'); if (t) t.click(); }); await m.waitForTimeout(400);
+    await m.evaluate(() => { const t = document.getElementById('tab-ini'); if (t) t.click(); }); await L.quieto(m);
     const r = await m.evaluate(() => { const q = document.querySelector('.query').getBoundingClientRect(), g = document.querySelector('#esp-row .chips');
       const ch = [...document.querySelectorAll('button[data-esp]')].map(b => { const c = b.getBoundingClientRect(), t = b.querySelector('b'); return { h: Math.round(c.height), l: c.left, r: c.right, top: Math.round(c.top), corta: t.scrollWidth > t.clientWidth + 1, pres: b.getAttribute('aria-pressed') }; });
       const enc = ch.some((a, i) => ch.some((b, j) => j > i && a.l < b.r - 1 && b.l < a.r - 1 && Math.abs(a.top - b.top) < 20));
@@ -284,9 +287,9 @@ const NOTA_CALLE = `Cuenta solo lo inventariado hasta ${RES.corte} (inventario e
   // el archivo único no trae el inventario: no ofrece el orden por cepas
   { const unico = path.join(L.DOCS, '..', '_local', 'priorizacion_reforestacion.html');
     if (!fs.existsSync(unico)) ok('existe _local/priorizacion_reforestacion.html (se genera al construir)', false);
-    else { const c2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'es-MX' }); await L.sinEntrada(c2); const p2 = await c2.newPage(); p2.setDefaultTimeout(300000);
+    else { const c2 = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: 'es-MX' }); await L.sinEntrada(c2); await L.vigia(c2); const p2 = await c2.newPage(); p2.setDefaultTimeout(300000);
       p2.on('pageerror', e => errores.push('archivo único: ' + e.message));
-      const abre = async q => { await p2.goto(require('url').pathToFileURL(unico).href + '?modo=ligero' + q); await p2.waitForSelector('#loader[hidden]', { state: 'attached' }); await p2.waitForTimeout(800); await tabIni(p2); };
+      const abre = async q => { await p2.goto(require('url').pathToFileURL(unico).href + '?modo=ligero' + q); await p2.waitForSelector('#loader[hidden]', { state: 'attached' }); await L.quieto(p2); await tabIni(p2); };
       await abre(`&a=${M.muns[TLA]}`); const o1 = await opciones(p2);
       await abre(`&c=${COLC}`); const o2 = await opciones(p2), caja = await p2.$eval('#ini-orden-box', b => b.hidden);
       ok('archivo único (sin inventario): «Mostrar» no ofrece el orden por cepas en la alcaldía, y en una colonia no hay selector', o1.length > 0 && !o1.some(o => /cepas/.test(o)) && caja && o2.every(o => !/cepas/.test(o)), o1.map(o => o.split('=')[0]).join(','));

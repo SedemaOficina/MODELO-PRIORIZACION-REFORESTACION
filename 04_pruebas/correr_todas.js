@@ -6,23 +6,28 @@ const cp = require('child_process'), path = require('path'), fs = require('fs');
 const RAIZ = path.join(__dirname, '..'); const py = process.platform === 'win32' ? 'python' : 'python3';
 // ESLint se corre con Node y no con su .cmd: sin intérprete de órdenes de por medio, las rutas con espacios no se parten
 const eslint = path.join(RAIZ, 'node_modules', 'eslint', 'bin', 'eslint.js');
+const BACK = path.join(RAIZ, '08_entrega_sia', 'login', 'backend');   // el módulo tiene su propio npm install
+const PRUEBAS_SESION = ['--import', './pruebas/cargador.mjs', '--test', '--test-concurrency=1', ...['sesion', 'seguridad', 'herramientas', 'ensamble'].map(n => `pruebas/${n}.test.mjs`)];
 const RAPIDAS = [
   ['datos verificados', py, ['03_procesamiento_datos/verificar_datos.py']],
   ['construcción', py, ['04_pruebas/prueba_construccion.py']],
-  ['revisión estática (ESLint)', fs.existsSync(eslint) ? process.execPath : null, [eslint, 'docs/app.js']],
+  ['revisión estática (ESLint)', fs.existsSync(eslint) ? process.execPath : null, [eslint, 'docs/app.js', 'docs/sw.js', 'docs/config.js', 'docs/libs/excel_worker.js']],
   ['contraste del mapa', process.execPath, ['04_pruebas/prueba_contraste.js']],   // lee 02_fuente; no abre el navegador
   ['coherencia de los documentos', process.execPath, ['04_pruebas/prueba_docs_coherencia.js']],   // lee los documentos; no abre el navegador
+  ['consistencia (ids, estilos en línea, términos retirados, claves)', process.execPath, ['04_pruebas/prueba_consistencia.js']],
   ['empaquetado para el SIA', process.execPath, ['04_pruebas/prueba_empaquetado.js']],   // en una carpeta temporal; no escribe el ZIP
+  // módulo de inicio de sesión con la base en memoria (pg-mem): las pruebas con PostgreSQL real se omiten solas
+  ['inicio de sesión (módulo, en memoria)', fs.existsSync(path.join(BACK, 'node_modules', 'pg-mem')) ? process.execPath : null, PRUEBAS_SESION, BACK],
 ];
-const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js', 'prueba_espacio_gobierno_central.js', 'prueba_cepas_total.js', 'prueba_cifras_gobierno_central.js', 'prueba_descargas.js', 'prueba_sin_conexion.js', 'prueba_datos_danados.js']
+const NAVEGADOR = ['prueba_sin_terceros.js', 'prueba_sitio.js', 'prueba_robustez.js', 'prueba_coherencia_cifras.js', 'prueba_accesibilidad.js', 'prueba_servidor_sia.js', 'prueba_telefono_y_sin_conexion.js', 'prueba_orientacion.js', 'prueba_mapa_descargas.js', 'prueba_casos_limite.js', 'prueba_banqueta.js', 'prueba_recorrido.js', 'prueba_nombres_mapa.js', 'prueba_dos_pantallas.js', 'prueba_inventario_espacios.js', 'prueba_filtro_espacio.js', 'prueba_espacio_gobierno_central.js', 'prueba_cepas_total.js', 'prueba_cifras_gobierno_central.js', 'prueba_descargas.js', 'prueba_sin_conexion.js', 'prueba_datos_danados.js', 'prueba_sesion_y_seguirme.js', 'prueba_navegadores.js']
   .map(f => [f.replace('prueba_', '').replace('.js', '').replace(/_/g, ' '), process.execPath, ['04_pruebas/' + f]]);
 const lista = process.argv[2] === 'rapidas' ? RAPIDAS : RAPIDAS.concat(NAVEGADOR); const res = [];
-for (const [nombre, cmd, args] of lista) {
-  if (!cmd) { res.push([nombre, 'FALLA', 0, 'no se corrió: falta npm install']); continue; }   // lo que no se revisó no cuenta como aprobado
+for (const [nombre, cmd, args, cwd = RAIZ] of lista) {
+  if (!cmd) { res.push([nombre, 'FALLA', 0, `no se corrió: falta npm install${cwd === RAIZ ? '' : ' en ' + path.relative(RAIZ, cwd).split(path.sep).join('/')}`]); continue; }   // lo que no se revisó no cuenta como aprobado
   const t = Date.now(); process.stdout.write(`\n===== ${nombre} =====\n`);
   // sin shell: en Windows partía «C:\Program Files\…» en dos. PYTHONIOENCODING: con la salida redirigida, Python en Windows
   // escribe en cp1252 y se detiene al imprimir «≤» o «·»
-  const r = cp.spawnSync(cmd, args, { cwd: RAIZ, stdio: 'inherit', env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
+  const r = cp.spawnSync(cmd, args, { cwd, stdio: 'inherit', env: { ...process.env, PYTHONIOENCODING: 'utf-8' } });
   res.push([nombre, r.status === 0 ? 'OK' : 'FALLA', Math.round((Date.now() - t) / 1000), r.error ? r.error.message : '']);
 }
 console.log('\n===== Resumen =====');
