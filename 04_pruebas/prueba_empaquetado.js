@@ -66,6 +66,15 @@ try {
   ok(`limpio: entran todos los archivos de login/, con los ${sql.length} .sql del módulo (db/)`, enLogin === loginEsperados && sql.length >= 2,
     `${enLogin} de ${loginEsperados} · ${sql.join(', ')}`);
   ok('limpio con --revisar: no se escribe ZIP ni .sha256', zips(T).length === 0, zips(T).join(', '));
+  // nombres del SIA (F4-02): sin nombres_sia.local.json (no se copia: no se publica) van los textos genéricos y se avisa;
+  // con él, el texto genérico se cambia por el real; si un texto genérico ya no está en el paquete, termina con error
+  ok('sin nombres_sia.local.json: el paquete lleva los textos genéricos y lo dice', /nombres del SIA: no \(falta/.test(c.salida), (c.salida.match(/nombres del SIA: .*/) || ['no lo dice'])[0]);
+  const NOM = path.join(T, '08_entrega_sia', 'nombres_sia.local.json'), pon = pares => fs.writeFileSync(NOM, JSON.stringify({ reemplazos: pares }));
+  pon([['el intermediario de entrada del SIA', 'INTERMEDIARIO FICTICIO']]); c = correr('--revisar');
+  ok('con nombres_sia.local.json (ficticio): cambia el texto genérico por el real (ejemplo de nginx y login/LEEME.md)', c.status === 0 && /nombres del SIA: sí \([1-9]\d* textos en [1-9]\d* archivos\)/.test(c.salida), (c.salida.match(/nombres del SIA: .*/) || [c.salida.trim().split('\n').pop()])[0]);
+  pon([['texto genérico que ya no existe', 'X']]); c = correr('--revisar');
+  ok('con un texto genérico que ya no está en el paquete: termina con error y lo nombra', c.status !== 0 && /ya no están en el paquete.*texto genérico que ya no existe/.test(c.salida), c.salida.trim().split('\n').pop());
+  fs.rmSync(NOM);
 
   // ---------- 2) con archivos sembrados: termina con error, nombra cada uno y no deja ZIP ----------
   for (const [rel, txt] of Object.entries(SEMBRADOS)) fs.writeFileSync(path.join(T, '08_entrega_sia', ...rel.split('/')), txt);

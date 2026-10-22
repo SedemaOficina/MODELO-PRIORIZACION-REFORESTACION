@@ -25,6 +25,12 @@ map "$uri|$arg_v" $priorizacion_reforestacion_cache {
     "~\|$"             "no-cache";
     default            "public, max-age=31536000, immutable";
 }
+# Fase 2 (con inicio de sesión): lo mismo, pero «private». Los archivos solo se entregan con sesión: un intermediario compartido
+# no debe guardarlos y entregárselos a otra persona sin sesión. Solo el navegador de quien entró los guarda.
+map $priorizacion_reforestacion_cache $priorizacion_reforestacion_cache_sesion {
+    "no-cache"         "no-cache";
+    default            "private, max-age=31536000, immutable";
+}
 
 # ---------------------------------------------------------------------------------------------------------------------
 # FRAGMENTO B · dentro del server { } del dominio
@@ -97,7 +103,8 @@ location ^~ /priorizacion-reforestacion/ {
 #     try_files $uri $uri/ =404;
 #     absolute_redirect off;
 #     auth_request /_priorizacion_reforestacion_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
-#     # (las mismas cabeceras de seguridad y caché del bloque 2, y el bloque de los .bin)
+#     # (las mismas cabeceras de seguridad del bloque 2, y el bloque de los .bin; en los dos, la caché es la de la fase 2:)
+#     add_header Cache-Control $priorizacion_reforestacion_cache_sesion always;
 #     location ~ /\. { return 404; }                                    # archivos ocultos (.env, .git…): nunca se sirven
 
 #     # Solo la PÁGINA lleva a la pantalla de acceso. Datos y programas responden 401: así la herramienta
@@ -144,7 +151,7 @@ location ^~ /priorizacion-reforestacion/ {
 # 2-cuater) La API del módulo. En sia-backend el módulo sigue montado en /api/priorizacion-reforestacion (src/index.ts):
 #           nginx traduce la ruta pública a esa. SIN auth_request: el módulo responde 401 por sí mismo.
 #           La IP de cada petición la calcula ipDeOrigen(req) de src/comun/procedencia.ts de sia-backend a partir de
-#           X-Forwarded-For, descartando los saltos conocidos (proxy de ADIP y este nginx). No hace falta trust proxy.
+#           X-Forwarded-For, descartando los saltos conocidos (el intermediario de entrada del SIA y este nginx). No hace falta trust proxy.
 # location ^~ /priorizacion-reforestacion/api/ {
 #     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/priorizacion-reforestacion/;
 #     proxy_set_header Host $host;

@@ -3,7 +3,7 @@ import type { Request } from "express";
 /* ============================================================
    SOLO PARA LAS PRUEBAS, LA REVISIÓN DE TIPOS Y LA DEMOSTRACIÓN LOCALES.
    En sia-backend se usa el src/comun/procedencia.ts propio del SIA, que
-   descarta los saltos conocidos (proxy de ADIP y nginx). Este archivo NO va
+   descarta los saltos conocidos (el intermediario de entrada del SIA y nginx). Este archivo NO va
    en el paquete de entrega (empaquetar.py no copia src/comun/).
    ============================================================
    IP de quien hace la petición, para seguridad y forense (no es identidad).

@@ -5,8 +5,8 @@
   =====================================================================
 
   Un rol por módulo, ninguno superusuario, y ninguno alcanza los datos de otro.
-  Este rol NO tiene USAGE sobre jpv, irs, plantacion, censo_kayaks, caec,
-  caec_uto ni territorio.
+  Este rol NO tiene USAGE sobre los esquemas de los demás sistemas del SIA,
+  tampoco sobre el compartido de límites territoriales.
 
   ORDEN DE APLICACIÓN — los cinco pasos, o el backend entero no arranca:
 
@@ -76,7 +76,7 @@ COMMIT;
      DELETE FROM priorizacion_reforestacion.usuarios;          -- permission denied
      UPDATE priorizacion_reforestacion.bitacora SET ip = NULL; -- permission denied
      DELETE FROM priorizacion_reforestacion.bitacora;          -- permission denied
-     SELECT 1 FROM jpv.jpv_portal_2026 LIMIT 1;                -- permission denied for schema jpv
+     SELECT 1 FROM otro_sistema.una_tabla LIMIT 1;             -- permission denied for schema otro_sistema
      CREATE TABLE public.intrusa (x int);                      -- permission denied for schema public
 
    Y esta debe funcionar: SELECT priorizacion_reforestacion.depurar();

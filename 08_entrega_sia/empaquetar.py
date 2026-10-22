@@ -20,7 +20,11 @@ ni variables de entorno, llaves, SQL fuera de login/backend/db/, datos o respald
 Si algo no pasa, termina con error, dice qué archivo y por qué, y no deja ZIP.
 
 Los documentos Markdown pierden, al empaquetarse, lo que va entre <!-- solo-repositorio --> y <!-- /solo-repositorio -->
-(instrucciones para quien mantiene el repositorio). Requiere únicamente Python 3.
+(instrucciones para quien mantiene el repositorio).
+
+Lo versionado (público en GitHub) nombra la infraestructura del SIA con textos genéricos; el paquete, que es para el SIA, lleva
+sus nombres reales, tomados de 08_entrega_sia/nombres_sia.local.json (no se publica). Sin ese archivo, el paquete sale con los
+textos genéricos y se avisa. Requiere únicamente Python 3.
 """
 import hashlib
 import json
@@ -37,6 +41,7 @@ AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 DOCUMENTOS = ['INSTALACION.md', 'nginx_priorizacion_reforestacion.conf.ejemplo', 'LISTA_DE_VERIFICACION.md', 'SESION_Y_LOGIN.md', 'CONTRATO_DE_DATOS.md']
 CAPAS = ['frentes_reforestacion', 'vialidades_primarias_reforestacion', 'colonias_reforestacion']
+NOMBRES = os.path.join(AQUI, 'nombres_sia.local.json')   # [[texto genérico, texto real], …] en «reemplazos»
 SOLO_REPO = re.compile(r'<!-- solo-repositorio -->.*?<!-- /solo-repositorio -->\n?', re.S)
 REVISAR = '--revisar' in sys.argv
 
@@ -89,6 +94,34 @@ def copia_doc(origen, destino):
             sys.exit('ERROR: marca «solo-repositorio» sin cerrar en ' + origen)
     os.makedirs(os.path.dirname(destino), exist_ok=True)
     open(destino, 'w', encoding='utf-8', newline='\n').write(t)
+
+
+def pon_nombres(carpeta):
+    """cambia en los archivos de texto del paquete cada texto genérico por el real (nombres_sia.local.json); dice qué hizo"""
+    if not os.path.exists(NOMBRES):
+        return 'no (falta 08_entrega_sia/nombres_sia.local.json: van los textos genéricos)'
+    pares = json.load(open(NOMBRES, encoding='utf-8'))['reemplazos']
+    usados, archivos = [0] * len(pares), 0
+    for d, _, aa in os.walk(carpeta):
+        for a in aa:
+            if os.path.splitext(a)[1].lower() in BINARIOS:
+                continue
+            ruta = os.path.join(d, a)
+            txt = open(ruta, encoding='utf-8', newline='').read()
+            nuevo = txt
+            for k, (generico, real) in enumerate(pares):
+                for fin in ('\n', '\r\n'):   # el texto puede tener varias líneas y el archivo, fin de línea de Windows
+                    g = generico.replace('\n', fin)
+                    usados[k] += nuevo.count(g)
+                    nuevo = nuevo.replace(g, real.replace('\n', fin))
+            if nuevo != txt:
+                open(ruta, 'w', encoding='utf-8', newline='').write(nuevo)
+                archivos += 1
+    sobran = [pares[k][0] for k, u in enumerate(usados) if not u]
+    if sobran:
+        sys.exit('ERROR: nombres_sia.local.json trae textos genéricos que ya no están en el paquete (¿cambió la redacción?): '
+                 + ' | '.join(sobran))
+    return 'sí (%d textos en %d archivos)' % (sum(usados), archivos)
 
 
 def manifiesto(carpeta):
@@ -199,6 +232,9 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
            ('acceso en %s, cierre en %s, registro de usos en %s' % (sesion['inicio'], sesion['cierre'], sesion.get('uso') or '(por omisión)'))
            if sesion.get('inicio') else 'no'))
 
+    # 4 bis. nombres reales de la infraestructura del SIA en lugar de los textos genéricos de lo versionado (F4-02)
+    nombres = pon_nombres(base)
+
     # 5. revisión de cada archivo, antes de cerrar nada: lista blanca por carpeta y búsqueda de secretos (ver motivos()).
     #    Se reportan TODOS los que no pasan, no solo el primero; el ZIP no se escribe.
     todo = sorted(os.path.relpath(os.path.join(d, a), base).replace(os.sep, '/') for d, _, aa in os.walk(base) for a in aa)
@@ -215,6 +251,7 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
             cuenta[k] = cuenta.get(k, 0) + 1
         print('revisión correcta: %d archivos (%s); sin archivos ajenos ni secretos. No se escribió el ZIP (--revisar).'
               % (len(todo), ', '.join('%s %d' % kv for kv in sorted(cuenta.items()))))
+        print('nombres del SIA: ' + nombres)
         sys.exit(0)
 
     # 6. manifiesto de TODO el paquete (salvo él mismo), con rutas relativas a su raíz: «sha256sum -c MANIFIESTO.sha256»
@@ -242,4 +279,4 @@ print('paquete: %s (%.1f MB, %d archivos; %d del sitio; MANIFIESTO.sha256 con %d
       % (os.path.relpath(destino, RAIZ), os.path.getsize(destino) / 1048576, len(todo), len(lineas), len(general)))
 print('suma del paquete: %s (también en %s.sha256)' % (suma(destino), os.path.basename(destino)))
 print('Entregar SIEMPRE juntos, en el mismo enlace: %s y %s.sha256' % (os.path.basename(destino), os.path.basename(destino)))
-print('versión %s · clave Esri: %s · sesión: %s' % (version, con('SIA_ESRI_KEY'), sesion.get('inicio') or 'no'))
+print('versión %s · clave Esri: %s · sesión: %s · nombres del SIA: %s' % (version, con('SIA_ESRI_KEY'), sesion.get('inicio') or 'no', nombres))

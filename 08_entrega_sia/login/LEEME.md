@@ -35,7 +35,7 @@ Solo en el repositorio (no van en el paquete del SIA):
 
 | Carpeta | Qué es |
 |---|---|
-| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales, sin trust proxy), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
+| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
 | `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración (salta las IP de `SIA_SALTOS_CONOCIDOS`). En `sia-backend` se usa el archivo propio del SIA |
 | `backend/scripts/servidor_demo.mjs`, `datos_demo.mjs` | Demostración en una sola máquina y datos simulados para ver el panel lleno |
 | `backend/package.json`, `tsconfig.check.json` | Para correr las pruebas y la revisión de tipos (la misma configuración que `sia-backend`) |
@@ -85,7 +85,7 @@ En `src/index.ts`, junto a los demás módulos:
 import { crearRutasPriorizacionReforestacion } from "./modulos/priorizacion-reforestacion/rutas";
 app.use("/api/priorizacion-reforestacion", crearRutasPriorizacionReforestacion(poolPriorizacionReforestacion));
 ```
-- **IP de origen:** el módulo importa `ipDeOrigen(req)` de `src/comun/procedencia.ts` (`import { ipDeOrigen } from "../../comun/procedencia";`). No hace falta `trust proxy`. La columna `ip` de la bitácora y el límite de intentos fallidos por IP solo tienen sentido cuando esa función descarta los saltos conocidos (el proxy de ADIP y nginx); mientras no lo haga, todas las peticiones parecerían venir de la misma dirección.
+- **IP de origen:** el módulo importa `ipDeOrigen(req)` de `src/comun/procedencia.ts` (`import { ipDeOrigen } from "../../comun/procedencia";`). No hace falta `trust proxy`. La columna `ip` de la bitácora y el límite de intentos fallidos por IP solo tienen sentido cuando esa función descarta los saltos conocidos (el intermediario de entrada del SIA y nginx); mientras no lo haga, todas las peticiones parecerían venir de la misma dirección.
 - Requiere Express 5: las rutas son asíncronas y Express 5 pasa sus errores al manejador. El `express.json()` general (100 KB) alcanza: la alta masiva admite hasta 100 cuentas por petición y el panel envía el archivo en partes de 50.
 - `npm run typecheck`, `npm run build` y `deploy.fish`, **solo después** de los pasos 1 y 2. En el arranque, el journal debe decir `🔑 [PRIORIZACION_REFORESTACION] conectado como priorizacion_reforestacion_api`, sin «SUPERUSUARIO».
 - El módulo pide la depuración por plazos **al arrancar** y después cada 24 horas. Como el backend se reinicia con cada despliegue, conviene además programarla en la base o en el sistema, una vez al día: `SELECT priorizacion_reforestacion.depurar();`. Así se cumple lo que promete el aviso de privacidad aunque el backend no dure 24 horas encendido.
@@ -129,6 +129,8 @@ En el repositorio, `python 08_entrega_sia/empaquetar.py` arma el paquete con esa
 | 6 | Dar de baja una cuenta con la sesión abierta en otro navegador | Esa sesión deja de funcionar al instante |
 | 7 | Cinco contraseñas equivocadas seguidas | La cuenta se detiene 15 minutos: aun con la contraseña correcta responde «El correo o la contraseña no son correctos…», igual que con una equivocada |
 | 8 | «Mi cuenta» → «Cerrar sesión» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión». «Mi cuenta» → «Cambiar contraseña» pide la actual y la nueva, y regresa a la consulta |
+| 9 | `curl -s -i -X POST -H 'Content-Type: application/json' --data '{"correo":' .../priorizacion-reforestacion/api/entrar` (JSON mal formado) | `400` sin `SyntaxError`, `node_modules` ni rutas del servidor. Esa respuesta la da el manejo general de errores de `sia-backend`, antes del módulo: si trae el rastro, fijar `NODE_ENV=production` o un manejador general que no lo muestre |
+| 10 | Con sesión: `curl -sI -b 'priorizacion_reforestacion_sesion=VALOR' '.../priorizacion-reforestacion/app.js?v=x'` | `Cache-Control: private, max-age=31536000, immutable`: ningún intermediario compartido guarda lo que solo se entrega con sesión |
 
 <!-- solo-repositorio -->
 ## Ensayo antes de instalar

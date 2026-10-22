@@ -24,7 +24,7 @@ export function baseEnMemoria() {
   return new Pool();
 }
 
-/** La app como la arma src/index.ts de sia-backend: helmet, cors y express.json() globales ANTES del módulo, y sin trust proxy. */
+/** La app como la arma src/index.ts de sia-backend: helmet, cors y express.json() globales ANTES del módulo; sin trust proxy, porque el módulo no depende de él. */
 export function appComoSia(montar) {
   const app = express();
   app.use(helmet());

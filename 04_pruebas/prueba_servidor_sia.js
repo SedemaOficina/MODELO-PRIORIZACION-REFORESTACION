@@ -10,7 +10,8 @@ const L = require('./lib_pruebas.js');
 const ok = L.Registro('servidor del SIA'); const SAL = process.env.SALIDA || fs.mkdtempSync(path.join(os.tmpdir(), 'sia-'));
 const PRE = '/priorizacion-reforestacion/';
 // La misma política que propone 08_entrega_sia/nginx_priorizacion_reforestacion.conf.ejemplo (se lee de ahí para que no diverjan)
-const conf = fs.readFileSync(path.join(__dirname, '..', '08_entrega_sia', 'nginx_priorizacion_reforestacion.conf.ejemplo'), 'utf8');
+// (con fin de línea de Windows, «.» no pasa por el \r y los comentarios al final de una línea no se quitarían)
+const conf = fs.readFileSync(path.join(__dirname, '..', '08_entrega_sia', 'nginx_priorizacion_reforestacion.conf.ejemplo'), 'utf8').replace(/\r\n/g, '\n');
 const CSP = (conf.match(/add_header Content-Security-Policy "([^"]+)"/) || [])[1];
 // Las reglas de caché del ejemplo (map "$uri|$arg_v"), también leídas de ahí: la primera expresión que coincide decide
 const MAPA = (() => { const b = (conf.match(/map "\$uri\|\$arg_v" \$priorizacion_reforestacion_cache \{([\s\S]*?)\n\}/) || [])[1] || ''; const reglas = []; let def = null;
@@ -80,6 +81,12 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     ok('nginx (fase 2): trae comentada la línea opcional limit_req zone=auth para el inicio de sesión', /#\s*limit_req zone=auth\b/.test(conf.slice(conf.indexOf('# FASE 2'))) && atiende(PRE + 'api/entrar').ruta === PRE + 'api/entrar');
     const nombrada = FASE2.find(b => b.ruta.startsWith('@')), ret = directiva(nombrada, 'return');
     ok('nginx (fase 2): la página sin sesión va a la pantalla de acceso con dirección relativa', ret.startsWith('302 ' + ACCESO + '?volver=') && nombrada.cuerpo.includes('absolute_redirect off;'), ret);
+    // B9-01: con sesión, lo protegido no se marca «public» (un intermediario compartido lo entregaría a otra persona sin sesión)
+    const mapaSesion = (conf.match(/map \$priorizacion_reforestacion_cache \$priorizacion_reforestacion_cache_sesion \{([\s\S]*?)\n\}/) || [])[1] || '';
+    const cacheHerr = herr ? herr.cuerpo.filter(l => /^add_header Cache-Control /.test(l)) : [];
+    ok('nginx (fase 2): la herramienta protegida se guarda como «private» (no «public»); la página sigue sin guardarse',
+      /^\s*default\s+"private, max-age=31536000, immutable";/m.test(mapaSesion) && /^\s*"no-cache"\s+"no-cache";/m.test(mapaSesion) && !/public/.test(mapaSesion)
+      && cacheHerr.length === 1 && cacheHerr[0] === 'add_header Cache-Control $priorizacion_reforestacion_cache_sesion always;', cacheHerr.join(' | ') || 'sin Cache-Control en la herramienta protegida');
     const emp = lee('08_entrega_sia/empaquetar.py'), def = k => (emp.match(new RegExp(`setdefault\\('${k}', '([^']+)'\\)`)) || [])[1];
     const uti = lee('02_fuente/js/01_utilidades.js'), usoJs = (uti.match(/SESION\.inicio \? '([^']+)'/) || [])[1];
     const pags = lee('08_entrega_sia/login/acceso/recursos/acceso.js') + lee('08_entrega_sia/login/acceso/recursos/admin.js') + lee('08_entrega_sia/login/acceso/admin/index.html');

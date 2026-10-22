@@ -106,6 +106,15 @@ for (const [nombre, t] of [['02_fuente/plantilla.html', plantilla], ['docs/index
   // control: los patrones sí reconocen una clave con la forma de las reales (armada aquí, no está en ningún archivo)
   const muestra = 'AI' + 'za' + 'Sy' + 'X'.repeat(33);
   ok('control: el patrón de claves reconoce una clave de muestra', PATRONES.some(([re]) => re.test(`k = "${muestra}"`)));
+  // nombres de la infraestructura del SIA (F4-02): lo público lleva textos genéricos; los reales, solo en el paquete. Se leen de
+  // 08_entrega_sia/nombres_sia.local.json, que no se publica: en una copia de GitHub no existe y la revisión se omite
+  const NOM = path.join(RAIZ, '08_entrega_sia', 'nombres_sia.local.json');
+  if (fs.existsSync(NOM)) { const N = JSON.parse(fs.readFileSync(NOM, 'utf8')), con = [];
+    const buscar = [...N.reemplazos.map(([, real]) => [real, null]), ...(N.vigilar || []).map(p => [p, new RegExp(`\\b${p}\\b`)])];
+    for (const a of archivos.filter(x => !/nombres_sia\.local\.json$/.test(x))) { const t = fs.readFileSync(path.join(RAIZ, a), 'utf8').replace(/\r\n/g, '\n');
+      buscar.forEach(([txt, re], k) => { const i = re ? t.search(re) : t.indexOf(txt); if (i >= 0) con.push(`${a}:${t.slice(0, i).split('\n').length} (nombre ${k + 1})`); }); }   // no se imprime el nombre
+    ok(`ningún nombre de la infraestructura del SIA en lo público (${buscar.length} de nombres_sia.local.json)`, buscar.length > 0 && con.length === 0, lista(con));
+  } else ok('nombres de la infraestructura del SIA: sin nombres_sia.local.json en esta copia, la revisión se omite', true);
 }
 
 // ---------- clases de la hoja de estilos sin uso ----------

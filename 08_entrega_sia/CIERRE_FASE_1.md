@@ -4,7 +4,7 @@ Mientras la página de GitHub siga activa habrá dos versiones públicas de la h
 
 | # | Paso | Quién | Comprobación |
 |---|---|---|---|
-| 1 | Instalar en el SIA y correr la lista de verificación completa | SIA | Los 25 puntos de `LISTA_DE_VERIFICACION.md` (del 16 al 22, los del inicio de sesión; del 23 al 25, los de la base) |
+| 1 | Instalar en el SIA y correr la lista de verificación completa | SIA | Los 29 puntos de `LISTA_DE_VERIFICACION.md` (del 16 al 22, los del inicio de sesión; del 23 al 25, los de la base; del 26 al 29, los que dependen de la configuración general del SIA) |
 | 2 | Sin paso: la prueba con personal de las alcaldías se descartó el 5 de octubre de 2026; la herramienta se entrega directamente al SIA | — | — |
 | 3 | Emitir la guía y los materiales con la dirección nueva; regenerar las fichas PDF que se hayan entregado | Oficina de la Secretaría | Ningún material vigente cita `github.io` |
 | 4 | Avisar a las alcaldías del piloto el cambio de dirección | Oficina de la Secretaría | Acuse |

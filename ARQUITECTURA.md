@@ -2,7 +2,7 @@
 
 Guía para quien mantenga la herramienta o la instale en el SIA: dónde está cada cosa, cómo se arma, cómo viajan los datos y cómo hacer los cambios más comunes. Para el uso diario del repositorio, ver `README.md`.
 
-**Corresponde a la versión 1.43 (21 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
+**Corresponde a la versión 1.44 (21 de octubre de 2026).** Los tamaños y conteos no se repiten aquí: `construir.py` los mide en cada construcción y los deja en `05_documentacion/cifras_de_la_construccion.md`.
 
 ## 1. En una frase
 
@@ -214,7 +214,7 @@ Las fallas y los límites conocidos de cada componente ajeno (librerías, navega
 | Cambiar o agregar un mapa de fondo | `FONDOS` en `js/04_mapa_capas.js` (dirección, tamaño de tesela, zoom máximo, opacidad, atribución) |
 | Poner la clave del satélite | Variable de entorno `SIA_ESRI_KEY` o `02_fuente/claves.local.json`, y reconstruir. La clave queda visible en la página: restringirla al dominio del sitio |
 | Actualizar el fondo «Calles» | Poner los insumos nuevos en `03_procesamiento_datos/insumos/fondo/`, correr `python 03_procesamiento_datos/6_fondo.py` y reconstruir |
-| Armar el paquete para el SIA | `python 08_entrega_sia/empaquetar.py` |
+| Armar el paquete para el SIA | `python 08_entrega_sia/empaquetar.py`. Lo versionado nombra la infraestructura del SIA con textos genéricos; el paquete lleva los nombres reales de `08_entrega_sia/nombres_sia.local.json` (no se publica; formato: `{"reemplazos": [[texto genérico, texto real], …], "vigilar": [palabras]}`). Sin ese archivo, el paquete sale con los textos genéricos y lo avisa |
 | Generar las listas de catálogos para el SIA | `python 03_procesamiento_datos/reporte_catalogos.py` |
 | Cambiar a partir de qué zoom aparecen las calles en modo ligero | `ZOOM_LIGERO` en `js/03_estado.js` (y el corte en `ZOOM_CORTES` de `06_mapa_interaccion.js`) |
 

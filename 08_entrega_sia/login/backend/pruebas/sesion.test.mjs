@@ -1,4 +1,4 @@
-// Pruebas del módulo con el esquema real y la app armada como en sia-backend (helmet, cors y express.json() globales, sin trust proxy).
+// Pruebas del módulo con el esquema real y la app armada como en sia-backend (helmet, cors y express.json() globales; el módulo no depende de trust proxy).
 // Por omisión, en una base PostgreSQL en memoria (pg-mem):   npm run pruebas
 // Contra un PostgreSQL de PRUEBAS con los dos SQL ya aplicados, con la cuenta del módulo (como en producción):
 //   PRUEBAS_PG=1 PGHOST=… PGDATABASE=…prueba… PGUSER=priorizacion_reforestacion_api PGPASSWORD=… npm run pruebas
@@ -127,7 +127,7 @@ test('bloqueo de la cuenta tras 5 intentos fallidos: responde igual que una cont
 });
 
 test('IP de origen detrás de nginx: el límite por red es de cada persona, no de todas', async () => {
-  // sia-backend no fija trust proxy: sin leer X-Forwarded-For, todas las peticiones parecerían venir de nginx y 30 intentos
+  // el módulo no depende de trust proxy: sin leer X-Forwarded-For, todas las peticiones parecerían venir de nginx y 30 intentos
   // de cualquiera bloquearían a todo el mundo. Con ipDeOrigen (última entrada, la que escribe nginx) cada red cuenta aparte.
   const { app, pool } = await montar();
   // solo cuentan los intentos fallidos: muchas personas de una oficina entran desde la misma IP

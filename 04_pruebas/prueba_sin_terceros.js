@@ -29,6 +29,13 @@ const ok = L.Registro('arranque sin terceros');
   // uso básico sin terceros: elegir alcaldía y abrir la ayuda
   await page.selectOption('#alc', '5'); await page.waitForTimeout(600);
   ok('la consulta de una alcaldía funciona sin terceros', (await page.$eval('#scope-title', e => e.innerText)).length > 0 && externas.length === 0);
+  // B7-01: lo que sí va a otras empresas se dice: junto a «Satélite» (Esri) y en la ayuda (Esri y Google Maps)
+  const ayuda = await page.$eval('.howto-terms', e => e.textContent.replace(/\s+/g, ' '));
+  ok('la ayuda dice qué conecta con otras empresas: el satélite (Esri) y «Cómo llegar» y «Street View» (Google Maps)', /Servicios externos/.test(ayuda) && /«Satélite» \(de Esri\)/.test(ayuda) && /«Cómo llegar» y «Street View» \(de Google Maps\)/.test(ayuda), ayuda.slice(ayuda.indexOf('Servicios'), ayuda.indexOf('Servicios') + 90));
+  // se lee al momento del clic: aquí Esri está bloqueado y, en cuanto falla la imagen, el aviso de falla ocupa ese lugar
+  const nota = k => page.$eval(`[data-fondo="${k}"]`, b => { b.click(); const e = document.getElementById('fondo-note'); return e.hidden ? '' : e.textContent; });
+  const nSat = await nota('sat'), nNo = await nota('no');
+  ok('con «Satélite», junto a los botones dice que la imagen la entrega Esri; sin fondo, la nota se quita', /Esri/.test(nSat) && /tu navegador se conecta a su servidor/.test(nSat) && nNo === '', `«${nSat}» · sin fondo «${nNo}»`);
   if (process.env.CAPTURA) await page.screenshot({ path: process.env.CAPTURA });
   ok('sin errores de JavaScript', errores.length === 0, errores.slice(0, 2).join(' | '));
   await ctx.close();
