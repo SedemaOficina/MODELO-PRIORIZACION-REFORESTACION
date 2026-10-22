@@ -62,6 +62,11 @@ location ^~ /priorizacion-reforestacion/ {
     # «Mi ubicación» usa el GPS del teléfono: si la política general del sitio niega la geolocalización, aquí debe permitirse.
     add_header Permissions-Policy "geolocation=(self)" always;
     add_header Cache-Control $priorizacion_reforestacion_cache always;
+    # Las cabeceras que el SIA pone para todo el dominio (su Strict-Transport-Security, entre otras) no llegan aquí: un add_header
+    # en este bloque anula las del server. Se repiten con este include, el mismo del tablero de Categorías de protección ambiental:
+    # un add_header … always; por renglón en snippets/sia-cabeceras-servidor.conf, incluido también en el server. Con comodín,
+    # nginx no se queja si el archivo no existe. Strict-Transport-Security no va en este fragmento: la decide el SIA para el dominio.
+    include snippets/sia-cabeceras-servidor*.conf;
 
     # Compresión de texto (si no está ya activa de forma general). Los .bin NO deben estar en gzip_types.
     gzip on;
@@ -79,6 +84,7 @@ location ^~ /priorizacion-reforestacion/ {
         add_header Referrer-Policy "strict-origin-when-cross-origin" always;
         add_header Permissions-Policy "geolocation=(self)" always;
         add_header Cache-Control $priorizacion_reforestacion_cache always;
+        include snippets/sia-cabeceras-servidor*.conf;
     }
 
     # 4) Lo que no es parte del sitio no se sirve aunque alguien lo copie a la carpeta.
@@ -103,8 +109,10 @@ location ^~ /priorizacion-reforestacion/ {
 #     try_files $uri $uri/ =404;
 #     absolute_redirect off;
 #     auth_request /_priorizacion_reforestacion_sesion;                 # el backend responde 204 con sesión válida y 401 sin ella
-#     # (las mismas cabeceras de seguridad del bloque 2, y el bloque de los .bin; en los dos, la caché es la de la fase 2:)
+#     # (las mismas cabeceras de seguridad del bloque 2, con su include, y el bloque de los .bin; en los dos, la caché es la de la fase 2:)
 #     add_header Cache-Control $priorizacion_reforestacion_cache_sesion always;
+#     # Si el módulo no responde, auth_request da 500: en lugar de la página genérica de nginx, una propia (pública, en 2-ter).
+#     error_page 500 502 503 504 /priorizacion-reforestacion/acceso/sin-servicio.html;
 #     location ~ /\. { return 404; }                                    # archivos ocultos (.env, .git…): nunca se sirven
 
 #     # Solo la PÁGINA lleva a la pantalla de acceso. Datos y programas responden 401: así la herramienta
@@ -113,6 +121,7 @@ location ^~ /priorizacion-reforestacion/ {
 #         root /RUTA/DEL/VOLUMEN;
 #         auth_request /_priorizacion_reforestacion_sesion;
 #         error_page 401 = @priorizacion_reforestacion_acceso;
+#         error_page 500 502 503 504 /priorizacion-reforestacion/acceso/sin-servicio.html;   # un bloque con error_page no hereda los del padre
 #         try_files /priorizacion-reforestacion/index.html =404;
 #     }
 # }
@@ -144,6 +153,7 @@ location ^~ /priorizacion-reforestacion/ {
 #     add_header X-Content-Type-Options "nosniff" always;
 #     add_header Referrer-Policy "same-origin" always;
 #     add_header Cache-Control "no-cache" always;
+#     include snippets/sia-cabeceras-servidor*.conf;
 #     # Esta ruta no pide sesión: un archivo oculto copiado por error a la carpeta (.env, .git…) lo vería cualquiera.
 #     location ~ /\. { return 404; }
 # }
@@ -151,7 +161,8 @@ location ^~ /priorizacion-reforestacion/ {
 # 2-cuater) La API del módulo. En sia-backend el módulo sigue montado en /api/priorizacion-reforestacion (src/index.ts):
 #           nginx traduce la ruta pública a esa. SIN auth_request: el módulo responde 401 por sí mismo.
 #           La IP de cada petición la calcula ipDeOrigen(req) de src/comun/procedencia.ts de sia-backend a partir de
-#           X-Forwarded-For, descartando los saltos conocidos (el intermediario de entrada del SIA y este nginx). No hace falta trust proxy.
+#           X-Forwarded-For, descartando los intermediarios listados en SIA_PROXIES_CONFIABLES. Deben estar todos:
+#           el intermediario de entrada del SIA y este nginx. No hace falta trust proxy.
 # location ^~ /priorizacion-reforestacion/api/ {
 #     proxy_pass http://SERVIDOR_DE_APLICACIONES:3000/api/priorizacion-reforestacion/;
 #     proxy_set_header Host $host;
@@ -162,7 +173,8 @@ location ^~ /priorizacion-reforestacion/ {
 #     proxy_read_timeout 60s;                                            # un envío del alta masiva (50 cuentas) tarda unos segundos
 #     absolute_redirect off;
 # }
-# Opcional, si el SIA aplica su zona de límite «auth» al inicio de sesión (POST /priorizacion-reforestacion/api/entrar).
+# El SIA aplica su zona de límite «auth» al inicio de sesión (lo anunció al revisar Categorías de protección ambiental): se activa
+# la línea limit_req al integrar, con su zona (POST /priorizacion-reforestacion/api/entrar).
 # El módulo ya limita los intentos fallidos por IP y detiene la cuenta tras 5, también con intentos simultáneos (los cuenta antes de
 # verificar). limit_req es una defensa más, antes de que la petición llegue al backend: cuenta todas las peticiones y frena las ráfagas.
 # location = /priorizacion-reforestacion/api/entrar {

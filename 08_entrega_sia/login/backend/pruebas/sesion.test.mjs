@@ -144,17 +144,20 @@ test('IP de origen detrás de nginx: el límite por red es de cada persona, no d
   assert.equal(ip, '198.51.100.20', 'la bitácora guarda la IP de la persona, no la de nginx');
 });
 
-test('IP de origen con saltos conocidos (SIA_SALTOS_CONOCIDOS): se descartan el proxy intermedio y nginx', async () => {
+test('IP de origen con intermediarios propios (SIA_PROXIES_CONFIABLES, criterio del SIA): se descartan el intermediario de entrada y nginx', async () => {
   const { ipDeOrigen } = await import('../src/comun/procedencia.ts');
-  const pide = xff => ({ header: () => xff, socket: { remoteAddress: '127.0.0.1' } });
-  process.env.SIA_SALTOS_CONOCIDOS = '10.0.0.5, 10.0.0.9';
+  const pide = (xff, directa = '10.0.0.9') => ({ header: () => xff, socket: { remoteAddress: directa } });
+  process.env.SIA_PROXIES_CONFIABLES = '10.0.0.5, 10.0.0.9';
   try {
-    assert.equal(ipDeOrigen(pide('203.0.113.50, 10.0.0.5, 10.0.0.9')), '203.0.113.50');
-    assert.equal(ipDeOrigen(pide('198.51.100.1, 203.0.113.50, 10.0.0.9')), '203.0.113.50', 'lo anterior a la persona lo puede escribir quien llama: no cuenta');
-    assert.equal(ipDeOrigen(pide('10.0.0.5')), '127.0.0.1', 'solo saltos conocidos: la dirección directa');
-  } finally { delete process.env.SIA_SALTOS_CONOCIDOS; }
-  assert.equal(ipDeOrigen(pide('203.0.113.50, 10.0.0.5')), '10.0.0.5', 'sin la lista, la última entrada');
-  assert.equal(ipDeOrigen(pide('no-es-ip')), '127.0.0.1');
+    assert.equal(ipDeOrigen(pide('203.0.113.50, 10.0.0.5')), '203.0.113.50');
+    assert.equal(ipDeOrigen(pide('198.51.100.1, 203.0.113.50, 10.0.0.5')), '203.0.113.50', 'lo anterior a la persona lo puede escribir quien llama: no cuenta');
+    assert.equal(ipDeOrigen(pide('203.0.113.50', '::ffff:10.0.0.9')), '203.0.113.50', 'la dirección directa en forma IPv6 de una IPv4 también es la del intermediario');
+    assert.equal(ipDeOrigen(pide('203.0.113.50', '198.51.100.7')), '198.51.100.7', 'si la petición no llega de un intermediario propio, X-Forwarded-For no cuenta');
+    assert.equal(ipDeOrigen(pide(undefined)), '10.0.0.9', 'sin X-Forwarded-For, la dirección directa');
+  } finally { delete process.env.SIA_PROXIES_CONFIABLES; }
+  // sin la variable, solo el mismo equipo es intermediario propio: con un intermediario más que no está en la lista, todos parecen venir de él
+  assert.equal(ipDeOrigen(pide('203.0.113.50, 10.0.0.5', '127.0.0.1')), '10.0.0.5', 'si falta un intermediario en la lista, se toma el suyo');
+  assert.equal(ipDeOrigen(pide('no-es-ip', '127.0.0.1')), '127.0.0.1');
 });
 
 test('montado como en sia-backend: helmet, cors y express.json() globales no lo afectan; errores en JSON', async () => {

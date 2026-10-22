@@ -87,6 +87,22 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     ok('nginx (fase 2): la herramienta protegida se guarda como «private» (no «public»); la página sigue sin guardarse',
       /^\s*default\s+"private, max-age=31536000, immutable";/m.test(mapaSesion) && /^\s*"no-cache"\s+"no-cache";/m.test(mapaSesion) && !/public/.test(mapaSesion)
       && cacheHerr.length === 1 && cacheHerr[0] === 'add_header Cache-Control $priorizacion_reforestacion_cache_sesion always;', cacheHerr.join(' | ') || 'sin Cache-Control en la herramienta protegida');
+    // lo aprendido del tablero de Categorías de protección ambiental, ya instalado en el SIA (v1.45): página propia si el módulo no
+    // responde, las cabeceras del dominio con el mismo include y sin HSTS en el fragmento, y la lista de intermediarios del SIA
+    // dos veces en 2-bis: en el bloque y en el de la página, que va dentro (un bloque con error_page no hereda los del padre)
+    const SIN_SERVICIO = 'error_page 500 502 503 504 ' + ACCESO + 'sin-servicio.html;', destino = atiende(ACCESO + 'sin-servicio.html');
+    const veces5xx = herr ? herr.cuerpo.filter(l => l === SIN_SERVICIO).length : 0;
+    ok('nginx (fase 2): si el módulo no responde (auth_request da 500), una página propia, pública y que sí viene en el paquete',
+      veces5xx === 2 && !!destino && destino.ruta === ACCESO && !directiva(destino, 'auth_request')
+      && fs.existsSync(path.join(RAIZ, '08_entrega_sia', 'login', 'acceso', 'sin-servicio.html')), `${veces5xx} de 2 error_page 5xx en 2-bis · atiende ${destino ? destino.ruta : 'ninguna'}`);
+    const INC = 'include snippets/sia-cabeceras-servidor*.conf;', fase1 = conf.slice(0, conf.indexOf('# FASE 2')).split('\n').filter(l => !/^\s*#/.test(l)).map(l => l.trim());
+    ok('nginx: las cabeceras del dominio se repiten con el include del SIA en cada bloque con add_header, y el fragmento no trae HSTS',
+      fase1.filter(l => l === INC).length === fase1.filter(l => l.startsWith('add_header Cache-Control ')).length && fase1.includes(INC)
+      && atiende(ACCESO).cuerpo.includes(INC) && !/^[#\s]*add_header\s+Strict-Transport-Security/mi.test(conf),
+      `${fase1.filter(l => l === INC).length} include en la fase 1 · acceso: ${atiende(ACCESO).cuerpo.includes(INC) ? 'sí' : 'no'}`);
+    const procedencia = lee('08_entrega_sia/login/backend/src/comun/procedencia.ts');
+    ok('la IP de origen sigue el criterio del SIA (SIA_PROXIES_CONFIABLES) en el sustituto de pruebas, el ejemplo de nginx y la lista de verificación',
+      /process\.env\.SIA_PROXIES_CONFIABLES/.test(procedencia) && conf.includes('SIA_PROXIES_CONFIABLES') && lee('08_entrega_sia/LISTA_DE_VERIFICACION.md').includes('SIA_PROXIES_CONFIABLES'));
     const emp = lee('08_entrega_sia/empaquetar.py'), def = k => (emp.match(new RegExp(`setdefault\\('${k}', '([^']+)'\\)`)) || [])[1];
     const uti = lee('02_fuente/js/01_utilidades.js'), usoJs = (uti.match(/SESION\.inicio \? '([^']+)'/) || [])[1];
     const pags = lee('08_entrega_sia/login/acceso/recursos/acceso.js') + lee('08_entrega_sia/login/acceso/recursos/admin.js') + lee('08_entrega_sia/login/acceso/admin/index.html');

@@ -17,7 +17,7 @@ const sinComentariosHTML = t => t.replace(/<!--[\s\S]*?-->/g, '');
 const MODULOS = fs.readdirSync(path.join(F, 'js')).filter(a => a.endsWith('.js')).sort();
 const js = Object.fromEntries(MODULOS.map(a => [a, sinComentariosJS(leer('02_fuente', 'js', a))]));
 const plantilla = sinComentariosHTML(leer('02_fuente', 'plantilla.html'));
-const ACCESO = ['08_entrega_sia/login/acceso/index.html', '08_entrega_sia/login/acceso/admin/index.html'].filter(a => fs.existsSync(path.join(RAIZ, a)));
+const ACCESO = ['08_entrega_sia/login/acceso/index.html', '08_entrega_sia/login/acceso/admin/index.html', '08_entrega_sia/login/acceso/sin-servicio.html'].filter(a => fs.existsSync(path.join(RAIZ, a)));
 const PUBLICADO = ['docs/index.html', 'docs/app.js', 'docs/config.js', 'docs/sw.js'];
 const veces = a => a.reduce((m, x) => m.set(x, (m.get(x) || 0) + 1), new Map());
 

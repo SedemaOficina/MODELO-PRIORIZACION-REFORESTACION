@@ -28,7 +28,7 @@ Todo queda bajo `/priorizacion-reforestacion/`: la cookie de sesión lleva `Path
 | `backend/src/modulos/priorizacion-reforestacion/` | El módulo, en TypeScript y con la misma forma que los demás: `rutas.ts` exporta `crearRutasPriorizacionReforestacion(pool)`. Además `contrasenas.ts` (huellas scrypt), `masiva.ts` (alta masiva desde CSV) y `alcaldias.ts`. La IP de origen la toma de `ipDeOrigen(req)` de `src/comun/procedencia.ts` de `sia-backend` (no viene en el paquete). No agrega dependencias: usa `express` y `pg`, que el backend ya tiene |
 | `backend/db/priorizacion_reforestacion/` | `01-…-esquema.sql` (tablas, restricciones y depuración por plazos) y `02-…-rol-y-grants.sql` (rol `priorizacion_reforestacion_api` con mínimo privilegio, controles negativos y línea de `pg_hba`) |
 | `backend/herramientas/priorizacion-reforestacion/primera-cuenta.ts` | Genera el SQL de la primera cuenta de administración. No se conecta a nada |
-| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`) y sus recursos (estáticos, los sirve nginx) |
+| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`), página «sin servicio» para cuando el módulo no responde (`sin-servicio.html`) y sus recursos (estáticos, los sirve nginx) |
 <!-- solo-repositorio -->
 
 Solo en el repositorio (no van en el paquete del SIA):
@@ -36,7 +36,7 @@ Solo en el repositorio (no van en el paquete del SIA):
 | Carpeta | Qué es |
 |---|---|
 | `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
-| `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración (salta las IP de `SIA_SALTOS_CONOCIDOS`). En `sia-backend` se usa el archivo propio del SIA |
+| `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración, con el mismo criterio que el del SIA (`SIA_PROXIES_CONFIABLES`). En `sia-backend` se usa el archivo propio del SIA |
 | `backend/scripts/servidor_demo.mjs`, `datos_demo.mjs` | Demostración en una sola máquina y datos simulados para ver el panel lleno |
 | `backend/package.json`, `tsconfig.check.json` | Para correr las pruebas y la revisión de tipos (la misma configuración que `sia-backend`) |
 | `privacidad/`, `generar_aviso_html.py` | Textos de los avisos y generador de `acceso/aviso-de-privacidad.html` |
@@ -85,7 +85,7 @@ En `src/index.ts`, junto a los demás módulos:
 import { crearRutasPriorizacionReforestacion } from "./modulos/priorizacion-reforestacion/rutas";
 app.use("/api/priorizacion-reforestacion", crearRutasPriorizacionReforestacion(poolPriorizacionReforestacion));
 ```
-- **IP de origen:** el módulo importa `ipDeOrigen(req)` de `src/comun/procedencia.ts` (`import { ipDeOrigen } from "../../comun/procedencia";`). No hace falta `trust proxy`. La columna `ip` de la bitácora y el límite de intentos fallidos por IP solo tienen sentido cuando esa función descarta los saltos conocidos (el intermediario de entrada del SIA y nginx); mientras no lo haga, todas las peticiones parecerían venir de la misma dirección.
+- **IP de origen:** el módulo importa `ipDeOrigen(req)` de `src/comun/procedencia.ts` (`import { ipDeOrigen } from "../../comun/procedencia";`). No hace falta `trust proxy`. La función toma en cuenta `X-Forwarded-For` solo si la petición llega de un intermediario listado en la variable `SIA_PROXIES_CONFIABLES` de `sia-backend`, y descarta los listados. La columna `ip` de la bitácora y el límite de intentos fallidos por IP solo tienen sentido si esa lista incluye a todos (el intermediario de entrada del SIA y nginx); si falta uno, todas las peticiones parecen venir de él.
 - Requiere Express 5: las rutas son asíncronas y Express 5 pasa sus errores al manejador. El `express.json()` general (100 KB) alcanza: la alta masiva admite hasta 100 cuentas por petición y el panel envía el archivo en partes de 50.
 - `npm run typecheck`, `npm run build` y `deploy.fish`, **solo después** de los pasos 1 y 2. En el arranque, el journal debe decir `🔑 [PRIORIZACION_REFORESTACION] conectado como priorizacion_reforestacion_api`, sin «SUPERUSUARIO».
 - El módulo pide la depuración por plazos **al arrancar** y después cada 24 horas. Como el backend se reinicia con cada despliegue, conviene además programarla en la base o en el sistema, una vez al día: `SELECT priorizacion_reforestacion.depurar();`. Así se cumple lo que promete el aviso de privacidad aunque el backend no dure 24 horas encendido.
@@ -99,9 +99,9 @@ La contraseña temporal sale en pantalla una sola vez. Aplicar `/tmp/primera-cue
 **5. Archivos estáticos.** Copiar `acceso/` al volumen del servidor web, como `acceso-priorizacion-reforestacion/`. Se publica en `/priorizacion-reforestacion/acceso/`.
 
 **6. nginx.** En `../nginx_priorizacion_reforestacion.conf.ejemplo`, el bloque «FASE 2 CON INICIO DE SESIÓN» sustituye al bloque 2. Tiene tres partes, todas bajo `/priorizacion-reforestacion/`:
-- **2-bis:** la herramienta (`/priorizacion-reforestacion/`), protegida con `auth_request`.
+- **2-bis:** la herramienta (`/priorizacion-reforestacion/`), protegida con `auth_request`. Si el módulo no responde, muestra `acceso/sin-servicio.html` en lugar de la página genérica de nginx.
 - **2-ter:** la pantalla de acceso (`/priorizacion-reforestacion/acceso/`), sin protección. Su prefijo es más largo, así que gana a 2-bis.
-- **2-cuater:** la API (`/priorizacion-reforestacion/api/`), que nginx pasa al backend en `/api/priorizacion-reforestacion/`. Sin `auth_request`: el módulo revisa la sesión. Trae, comentada, la línea opcional `limit_req zone=auth` para `POST /priorizacion-reforestacion/api/entrar`.
+- **2-cuater:** la API (`/priorizacion-reforestacion/api/`), que nginx pasa al backend en `/api/priorizacion-reforestacion/`. Sin `auth_request`: el módulo revisa la sesión. Trae, comentada, la línea `limit_req zone=auth` para `POST /priorizacion-reforestacion/api/entrar`: se activa al integrar, con la zona del SIA.
 
 Validar con `nginx -t`.
 
@@ -131,6 +131,7 @@ En el repositorio, `python 08_entrega_sia/empaquetar.py` arma el paquete con esa
 | 8 | «Mi cuenta» → «Cerrar sesión» en la herramienta | Vuelve a la pantalla de acceso con «Cerraste tu sesión». «Mi cuenta» → «Cambiar contraseña» pide la actual y la nueva, y regresa a la consulta |
 | 9 | `curl -s -i -X POST -H 'Content-Type: application/json' --data '{"correo":' .../priorizacion-reforestacion/api/entrar` (JSON mal formado) | `400` sin `SyntaxError`, `node_modules` ni rutas del servidor. Esa respuesta la da el manejo general de errores de `sia-backend`, antes del módulo: si trae el rastro, fijar `NODE_ENV=production` o un manejador general que no lo muestre |
 | 10 | Con sesión: `curl -sI -b 'priorizacion_reforestacion_sesion=VALOR' '.../priorizacion-reforestacion/app.js?v=x'` | `Cache-Control: private, max-age=31536000, immutable`: ningún intermediario compartido guarda lo que solo se entrega con sesión |
+| 11 | Con el backend detenido un momento (por ejemplo, al desplegar), abrir `/priorizacion-reforestacion/` | La página «La herramienta no está disponible en este momento», con el logotipo y su estilo, no la página genérica de nginx |
 
 <!-- solo-repositorio -->
 ## Ensayo antes de instalar
