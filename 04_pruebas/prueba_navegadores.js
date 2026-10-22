@@ -10,7 +10,8 @@ const ok = L.Registro('Firefox y WebKit');
 const SAL = path.join(__dirname, 'capturas', 'navegadores'); fs.mkdirSync(SAL, { recursive: true });
 const OBLIGATORIOS = process.env.NAVEGADORES_OBLIGATORIOS === '1';
 const MOTORES = [
-  ['Firefox', () => PW.firefox.launch()],
+  // Firefox sin pantalla en Linux apaga WebGL si no reconoce la tarjeta gráfica; se fuerza el dibujo por programa (la herramienta exige WebGL 2)
+  ['Firefox', () => PW.firefox.launch({ firefoxUserPrefs: { 'webgl.force-enabled': true, 'webgl.disabled': false } })],
   // WebKit: el que pide Playwright o, si no está, el que ya está instalado en el equipo de trabajo (no se descarga)
   ['WebKit', async () => { try { return await PW.webkit.launch(); } catch (e) {
     const p = path.join(process.env.LOCALAPPDATA || '', 'ms-playwright', 'webkit-2359', 'Playwright.exe'); if (fs.existsSync(p)) return PW.webkit.launch({ executablePath: p }); throw e; } }],
@@ -40,7 +41,13 @@ const MOTORES = [
         ok(`${n}: sale la ficha PDF de la colonia (un PDF válido)`, !!f && /\.pdf$/.test(f.nombre) && fb.length > 5000 && fb.slice(0, 5).toString() === '%PDF-', f ? `${f.nombre} · ${fb.length} bytes` : 'no llegó');
         ok(`${n}: sin errores en la página`, errores.length === 0, errores.slice(0, 2).join(' | '));
         await ctx.close();
-      } catch (e) { ok(`${n}: la prueba corre`, false, String(e.stack || e.message).slice(0, 300)); }
+      } catch (e) {
+        // qué muestra la pantalla de carga y si el motor tiene WebGL 2 (sin él, la herramienta se detiene al abrir): en GitHub es la única pista
+        const vista = await Promise.all(browser.contexts().flatMap(c => c.pages()).map(p => p.evaluate(() => ({
+          carga: ((document.getElementById('load-msg') || {}).textContent || '').trim().slice(0, 200),
+          webgl2: (() => { try { return !!document.createElement('canvas').getContext('webgl2'); } catch (x) { return false; } })() })).catch(() => null)));
+        ok(`${n}: la prueba corre`, false, `${String(e.message).split('\n')[0].slice(0, 120)} · pantalla: ${JSON.stringify(vista.filter(Boolean))} · errores: ${errores.slice(0, 2).join(' | ').slice(0, 300)}`);
+        await Promise.all(browser.contexts().map(c => c.close().catch(() => {}))); }
     }
     await browser.close();
   }
