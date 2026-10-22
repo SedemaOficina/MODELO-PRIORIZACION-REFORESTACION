@@ -2,11 +2,11 @@
 
 Generado por 02_fuente/construir.py en cada construcción. No editar aquí.
 
-Medidas al construir la versión 1.45. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
+Medidas al construir la versión 1.46. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
 
 | Concepto | Valor |
 |---|---|
-| Versión de la herramienta | 1.45 |
+| Versión de la herramienta | 1.46 |
 | Corte de los datos | modelo de priorización de noviembre de 2025; vialidades primarias de agosto de 2026 |
 | Módulos de lógica (`02_fuente/js/`) | 20 |
 | Hojas de estilo (`02_fuente/css/`) | 11 |

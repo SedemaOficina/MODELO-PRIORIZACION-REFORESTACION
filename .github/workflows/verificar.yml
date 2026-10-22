@@ -2,7 +2,8 @@
 # Dos trabajos: las mismas verificaciones rápidas que «node 04_pruebas/correr_todas.js rapidas» en el equipo de trabajo (sin navegador) y
 # el flujo principal en Firefox y WebKit (prueba_navegadores.js).
 # Cuáles son y qué revisa cada una: 04_pruebas/LEEME.md. Explicación para quien administra el repositorio: 05_documentacion/verificacion_automatica_github.md
-# Si falla, GitHub muestra una cruz roja en el commit y avisa por correo; la página publicada no cambia por ello.
+# Si falla, GitHub muestra una cruz roja en el commit y avisa por correo; la página publicada no cambia por ello. avisos_github.js publica
+# cada «FALLA» como aviso de la corrida, que se lee sin iniciar sesión (el registro completo pide sesión).
 name: Verificar
 on:
   push:
@@ -30,7 +31,7 @@ jobs:
       - name: Módulo de inicio de sesión (sus propias versiones fijadas)
         run: npm ci --no-audit --no-fund --prefix 08_entrega_sia/login/backend
       - name: Verificaciones rápidas
-        run: node 04_pruebas/correr_todas.js rapidas
+        run: node 04_pruebas/avisos_github.js node 04_pruebas/correr_todas.js rapidas
   navegadores:
     # Firefox y Safari (WebKit): el flujo principal fuera de Chromium (decisión de Liber del 21 oct 2026). En el equipo de trabajo
     # Windows no deja abrir el Firefox de las pruebas; aquí se instalan los dos y un motor que no abre cuenta como falla.
@@ -47,6 +48,6 @@ jobs:
       - name: Firefox y WebKit de Playwright, con lo que necesitan del sistema
         run: npx playwright install --with-deps firefox webkit
       - name: Flujo principal en Firefox y WebKit
-        run: node 04_pruebas/prueba_navegadores.js
+        run: node 04_pruebas/avisos_github.js node 04_pruebas/prueba_navegadores.js
         env:
           NAVEGADORES_OBLIGATORIOS: '1'

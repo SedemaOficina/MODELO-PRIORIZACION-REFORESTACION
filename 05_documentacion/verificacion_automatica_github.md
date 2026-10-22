@@ -13,7 +13,7 @@ Lo decidió Liber el 19 de octubre de 2026 (auditoría, A1-01). El archivo es `.
 
 ## Si aparece la cruz roja
 
-1. Abrir *Actions* → la corrida con la cruz → el trabajo que falló («Verificaciones rápidas» o «Firefox y WebKit»). Al final dice qué falló y por qué.
+1. Abrir *Actions* → la corrida con la cruz. En «Annotations» aparece cada verificación que falló, con su motivo (desde la v1.46, `04_pruebas/avisos_github.js`); eso se ve sin iniciar sesión. El registro completo del trabajo que falló («Verificaciones rápidas» o «Firefox y WebKit») pide iniciar sesión en GitHub.
 2. En el equipo de trabajo, correr lo mismo: `node 04_pruebas/correr_todas.js rapidas`, o `node 04_pruebas/prueba_navegadores.js` (aquí solo WebKit). Debe fallar igual; si solo falla Firefox, el detalle de GitHub es la única pista.
 3. Corregir, construir (`python 02_fuente/construir.py`), volver a correr las rápidas y hacer un commit nuevo.
 
