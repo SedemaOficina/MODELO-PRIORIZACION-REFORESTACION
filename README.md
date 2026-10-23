@@ -74,13 +74,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo) o `node 04_pruebas/corr
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub:** en cada *Push*, GitHub repite las verificaciones rápidas y marca el commit con una palomita verde o una cruz roja (`.github/workflows/verificar.yml`). Qué hacer si falla: `05_documentacion/verificacion_automatica_github.md`. La página se publica igual; la cruz es un aviso para corregir.
 
-## Estado al 23 de octubre de 2026 (versión 1.49)
+## Estado al 23 de octubre de 2026 (versión 1.50)
 
-- Versión vigente: **v1.49**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.50**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.50 | Panel y «Mi cuenta» más claros. En el panel, «Agregar cuenta» y «Alta masiva desde CSV» son botones que abren ventanas: el alta va ordenada en persona, puesto, institución y permiso, y la contraseña temporal sale en su propia ventana. La tabla de cuentas es más compacta: «Editar» a la vista y lo demás en el menú «⋯», con estados que no se parten. En la herramienta, «Mi cuenta» muestra un círculo con las iniciales (ya no se confunde con «Cómo funciona») y «Mi perfil» es una ventana, sin repetir «Cambiar contraseña»; la página aparte de la v1.49 se retiró. Quien administra ve «Administración» en el menú |
 | 1.49 | Panel de administración. Cada cuenta lleva área y cargo. Las instituciones son Alcaldía, Gobierno Central (con su dependencia), Organización de la sociedad civil, Privado y Otra; SEDEMA pasa a ser una dependencia del Gobierno Central. Nueva pestaña «Catálogos» para agregar, renombrar y desactivar dependencias, organizaciones y empresas (de arranque: SEDEMA, SOBSE y PAOT). La lista de cuentas se filtra por institución, alcaldía o dependencia, permiso y estado, y se ordena por columna; las cuentas se editan. «Mi perfil» en «Mi cuenta» muestra los datos de la cuenta. Para una base ya instalada se vuelven a aplicar los dos SQL. Los avisos de privacidad aún no se ajustan (`08_entrega_sia/login/LEEME.md`) |
 | 1.48 | GitHub prueba el flujo principal solo en Safari (WebKit). Su Firefox no tiene WebGL 2 ni forzándolo y la herramienta lo necesita para abrir. Firefox se revisa a mano antes de cada versión que cambie la herramienta y de cada entrega al SIA (`05_documentacion/verificacion_automatica_github.md`). Solo cambian la prueba y la verificación |
 | 1.47 | Prueba de Firefox en GitHub: la herramienta no terminaba de abrir en Firefox. La prueba fuerza WebGL en ese Firefox y, si falla, dice qué muestra la pantalla de carga y si hay WebGL 2. Solo cambia la prueba |

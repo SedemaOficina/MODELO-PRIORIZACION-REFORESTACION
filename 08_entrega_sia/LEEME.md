@@ -12,7 +12,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | [`SESION_Y_LOGIN.md`](SESION_Y_LOGIN.md) | Cómo se integra un inicio de sesión: qué hace ya la herramienta y qué construye el SIA |
 | [`CIERRE_FASE_1.md`](CIERRE_FASE_1.md) | Orden para apagar la página de GitHub y lo demás del piloto (interno; no va en el paquete) |
 | [`CONTRATO_DE_DATOS.md`](CONTRATO_DE_DATOS.md) | Formato de los archivos de datos (interno; no va en el paquete) |
-| [`login/`](login/LEEME.md) | **Inicio de sesión y registro de usos:** módulo para el backend, esquema de base de datos, pantalla de acceso, panel de administración (cuentas, usos y catálogos), «Mi perfil» y aviso de privacidad |
+| [`login/`](login/LEEME.md) | **Inicio de sesión y registro de usos:** módulo para el backend, esquema de base de datos, pantalla de acceso, panel de administración (cuentas, usos y catálogos) y aviso de privacidad |
 | [`capas_geoserver/`](capas_geoserver/LEEME.md) | Tres capas en GeoPackage con sus estilos para publicar en el GeoServer del SIA (independientes de la herramienta) |
 | [`LEEME_PAQUETE.md`](LEEME_PAQUETE.md) | Portada del paquete: contenido y orden de instalación |
 | `empaquetar.py` | Arma el ZIP de entrega |

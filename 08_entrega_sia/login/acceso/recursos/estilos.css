@@ -91,21 +91,74 @@ tr.inactiva td{color:var(--ink-3)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .clave .btn{width:auto;margin-top:8px}
-/* ---------- v1.49: encabezados que ordenan, catálogos y «Mi perfil» ---------- */
+/* ---------- panel: encabezados que ordenan, filtros, tabla de cuentas y menú «Más acciones» ---------- */
 .tenue{color:var(--ink-3)}
-th .ordena{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;min-height:24px;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit}
+th .ordena{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;min-height:24px;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit;white-space:nowrap}
 th .ordena::after{content:"↕";color:var(--ctl)}
 th[aria-sort=ascending] .ordena::after{content:"▲";color:var(--guinda-ink)}
 th[aria-sort=descending] .ordena::after{content:"▼";color:var(--guinda-ink)}
 th .ordena:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+thead th{white-space:nowrap}
+.seccion-cab{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 12px}
+.seccion-cab h2{margin:0}
+.botones{display:flex;flex-wrap:wrap;gap:8px}
+.filtros{display:grid;grid-template-columns:2fr repeat(4,minmax(150px,1fr));gap:12px 16px;align-items:end}
+.filtros .campo{margin:0}
+@media (max-width:980px){.filtros{grid-template-columns:repeat(2,minmax(0,1fr))}.filtros .ancho{grid-column:1/-1}}
+@media (max-width:520px){.filtros{grid-template-columns:1fr}}
+.linea{display:block}
+.linea.fuerte{font-weight:600}
+.linea.sub{font-size:.8125rem;color:var(--ink-3)}
+.linea.puesto{margin-top:4px;font-size:.8125rem;color:var(--ink-2)}
+.linea.puesto.falta{font-style:italic;color:var(--ink-3)}
+table.cuentas td{vertical-align:middle}
+table.cuentas td.persona{min-width:240px}
+table.cuentas td.fecha{white-space:nowrap}
+.etiqueta{white-space:nowrap}
+.etiqueta.activa{background:#E8F3EC;border-color:#9FCBAE;color:var(--ok)}
+.acciones-celda{width:1%;white-space:nowrap}
+.acciones{display:flex;flex-wrap:nowrap;gap:6px;align-items:center;justify-content:flex-end}
+.mas{position:relative}
+.mas-btn{min-width:40px;font-size:1.125rem;line-height:1}
+.mas-menu{position:fixed;z-index:20;min-width:210px;margin:0;padding:4px 0;list-style:none;background:var(--panel);border:1px solid var(--line-strong);border-radius:8px;box-shadow:0 8px 24px rgba(36,38,42,.18)}
+.mas-menu button{display:block;width:100%;min-height:40px;padding:8px 14px;border:0;background:none;color:var(--ink);font:500 .9375rem/1.2 Roboto,sans-serif;text-align:left;cursor:pointer;white-space:nowrap}
+.mas-menu button:hover,.mas-menu button:focus-visible{background:var(--panel-2);color:var(--guinda-ink)}
+.mas-menu button.peligro{color:var(--error)}
+/* catálogos */
 .caja h3{margin:0 0 10px;font-size:1.0625rem}
 .caja .tabla-envoltura{margin:14px 0 0}
-.perfil{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:8px 16px;margin:0 0 18px}
-.perfil dt{font-weight:600;color:var(--ink-2)}
-.perfil dd{margin:0;overflow-wrap:anywhere}
-.enlaces{display:flex;flex-wrap:wrap;gap:8px;margin:0}
-.enlaces .btn{text-decoration:none}
-@media (max-width:420px){.perfil{grid-template-columns:1fr;gap:2px}.perfil dd{margin-bottom:8px}}
+.fila-agregar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:flex-end}
+.fila-agregar .campo{flex:1 1 260px;margin:0}
+.fila-agregar .btn{width:auto}
+/* ---------- ventanas (<dialog>): agregar o editar cuenta, contraseña temporal y alta masiva ---------- */
+dialog.dialogo{width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 24px);padding:0;border:0;border-top:5px solid var(--guinda);border-radius:12px;background:var(--panel);color:var(--ink);box-shadow:0 18px 48px rgba(36,38,42,.3)}
+dialog.dialogo.chico{width:min(520px,calc(100vw - 24px))}
+dialog.dialogo[open]{display:flex;flex-direction:column}
+dialog.dialogo::backdrop{background:rgba(36,38,42,.5)}
+.dialogo form{display:flex;flex-direction:column;min-height:0;flex:1}
+.dialogo-cab{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px;border-bottom:1px solid var(--line)}
+.dialogo-cab h2{margin:0;font-size:1.25rem}
+.dialogo-cuerpo{padding:18px 20px 8px;overflow:auto;flex:1;min-height:0}
+.dialogo-pie{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:10px;padding:14px 20px;border-top:1px solid var(--line);background:var(--panel-2);border-radius:0 0 12px 12px}
+.dialogo .btn,.dialogo form .btn{width:auto}
+.cierra{flex:none;width:44px;height:44px;border:0;border-radius:6px;background:none;color:var(--ink-2);font:400 1.75rem/1 system-ui,sans-serif;cursor:pointer}
+.cierra:hover{background:var(--panel-2);color:var(--ink)}
+.dialogo fieldset{margin:0 0 18px;padding:0;border:0;min-width:0}
+.dialogo legend{margin:0 0 10px;padding:0 0 6px;width:100%;border-bottom:1px solid var(--line);font:700 .8125rem/1.2 Cabin,sans-serif;letter-spacing:.06em;text-transform:uppercase;color:var(--guinda-ink)}
+.dos{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px}
+.dos .campo{margin:0}
+.dos.abajo{align-items:end}
+@media (max-width:560px){.dos{grid-template-columns:1fr}}
+.opciones{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.opciones{grid-template-columns:1fr}}
+.opcion{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border:1.5px solid var(--line-strong);border-radius:8px;cursor:pointer;background:var(--panel)}
+.opcion:hover{border-color:var(--ctl)}
+.opcion:has(input:checked){border-color:var(--guinda);background:var(--panel-2)}
+.opcion input{flex:none;width:18px;min-height:18px;height:18px;margin:2px 0 0;padding:0;accent-color:var(--guinda)}
+.opcion b{display:block}
+.opcion .ayuda{display:block;margin:2px 0 0}
+.dialogo .clave{margin:0}
+.dialogo .clave span{display:block}
 .tarjeta.documento{max-width:760px}
 .documento h1{font-size:1.5rem;margin:6px 0 4px}
 .documento h2{font-size:1.0625rem;margin:22px 0 6px}

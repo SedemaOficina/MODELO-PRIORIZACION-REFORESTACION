@@ -57,7 +57,7 @@ const menuCuenta = page => page.evaluate(() => { const m = document.getElementBy
   const abierto = !!m && !m.hidden && m.getBoundingClientRect().height > 0; if (!abierto) return { abierto };
   const q = m.getBoundingClientRect(), r = b.getBoundingClientRect(), fr = f && !f.hidden ? f.getBoundingClientRect() : null, gr = g ? g.getBoundingClientRect() : null;
   const dentro = x => !!fr && x.left >= fr.left - 0.5 && x.right <= fr.right + 0.5 && x.top >= fr.top - 0.5 && x.bottom <= fr.bottom + 0.5;
-  return { abierto, opciones: [...m.querySelectorAll('a')].map(a => a.textContent.trim()).join('|'), abarca: dentro(q) && dentro(r), tapa: !!gr && !(gr.right < q.left || gr.left > q.right || gr.bottom < q.top || gr.top > q.bottom), btnExpandido: b.getAttribute('aria-expanded') }; });
+  return { abierto, opciones: [...m.querySelectorAll('li:not([hidden]) > a, li:not([hidden]) > button')].map(a => a.textContent.trim()).join('|'), abarca: dentro(q) && dentro(r), tapa: !!gr && !(gr.right < q.left || gr.left > q.right || gr.bottom < q.top || gr.top > q.bottom), btnExpandido: b.getAttribute('aria-expanded') }; });
 // recorre con las flechas hasta el paso con ese título
 const hasta = async (page, titulo) => { for (let k = 0; k < 16 && (await enPantalla(page)).titulo !== titulo; k++) { await page.keyboard.press('ArrowRight'); await L.quieto(page); } await L.quieto(page); };
 const limpio = page => page.evaluate(() => ({ velo: !!document.querySelector('.rec-velo, .rec-foco, .rec-globo, .rec-punto'), inerte: document.querySelector('.app').inert, ficha: !document.getElementById('card').hidden, capas: document.querySelector('.legend').classList.contains('open'), visto: localStorage.getItem('cp_recorrido') }));

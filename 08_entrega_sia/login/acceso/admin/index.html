@@ -12,7 +12,7 @@
 <header class="barra">
   <img class="logo" src="../recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Sistema de Información Ambiental de la Ciudad de México · Reforestación Urbana">
   <div class="titulo"><p class="eyebrow">Modelo de priorización de reforestación urbana</p><h1>Administración de cuentas y usos</h1></div>
-  <p class="quien"><span id="yo">…</span><a href="/priorizacion-reforestacion/">Ir a la herramienta</a><a href="../perfil/">Mi perfil</a><a href="../?cambiar=1">Cambiar mi contraseña</a><a href="/priorizacion-reforestacion/api/salir">Cerrar sesión</a></p>
+  <p class="quien"><span id="yo">…</span><a href="/priorizacion-reforestacion/">Ir a la herramienta</a><a href="../?cambiar=1">Cambiar mi contraseña</a><a href="/priorizacion-reforestacion/api/salir">Cerrar sesión</a></p>
 </header>
 
 <main class="contenido" id="principal">
@@ -27,61 +27,33 @@
 
     <!-- ===== Personas ===== -->
     <section class="seccion" id="s-personas" role="tabpanel" aria-labelledby="t-personas">
-      <h2 id="alta-titulo" tabindex="-1">Dar de alta una cuenta</h2>
-      <form class="caja" id="f-alta" novalidate>
-        <div class="rejilla">
-          <div class="campo"><label for="a-correo">Correo electrónico (personal o institucional)</label><input id="a-correo" type="email" autocomplete="off" required></div>
-          <div class="campo"><label for="a-nombre">Nombre completo</label><input id="a-nombre" autocomplete="off" required></div>
-          <div class="campo"><label for="a-area">Área</label><input id="a-area" list="areas" autocomplete="off" maxlength="120" required><datalist id="areas"></datalist></div>
-          <div class="campo"><label for="a-cargo">Cargo</label><input id="a-cargo" autocomplete="off" maxlength="120" required></div>
-          <div class="campo"><label for="a-inst">Institución</label>
-            <select id="a-inst"><option>Alcaldía</option><option>Gobierno Central</option><option>Organización de la sociedad civil</option><option>Privado</option><option>Otra</option></select></div>
-          <div class="campo" id="c-alc"><label for="a-alc">Alcaldía</label><select id="a-alc"><option value="">— Elige —</option></select></div>
-          <div class="campo" id="c-ent" hidden><label for="a-ent" id="a-ent-etq">Dependencia</label><select id="a-ent"></select></div>
-          <div class="campo"><label for="a-rol">Permiso</label>
-            <select id="a-rol"><option value="usuario">Consulta</option><option value="admin">Administración</option></select></div>
-          <div class="campo"><button type="submit" class="btn" id="a-guardar">Dar de alta</button></div>
-          <div class="campo" id="c-cancelar" hidden><button type="button" class="btn secundario" id="a-cancelar">Cancelar</button></div>
+      <div class="seccion-cab">
+        <h2>Cuentas</h2>
+        <div class="botones">
+          <button type="button" class="btn" id="b-agregar"><span aria-hidden="true">+</span> Agregar cuenta</button>
+          <button type="button" class="btn secundario" id="b-masiva">Alta masiva desde CSV</button>
         </div>
-        <p class="nota" id="a-nota-catalogo">¿No aparece la dependencia u organización? Agrégala en la pestaña «Catálogos».</p>
-        <p class="error general" id="alta-err" role="alert" hidden></p>
-        <div class="clave" id="clave" role="status" hidden></div>
-      </form>
-
-      <h2>Alta masiva desde CSV</h2>
-      <div class="caja" id="masiva">
-        <p class="nota">Para dar de alta a varias personas a la vez (por ejemplo, los enlaces que designa cada alcaldía): una persona por renglón, con las columnas <b>correo, nombre, area, cargo, institucion, alcaldia, dependencia_u_organizacion, rol</b>. La dependencia u organización debe estar escrita como en «Catálogos». En Excel, guárdalo como «CSV UTF-8». Primero se revisa sin dar de alta a nadie. <a href="#" id="m-plantilla">Descargar plantilla</a></p>
-        <div class="rejilla">
-          <div class="campo"><label for="m-archivo">Archivo CSV</label><input id="m-archivo" type="file" accept=".csv,text/csv"></div>
-          <div class="campo"><button type="button" class="btn secundario" id="m-revisar">Revisar el archivo</button></div>
-        </div>
-        <p class="error general" id="m-err" role="alert" hidden></p>
-        <div id="m-resultado" role="status"></div>
       </div>
-
-      <h2>Cuentas</h2>
-      <div class="caja rejilla">
-        <div class="campo"><label for="buscar">Buscar por nombre, correo, área o cargo</label><input id="buscar" type="search" autocomplete="off"></div>
+      <div class="caja filtros">
+        <div class="campo ancho"><label for="buscar">Buscar por nombre, correo, área o cargo</label><input id="buscar" type="search" autocomplete="off"></div>
         <div class="campo"><label for="f-inst">Institución</label>
           <select id="f-inst"><option value="">Todas</option><option>Alcaldía</option><option>Gobierno Central</option><option>Organización de la sociedad civil</option><option>Privado</option><option>Otra</option></select></div>
-        <div class="campo"><label for="f-perten">Alcaldía, dependencia u organización</label><select id="f-perten"><option value="">Todas</option></select></div>
+        <div class="campo"><label for="f-perten">Alcaldía o dependencia</label><select id="f-perten"><option value="">Todas</option></select></div>
         <div class="campo"><label for="f-rol">Permiso</label>
           <select id="f-rol"><option value="">Todos</option><option value="usuario">Consulta</option><option value="admin">Administración</option></select></div>
         <div class="campo"><label for="filtro">Estado</label>
           <select id="filtro"><option value="activas">Cuentas activas</option><option value="bajas">Dadas de baja</option><option value="todas">Todas</option></select></div>
       </div>
       <p class="aviso ok" id="personas-aviso" role="status" hidden></p>
-      <div class="tabla-envoltura"><table>
+      <div class="tabla-envoltura"><table class="cuentas">
         <caption id="personas-cap">Cuentas</caption>
         <thead><tr>
           <th scope="col" data-orden="nombre"><button type="button" class="ordena">Persona</button></th>
-          <th scope="col" data-orden="area"><button type="button" class="ordena">Área y cargo</button></th>
-          <th scope="col" data-orden="institucion"><button type="button" class="ordena">Institución</button></th>
-          <th scope="col" data-orden="pertenencia"><button type="button" class="ordena">Alcaldía, dependencia u organización</button></th>
+          <th scope="col" data-orden="pertenencia"><button type="button" class="ordena">Institución</button></th>
           <th scope="col" data-orden="rol"><button type="button" class="ordena">Permiso</button></th>
           <th scope="col">Estado</th>
           <th scope="col" data-orden="ultimo_acceso"><button type="button" class="ordena">Último acceso</button></th>
-          <th scope="col">Acciones</th></tr></thead>
+          <th scope="col"><span class="sr">Acciones</span></th></tr></thead>
         <tbody id="personas"></tbody>
       </table></div>
     </section>
@@ -124,5 +96,65 @@
     </section>
   </div>
 </main>
+
+<!-- ===== Ventana: agregar o editar una cuenta ===== -->
+<dialog class="dialogo" id="d-cuenta" aria-labelledby="alta-titulo">
+  <form id="f-alta" novalidate>
+    <div class="dialogo-cab"><h2 id="alta-titulo">Agregar cuenta</h2><button type="button" class="cierra" data-cierra aria-label="Cerrar">×</button></div>
+    <div class="dialogo-cuerpo">
+      <fieldset><legend>Persona</legend>
+        <div class="dos">
+          <div class="campo"><label for="a-nombre">Nombre completo</label><input id="a-nombre" autocomplete="off" maxlength="120" required></div>
+          <div class="campo"><label for="a-correo">Correo electrónico</label><input id="a-correo" type="email" autocomplete="off" required aria-describedby="a-correo-ayuda"><p class="ayuda" id="a-correo-ayuda">Personal o institucional. Con él inicia sesión; no se puede cambiar después.</p></div>
+        </div>
+      </fieldset>
+      <fieldset><legend>Puesto</legend>
+        <div class="dos">
+          <div class="campo"><label for="a-area">Área</label><input id="a-area" list="areas" autocomplete="off" maxlength="120" required aria-describedby="a-area-ayuda"><datalist id="areas"></datalist><p class="ayuda" id="a-area-ayuda">Al escribir aparecen las áreas ya registradas.</p></div>
+          <div class="campo"><label for="a-cargo">Cargo</label><input id="a-cargo" autocomplete="off" maxlength="120" required></div>
+        </div>
+      </fieldset>
+      <fieldset><legend>Institución</legend>
+        <div class="dos">
+          <div class="campo"><label for="a-inst">Tipo de institución</label>
+            <select id="a-inst"><option>Alcaldía</option><option>Gobierno Central</option><option>Organización de la sociedad civil</option><option>Privado</option><option>Otra</option></select></div>
+          <div class="campo" id="c-alc"><label for="a-alc">Alcaldía</label><select id="a-alc"><option value="">— Elige —</option></select></div>
+          <div class="campo" id="c-ent" hidden><label for="a-ent" id="a-ent-etq">Dependencia</label><select id="a-ent" aria-describedby="a-nota-catalogo"></select>
+            <p class="ayuda" id="a-nota-catalogo">¿No aparece? Agrégala en la pestaña «Catálogos».</p></div>
+        </div>
+      </fieldset>
+      <fieldset><legend>Permiso</legend>
+        <div class="opciones">
+          <label class="opcion"><input type="radio" name="a-rol" value="usuario" checked><span><b>Consulta</b><span class="ayuda">Usa la herramienta y descarga archivos.</span></span></label>
+          <label class="opcion"><input type="radio" name="a-rol" value="admin"><span><b>Administración</b><span class="ayuda">Además, administra cuentas y catálogos y ve los usos.</span></span></label>
+        </div>
+      </fieldset>
+      <p class="error general" id="alta-err" role="alert" hidden></p>
+    </div>
+    <div class="dialogo-pie"><button type="button" class="btn secundario" data-cierra>Cancelar</button><button type="submit" class="btn" id="a-guardar">Dar de alta</button></div>
+  </form>
+</dialog>
+
+<!-- ===== Ventana: contraseña temporal (se muestra una sola vez) ===== -->
+<dialog class="dialogo chico" id="d-clave" aria-labelledby="clave-titulo">
+  <div class="dialogo-cab"><h2 id="clave-titulo">Cuenta creada</h2><button type="button" class="cierra" data-cierra aria-label="Cerrar">×</button></div>
+  <div class="dialogo-cuerpo"><div class="clave" id="clave"></div></div>
+  <div class="dialogo-pie"><button type="button" class="btn" data-cierra>Listo</button></div>
+</dialog>
+
+<!-- ===== Ventana: alta masiva desde CSV ===== -->
+<dialog class="dialogo" id="d-masiva" aria-labelledby="masiva-titulo">
+  <div class="dialogo-cab"><h2 id="masiva-titulo">Alta masiva desde CSV</h2><button type="button" class="cierra" data-cierra aria-label="Cerrar">×</button></div>
+  <div class="dialogo-cuerpo" id="masiva">
+    <p class="nota">Para dar de alta a varias personas a la vez (por ejemplo, los enlaces que designa cada alcaldía): una persona por renglón, con las columnas <b>correo, nombre, area, cargo, institucion, alcaldia, dependencia_u_organizacion, rol</b>. La dependencia u organización debe estar escrita como en «Catálogos». En Excel, guárdalo como «CSV UTF-8». Primero se revisa sin dar de alta a nadie. <a href="#" id="m-plantilla">Descargar plantilla</a></p>
+    <div class="dos abajo">
+      <div class="campo"><label for="m-archivo">Archivo CSV</label><input id="m-archivo" type="file" accept=".csv,text/csv"></div>
+      <div class="campo"><button type="button" class="btn secundario" id="m-revisar">Revisar el archivo</button></div>
+    </div>
+    <p class="error general" id="m-err" role="alert" hidden></p>
+    <div id="m-resultado" role="status"></div>
+  </div>
+  <div class="dialogo-pie"><button type="button" class="btn secundario" data-cierra>Cerrar</button></div>
+</dialog>
 </body>
 </html>

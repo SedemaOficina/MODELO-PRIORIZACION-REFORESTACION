@@ -10,7 +10,7 @@ Este paquete trae todo lo necesario para instalar la herramienta en `sedema.sia.
 |---|---|---|
 | `sitio/` | La herramienta: sitio estático (HTML, CSS, JavaScript y sus archivos de datos: los del modelo, el fondo «Calles» y el inventario de arbolado). `VERSION.txt` dice cuántos archivos trae y si incluye la clave del satélite de Esri; sin ella, el satélite funciona por ahora sin clave. Ya trae la sesión configurada | Servidor web, en la subruta `/priorizacion-reforestacion/` |
 | `MANIFIESTO.sha256` | Suma SHA-256 de **cada archivo del paquete** (salvo él mismo), para comprobar que llegó y se copió completo | — |
-| `login/acceso/` | Pantalla de acceso, cambio de contraseña, panel de administración, «Mi perfil» y aviso de privacidad (estáticos) | Servidor web, en `/priorizacion-reforestacion/acceso/` |
+| `login/acceso/` | Pantalla de acceso, cambio de contraseña, panel de administración y aviso de privacidad (estáticos) | Servidor web, en `/priorizacion-reforestacion/acceso/` |
 | `login/backend/` | Con la misma estructura que el repositorio `sia-backend`: el módulo en TypeScript (`src/modulos/priorizacion-reforestacion/`), su SQL (`db/priorizacion_reforestacion/`) y la herramienta de la primera cuenta (`herramientas/priorizacion-reforestacion/`) | Repositorio `sia-backend`, en las mismas rutas |
 | `capas_geoserver/` | Tres capas en GeoPackage (frentes de manzana, vialidades primarias y colonias) con sus estilos | GeoServer (o PostGIS) |
 | `documentos/` | Guía de instalación, ejemplo de nginx, lista de verificación, descripción del inicio de sesión y contrato de datos (formato de los archivos y propuesta del inventario en PostGIS) | — |

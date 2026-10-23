@@ -22,10 +22,14 @@ const TIPOS = { '.html': 'text/html; charset=utf-8', '.js': 'application/javascr
 // modo: normal | sesion401 (datos y librerías responden 401) | login200 (responden la página de inicio de sesión con 200) | descomprime (los .bin llegan ya descomprimidos)
 //       | sesion (config.js con las direcciones de la sesión, como el paquete del SIA: «Mi cuenta»)
 const SESION_SIA = { inicio: PRE + 'acceso/', cierre: PRE + 'api/salir', uso: PRE + 'api/uso' };
+const YO_SIMULADO = { nombre: 'Ana Laura Pérez de la Cruz', correo: 'ana.perez@ejemplo.gob.mx', area: 'Dirección de Medio Ambiente', cargo: 'Subdirección', institucion: 'Alcaldía',
+  alcaldia: 'Álvaro Obregón', alcaldia_cve: '010', entidad: null, rol: 'admin', debe_cambiar: false };
 function servidor(modo) { const pedidas = [];
   const s = http.createServer((req, res) => { const u = req.url.split('?')[0]; pedidas.push(req.url);
     if (u === PRE.slice(0, -1)) { res.writeHead(301, { Location: PRE + (req.url.includes('?') ? '?' + req.url.split('?')[1] : '') }); return res.end(); }   // como la regla del ejemplo: redirección relativa
     if (!u.startsWith(PRE)) { res.writeHead(404); return res.end(); }
+    // quién es (lo que responde /yo del módulo de sesión): para «Mi cuenta» y la ventana «Mi perfil»
+    if (modo === 'sesion' && u === PRE + 'api/yo') { res.writeHead(200, { 'Content-Type': 'application/json' }); return res.end(JSON.stringify(YO_SIMULADO)); }
     const rel = decodeURIComponent(u.slice(PRE.length)) || 'index.html'; const ruta = path.join(L.DOCS, rel);
     if (!ruta.startsWith(L.DOCS) || !fs.existsSync(ruta) || fs.statSync(ruta).isDirectory()) { res.writeHead(404); return res.end(); }
     const protegido = /\.bin$|libs\/(xlsx|jspdf)\.js$/.test(rel);
@@ -34,7 +38,7 @@ function servidor(modo) { const pedidas = [];
     const v = new URLSearchParams(req.url.split('?')[1] || '').get('v');
     const cab = { 'Content-Type': TIPOS[path.extname(ruta)] || 'application/octet-stream', 'Content-Security-Policy': CSP, 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Cache-Control': cacheDe(PRE + rel, v) };
     if (modo === 'descomprime' && rel.endsWith('.bin')) { res.writeHead(200, cab); return res.end(zlib.gunzipSync(fs.readFileSync(ruta))); }
-    if (modo === 'sesion' && rel === 'config.js') { res.writeHead(200, cab); return res.end(fs.readFileSync(ruta, 'utf8').replace(/window\.SIA_SESION = \{[^;]*\};/, 'window.SIA_SESION = ' + JSON.stringify(SESION_SIA) + ';')); }
+    if ((modo === 'sesion' || modo === 'sesionSinYo') && rel === 'config.js') { res.writeHead(200, cab); return res.end(fs.readFileSync(ruta, 'utf8').replace(/window\.SIA_SESION = \{[^;]*\};/, 'window.SIA_SESION = ' + JSON.stringify(SESION_SIA) + ';')); }
     res.writeHead(200, cab); fs.createReadStream(ruta).pipe(res); });
   return new Promise(r => s.listen(0, () => { s.url = `http://localhost:${s.address().port}`; s.pedidas = pedidas; r(s); })); }
 // Fase 2 (inicio de sesión): los bloques location del ejemplo de nginx (van comentados) y cuál atiende cada dirección,
@@ -168,15 +172,19 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
   { const srv = await servidor('sesion'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero&a=010');
     const est = p => p.evaluate(() => { const b = document.getElementById('cuenta-btn'), m = document.getElementById('cuenta-menu'), r = b.getBoundingClientRect(), u = m.getBoundingClientRect();
       return { vis: !document.getElementById('cuenta').hidden && r.width > 0, exp: b.getAttribute('aria-expanded'), ctrl: b.getAttribute('aria-controls'), abierto: !m.hidden, foco: document.activeElement === b, nombre: b.getAttribute('aria-label'), txt: b.innerText.trim(),
-        alto: Math.round(r.height), ancho: Math.round(r.width), texto: getComputedStyle(b.querySelector('span')).display !== 'none', dentro: m.hidden || (u.left >= 0 && u.right <= innerWidth + 0.5),
-        enlaces: [...m.querySelectorAll('a')].map(a => [a.textContent, a.getAttribute('href'), Math.round(a.getBoundingClientRect().height)]) }; });
+        alto: Math.round(r.height), ancho: Math.round(r.width), texto: getComputedStyle(b.querySelector('.cuenta-nom')).display !== 'none', dentro: m.hidden || (u.left >= 0 && u.right <= innerWidth + 0.5),
+        ini: (() => { const i = document.getElementById('cuenta-ini'); return i.hidden ? '' : i.textContent; })(), fondoIni: getComputedStyle(document.getElementById('cuenta-ini')).backgroundColor,
+        enlaces: [...m.querySelectorAll('li:not([hidden]) > a, li:not([hidden]) > button')].map(a => [a.textContent, a.getAttribute('href'), Math.round(a.getBoundingClientRect().height)]) }; });
+    await page.waitForFunction(() => !document.getElementById('cuenta-ini').hidden, null, { timeout: 5000 }).catch(() => {});
     let e = await est(page);
-    ok('con sesión, el encabezado muestra «Mi cuenta» (ícono y texto), cerrado, con aria-expanded y aria-controls', e.vis && e.txt === 'Mi cuenta' && e.nombre === 'Mi cuenta' && e.exp === 'false' && e.ctrl === 'cuenta-menu' && !e.abierto, JSON.stringify(e));
+    ok('con sesión, «Mi cuenta» se distingue de «Cómo funciona»: círculo guinda con las iniciales y el nombre corto; cerrado, con aria-expanded y aria-controls (v1.50)',
+      e.vis && e.ini === 'AL' && /rgb\(157, 33, 72\)/.test(e.fondoIni) && e.txt.replace(/\s+/g, ' ') === 'AL Ana' && e.nombre === 'Mi cuenta · Ana Laura Pérez de la Cruz' && e.exp === 'false' && e.ctrl === 'cuenta-menu' && !e.abierto, JSON.stringify(e));
     await page.click('#cuenta-btn'); await page.waitForTimeout(150); e = await est(page);
     const volver = encodeURIComponent(PRE + '?modo=ligero&a=010');
-    ok('al abrirlo: «Mi perfil» (acceso/perfil/ con la consulta para volver, v1.49), «Cambiar contraseña» (pantalla de acceso con ?cambiar=1 y la consulta para volver) y «Cerrar sesión» (api/salir), dentro de la pantalla', e.abierto && e.exp === 'true' && e.dentro && e.enlaces.length === 3
-      && e.enlaces[0][0] === 'Mi perfil' && e.enlaces[0][1] === `${PRE}acceso/perfil/?volver=${volver}`
-      && e.enlaces[1][0] === 'Cambiar contraseña' && e.enlaces[1][1] === `${PRE}acceso/?cambiar=1&volver=${volver}` && e.enlaces[2][0] === 'Cerrar sesión' && e.enlaces[2][1] === PRE + 'api/salir', JSON.stringify(e.enlaces));
+    ok('al abrirlo: «Mi perfil» (abre una ventana), «Cambiar contraseña» (pantalla de acceso con ?cambiar=1 y la consulta para volver), «Administración» (con ese permiso) y «Cerrar sesión» (api/salir), dentro de la pantalla', e.abierto && e.exp === 'true' && e.dentro && e.enlaces.length === 4
+      && e.enlaces[0][0] === 'Mi perfil' && e.enlaces[0][1] === null
+      && e.enlaces[1][0] === 'Cambiar contraseña' && e.enlaces[1][1] === `${PRE}acceso/?cambiar=1&volver=${volver}` && e.enlaces[2][0] === 'Administración' && e.enlaces[2][1] === PRE + 'acceso/admin/'
+      && e.enlaces[3][0] === 'Cerrar sesión' && e.enlaces[3][1] === PRE + 'api/salir', JSON.stringify(e.enlaces));
     await page.keyboard.press('Escape'); await page.waitForTimeout(150); e = await est(page);
     ok('Esc cierra el menú y regresa el foco al botón', !e.abierto && e.exp === 'false' && e.foco);
     await page.keyboard.press('Enter'); await page.waitForTimeout(150); const conTeclado = (await est(page)).abierto; await page.keyboard.press('Tab');
@@ -185,15 +193,35 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     // la dirección de regreso sigue a la consulta del momento
     await L.elegir(page, 'iztapalapa'); await page.click('#cuenta-btn'); await page.waitForTimeout(150); e = await est(page);
     const ahora = new URL(page.url()).pathname + new URL(page.url()).search;
-    ok('el regreso de «Mi perfil» y de «Cambiar contraseña» es la consulta del momento', [0, 1].every(i => new URLSearchParams(e.enlaces[i][1].split('?')[1]).get('volver') === ahora), e.enlaces[0][1] + ' · ' + e.enlaces[1][1]);
+    ok('el regreso de «Cambiar contraseña» es la consulta del momento', new URLSearchParams(e.enlaces[1][1].split('?')[1]).get('volver') === ahora, e.enlaces[1][1]);
+    // ventana «Mi perfil»: los datos de la cuenta, sin repetir «Cambiar contraseña»; Esc la cierra y el foco vuelve a «Mi cuenta»
+    await page.click('#cuenta-perfil'); await page.waitForTimeout(150);
+    const pf = await page.evaluate(() => { const m = document.getElementById('perfil-modal'), r = m.querySelector('.modal-card').getBoundingClientRect();
+      return { abierta: !m.hidden, menu: !document.getElementById('cuenta-menu').hidden, titulo: document.getElementById('perfil-nombre').textContent, correo: document.getElementById('perfil-correo').textContent,
+        ini: document.getElementById('perfil-ini').textContent, datos: [...m.querySelectorAll('dt')].map(dt => dt.textContent + ': ' + dt.nextElementSibling.textContent),
+        texto: m.innerText, foco: document.activeElement && document.activeElement.id, inerte: document.querySelector('.app').inert, dentro: r.left >= 0 && r.right <= innerWidth + 0.5 }; });
+    ok('«Mi perfil» abre una ventana con nombre, correo, iniciales, área, cargo, institución, alcaldía y permiso; sin «Cambiar contraseña» repetido; el resto queda inerte',
+      pf.abierta && !pf.menu && pf.titulo === 'Ana Laura Pérez de la Cruz' && pf.correo === 'ana.perez@ejemplo.gob.mx' && pf.ini === 'AL' && pf.foco === 'perfil-close' && pf.inerte && pf.dentro
+      && pf.datos.join('|') === 'Área: Dirección de Medio Ambiente|Cargo: Subdirección|Institución: Alcaldía|Alcaldía: Álvaro Obregón|Permiso: Administración: consulta y administra cuentas'
+      && !/contraseña/i.test(pf.texto), JSON.stringify(pf));
+    await page.keyboard.press('Escape'); await page.waitForTimeout(150);
+    const pf2 = await page.evaluate(() => ({ cerrada: document.getElementById('perfil-modal').hidden, foco: document.activeElement && document.activeElement.id, inerte: document.querySelector('.app').inert }));
+    ok('Esc cierra «Mi perfil», el foco vuelve a «Mi cuenta» y la página deja de estar inerte', pf2.cerrada && pf2.foco === 'cuenta-btn' && !pf2.inerte, JSON.stringify(pf2));
     const v = await page.evaluate(() => window.__csp);
     ok('«Mi cuenta» funciona sin violaciones de la política de seguridad de contenido', v.length === 0, v.slice(0, 3).join(' | '));
     await ctx.close();
     const ctxM = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'es-MX', serviceWorkers: 'block' }); await L.sinEntrada(ctxM);
     const pm = await ctxM.newPage(); pm.on('pageerror', x => errores.push(x.message)); await pm.goto(srv.url + PRE + '?modo=ligero&a=010'); await pm.waitForSelector('#loader[hidden]', { state: 'attached' }); await pm.waitForTimeout(500);
     await pm.tap('#cuenta-btn'); await pm.waitForTimeout(200); const m = await est(pm), des = await pm.evaluate(() => document.documentElement.scrollWidth - innerWidth);
-    ok('celular de 390 px: solo el ícono, de 44 px, con nombre accesible; el menú cabe en la pantalla y sus opciones miden 44 px', m.alto >= 44 && m.ancho >= 44 && !m.texto && m.nombre === 'Mi cuenta' && m.abierto && m.dentro && m.enlaces.every(x => x[2] >= 44) && des <= 0, JSON.stringify(m));
+    ok('celular de 390 px: solo el círculo de las iniciales, de 44 px, con nombre accesible; el menú cabe en la pantalla y sus opciones miden 44 px', m.alto >= 44 && m.ancho >= 44 && !m.texto && m.ini === 'AL' && m.nombre === 'Mi cuenta · Ana Laura Pérez de la Cruz' && m.abierto && m.dentro && m.enlaces.every(x => x[2] >= 44) && des <= 0, JSON.stringify(m));
     await ctxM.close(); srv.close(); }
+  { // si /yo no responde (módulo anterior, red): «Mi cuenta» queda con el ícono y la ventana lo dice, sin errores
+    const srv = await servidor('sesionSinYo'); const { page, ctx } = await abre(srv, PRE + '?modo=ligero&a=010'); await page.waitForTimeout(800);
+    const s0 = await page.evaluate(() => ({ txt: document.getElementById('cuenta-btn').innerText.trim(), ini: document.getElementById('cuenta-ini').hidden, admin: document.getElementById('cuenta-admin-li').hidden }));
+    await page.click('#cuenta-btn'); await page.waitForTimeout(150); await page.click('#cuenta-perfil'); await page.waitForTimeout(150);
+    const nota = await page.$eval('#perfil-nota', n => n.textContent);
+    ok('sin respuesta de /yo: «Mi cuenta» con su ícono, sin «Administración», y «Mi perfil» avisa que no pudo leer los datos', s0.txt === 'Mi cuenta' && s0.ini && s0.admin && /No fue posible leer/.test(nota), JSON.stringify(s0) + ' · ' + nota);
+    await ctx.close(); srv.close(); }
 
   // ---------- 2) sesión vencida ----------
   for (const [modo, nombre] of [['sesion401', 'el servidor responde 401'], ['login200', 'el servidor responde la página de inicio de sesión']]) {

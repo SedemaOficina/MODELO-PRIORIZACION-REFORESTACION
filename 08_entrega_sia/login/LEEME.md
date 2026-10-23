@@ -28,14 +28,14 @@ Todo queda bajo `/priorizacion-reforestacion/`: la cookie de sesión lleva `Path
 | `backend/src/modulos/priorizacion-reforestacion/` | El módulo, en TypeScript y con la misma forma que los demás: `rutas.ts` exporta `crearRutasPriorizacionReforestacion(pool)`. Además `contrasenas.ts` (huellas scrypt), `masiva.ts` (alta masiva desde CSV) y `alcaldias.ts`. La IP de origen la toma de `ipDeOrigen(req)` de `src/comun/procedencia.ts` de `sia-backend` (no viene en el paquete). No agrega dependencias: usa `express` y `pg`, que el backend ya tiene |
 | `backend/db/priorizacion_reforestacion/` | `01-…-esquema.sql` (tablas, restricciones y depuración por plazos) y `02-…-rol-y-grants.sql` (rol `priorizacion_reforestacion_api` con mínimo privilegio, controles negativos y línea de `pg_hba`) |
 | `backend/herramientas/priorizacion-reforestacion/primera-cuenta.ts` | Genera el SQL de la primera cuenta de administración. No se conecta a nada |
-| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), «Mi perfil» (`perfil/`: los datos de la cuenta, solo para ver), aviso de privacidad (`aviso-de-privacidad.html`), página «sin servicio» para cuando el módulo no responde (`sin-servicio.html`) y sus recursos (estáticos, los sirve nginx) |
+| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`), página «sin servicio» para cuando el módulo no responde (`sin-servicio.html`) y sus recursos (estáticos, los sirve nginx) |
 <!-- solo-repositorio -->
 
 Solo en el repositorio (no van en el paquete del SIA):
 
 | Carpeta | Qué es |
 |---|---|
-| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales), el catálogo, el área y el cargo, la pertenencia de cada cuenta y «Mi perfil» (`catalogos.test.mjs`), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
+| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales), el catálogo, el área y el cargo, la pertenencia de cada cuenta y lo que da `/yo` para «Mi perfil» (`catalogos.test.mjs`), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
 | `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración, con el mismo criterio que el del SIA (`SIA_PROXIES_CONFIABLES`). En `sia-backend` se usa el archivo propio del SIA |
 | `backend/scripts/servidor_demo.mjs`, `datos_demo.mjs` | Demostración en una sola máquina y datos simulados para ver el panel lleno |
 | `backend/package.json`, `tsconfig.check.json` | Para correr las pruebas y la revisión de tipos (la misma configuración que `sia-backend`) |
@@ -164,7 +164,7 @@ Para ver el registro de usos desde la herramienta, esta debe estar construida co
 
 Cuando las alcaldías designen a sus enlaces por oficio, las cuentas se dan de alta todas juntas desde un CSV. Puede guardarse desde Excel, con coma o punto y coma, en UTF-8 o en la codificación de Excel en español.
 
-**Desde el panel** (pestaña «Personas» → «Alta masiva desde CSV»), sin terminal:
+**Desde el panel** (pestaña «Personas» → botón «Alta masiva desde CSV», que abre su ventana), sin terminal:
 1. «Descargar plantilla» da las columnas correctas.
 2. «Revisar el archivo» señala los errores por renglón y no da de alta a nadie.
 3. «Dar de alta N cuentas» crea las cuentas nuevas; las que ya existen no se tocan. El panel envía el archivo en partes de 50 personas y muestra el avance («Dando de alta… 50 de 230»). El servidor admite hasta 100 por petición.
@@ -188,12 +188,13 @@ luis.perez@cdmx.gob.mx,Luis Pérez,Dirección General de Servicios Urbanos y Sus
 
 - **Altas** (una por una, o muchas con «Alta masiva desde CSV»):
   - Desde el panel (`/priorizacion-reforestacion/acceso/admin/`, solo cuentas con permiso de administración).
-  - Se piden correo, nombre, área, cargo, institución y, según la institución, la alcaldía o la dependencia, organización o empresa del catálogo. El panel muestra una contraseña temporal **una sola vez**.
+  - El botón «Agregar cuenta» abre una ventana en cuatro partes: persona (nombre y correo), puesto (área y cargo), institución (tipo y, según el tipo, la alcaldía o la dependencia, organización o empresa del catálogo) y permiso (Consulta o Administración, con lo que permite cada uno).
+  - Al dar de alta, otra ventana muestra la contraseña temporal **una sola vez**, con el botón «Copiar».
   - Compártela por un medio institucional y por separado del correo.
-- **Cambios de datos:** «Editar» en la lista de cuentas usa el mismo formulario; el correo no cambia. Al pasar una cuenta de alcaldía a otra institución se le quita la alcaldía, y al revés, la dependencia. Las cuentas anteriores a la versión 1.49 aparecen con «Sin capturar» en área y cargo hasta que se editen.
+- **Cambios de datos:** «Editar» en cada renglón abre la misma ventana; el correo no cambia. Lo demás («Restablecer contraseña», dar o quitar administración, «Dar de baja» o «Reactivar») está en el menú «⋯» del renglón. Al pasar una cuenta de alcaldía a otra institución se le quita la alcaldía, y al revés, la dependencia. Las cuentas anteriores a la versión 1.49 aparecen con «Sin capturar» en área y cargo hasta que se editen.
 - **Lista de cuentas:** se filtra por institución, por alcaldía, dependencia u organización, por permiso y por estado, y se busca por nombre, correo, área o cargo. Un clic en el encabezado de una columna la ordena; otro clic invierte el orden.
 - **Catálogos** (pestaña «Catálogos»): dependencias del Gobierno Central (de arranque: SEDEMA, SOBSE y PAOT), organizaciones de la sociedad civil, empresas privadas y otras instituciones. Se agregan, se renombran y se desactivan; no se borran. Una entrada desactivada deja de ofrecerse en las altas, pero las cuentas que ya la tienen la conservan. No puede haber dos entradas del mismo tipo con el mismo nombre (sin importar mayúsculas ni acentos). Las 16 alcaldías y los tipos de institución son fijos.
-- **«Mi perfil»:** cada persona ve sus datos desde «Mi cuenta» en la herramienta (o en `/priorizacion-reforestacion/acceso/perfil/`): nombre, correo, área, cargo, institución, alcaldía o dependencia y permiso. Solo para ver; los cambios los hace quien administra.
+- **«Mi cuenta» y «Mi perfil»:** en la herramienta, «Mi cuenta» muestra un círculo con las iniciales y el nombre corto de la persona. Su menú trae «Mi perfil», «Cambiar contraseña», «Administración» (solo con ese permiso) y «Cerrar sesión». «Mi perfil» abre una ventana con nombre, correo, área, cargo, institución, alcaldía o dependencia y permiso. Es solo para ver: los cambios los hace quien administra.
 - **Bajas:** «Dar de baja» cierra las sesiones de la persona al instante; la cuenta puede reactivarse.
 - **Contraseña olvidada:** «Restablecer contraseña» genera otra temporal y cierra sus sesiones.
 - **La contraseña temporal** solo sirve para que la persona cree la suya: con ella no se entra a la herramienta ni al panel, ni se registran usos. **Vence a las 72 horas** de darse; si vence, el panel dice «Contraseña temporal vencida: restablécela» y se restablece. La nueva no puede ser igual a la temporal.

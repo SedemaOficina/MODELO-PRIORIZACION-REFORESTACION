@@ -121,7 +121,7 @@ function renderActions(){
 $('act-main').onclick = ()=>{ const t=$('act-main').dataset.target; if(t) $(t).click(); };
 $('act-ficha').onclick = ()=>{ const t=$('act-ficha').dataset.target; if(t) $(t).click(); };
 // «Mi cuenta»: solo aparece si la instalación define el cierre de sesión. Abre un menú pequeño (botón con aria-expanded; Esc lo cierra y
-// regresa el foco al botón; un clic fuera o salir con el tabulador lo cierra) con «Mi perfil» (acceso/perfil/: los datos de la cuenta, solo
+// regresa el foco al botón; un clic fuera o salir con el tabulador lo cierra) con «Mi perfil» (una ventana con los datos de la cuenta, solo
 // para ver), «Cambiar contraseña» (la pantalla de acceso con ?cambiar=1,
 // que con la sesión abierta pide la actual y la nueva y, al terminar, regresa a esta misma consulta: volver=…) y «Cerrar sesión».
 // cuentaMenu(true|false) abre o cierra el menú desde fuera: el recorrido guiado lo abre en su paso «Mi cuenta» (17_recorrido.js).
@@ -129,17 +129,43 @@ let cuentaMenu = ()=>{};
 if (SESION.cierre){ const c = $('cuenta'), b = $('cuenta-btn'), m = $('cuenta-menu'), clave = $('cuenta-clave');
   $('cuenta-salir').href = SESION.cierre;
   const perfil = $('cuenta-perfil');
-  if (!SESION.inicio){ clave.parentElement.remove(); perfil.parentElement.remove(); }
+  if (!SESION.inicio){ clave.parentElement.remove(); perfil.parentElement.remove(); $('cuenta-admin-li').remove(); }
   // volver va al final: la pantalla de acceso toma como dirección de regreso todo lo que sigue a «volver=»
   const claveHref = ()=> SESION.inicio + (SESION.inicio.includes('?')? '&' : '?') + 'cambiar=1&volver=' + encodeURIComponent(location.pathname + location.search);
-  const perfilHref = ()=> SESION.inicio.split('?')[0].replace(/\/?$/, '/') + 'perfil/?volver=' + encodeURIComponent(location.pathname + location.search);
-  const abre = si => { m.hidden = !si; b.setAttribute('aria-expanded', String(si)); if (si && SESION.inicio){ clave.href = claveHref(); perfil.href = perfilHref(); } };
+  const abre = si => { m.hidden = !si; b.setAttribute('aria-expanded', String(si)); if (si && SESION.inicio) clave.href = claveHref(); };
   b.onclick = ()=> abre(m.hidden); cuentaMenu = abre;
   document.addEventListener('keydown', e=>{ if (e.key==='Escape' && !m.hidden){ e.stopPropagation(); abre(false); if (!document.body.classList.contains('recorrido')) b.focus(); } }, true);
   // un toque en el globo del recorrido no lo cierra: el recorrido lo cierra al cambiar de paso
   document.addEventListener('pointerdown', e=>{ if (!m.hidden && !c.contains(e.target) && !(e.target.closest && e.target.closest('.rec-globo'))) abre(false); }, true);
   c.addEventListener('focusout', e=>{ if (!m.hidden && e.relatedTarget && !c.contains(e.relatedTarget)) abre(false); });
-  c.hidden = false; document.body.classList.add('con-sesion'); }
+  c.hidden = false; document.body.classList.add('con-sesion');
+  // quién es: iniciales y nombre corto en el botón, la ventana «Mi perfil» y «Administración» si tiene ese permiso.
+  // Si no se puede leer (servidor sin /yo, red), el botón queda con el ícono y «Mi cuenta», y la ventana lo dice.
+  let YO = null;
+  const ETQ_PERTENENCIA = { 'Alcaldía':'Alcaldía', 'Gobierno Central':'Dependencia', 'Organización de la sociedad civil':'Organización', 'Privado':'Empresa', 'Otra':'Institución' };
+  const iniciales = n => { const p = String(n||'').trim().split(/\s+/).filter(x=> !/^(de|del|la|las|los|y)$/i.test(x)); return ((p[0]||'')[0]||'' ) + ((p[1]||'')[0]||''); };
+  if (SESION.inicio && USO_URL) fetch(USO_URL.replace(/uso$/, 'yo'), {credentials:'same-origin', cache:'no-store'}).then(r=> r.ok? r.json() : null).then(d=>{ if (!d || !d.nombre) return;
+    YO = d; const ini = iniciales(d.nombre).toUpperCase();
+    if (ini){ $('cuenta-ini').textContent = ini; $('cuenta-ini').hidden = false; b.classList.add('con-iniciales'); }
+    $('cuenta-nom').textContent = String(d.nombre).trim().split(/\s+/)[0]; b.setAttribute('aria-label', 'Mi cuenta · ' + d.nombre);
+    if (d.rol === 'admin'){ $('cuenta-admin').href = SESION.inicio.split('?')[0].replace(/\/?$/, '/') + 'admin/'; $('cuenta-admin-li').hidden = false; }
+  }).catch(()=>{});
+  // ventana «Mi perfil»: como la de ayuda, deja el resto inerte; se cierra con ×, «Cerrar», Esc o tocando fuera, y el foco vuelve a «Mi cuenta»
+  const pm = $('perfil-modal');
+  const pintaPerfil = () => { const dl = $('perfil-datos'); dl.textContent = '';
+    if (!YO){ $('perfil-nombre').textContent = 'Mi perfil'; $('perfil-correo').textContent = ''; $('perfil-ini').hidden = true;
+      $('perfil-nota').textContent = 'No fue posible leer los datos de tu cuenta. Revisa tu conexión e inténtalo de nuevo.'; return; }
+    $('perfil-ini').textContent = iniciales(YO.nombre).toUpperCase(); $('perfil-ini').hidden = false;
+    $('perfil-nombre').textContent = YO.nombre; $('perfil-correo').textContent = YO.correo;
+    $('perfil-nota').textContent = 'Si algún dato no es correcto, pide a quien administra la herramienta que lo corrija.';
+    [['Área', YO.area], ['Cargo', YO.cargo], ['Institución', YO.institucion], [ETQ_PERTENENCIA[YO.institucion] || 'Alcaldía o dependencia', YO.alcaldia || YO.entidad],
+      ['Permiso', YO.rol === 'admin'? 'Administración: consulta y administra cuentas' : 'Consulta']].forEach(([k, v])=>{
+      const dt = document.createElement('dt'), dd = document.createElement('dd'); dt.textContent = k; dd.textContent = v || 'Sin capturar'; if (!v) dd.className = 'falta'; dl.append(dt, dd); }); };
+  const cierraPerfil = ()=>{ pm.hidden = true; inerte(false); b.focus(); };
+  perfil.onclick = ()=>{ abre(false); pintaPerfil(); pm.hidden = false; inerte(true); $('perfil-close').focus(); };
+  $('perfil-close').onclick = cierraPerfil; $('perfil-ok').onclick = cierraPerfil;
+  pm.addEventListener('click', e=>{ if (e.target===pm) cierraPerfil(); });
+  pm.addEventListener('keydown', e=>{ if (e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); cierraPerfil(); } }); }
 // ---------- títulos de lista: la palabra de lo que se consulta (Colonias, Calles, Avenidas, Tramos, Alcaldías) va destacada ----------
 const UNIDAD_RX = /(Colonias|Calles|Avenidas|Tramos|Alcaldías|calles)/;
 function resaltaUnidad(el){ if (!el || el.querySelector('b.unidad')) return; const t = el.textContent, m = t.match(UNIDAD_RX); if (!m) return;

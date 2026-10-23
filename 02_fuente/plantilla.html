@@ -10,12 +10,14 @@
   <aside class="panel">
     <div class="panel-head">
       <img class="logo" src="img/logo_institucional.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Sistema de Información Ambiental de la Ciudad de México · Reforestación Urbana">
-      <!-- «Mi cuenta» (js/13_interfaz.js): solo con sesión; abre un menú con «Mi perfil», «Cambiar contraseña» y «Cerrar sesión» -->
+      <!-- «Mi cuenta» (js/13_interfaz.js): solo con sesión; círculo con las iniciales y el nombre corto; abre un menú con «Mi perfil» (ventana),
+           «Cambiar contraseña», «Administración» (solo con ese permiso) y «Cerrar sesión» -->
       <div class="cuenta" id="cuenta" hidden>
-        <button type="button" class="cuenta-btn" id="cuenta-btn" aria-label="Mi cuenta" aria-expanded="false" aria-controls="cuenta-menu"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span>Mi cuenta</span><svg class="flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
+        <button type="button" class="cuenta-btn" id="cuenta-btn" aria-label="Mi cuenta" aria-expanded="false" aria-controls="cuenta-menu"><svg class="persona" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg><span class="cuenta-ini" id="cuenta-ini" aria-hidden="true" hidden></span><span class="cuenta-nom" id="cuenta-nom">Mi cuenta</span><svg class="flecha" viewBox="0 0 24 24" aria-hidden="true"><path d="m7 10 5 5 5-5"/></svg></button>
         <ul class="cuenta-menu" id="cuenta-menu" hidden>
-          <li><a id="cuenta-perfil" href="#">Mi perfil</a></li>
+          <li><button type="button" id="cuenta-perfil" aria-haspopup="dialog">Mi perfil</button></li>
           <li><a id="cuenta-clave" href="#">Cambiar contraseña</a></li>
+          <li id="cuenta-admin-li" hidden><a id="cuenta-admin" href="#">Administración</a></li>
           <li><a id="cuenta-salir" href="#">Cerrar sesión</a></li>
         </ul>
       </div>
@@ -262,6 +264,18 @@
       <button type="button" class="btn entrada-cdmx" id="entrada-cdmx">Ver toda la ciudad</button>
     </div>
     <p class="note">La herramienta recuerda en este navegador tu última consulta. Puedes cambiar lo que consultas o la alcaldía en cualquier momento.</p>
+  </div>
+</div>
+
+<!-- ===== Ventana «Mi perfil» (js/13_interfaz.js): los datos de la cuenta, solo para ver; solo con sesión ===== -->
+<div class="modal" id="perfil-modal" hidden role="dialog" aria-modal="true" aria-labelledby="perfil-nombre">
+  <div class="modal-card perfil-card">
+    <button class="close" id="perfil-close" aria-label="Cerrar">×</button>
+    <div class="perfil-cab"><span class="perfil-ini" id="perfil-ini" aria-hidden="true"></span>
+      <div><div class="eyebrow">Mi perfil</div><h2 id="perfil-nombre">Mi perfil</h2><p class="perfil-correo" id="perfil-correo"></p></div></div>
+    <dl class="perfil-datos" id="perfil-datos"></dl>
+    <p class="perfil-nota" id="perfil-nota">Si algún dato no es correcto, pide a quien administra la herramienta que lo corrija.</p>
+    <div class="perfil-pie"><button type="button" class="btn" id="perfil-ok">Cerrar</button></div>
   </div>
 </div>
 
