@@ -16,20 +16,31 @@ const datos = await import('../scripts/datos_demo.mjs');
 const RAIZ = path.join(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 test('alta masiva: lee el CSV de Excel (punto y coma, BOM, comillas), revisa cada renglón y da de alta', async () => {
-  const csv = '﻿correo;nombre;institucion;alcaldia;rol\r\n' +
-    'Enlace@Azcapotzalco.cdmx.gob.mx;"García, Ana";Alcaldía;Azcapotzalco;usuario\r\n' +
-    'vial@cdmx.gob.mx;Luis Pérez;Gobierno Central;;consulta\r\n' +
-    'sia@sedema.cdmx.gob.mx;Admin SIA;SEDEMA;;admin\r\n' +
-    'malo-sin-arroba;X;Alcaldía;Narnia;jefe\r\n' +
-    'enlace@azcapotzalco.cdmx.gob.mx;Repetido;Alcaldía;002;usuario\r\n' +
-    'sinalcaldia@x.mx;Sin Alcaldía;Alcaldía;;usuario\r\n';
-  const { ok, errores } = revisa(leeCsv(csv));
-  assert.equal(ok.length, 3); assert.equal(errores.length, 3);
-  assert.equal(ok[0].correo, 'enlace@azcapotzalco.cdmx.gob.mx'); assert.equal(ok[0].nombre, 'García, Ana'); assert.equal(ok[0].alcaldia_cve, '002');
-  assert.equal(ok[1].rol, 'usuario'); assert.equal(ok[2].rol, 'admin');
+  const csv = '﻿correo;nombre;área;cargo;institucion;alcaldia;dependencia_u_organizacion;rol\r\n' +
+    'Enlace@Azcapotzalco.cdmx.gob.mx;"García, Ana";Dirección de Medio Ambiente;Enlace;Alcaldía;Azcapotzalco;;usuario\r\n' +
+    'vial@cdmx.gob.mx;Luis Pérez;Servicios Urbanos;Subdirección;Gobierno Central;;sobse;consulta\r\n' +
+    'sia@sedema.cdmx.gob.mx;Admin SIA;SIA;Coordinación;SEDEMA;;;admin\r\n' +
+    'malo-sin-arroba;X;A;C;Alcaldía;Narnia;;jefe\r\n' +
+    'enlace@azcapotzalco.cdmx.gob.mx;Repetido;A;C;Alcaldía;002;;usuario\r\n' +
+    'sinalcaldia@x.mx;Sin Alcaldía;A;C;Alcaldía;;;usuario\r\n' +
+    'sinarea@x.mx;Sin Área;;Enlace;Alcaldía;Tlalpan;;usuario\r\n' +
+    'osc@x.mx;Org;Proyectos;Coordinación;Organización de la sociedad civil;;No Existe A.C.;usuario\r\n' +
+    'mezcla@x.mx;Mezcla;A;C;Alcaldía;Tlalpan;SOBSE;usuario\r\n';
+  const pool = baseEnMemoria();
+  const cat = (await pool.query('SELECT id, tipo, nombre, activo FROM priorizacion_reforestacion.catalogo_entidades')).rows;
+  assert.deepEqual(cat.map(c => c.nombre).sort(), ['PAOT', 'SEDEMA', 'SOBSE'], 'el esquema trae las tres dependencias de arranque');
+  const id = n => cat.find(c => c.nombre === n).id;
+  const { ok, errores } = revisa(leeCsv(csv), cat);
+  assert.equal(ok.length, 3); assert.equal(errores.length, 6);
+  assert.equal(ok[0].correo, 'enlace@azcapotzalco.cdmx.gob.mx'); assert.equal(ok[0].nombre, 'García, Ana'); assert.equal(ok[0].alcaldia_cve, '002'); assert.equal(ok[0].area, 'Dirección de Medio Ambiente', 'la columna «área» con acento también vale');
+  assert.equal(ok[1].rol, 'usuario'); assert.equal(ok[1].entidad_id, id('SOBSE'), 'la dependencia se reconoce sin importar mayúsculas'); assert.equal(ok[1].alcaldia_cve, null);
+  assert.equal(ok[2].rol, 'admin'); assert.equal(ok[2].institucion, 'Gobierno Central'); assert.equal(ok[2].entidad_id, id('SEDEMA'), '«SEDEMA» como institución (plantilla anterior) es Gobierno Central · SEDEMA');
   assert.match(errores[0], /^Renglón 5 .*correo no válido.*alcaldía «Narnia».*rol «jefe»/);
   assert.match(errores[1], /^Renglón 6 .*repetido/); assert.match(errores[2], /^Renglón 7 .*necesita su alcaldía/);
-  const pool = baseEnMemoria();
+  assert.match(errores[3], /^Renglón 8 .*falta el área/); assert.match(errores[4], /^Renglón 9 .*no está en el catálogo de Organización de la sociedad civil/);
+  assert.match(errores[5], /^Renglón 10 .*no lleva dependencia/);
+  const inactivo = revisa(leeCsv('correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\na@x.mx,A,A,C,Gobierno Central,,PAOT,usuario\n'), cat.map(c => ({ ...c, activo: c.nombre !== 'PAOT' })));
+  assert.match(inactivo.errores[0] || '', /no está en el catálogo/, 'una entrada desactivada no se ofrece en las altas');
   const r = await aplica(pool, ok); assert.equal(r.hechas.length, 3); assert.equal(r.existentes.length, 0);
   const u = (await pool.query("SELECT * FROM priorizacion_reforestacion.usuarios WHERE correo = 'enlace@azcapotzalco.cdmx.gob.mx'")).rows[0];
   assert.equal(u.debe_cambiar, true); assert.ok(await verifica(r.hechas[0].contrasena_temporal, u.huella), 'la contraseña temporal entregada es la que quedó');
@@ -57,12 +68,14 @@ test('huellas: definitiva con p = 5, temporal con p = 1; las guardadas se verifi
 test('datos simulados: cuentas ficticias y 90 días de uso; se niegan en una base con cuentas reales', async () => {
   const pool = baseEnMemoria();
   const r = await datos.sembrar(pool, { dias: 30 });
-  assert.equal(r.cuentas, 37); assert.ok(r.registros > 300, `${r.registros} registros`);
+  assert.equal(r.cuentas, 41); assert.ok(r.registros > 300, `${r.registros} registros`);
   const n = (await pool.query(`SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo NOT LIKE '%@ejemplo.gob.mx'`)).rows[0].n;
   assert.equal(+n, 0, 'solo correos @ejemplo.gob.mx');
   const ev = (await pool.query('SELECT evento, count(*) AS n FROM priorizacion_reforestacion.bitacora GROUP BY evento')).rows;
   for (const e of ['acceso', 'visita', 'consulta', 'descarga']) assert.ok(ev.some(x => x.evento === e && +x.n > 0), e);
-  assert.equal(await datos.borrar(pool), 37);
+  assert.equal(+(await pool.query("SELECT count(*) AS n FROM priorizacion_reforestacion.catalogo_entidades WHERE tipo <> 'Gobierno Central'")).rows[0].n, 3, 'organizaciones y empresa ficticias en el catálogo');
+  assert.equal(await datos.borrar(pool), 41);
+  assert.equal(+(await pool.query('SELECT count(*) AS n FROM priorizacion_reforestacion.catalogo_entidades')).rows[0].n, 3, 'al borrar quedan solo las dependencias de arranque');
   await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, huella) VALUES ('persona@real.gob.mx', 'Real', 'scrypt$x')`);
   await assert.rejects(datos.sembrar(pool), /cuentas reales/);
 });
@@ -75,15 +88,16 @@ test('alta masiva desde el panel: revisa sin escribir, no aplica con errores, ap
   const entra = async c => (await request(app).post('/api/priorizacion-reforestacion/entrar').set('Origin', O).send({ correo: c, contrasena: 'una contraseña de prueba' })).headers['set-cookie'][0].split(';')[0];
   const ca = await entra('adm@x.mx'), cu = await entra('usu@x.mx');
   const envia = (ck, csv, aplicar) => request(app).post('/api/priorizacion-reforestacion/admin/usuarios/masiva').set('Origin', O).set('Cookie', ck).send({ csv, aplicar });
-  const bueno = 'correo,nombre,institucion,alcaldia,rol\nana@gmail.com,Ana,Alcaldía,Tlalpan,usuario\nusu@x.mx,Usu,SEDEMA,,usuario\n';
+  const bueno = 'correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\nana@gmail.com,Ana,Medio Ambiente,Enlace,Alcaldía,Tlalpan,,usuario\nusu@x.mx,Usu,SIA,Analista,Gobierno Central,,SEDEMA,usuario\n';
   assert.equal((await envia(cu, bueno, false)).status, 403, 'una cuenta de consulta no hace altas');
   let r = await envia(ca, bueno, false); assert.equal(r.status, 200); assert.equal(r.body.aplicado, false);
   assert.deepEqual(r.body.validas.map(v => [v.correo, v.existe]), [['ana@gmail.com', false], ['usu@x.mx', true]]);
   assert.equal(+(await pool.query("SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo = 'ana@gmail.com'")).rows[0].n, 0, 'revisar no escribe');
-  r = await envia(ca, bueno + 'mal@,X,Alcaldía,Gotham,usuario\n', true); assert.equal(r.body.aplicado, false, 'con errores no se aplica aunque se pida'); assert.equal(r.body.errores.length, 1);
+  assert.deepEqual(r.body.validas.map(v => v.entidad), [null, 'SEDEMA'], 'la revisión dice la dependencia');
+  r = await envia(ca, bueno + 'mal@,X,A,C,Alcaldía,Gotham,,usuario\n', true); assert.equal(r.body.aplicado, false, 'con errores no se aplica aunque se pida'); assert.equal(r.body.errores.length, 1);
   r = await envia(ca, bueno, true); assert.equal(r.body.aplicado, true); assert.equal(r.body.hechas.length, 1); assert.deepEqual(r.body.existentes, ['usu@x.mx']);
   assert.ok(r.body.hechas[0].contrasena_temporal);
-  const lote = n => 'correo,nombre,institucion,alcaldia,rol\n' + Array.from({ length: n }, (_, i) => `p${i}@tlalpan.cdmx.gob.mx,Persona ${i},Alcaldía,Tlalpan,usuario`).join('\n');
+  const lote = n => 'correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\n' + Array.from({ length: n }, (_, i) => `p${i}@tlalpan.cdmx.gob.mx,Persona ${i},Medio Ambiente,Enlace,Alcaldía,Tlalpan,,usuario`).join('\n');
   r = await envia(ca, lote(101), true); assert.equal(r.status, 400, 'más de 100 cuentas por envío se rechaza');
   assert.equal(+(await pool.query("SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo LIKE 'p%@tlalpan.cdmx.gob.mx'")).rows[0].n, 0, 'y no da de alta a nadie');
   r = await envia(ca, lote(50), true); assert.equal(r.body.aplicado, true); assert.equal(r.body.hechas.length, 50, 'un envío de 50 (el tamaño de los del panel) se aplica');
@@ -104,10 +118,11 @@ test('primera cuenta: la herramienta genera el SQL (sin conectarse) y la contras
   assert.ok(!sql.includes(clave), 'la contraseña no queda en el SQL');
   assert.notEqual(spawnSync(process.execPath, [HERR, 'sin-arroba', 'X'], { env, encoding: 'utf8' }).status, 0, 'con un correo inválido no genera nada');
   // el INSERT del bloque, aplicado en la base en memoria (pg-mem no ejecuta DO $$), y la temporal que mostró la herramienta entra
-  const valores = sql.match(/VALUES \((.*)\)\s*\n\s*ON CONFLICT/)[1];
+  const [, columnas, valores] = sql.match(/INSERT INTO priorizacion_reforestacion\.usuarios \(([^)]*)\)\s*\n\s*VALUES \((.*)\)\s*\n\s*ON CONFLICT/);
   const pool = baseEnMemoria();
-  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar) VALUES (${valores})`);
-  const u = (await pool.query('SELECT * FROM priorizacion_reforestacion.usuarios')).rows[0];
+  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (${columnas}) VALUES (${valores})`);
+  const u = (await pool.query('SELECT u.*, e.nombre AS entidad FROM priorizacion_reforestacion.usuarios u LEFT JOIN priorizacion_reforestacion.catalogo_entidades e ON e.id = u.entidad_id')).rows[0];
+  assert.equal(u.institucion, 'Gobierno Central'); assert.equal(u.entidad, 'SEDEMA', 'la primera cuenta es de Gobierno Central · SEDEMA');
   assert.equal(u.rol, 'admin'); assert.equal(u.debe_cambiar, true); assert.equal(u.nombre, "Ana O'Neill");
   assert.ok(await verifica(clave, u.huella), 'la contraseña mostrada corresponde a la huella del SQL');
   assert.deepEqual(parametros(u.huella), [1024, 8, 1], 'la primera cuenta lleva huella de contraseña temporal');

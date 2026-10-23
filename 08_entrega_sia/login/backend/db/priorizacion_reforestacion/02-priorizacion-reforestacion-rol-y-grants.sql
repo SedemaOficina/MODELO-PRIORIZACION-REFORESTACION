@@ -20,6 +20,7 @@
 
   Qué puede hacer el rol, tabla por tabla:
     usuarios   SELECT, INSERT, UPDATE        (no DELETE: las cuentas se dan de baja, no se borran)
+    catalogo_entidades  SELECT, INSERT, UPDATE   (no DELETE: una entrada se desactiva, no se borra)
     sesiones   SELECT, INSERT, UPDATE, DELETE
     bitacora   SELECT, INSERT                (no UPDATE ni DELETE: solo se agrega)
     depurar()  EXECUTE                       (recorta según los plazos con los permisos del dueño)
@@ -57,13 +58,15 @@ REVOKE CREATE ON SCHEMA public FROM priorizacion_reforestacion_api;
 -- =====================================================================
 -- 3 · TABLAS, SECUENCIAS Y FUNCIÓN — explícito, sin ALL TABLES
 -- =====================================================================
-REVOKE ALL ON priorizacion_reforestacion.usuarios, priorizacion_reforestacion.sesiones, priorizacion_reforestacion.bitacora FROM priorizacion_reforestacion_api;
+REVOKE ALL ON priorizacion_reforestacion.usuarios, priorizacion_reforestacion.sesiones, priorizacion_reforestacion.bitacora, priorizacion_reforestacion.catalogo_entidades FROM priorizacion_reforestacion_api;
 GRANT SELECT, INSERT, UPDATE         ON priorizacion_reforestacion.usuarios TO priorizacion_reforestacion_api;
+GRANT SELECT, INSERT, UPDATE         ON priorizacion_reforestacion.catalogo_entidades TO priorizacion_reforestacion_api;
 GRANT SELECT, INSERT, UPDATE, DELETE ON priorizacion_reforestacion.sesiones TO priorizacion_reforestacion_api;
 GRANT SELECT, INSERT                 ON priorizacion_reforestacion.bitacora TO priorizacion_reforestacion_api;
 
 GRANT USAGE ON SEQUENCE priorizacion_reforestacion.usuarios_id_seq TO priorizacion_reforestacion_api;
 GRANT USAGE ON SEQUENCE priorizacion_reforestacion.bitacora_id_seq TO priorizacion_reforestacion_api;
+GRANT USAGE ON SEQUENCE priorizacion_reforestacion.catalogo_entidades_id_seq TO priorizacion_reforestacion_api;
 
 REVOKE ALL ON FUNCTION priorizacion_reforestacion.depurar() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION priorizacion_reforestacion.depurar() TO priorizacion_reforestacion_api;
@@ -74,6 +77,7 @@ COMMIT;
    CONTROLES NEGATIVOS — conectado COMO el rol, estas consultas DEBEN FALLAR:
 
      DELETE FROM priorizacion_reforestacion.usuarios;          -- permission denied
+     DELETE FROM priorizacion_reforestacion.catalogo_entidades; -- permission denied
      UPDATE priorizacion_reforestacion.bitacora SET ip = NULL; -- permission denied
      DELETE FROM priorizacion_reforestacion.bitacora;          -- permission denied
      SELECT 1 FROM otro_sistema.una_tabla LIMIT 1;             -- permission denied for schema otro_sistema

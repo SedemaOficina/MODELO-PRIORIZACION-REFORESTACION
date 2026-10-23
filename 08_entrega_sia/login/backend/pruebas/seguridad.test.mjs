@@ -21,7 +21,7 @@ const DEF = 'una frase larga y segura', TEMP = 'cedro-pirul-hoja-monte-42';
 async function montar(pool = baseEnMemoria(), op = {}) {
   const app = appComoSia(a => a.use(API, crearRutasPriorizacionReforestacion(pool, { depurarCadaHoras: 0, ...op })));
   await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar) VALUES
-    ('adm@x.mx', 'Adm', 'SEDEMA', 'admin', $1, false), ('adm2@x.mx', 'Adm Dos', 'SEDEMA', 'admin', $1, false), ('usu@x.mx', 'Usu', 'SEDEMA', 'usuario', $1, false)`, [await huella(DEF)]);
+    ('adm@x.mx', 'Adm', 'Gobierno Central', 'admin', $1, false), ('adm2@x.mx', 'Adm Dos', 'Gobierno Central', 'admin', $1, false), ('usu@x.mx', 'Usu', 'Gobierno Central', 'usuario', $1, false)`, [await huella(DEF)]);
   return { app, pool };
 }
 const galleta = res => (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).find(c => c.startsWith('priorizacion_reforestacion_sesion=')) || '';
@@ -92,7 +92,7 @@ test('alta masiva en una transacción: si falla a la mitad, no queda ninguna cue
   let n = 0;   // se envuelve la conexión para que el INSERT de la cuenta 50 falle
   const pool = { query: (...a) => base.query(...a), connect: async () => { const c = await base.connect();
     return { query: (sql, v) => { if (/INSERT INTO priorizacion_reforestacion\.usuarios/.test(String(sql)) && ++n === 50) return Promise.reject(new Error('falla simulada')); return c.query(sql, v); }, release: () => c.release() }; } };
-  const csv = 'correo,nombre,institucion,alcaldia,rol\n' + Array.from({ length: 100 }, (_, i) => `p${i}@tlalpan.cdmx.gob.mx,Persona ${i},Alcaldía,Tlalpan,usuario`).join('\n');
+  const csv = 'correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\n' + Array.from({ length: 100 }, (_, i) => `p${i}@tlalpan.cdmx.gob.mx,Persona ${i},Medio Ambiente,Enlace,Alcaldía,Tlalpan,,usuario`).join('\n');
   const { ok } = revisa(leeCsv(csv));
   await assert.rejects(aplica(pool, ok), /falla simulada/);
   assert.equal(+(await base.query("SELECT count(*) AS n FROM priorizacion_reforestacion.usuarios WHERE correo LIKE 'p%@tlalpan.cdmx.gob.mx'")).rows[0].n, 0, 'ninguna cuenta quedó sin que su contraseña llegara');
@@ -103,11 +103,15 @@ test('alta masiva en una transacción: si falla a la mitad, no queda ninguna cue
 
 test('nombres y correos: sin fórmulas, sin nombres larguísimos ni caracteres invisibles', async () => {
   // nombres que serían fórmula o demasiado largos, y correos con caracteres invisibles: se rechazan en el archivo y en el alta individual
-  const malo = revisa(leeCsv('correo,nombre,institucion,alcaldia,rol\na@x.mx,=HYPERLINK("http://x"),SEDEMA,,usuario\nb@x.mx,' + 'N'.repeat(121) + ',SEDEMA,,usuario\nc​@x.mx,C,SEDEMA,,usuario\n'));
-  assert.equal(malo.ok.length, 0); assert.equal(malo.errores.length, 3);
+  const cat = [{ id: 1, tipo: 'Gobierno Central', nombre: 'SEDEMA', activo: true }];
+  const malo = revisa(leeCsv('correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\na@x.mx,=HYPERLINK("http://x"),A,C,SEDEMA,,,usuario\nb@x.mx,' + 'N'.repeat(121) + ',A,C,SEDEMA,,,usuario\nc​@x.mx,C,A,C,SEDEMA,,,usuario\n' +
+    'd@x.mx,D,=1+1,C,SEDEMA,,,usuario\ne@x.mx,E,A,@SUMA,SEDEMA,,,usuario\n'), cat);
+  assert.equal(malo.ok.length, 0); assert.equal(malo.errores.length, 5, 'tampoco área ni cargo como fórmula');
   const { app } = await montar();
   const ck = galleta(await entrar(app, 'adm@x.mx', DEF));
-  for (const d of [{ correo: 'f@x.mx', nombre: '=SUMA(1)' }, { correo: 'g@x.mx', nombre: 'G'.repeat(121) }, { correo: 'ana​@x.mx', nombre: 'Ana' }])
+  const base = { area: 'Medio Ambiente', cargo: 'Enlace', institucion: 'Alcaldía', alcaldia_cve: '012' };
+  for (const d of [{ ...base, correo: 'f@x.mx', nombre: '=SUMA(1)' }, { ...base, correo: 'g@x.mx', nombre: 'G'.repeat(121) }, { ...base, correo: 'ana​@x.mx', nombre: 'Ana' },
+    { ...base, correo: 'h@x.mx', nombre: 'H', area: '=1+1' }, { ...base, correo: 'i@x.mx', nombre: 'I', cargo: 'C'.repeat(121) }])
     assert.equal((await request(app).post(API + '/admin/usuarios').set('Origin', O).set('Cookie', ck).send(d)).status, 400, JSON.stringify(d).slice(0, 40));
 });
 

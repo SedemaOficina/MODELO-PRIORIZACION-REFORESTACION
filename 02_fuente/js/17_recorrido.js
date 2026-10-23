@@ -85,7 +85,7 @@ const REC_PASOS = [
       + ' En «Descargas» cada archivo dice qué trae y para qué sirve; al final están los de Google Earth (KML). Todos respetan los filtros. Los Excel y los archivos para mapas traen además las cepas vacantes, los tocones y los árboles muertos de cada calle; la ficha PDF no los trae.' },
   { sel:'#zloc', mapa:true, titulo:'En campo', texto:'«Mi ubicación» dice en qué colonia estás y qué calles prioritarias tienes cerca. Tu ubicación no sale del celular.' },
   { sel:'#cuenta-btn', con:'#cuenta-menu', panel:true, si:()=>!!SESION.cierre, prep:recCuenta, titulo:'Mi cuenta', texto:()=> SESION.inicio
-      ? 'En «Mi cuenta» puedes cambiar tu contraseña o cerrar sesión. Al cambiarla regresas a la misma consulta.'
+      ? 'En «Mi cuenta» puedes ver tu perfil, cambiar tu contraseña o cerrar sesión. Al cambiarla regresas a la misma consulta.'
       : 'En «Mi cuenta» puedes cerrar sesión.' },
   { sel:'#open-info, #info-btn', panel:true, titulo:'Cuando lo necesites', texto:'En «Cómo funciona» están la ayuda, la metodología del modelo y el botón para repetir este recorrido.' },
 ];

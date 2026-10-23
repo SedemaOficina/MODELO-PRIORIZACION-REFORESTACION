@@ -12,7 +12,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | [`SESION_Y_LOGIN.md`](SESION_Y_LOGIN.md) | Cómo se integra un inicio de sesión: qué hace ya la herramienta y qué construye el SIA |
 | [`CIERRE_FASE_1.md`](CIERRE_FASE_1.md) | Orden para apagar la página de GitHub y lo demás del piloto (interno; no va en el paquete) |
 | [`CONTRATO_DE_DATOS.md`](CONTRATO_DE_DATOS.md) | Formato de los archivos de datos (interno; no va en el paquete) |
-| [`login/`](login/LEEME.md) | **Inicio de sesión y registro de usos:** módulo para el backend, esquema de base de datos, pantalla de acceso, panel de administración y aviso de privacidad |
+| [`login/`](login/LEEME.md) | **Inicio de sesión y registro de usos:** módulo para el backend, esquema de base de datos, pantalla de acceso, panel de administración (cuentas, usos y catálogos), «Mi perfil» y aviso de privacidad |
 | [`capas_geoserver/`](capas_geoserver/LEEME.md) | Tres capas en GeoPackage con sus estilos para publicar en el GeoServer del SIA (independientes de la herramienta) |
 | [`LEEME_PAQUETE.md`](LEEME_PAQUETE.md) | Portada del paquete: contenido y orden de instalación |
 | `empaquetar.py` | Arma el ZIP de entrega |
@@ -41,7 +41,7 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Archivos de datos resistentes a un intermediario que los descomprima | Listo; probado |
 | Todas las referencias con huella de versión | Listo |
 | Librerías sin avisos de seguridad publicados | Listo: jsPDF 4.2.1 y SheetJS 0.20.3 |
-| **Módulo de sesión** (backend, esquema, pantalla de acceso, panel de administración) | **Construido y probado** (`login/`): pruebas del módulo 19 de 19 en PostgreSQL 17 (17 en la base en memoria, más la depuración por plazos y la transacción del alta masiva, que necesitan PostgreSQL real); flujo completo probado con la demostración (acceso, contraseña temporal, regreso a la consulta, registro de consultas y descargas, baja inmediata, cierre de sesión) |
+| **Módulo de sesión** (backend, esquema, pantalla de acceso, panel de administración) | **Construido y probado** (`login/`): pruebas del módulo 22 de 22 en PostgreSQL 17 (20 en la base en memoria, más la depuración por plazos y la transacción del alta masiva, que necesitan PostgreSQL real); flujo completo probado con la demostración (acceso, contraseña temporal, regreso a la consulta, registro de consultas y descargas, baja inmediata, cierre de sesión) |
 | Registro de usos en la herramienta | Listo; solo se activa con la sesión configurada (el paquete la trae) |
 | Aviso de privacidad | **En revisión de la Unidad de Transparencia**, adecuado a la ley de datos personales del 13 de julio de 2026. **No abrir el inicio de sesión sin la aprobación por escrito de la Unidad de Transparencia** (número de oficio). Textos en `login/privacidad/` |
 | Configuración de nginx (con y sin login) | Escrita; **sin validar con `nginx -t`** |

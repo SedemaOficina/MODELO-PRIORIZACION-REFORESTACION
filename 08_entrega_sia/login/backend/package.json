@@ -6,7 +6,7 @@
   "description": "Módulo «Modelo de priorización de reforestación urbana» para sia-backend: acceso con cuenta y bitácora de usos (Express 5 + PostgreSQL, TypeScript). Se copia a src/modulos/priorizacion-reforestacion/ de sia-backend.",
   "scripts": {
     "typecheck": "tsc -p tsconfig.check.json",
-    "pruebas": "node --import ./pruebas/cargador.mjs --test --test-concurrency=1 pruebas/sesion.test.mjs pruebas/seguridad.test.mjs pruebas/herramientas.test.mjs pruebas/ensamble.test.mjs",
+    "pruebas": "node --import ./pruebas/cargador.mjs --test --test-concurrency=1 pruebas/sesion.test.mjs pruebas/seguridad.test.mjs pruebas/catalogos.test.mjs pruebas/herramientas.test.mjs pruebas/ensamble.test.mjs",
     "demo": "node --import ./pruebas/cargador.mjs scripts/servidor_demo.mjs"
   },
   "peerDependencies": {

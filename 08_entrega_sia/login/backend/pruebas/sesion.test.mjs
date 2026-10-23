@@ -27,7 +27,7 @@ async function montar() {
     await dueno.query('TRUNCATE priorizacion_reforestacion.bitacora, priorizacion_reforestacion.sesiones, priorizacion_reforestacion.usuarios RESTART IDENTITY CASCADE');
   } else pool = baseEnMemoria();
   const app = appComoSia(a => a.use(API, crearRutasPriorizacionReforestacion(pool, { depurarCadaHoras: 0 })));
-  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar) VALUES ('admin@sedema.cdmx.gob.mx', 'Admin', 'SEDEMA', 'admin', $1, true)`, [await huella('temporal-admin-1')]);
+  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar) VALUES ('admin@sedema.cdmx.gob.mx', 'Admin', 'Gobierno Central', 'admin', $1, true)`, [await huella('temporal-admin-1')]);
   return { app, pool };
 }
 const galleta = res => (res.headers['set-cookie'] || []).map(c => c.split(';')[0]).find(c => c.startsWith('priorizacion_reforestacion_sesion=')) || '';
@@ -62,10 +62,10 @@ test('acceso, contraseña temporal, verificación para nginx, usos, administraci
   const v = await pool.query("SELECT count(*) AS n FROM priorizacion_reforestacion.bitacora WHERE evento = 'visita'"); assert.equal(+v.rows[0].n, 1, 'una sola visita en 30 minutos');
 
   // ---- alta de una persona de alcaldía; ella entra, cambia la contraseña y usa la herramienta ----
-  r = await request(app).post(API + '/admin/usuarios').set('Origin', ORIGEN).set('Cookie', ck).send({ correo: 'tecnica@iztapalapa.gob.mx', nombre: 'Técnica Iztapalapa', institucion: 'Alcaldía', alcaldia_cve: '007' });
+  r = await request(app).post(API + '/admin/usuarios').set('Origin', ORIGEN).set('Cookie', ck).send({ correo: 'tecnica@iztapalapa.gob.mx', nombre: 'Técnica Iztapalapa', area: 'Dirección de Medio Ambiente', cargo: 'Enlace', institucion: 'Alcaldía', alcaldia_cve: '007' });
   assert.equal(r.status, 201); const temp = r.body.contrasena_temporal; assert.match(temp, /^[a-z]+-[a-z]+-[a-z]+-[a-z]+-\d\d$/); const idU = r.body.usuario.id;
-  assert.equal((await request(app).post(API + '/admin/usuarios').set('Origin', ORIGEN).set('Cookie', ck).send({ correo: 'tecnica@iztapalapa.gob.mx', nombre: 'X' })).status, 409);
-  assert.equal((await request(app).post(API + '/admin/usuarios').set('Origin', ORIGEN).set('Cookie', ck).send({ correo: 'x@y.mx', nombre: 'X', alcaldia_cve: '999' })).status, 400, 'alcaldía no válida');
+  assert.equal((await request(app).post(API + '/admin/usuarios').set('Origin', ORIGEN).set('Cookie', ck).send({ correo: 'tecnica@iztapalapa.gob.mx', nombre: 'X', area: 'A', cargo: 'C', institucion: 'Alcaldía', alcaldia_cve: '007' })).status, 409);
+  assert.equal((await request(app).post(API + '/admin/usuarios').set('Origin', ORIGEN).set('Cookie', ck).send({ correo: 'x@y.mx', nombre: 'X', area: 'A', cargo: 'C', alcaldia_cve: '999' })).status, 400, 'alcaldía no válida');
   r = await entrar(app, 'tecnica@iztapalapa.gob.mx', temp); const cu = galleta(r);
   await request(app).post(API + '/contrasena').set('Origin', ORIGEN).set('Cookie', cu).send({ actual: temp, nueva: 'jacarandas en la banqueta' });
   assert.equal((await request(app).get(API + '/sesion').set('Cookie', cu)).status, 204);
@@ -172,7 +172,7 @@ test('montado como en sia-backend: helmet, cors y express.json() globales no lo 
   const mal = await request(app).post(API + '/entrar').set('Origin', ORIGEN).set('Content-Type', 'application/json').send('{"correo":');
   assert.equal(mal.status, 400);
   // la alta masiva: hasta 100 cuentas por envío, que caben de sobra en el límite general de 100 KB
-  const csv = n => 'correo,nombre,institucion,alcaldia,rol\n' + Array.from({ length: n }, (_, i) => `enlace${i}@tlalpan.cdmx.gob.mx,Enlace Número ${i} de la Alcaldía,Alcaldía,Tlalpan,usuario`).join('\n');
+  const csv = n => 'correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\n' + Array.from({ length: n }, (_, i) => `enlace${i}@tlalpan.cdmx.gob.mx,Enlace Número ${i} de la Alcaldía,Dirección General de Servicios Urbanos,Jefatura de Unidad Departamental,Alcaldía,Tlalpan,,usuario`).join('\n');
   assert.ok(JSON.stringify({ csv: csv(100) }).length < 100 * 1024, `100 cuentas = ${JSON.stringify({ csv: csv(100) }).length} bytes`);
   const m = await request(app).post(API + '/admin/usuarios/masiva').set('Origin', ORIGEN).set('Cookie', ck).send({ csv: csv(100), aplicar: false });
   assert.equal(m.status, 200); assert.equal(m.body.validas.length, 100);

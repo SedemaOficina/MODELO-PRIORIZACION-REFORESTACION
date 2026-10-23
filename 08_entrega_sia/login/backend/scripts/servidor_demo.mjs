@@ -31,7 +31,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
   else pool = baseEnMemoria();
   const clave = process.env.CLAVE_DEMO || temporal();
   if (process.env.DEMO_DATOS) { const r = await (await import('./datos_demo.mjs')).sembrar(pool); console.log(`Datos simulados: ${r.cuentas} cuentas ficticias y ${r.registros} registros de 90 días.`); }
-  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar) VALUES ('admin@ejemplo.gob.mx', 'Administración (demostración)', 'SEDEMA', 'admin', $1, true)
+  await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, area, cargo, institucion, entidad_id, rol, huella, debe_cambiar)
+    VALUES ('admin@ejemplo.gob.mx', 'Administración (demostración)', 'Sistema de Información Ambiental', 'Administración de la herramienta', 'Gobierno Central',
+      (SELECT id FROM priorizacion_reforestacion.catalogo_entidades WHERE tipo = 'Gobierno Central' AND nombre = 'SEDEMA'), 'admin', $1, true)
     ON CONFLICT (correo) DO UPDATE SET huella = EXCLUDED.huella, debe_cambiar = true, activo = true`, [await huella(clave)]);
 
   const red = process.env.DEMO_RED, origen = `http://localhost:${PUERTO}` + (red ? `,http://${red}:${PUERTO}` : '');

@@ -64,7 +64,7 @@ const ESTADOS = [
       ok(`axe, ${ancho}, ${nombre}: ninguna violación de WCAG 2.2 AA`, llego && v && v.length === 0, !llego ? 'no se llegó a la pantalla' : v.join(' | '));
       await ctx.close(); }
     // pantallas de acceso (archivos estáticos del módulo de sesión)
-    for (const a of ['index.html', 'admin/index.html', 'aviso-de-privacidad.html', 'sin-servicio.html']) for (const [ancho, op] of ANCHOS) {
+    for (const a of ['index.html', 'admin/index.html', 'perfil/index.html', 'aviso-de-privacidad.html', 'sin-servicio.html']) for (const [ancho, op] of ANCHOS) {
       const ctx = await browser.newContext(op); const page = await ctx.newPage();
       await page.goto(url.pathToFileURL(path.join(__dirname, '..', '08_entrega_sia', 'login', 'acceso', ...a.split('/'))).href); await page.waitForLoadState('load');
       const v = await axe(page); ok(`axe, ${ancho}, acceso/${a}: ninguna violación de WCAG 2.2 AA`, v.length === 0, v.join(' | ')); await ctx.close(); }

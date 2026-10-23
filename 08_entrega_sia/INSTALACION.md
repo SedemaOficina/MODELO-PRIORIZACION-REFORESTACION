@@ -64,6 +64,12 @@ ln -sfn VOL/priorizacion-reforestacion_versiones/vNUEVA VOL/priorizacion-refores
 
 No hace falta recargar nginx ni avisar a las personas usuarias: `index.html` no se guarda en caché y todo lo demás lleva huella de versión, así que la siguiente visita recibe la versión nueva completa. Correr los puntos 1, 6 y 13 de la lista de verificación. Conservar las últimas cinco versiones.
 
+**Si la versión cambia el inicio de sesión** (lo dice su `LEEME.md`; por ejemplo, la 1.49 agrega área, cargo y el catálogo de dependencias y organizaciones):
+1. Sacar un respaldo del esquema (sección 4 bis).
+2. Volver a aplicar `01-…` y `02-…` con la cuenta dueña. Se pueden aplicar sobre una base que ya los tiene: agregan lo nuevo y conservan las cuentas, las sesiones y la bitácora.
+3. Copiar el módulo nuevo a `sia-backend` y desplegar el binario, como en la instalación (pasos 0 y 3 de `login/LEEME.md`).
+4. Copiar `login/acceso/` completo a su lugar.
+
 ## 4. Reversión
 
 ```

@@ -12,7 +12,7 @@
 <header class="barra">
   <img class="logo" src="../recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Sistema de Información Ambiental de la Ciudad de México · Reforestación Urbana">
   <div class="titulo"><p class="eyebrow">Modelo de priorización de reforestación urbana</p><h1>Administración de cuentas y usos</h1></div>
-  <p class="quien"><span id="yo">…</span><a href="/priorizacion-reforestacion/">Ir a la herramienta</a><a href="../?cambiar=1">Cambiar mi contraseña</a><a href="/priorizacion-reforestacion/api/salir">Cerrar sesión</a></p>
+  <p class="quien"><span id="yo">…</span><a href="/priorizacion-reforestacion/">Ir a la herramienta</a><a href="../perfil/">Mi perfil</a><a href="../?cambiar=1">Cambiar mi contraseña</a><a href="/priorizacion-reforestacion/api/salir">Cerrar sesión</a></p>
 </header>
 
 <main class="contenido" id="principal">
@@ -22,29 +22,35 @@
     <div class="pestanas" role="tablist" aria-label="Secciones">
       <button type="button" role="tab" id="t-personas" aria-controls="s-personas" aria-selected="true">Personas</button>
       <button type="button" role="tab" id="t-usos" aria-controls="s-usos" aria-selected="false">Usos</button>
+      <button type="button" role="tab" id="t-catalogos" aria-controls="s-catalogos" aria-selected="false">Catálogos</button>
     </div>
 
     <!-- ===== Personas ===== -->
     <section class="seccion" id="s-personas" role="tabpanel" aria-labelledby="t-personas">
-      <h2>Dar de alta una cuenta</h2>
+      <h2 id="alta-titulo" tabindex="-1">Dar de alta una cuenta</h2>
       <form class="caja" id="f-alta" novalidate>
         <div class="rejilla">
           <div class="campo"><label for="a-correo">Correo electrónico (personal o institucional)</label><input id="a-correo" type="email" autocomplete="off" required></div>
           <div class="campo"><label for="a-nombre">Nombre completo</label><input id="a-nombre" autocomplete="off" required></div>
+          <div class="campo"><label for="a-area">Área</label><input id="a-area" list="areas" autocomplete="off" maxlength="120" required><datalist id="areas"></datalist></div>
+          <div class="campo"><label for="a-cargo">Cargo</label><input id="a-cargo" autocomplete="off" maxlength="120" required></div>
           <div class="campo"><label for="a-inst">Institución</label>
-            <select id="a-inst"><option>Alcaldía</option><option>Gobierno Central</option><option>SEDEMA</option><option>Otra</option></select></div>
-          <div class="campo"><label for="a-alc">Alcaldía</label><select id="a-alc"><option value="">— Ninguna —</option></select></div>
+            <select id="a-inst"><option>Alcaldía</option><option>Gobierno Central</option><option>Organización de la sociedad civil</option><option>Privado</option><option>Otra</option></select></div>
+          <div class="campo" id="c-alc"><label for="a-alc">Alcaldía</label><select id="a-alc"><option value="">— Elige —</option></select></div>
+          <div class="campo" id="c-ent" hidden><label for="a-ent" id="a-ent-etq">Dependencia</label><select id="a-ent"></select></div>
           <div class="campo"><label for="a-rol">Permiso</label>
             <select id="a-rol"><option value="usuario">Consulta</option><option value="admin">Administración</option></select></div>
-          <div class="campo"><button type="submit" class="btn">Dar de alta</button></div>
+          <div class="campo"><button type="submit" class="btn" id="a-guardar">Dar de alta</button></div>
+          <div class="campo" id="c-cancelar" hidden><button type="button" class="btn secundario" id="a-cancelar">Cancelar</button></div>
         </div>
+        <p class="nota" id="a-nota-catalogo">¿No aparece la dependencia u organización? Agrégala en la pestaña «Catálogos».</p>
         <p class="error general" id="alta-err" role="alert" hidden></p>
         <div class="clave" id="clave" role="status" hidden></div>
       </form>
 
       <h2>Alta masiva desde CSV</h2>
       <div class="caja" id="masiva">
-        <p class="nota">Para dar de alta a varias personas a la vez (por ejemplo, los enlaces que designa cada alcaldía): una persona por renglón, con las columnas <b>correo, nombre, institucion, alcaldia, rol</b>. En Excel, guárdalo como «CSV UTF-8». Primero se revisa sin dar de alta a nadie. <a href="#" id="m-plantilla">Descargar plantilla</a></p>
+        <p class="nota">Para dar de alta a varias personas a la vez (por ejemplo, los enlaces que designa cada alcaldía): una persona por renglón, con las columnas <b>correo, nombre, area, cargo, institucion, alcaldia, dependencia_u_organizacion, rol</b>. La dependencia u organización debe estar escrita como en «Catálogos». En Excel, guárdalo como «CSV UTF-8». Primero se revisa sin dar de alta a nadie. <a href="#" id="m-plantilla">Descargar plantilla</a></p>
         <div class="rejilla">
           <div class="campo"><label for="m-archivo">Archivo CSV</label><input id="m-archivo" type="file" accept=".csv,text/csv"></div>
           <div class="campo"><button type="button" class="btn secundario" id="m-revisar">Revisar el archivo</button></div>
@@ -55,14 +61,27 @@
 
       <h2>Cuentas</h2>
       <div class="caja rejilla">
-        <div class="campo"><label for="buscar">Buscar por nombre, correo o alcaldía</label><input id="buscar" type="search" autocomplete="off"></div>
-        <div class="campo"><label for="filtro">Mostrar</label>
+        <div class="campo"><label for="buscar">Buscar por nombre, correo, área o cargo</label><input id="buscar" type="search" autocomplete="off"></div>
+        <div class="campo"><label for="f-inst">Institución</label>
+          <select id="f-inst"><option value="">Todas</option><option>Alcaldía</option><option>Gobierno Central</option><option>Organización de la sociedad civil</option><option>Privado</option><option>Otra</option></select></div>
+        <div class="campo"><label for="f-perten">Alcaldía, dependencia u organización</label><select id="f-perten"><option value="">Todas</option></select></div>
+        <div class="campo"><label for="f-rol">Permiso</label>
+          <select id="f-rol"><option value="">Todos</option><option value="usuario">Consulta</option><option value="admin">Administración</option></select></div>
+        <div class="campo"><label for="filtro">Estado</label>
           <select id="filtro"><option value="activas">Cuentas activas</option><option value="bajas">Dadas de baja</option><option value="todas">Todas</option></select></div>
       </div>
       <p class="aviso ok" id="personas-aviso" role="status" hidden></p>
       <div class="tabla-envoltura"><table>
         <caption id="personas-cap">Cuentas</caption>
-        <thead><tr><th scope="col">Persona</th><th scope="col">Institución</th><th scope="col">Permiso</th><th scope="col">Estado</th><th scope="col">Último acceso</th><th scope="col">Acciones</th></tr></thead>
+        <thead><tr>
+          <th scope="col" data-orden="nombre"><button type="button" class="ordena">Persona</button></th>
+          <th scope="col" data-orden="area"><button type="button" class="ordena">Área y cargo</button></th>
+          <th scope="col" data-orden="institucion"><button type="button" class="ordena">Institución</button></th>
+          <th scope="col" data-orden="pertenencia"><button type="button" class="ordena">Alcaldía, dependencia u organización</button></th>
+          <th scope="col" data-orden="rol"><button type="button" class="ordena">Permiso</button></th>
+          <th scope="col">Estado</th>
+          <th scope="col" data-orden="ultimo_acceso"><button type="button" class="ordena">Último acceso</button></th>
+          <th scope="col">Acciones</th></tr></thead>
         <tbody id="personas"></tbody>
       </table></div>
     </section>
@@ -79,8 +98,8 @@
       <p class="aviso alerta" id="usos-err" role="alert" hidden></p>
       <div class="cifras" id="cifras" aria-live="polite"></div>
       <div class="tabla-envoltura"><table>
-        <caption>Por institución y alcaldía de quien consulta</caption>
-        <thead><tr><th scope="col">Institución</th><th scope="col">Alcaldía</th><th scope="col">Personas</th><th scope="col">Accesos</th><th scope="col">Consultas</th><th scope="col">Descargas</th><th scope="col"><span class="sr">Proporción de descargas</span></th></tr></thead>
+        <caption>Por institución, alcaldía o dependencia de quien consulta</caption>
+        <thead><tr><th scope="col">Institución</th><th scope="col">Alcaldía, dependencia u organización</th><th scope="col">Personas</th><th scope="col">Accesos</th><th scope="col">Consultas</th><th scope="col">Descargas</th><th scope="col"><span class="sr">Proporción de descargas</span></th></tr></thead>
         <tbody id="u-grupo"></tbody></table></div>
       <div class="tabla-envoltura"><table>
         <caption>Territorio consultado (alcaldía elegida en la herramienta)</caption>
@@ -94,6 +113,14 @@
         <caption>Por persona</caption>
         <thead><tr><th scope="col">Persona</th><th scope="col">Institución</th><th scope="col">Accesos</th><th scope="col">Consultas</th><th scope="col">Descargas</th><th scope="col">Último registro</th></tr></thead>
         <tbody id="u-persona"></tbody></table></div>
+    </section>
+
+    <!-- ===== Catálogos ===== -->
+    <section class="seccion" id="s-catalogos" role="tabpanel" aria-labelledby="t-catalogos" hidden>
+      <h2>Catálogos</h2>
+      <p class="nota">Las opciones que se eligen al dar de alta una cuenta fuera de las alcaldías. Una entrada no se borra: al desactivarla deja de ofrecerse en las altas, y las cuentas que ya la tienen la conservan. Las 16 alcaldías y los tipos de institución son fijos.</p>
+      <p class="aviso ok" id="cat-aviso" role="status" hidden></p>
+      <div id="catalogos"></div>
     </section>
   </div>
 </main>

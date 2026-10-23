@@ -174,16 +174,18 @@ const TESELA = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlE
     ok('con sesión, el encabezado muestra «Mi cuenta» (ícono y texto), cerrado, con aria-expanded y aria-controls', e.vis && e.txt === 'Mi cuenta' && e.nombre === 'Mi cuenta' && e.exp === 'false' && e.ctrl === 'cuenta-menu' && !e.abierto, JSON.stringify(e));
     await page.click('#cuenta-btn'); await page.waitForTimeout(150); e = await est(page);
     const volver = encodeURIComponent(PRE + '?modo=ligero&a=010');
-    ok('al abrirlo: «Cambiar contraseña» (pantalla de acceso con ?cambiar=1 y la consulta para volver) y «Cerrar sesión» (api/salir), dentro de la pantalla', e.abierto && e.exp === 'true' && e.dentro && e.enlaces.length === 2
-      && e.enlaces[0][0] === 'Cambiar contraseña' && e.enlaces[0][1] === `${PRE}acceso/?cambiar=1&volver=${volver}` && e.enlaces[1][0] === 'Cerrar sesión' && e.enlaces[1][1] === PRE + 'api/salir', JSON.stringify(e.enlaces));
+    ok('al abrirlo: «Mi perfil» (acceso/perfil/ con la consulta para volver, v1.49), «Cambiar contraseña» (pantalla de acceso con ?cambiar=1 y la consulta para volver) y «Cerrar sesión» (api/salir), dentro de la pantalla', e.abierto && e.exp === 'true' && e.dentro && e.enlaces.length === 3
+      && e.enlaces[0][0] === 'Mi perfil' && e.enlaces[0][1] === `${PRE}acceso/perfil/?volver=${volver}`
+      && e.enlaces[1][0] === 'Cambiar contraseña' && e.enlaces[1][1] === `${PRE}acceso/?cambiar=1&volver=${volver}` && e.enlaces[2][0] === 'Cerrar sesión' && e.enlaces[2][1] === PRE + 'api/salir', JSON.stringify(e.enlaces));
     await page.keyboard.press('Escape'); await page.waitForTimeout(150); e = await est(page);
     ok('Esc cierra el menú y regresa el foco al botón', !e.abierto && e.exp === 'false' && e.foco);
     await page.keyboard.press('Enter'); await page.waitForTimeout(150); const conTeclado = (await est(page)).abierto; await page.keyboard.press('Tab');
     const primero = await page.evaluate(() => document.activeElement.id); await page.click('#scope-title'); await page.waitForTimeout(150); e = await est(page);
-    ok('con el teclado se abre y Tab llega a la primera opción; un clic fuera lo cierra', conTeclado && primero === 'cuenta-clave' && !e.abierto && e.exp === 'false', `${conTeclado} · ${primero}`);
+    ok('con el teclado se abre y Tab llega a la primera opción; un clic fuera lo cierra', conTeclado && primero === 'cuenta-perfil' && !e.abierto && e.exp === 'false', `${conTeclado} · ${primero}`);
     // la dirección de regreso sigue a la consulta del momento
     await L.elegir(page, 'iztapalapa'); await page.click('#cuenta-btn'); await page.waitForTimeout(150); e = await est(page);
-    ok('el regreso de «Cambiar contraseña» es la consulta del momento', new URLSearchParams(e.enlaces[0][1].split('?')[1]).get('volver') === new URL(page.url()).pathname + new URL(page.url()).search, e.enlaces[0][1]);
+    const ahora = new URL(page.url()).pathname + new URL(page.url()).search;
+    ok('el regreso de «Mi perfil» y de «Cambiar contraseña» es la consulta del momento', [0, 1].every(i => new URLSearchParams(e.enlaces[i][1].split('?')[1]).get('volver') === ahora), e.enlaces[0][1] + ' · ' + e.enlaces[1][1]);
     const v = await page.evaluate(() => window.__csp);
     ok('«Mi cuenta» funciona sin violaciones de la política de seguridad de contenido', v.length === 0, v.slice(0, 3).join(' | '));
     await ctx.close();

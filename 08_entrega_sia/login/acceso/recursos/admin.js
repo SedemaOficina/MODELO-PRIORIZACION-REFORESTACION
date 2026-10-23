@@ -1,4 +1,5 @@
-// Panel de administración: cuentas (alta, baja, restablecer, permiso) y reporte de usos. Habla con /priorizacion-reforestacion/api/admin/.
+// Panel de administración: cuentas (alta, edición, baja, restablecer, permiso; filtros y orden por columna), reporte de usos y catálogos
+// (dependencias, organizaciones, empresas y otras instituciones). Habla con /priorizacion-reforestacion/api/admin/.
 // Todo el texto que viene del servidor se inserta como texto (textContent), nunca como HTML.
 'use strict';
 (function () {
@@ -23,17 +24,39 @@
   }
 
   // ---------- pestañas (teclado: flechas) ----------
-  const tabs = [$('t-personas'), $('t-usos')];
+  const tabs = [$('t-personas'), $('t-usos'), $('t-catalogos')];
   const elige = t => { tabs.forEach(b => { const si = b === t; b.setAttribute('aria-selected', String(si)); b.tabIndex = si ? 0 : -1; $(b.getAttribute('aria-controls')).hidden = !si; });
-    if (t.id === 't-usos' && !$('cifras').children.length) cargaUsos(); };
+    if (t.id === 't-usos' && !$('cifras').children.length) cargaUsos(); if (t.id === 't-catalogos') pintaCatalogos(); };
   tabs.forEach((b, i) => { b.addEventListener('click', () => elige(b)); b.addEventListener('keydown', e => {
     if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { const n = tabs[(i + (e.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length]; elige(n); n.focus(); } }); });
 
   // ---------- personas ----------
-  Object.entries(ALC).sort((a, b) => a[1].localeCompare(b[1], 'es')).forEach(([k, v]) => { const o = el('option', v); o.value = k; $('a-alc').appendChild(o); });
-  const syncAlc = () => { const alc = $('a-inst').value === 'Alcaldía'; $('a-alc').disabled = !alc; if (!alc) $('a-alc').value = ''; };
-  $('a-inst').addEventListener('change', syncAlc); syncAlc();
-  let PERSONAS = [], YO = null;
+  // Fuera de las alcaldías, cada cuenta lleva una entrada del catálogo de su tipo de institución (pestaña «Catálogos»)
+  const ETQ = { 'Gobierno Central': 'Dependencia', 'Organización de la sociedad civil': 'Organización', Privado: 'Empresa', Otra: 'Institución' };
+  const ALC_ORDEN = Object.entries(ALC).sort((a, b) => a[1].localeCompare(b[1], 'es'));
+  ALC_ORDEN.forEach(([k, v]) => { const o = el('option', v); o.value = k; $('a-alc').appendChild(o); });
+  let PERSONAS = [], YO = null, CAT = { tipos: [], entradas: [] }, EDITA = null;
+  // las entradas activas del tipo; al editar, también la que ya tiene la cuenta aunque esté desactivada
+  function llenaEnt(inst, actual) { const s = $('a-ent'); s.textContent = ''; s.appendChild(el('option', '— Elige —')).value = '';
+    CAT.entradas.filter(c => c.tipo === inst && (c.activo || c.id === actual)).forEach(c => { const o = el('option', c.nombre + (c.activo ? '' : ' (desactivada)')); o.value = String(c.id); s.appendChild(o); });
+    s.value = actual ? String(actual) : ''; }
+  function syncInst(actual) { const inst = $('a-inst').value, alc = inst === 'Alcaldía';
+    $('c-alc').hidden = !alc; $('c-ent').hidden = alc; $('a-nota-catalogo').hidden = alc;
+    if (!alc) { $('a-ent-etq').textContent = ETQ[inst]; llenaEnt(inst, actual); } }
+  $('a-inst').addEventListener('change', () => syncInst()); syncInst();
+  const pertenencia = u => u.alcaldia || u.entidad || '';
+  // sugerencias de área: las que ya están capturadas, para no escribir la misma de varias formas
+  const pintaAreas = () => { const d = $('areas'); d.textContent = '';
+    [...new Set(PERSONAS.map(u => (u.area || '').trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'es')).forEach(a => d.appendChild(el('option')).value = a); };
+  // editar una cuenta: el mismo formulario, con el correo fijo
+  function modoAlta() { EDITA = null; $('alta-titulo').textContent = 'Dar de alta una cuenta'; $('a-guardar').textContent = 'Dar de alta'; $('c-cancelar').hidden = true;
+    $('a-correo').disabled = false; $('f-alta').querySelectorAll('input').forEach(i => { i.value = ''; }); $('a-rol').value = 'usuario'; syncInst(); }
+  function editar(u) { EDITA = u; $('alta-err').hidden = true; $('clave').hidden = true;
+    $('alta-titulo').textContent = `Editar la cuenta de ${u.nombre}`; $('a-guardar').textContent = 'Guardar cambios'; $('c-cancelar').hidden = false;
+    $('a-correo').value = u.correo; $('a-correo').disabled = true; $('a-nombre').value = u.nombre; $('a-area').value = u.area || ''; $('a-cargo').value = u.cargo || '';
+    $('a-inst').value = u.institucion; $('a-alc').value = u.alcaldia_cve || ''; $('a-rol').value = u.rol; syncInst(u.entidad_id);
+    $('alta-titulo').scrollIntoView({ block: 'start' }); $('alta-titulo').focus(); }
+  $('a-cancelar').addEventListener('click', () => { modoAlta(); $('alta-titulo').focus(); });
   const muestraClave = (titulo, persona, clave) => { const c = $('clave'); c.textContent = '';
     c.appendChild(el('b', titulo)); c.appendChild(el('span', ` Contraseña temporal de ${persona} (se muestra una sola vez):`));
     c.appendChild(el('code', clave));
@@ -42,8 +65,24 @@
     b.addEventListener('click', () => navigator.clipboard.writeText(clave).then(() => { b.textContent = 'Copiada'; }, () => { b.textContent = 'Selecciónala y cópiala'; }));
     c.appendChild(b); c.hidden = false; c.scrollIntoView({ block: 'nearest' }); };
   $('f-alta').addEventListener('submit', async e => { e.preventDefault(); const err = $('alta-err'); err.hidden = true;
-    const datos = { correo: $('a-correo').value.trim(), nombre: $('a-nombre').value.trim(), institucion: $('a-inst').value, alcaldia_cve: $('a-alc').value || null, rol: $('a-rol').value };
-    if (datos.institucion === 'Alcaldía' && !datos.alcaldia_cve) { err.textContent = 'Elige la alcaldía de la persona.'; err.hidden = false; $('a-alc').focus(); return; }
+    const falta = (t, id) => { err.textContent = t; err.hidden = false; $(id).focus(); };
+    const inst = $('a-inst').value, alc = inst === 'Alcaldía';
+    const datos = { correo: $('a-correo').value.trim(), nombre: $('a-nombre').value.trim(), area: $('a-area').value.trim(), cargo: $('a-cargo').value.trim(), institucion: inst,
+      alcaldia_cve: alc ? $('a-alc').value || null : null, entidad_id: alc ? null : +$('a-ent').value || null, rol: $('a-rol').value };
+    if (!EDITA && !datos.correo) return falta('Escribe el correo.', 'a-correo');
+    if (!datos.nombre) return falta('Escribe el nombre.', 'a-nombre');
+    if (!datos.area) return falta('Escribe el área.', 'a-area');
+    if (!datos.cargo) return falta('Escribe el cargo.', 'a-cargo');
+    if (alc && !datos.alcaldia_cve) return falta('Elige la alcaldía de la persona.', 'a-alc');
+    if (!alc && !datos.entidad_id) return falta(`Elige la ${ETQ[inst].toLowerCase()}. Si no aparece, agrégala en «Catálogos».`, 'a-ent');
+    if (EDITA) {   // solo lo que cambió
+      const u = EDITA, cambios = {};
+      for (const k of ['nombre', 'area', 'cargo', 'institucion', 'alcaldia_cve', 'entidad_id', 'rol']) if ((datos[k] ?? null) !== (u[k] ?? null)) cambios[k] = datos[k];
+      if (!Object.keys(cambios).length) { modoAlta(); return; }
+      const r = await llama(`admin/usuarios/${u.id}`, 'PATCH', cambios);
+      if (!r.ok) return falta(r.d.error || 'No fue posible guardar los cambios.', 'a-guardar');
+      modoAlta(); const a = $('personas-aviso'); a.className = 'aviso ok'; a.textContent = `Se guardaron los cambios de ${r.d.nombre}.`; a.hidden = false; cargaPersonas(); return;
+    }
     const r = await llama('admin/usuarios', 'POST', datos);
     if (!r.ok) { err.textContent = r.d.error || 'No fue posible dar de alta la cuenta.'; err.hidden = false; return; }
     muestraClave('Cuenta creada.', r.d.usuario.nombre, r.d.contrasena_temporal); e.target.querySelectorAll('input').forEach(i => { i.value = ''; }); cargaPersonas(); });
@@ -58,25 +97,90 @@
     if (tipo === 'restablecer') muestraClave('Contraseña restablecida.', u.nombre, r.d.contrasena_temporal);
     else { aviso.className = 'aviso ok'; aviso.textContent = { baja: `${u.nombre} quedó dada de baja.`, alta: `${u.nombre} está activa de nuevo.`, rol: `Permiso de ${u.nombre} actualizado.` }[tipo]; aviso.hidden = false; }
     cargaPersonas(); }
+  // filtro «Alcaldía, dependencia u organización»: sus opciones siguen a la institución elegida (a:clave de alcaldía, e:entrada del catálogo)
+  function llenaPerten() { const s = $('f-perten'), antes = s.value, inst = $('f-inst').value; s.textContent = ''; s.appendChild(el('option', 'Todas')).value = '';
+    const grupo = (etq, ops) => { if (!ops.length) return; const g = el('optgroup'); g.label = etq; ops.forEach(([v, t]) => { g.appendChild(el('option', t)).value = v; }); s.appendChild(g); };
+    if (!inst || inst === 'Alcaldía') grupo('Alcaldías', ALC_ORDEN.map(([k, v]) => ['a:' + k, v]));
+    CAT.tipos.filter(t => !inst || inst === t).forEach(t => grupo(t, CAT.entradas.filter(c => c.tipo === t).map(c => ['e:' + c.id, c.nombre])));
+    s.value = [...s.options].some(o => o.value === antes) ? antes : ''; }
+  // orden por columna: clic en el encabezado; otro clic invierte el orden. Los vacíos van al final
+  let ORDEN = { k: 'nombre', dir: 1 };
+  const valor = (u, k) => k === 'pertenencia' ? pertenencia(u) : k === 'area' ? [u.area, u.cargo].filter(Boolean).join(' ') : k === 'ultimo_acceso' ? (u.ultimo_acceso ? new Date(u.ultimo_acceso).getTime() : null)
+    : k === 'rol' ? (u.rol === 'admin' ? 'Administración' : 'Consulta') : u[k];
+  const compara = (a, b) => { const x = valor(a, ORDEN.k), y = valor(b, ORDEN.k);
+    if (x === null || x === '' || x === undefined) return (y === null || y === '' || y === undefined) ? 0 : 1; if (y === null || y === '' || y === undefined) return -1;
+    return ORDEN.dir * (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es', { sensitivity: 'base' })); };
+  document.querySelectorAll('#s-personas th[data-orden]').forEach(th => th.querySelector('button').addEventListener('click', () => {
+    const k = th.dataset.orden; ORDEN = { k, dir: ORDEN.k === k ? -ORDEN.dir : (k === 'ultimo_acceso' ? -1 : 1) }; pintaPersonas(); }));
   function pintaPersonas() {
-    const q = $('buscar').value.trim().toLowerCase(), f = $('filtro').value, tb = $('personas'); tb.textContent = '';
-    const lista = PERSONAS.filter(u => (f === 'todas' || (f === 'activas') === u.activo) && (!q || [u.nombre, u.correo, u.alcaldia, u.institucion].join(' ').toLowerCase().includes(q)));
+    const q = norm($('buscar').value), f = $('filtro').value, fi = $('f-inst').value, fp = $('f-perten').value, fr = $('f-rol').value, tb = $('personas'); tb.textContent = '';
+    document.querySelectorAll('#s-personas th[data-orden]').forEach(th => { if (th.dataset.orden === ORDEN.k) th.setAttribute('aria-sort', ORDEN.dir > 0 ? 'ascending' : 'descending'); else th.removeAttribute('aria-sort'); });
+    const lista = PERSONAS.filter(u => (f === 'todas' || (f === 'activas') === u.activo) && (!fi || u.institucion === fi) && (!fr || u.rol === fr)
+      && (!fp || fp === (u.alcaldia_cve ? 'a:' + u.alcaldia_cve : 'e:' + u.entidad_id))
+      && (!q || norm([u.nombre, u.correo, u.area, u.cargo, pertenencia(u), u.institucion].join(' ')).includes(q))).sort(compara);
     $('personas-cap').textContent = `Cuentas · ${fmt.format(lista.length)} de ${fmt.format(PERSONAS.length)}`;
-    if (!lista.length) { const tr = el('tr'); const td = celda(tr, 'No hay cuentas con ese criterio.'); td.colSpan = 6; tb.appendChild(tr); return; }
+    if (!lista.length) { const tr = el('tr'); const td = celda(tr, 'No hay cuentas con ese criterio.'); td.colSpan = 8; tb.appendChild(tr); return; }
     for (const u of lista) { const tr = el('tr', null, u.activo ? '' : 'inactiva');
       const p = celda(tr); p.appendChild(el('b', u.nombre)); p.appendChild(el('br')); p.appendChild(el('span', u.correo));
-      celda(tr, u.institucion + (u.alcaldia ? ' · ' + u.alcaldia : ''));
+      const ac0 = celda(tr); if (u.area || u.cargo) { ac0.appendChild(el('span', u.area || '—')); ac0.appendChild(el('br')); ac0.appendChild(el('span', u.cargo || '—', 'tenue')); } else ac0.appendChild(el('span', 'Sin capturar', 'tenue'));
+      celda(tr, u.institucion);
+      celda(tr, pertenencia(u) || '—');
       celda(tr).appendChild(el('span', u.rol === 'admin' ? 'Administración' : 'Consulta', 'etiqueta' + (u.rol === 'admin' ? ' admin' : '')));
       celda(tr).appendChild(el('span', !u.activo ? 'De baja' : u.bloqueado ? 'Detenida por intentos' : u.temporal_vencida ? 'Contraseña temporal vencida: restablécela' : u.debe_cambiar ? 'Pendiente de primer acceso' : 'Activa',
         'etiqueta' + (!u.activo ? ' baja' : (u.bloqueado || u.debe_cambiar) ? ' pendiente' : '')));
       celda(tr, fecha(u.ultimo_acceso));
       const ac = el('div', null, 'acciones'); celda(tr).appendChild(ac);
       const boton = (txt, tipo, etiqueta) => { const b = el('button', txt, 'btn chico secundario'); b.type = 'button'; b.setAttribute('aria-label', `${etiqueta} · ${u.nombre}`); b.addEventListener('click', () => accion(u, tipo)); ac.appendChild(b); };
+      const be = el('button', 'Editar', 'btn chico secundario'); be.type = 'button'; be.setAttribute('aria-label', `Editar · ${u.nombre}`); be.addEventListener('click', () => editar(u)); ac.appendChild(be);
       if (u.activo) { boton('Restablecer contraseña', 'restablecer', 'Restablecer contraseña'); if (!YO || YO.correo !== u.correo) { boton(u.rol === 'admin' ? 'Quitar administración' : 'Hacer administración', 'rol', 'Cambiar permiso'); boton('Dar de baja', 'baja', 'Dar de baja'); } }
       else boton('Reactivar', 'alta', 'Reactivar');
       tb.appendChild(tr); } }
-  async function cargaPersonas() { const r = await llama('admin/usuarios'); if (r.ok) { PERSONAS = r.d; pintaPersonas(); } }
-  $('buscar').addEventListener('input', pintaPersonas); $('filtro').addEventListener('change', pintaPersonas);
+  async function cargaPersonas() { const r = await llama('admin/usuarios'); if (r.ok) { PERSONAS = r.d; pintaAreas(); pintaPersonas(); } }
+  $('buscar').addEventListener('input', pintaPersonas);
+  ['filtro', 'f-perten', 'f-rol'].forEach(id => $(id).addEventListener('change', pintaPersonas));
+  $('f-inst').addEventListener('change', () => { llenaPerten(); pintaPersonas(); });
+
+  // ---------- catálogos: dependencias, organizaciones, empresas y otras instituciones ----------
+  async function cargaCatalogos() { const r = await llama('admin/catalogos'); if (!r.ok) return;
+    CAT = r.d; llenaPerten(); if (!$('c-ent').hidden) llenaEnt($('a-inst').value, EDITA ? EDITA.entidad_id : +$('a-ent').value || null);
+    if (!$('s-catalogos').hidden) pintaCatalogos(); }
+  const avisoCat = (t, ok) => { const a = $('cat-aviso'); a.className = 'aviso ' + (ok ? 'ok' : 'alerta'); a.textContent = t; a.hidden = false; };
+  async function cambiaEntrada(c, cambio, txt) { $('cat-aviso').hidden = true;
+    const r = await llama(`admin/catalogos/${c.id}`, 'PATCH', cambio);
+    if (!r.ok) { avisoCat(r.d.error || 'No fue posible hacer el cambio.'); return false; }
+    avisoCat(txt(r.d), true); await cargaCatalogos(); cargaPersonas(); return true; }
+  function pintaCatalogos() { const caja = $('catalogos'); caja.textContent = '';
+    CAT.tipos.forEach((t, i) => {
+      const sec = el('div', null, 'caja'); sec.appendChild(el('h3', t === 'Gobierno Central' ? 'Gobierno Central · dependencias' : t));
+      // agregar
+      const f = el('form', null, 'rejilla'); f.noValidate = true;
+      const c1 = el('div', null, 'campo'), lb = el('label', `Agregar ${ETQ[t].toLowerCase()}`), inp = el('input'); lb.htmlFor = inp.id = 'cat-n-' + i; inp.autocomplete = 'off'; inp.maxLength = 120;
+      c1.append(lb, inp); const c2 = el('div', null, 'campo'), b = el('button', 'Agregar', 'btn secundario'); b.type = 'submit'; c2.appendChild(b); f.append(c1, c2); sec.appendChild(f);
+      f.addEventListener('submit', async e => { e.preventDefault(); $('cat-aviso').hidden = true; const nombre = inp.value.trim();
+        if (!nombre) { avisoCat(`Escribe el nombre de la ${ETQ[t].toLowerCase()}.`); inp.focus(); return; }
+        const r = await llama('admin/catalogos', 'POST', { tipo: t, nombre });
+        if (!r.ok) { avisoCat(r.d.error || 'No fue posible agregarla.'); inp.focus(); return; }
+        avisoCat(`Se agregó «${r.d.nombre}» a ${t}.`, true); await cargaCatalogos(); const n = $('cat-n-' + i); if (n) n.focus(); });
+      // lista
+      const lista = CAT.entradas.filter(c => c.tipo === t);
+      const tw = el('div', null, 'tabla-envoltura'), tab = el('table'), th = el('thead'), tb = el('tbody'); tab.append(th, tb); tw.appendChild(tab);
+      const h = el('tr'); ['Nombre', 'Cuentas activas', 'Estado', 'Acciones'].forEach(x => { const c = el('th', x); c.scope = 'col'; h.appendChild(c); }); th.appendChild(h);
+      if (!lista.length) { const tr = el('tr'); celda(tr, 'Todavía no hay entradas.').colSpan = 4; tb.appendChild(tr); }
+      lista.forEach(c => { const tr = el('tr', null, c.activo ? '' : 'inactiva'), tdN = celda(tr, c.nombre);
+        celda(tr, c.cuentas, 'n'); celda(tr).appendChild(el('span', c.activo ? 'Activa' : 'Desactivada', 'etiqueta' + (c.activo ? '' : ' baja')));
+        const ac = el('div', null, 'acciones'); celda(tr).appendChild(ac);
+        const bot = (txt, etq, fn) => { const x = el('button', txt, 'btn chico secundario'); x.type = 'button'; x.setAttribute('aria-label', `${etq} · ${c.nombre}`); x.addEventListener('click', fn); ac.appendChild(x); };
+        bot('Cambiar nombre', 'Cambiar nombre', () => {   // en el mismo renglón: campo, Guardar y Cancelar
+          tdN.textContent = ''; const e2 = el('input'); e2.value = c.nombre; e2.maxLength = 120; e2.setAttribute('aria-label', `Nuevo nombre de ${c.nombre}`); tdN.appendChild(e2); e2.focus();
+          ac.textContent = ''; bot('Guardar', 'Guardar nombre', async () => { const n = e2.value.trim(); if (n === c.nombre) { pintaCatalogos(); return; }
+            await cambiaEntrada(c, { nombre: n }, d => `«${c.nombre}» ahora se llama «${d.nombre}».`); });
+          bot('Cancelar', 'Cancelar cambio de nombre', () => pintaCatalogos());
+          e2.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); ac.firstChild.click(); } if (ev.key === 'Escape') pintaCatalogos(); }); });
+        if (c.activo) bot('Desactivar', 'Desactivar', () => { if (confirm(`¿Desactivar «${c.nombre}»? Deja de ofrecerse en las altas; ${c.cuentas ? `las ${c.cuentas} cuentas que la tienen la conservan` : 'ninguna cuenta activa la tiene'}.`))
+          cambiaEntrada(c, { activo: false }, d => `«${d.nombre}» quedó desactivada.`); });
+        else bot('Reactivar', 'Reactivar', () => cambiaEntrada(c, { activo: true }, d => `«${d.nombre}» está activa de nuevo.`));
+        tb.appendChild(tr); });
+      sec.appendChild(tw); caja.appendChild(sec); }); }
 
   // ---------- alta masiva desde CSV ----------
   // El servidor admite hasta 100 cuentas por petición: el archivo se parte aquí en envíos de LOTE renglones, cada uno con
@@ -107,7 +211,9 @@
   const aCsv = filas => filas.map(r => r.map(q).join(',')).join('\r\n');
   const numRenglon = t => +((t.match(/^Renglón (\d+)/) || [])[1] || 0);
   $('m-plantilla').addEventListener('click', e => { e.preventDefault();
-    descarga('plantilla_alta_masiva.csv', 'correo,nombre,institucion,alcaldia,rol\r\nana.garcia@correo.com,Ana García López,Alcaldía,Tlalpan,usuario\r\nluis.perez@cdmx.gob.mx,Luis Pérez Ruiz,Gobierno Central,,usuario\r\n'); });
+    descarga('plantilla_alta_masiva.csv', 'correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol\r\n' +
+      'ana.garcia@correo.com,Ana García López,Dirección de Medio Ambiente,Jefatura de Unidad Departamental,Alcaldía,Tlalpan,,usuario\r\n' +
+      'luis.perez@cdmx.gob.mx,Luis Pérez Ruiz,Dirección General de Servicios Urbanos y Sustentabilidad,Subdirección,Gobierno Central,,SOBSE,usuario\r\n'); });
   // contraseñas recibidas que aún no se descargan: el navegador avisa antes de cerrar la página
   let PENDIENTES = false;
   window.addEventListener('beforeunload', e => { if (PENDIENTES) { e.preventDefault(); e.returnValue = ''; } });
@@ -145,8 +251,8 @@
     if (errores.length) { const ul = el('ul'); errores.forEach(x => ul.appendChild(el('li', x))); out.appendChild(ul);
       out.appendChild(el('p', 'Corrige esos renglones en el archivo y vuelve a revisarlo. No se dio de alta a nadie.', 'nota')); return; }
     const tw = el('div', null, 'tabla-envoltura'), t = el('table'), th = el('thead'), tb = el('tbody'); t.append(th, tb); tw.appendChild(t);
-    const h = el('tr'); ['Correo', 'Nombre', 'Institución', 'Permiso', ''].forEach(x => { const c = el('th', x); c.scope = 'col'; h.appendChild(c); }); th.appendChild(h);
-    validas.forEach(v => { const tr = el('tr', null, v.existe ? 'inactiva' : ''); [v.correo, v.nombre, v.institucion + (v.alcaldia ? ' · ' + v.alcaldia : ''), v.rol === 'admin' ? 'Administración' : 'Consulta', v.existe ? 'Ya existe' : 'Nueva'].forEach(x => celda(tr, x)); tb.appendChild(tr); });
+    const h = el('tr'); ['Correo', 'Nombre', 'Área y cargo', 'Institución', 'Permiso', ''].forEach(x => { const c = el('th', x); c.scope = 'col'; h.appendChild(c); }); th.appendChild(h);
+    validas.forEach(v => { const tr = el('tr', null, v.existe ? 'inactiva' : ''); [v.correo, v.nombre, `${v.area} · ${v.cargo}`, v.institucion + ' · ' + (v.alcaldia || v.entidad || '—'), v.rol === 'admin' ? 'Administración' : 'Consulta', v.existe ? 'Ya existe' : 'Nueva'].forEach(x => celda(tr, x)); tb.appendChild(tr); });
     out.appendChild(tw);
     if (nuevas.length) { const b = el('button', `Dar de alta ${fmt.format(nuevas.length)} cuenta${nuevas.length === 1 ? '' : 's'}`, 'btn'); b.type = 'button';
       b.addEventListener('click', () => { if (confirm(`¿Dar de alta ${nuevas.length} cuenta(s)? Se generará una contraseña temporal para cada una.`)) aplicar(nuevas); }); out.appendChild(b); }
@@ -178,7 +284,7 @@
       out.appendChild(el('p', 'Para las que faltan, vuelve a revisar y aplicar el mismo archivo: las cuentas ya creadas no se tocan ni cambian de contraseña.', 'nota'));
     } else out.appendChild(el('p', `Listo: ${fmt.format(hechas.length)} cuentas creadas${existentes.length ? `; ${fmt.format(existentes.length)} ya existían y no se tocaron` : ''}.`, 'aviso ok'));
     if (hechas.length) {   // contraseñas temporales una sola vez, en un CSV que se arma aquí
-      const filas = ['correo,nombre,institucion,alcaldia,contrasena_temporal'].concat(hechas.map(c => [c.correo, c.nombre, c.institucion, c.alcaldia || '', c.contrasena_temporal].map(q).join(',')));
+      const filas = ['correo,nombre,institucion,alcaldia,dependencia_u_organizacion,contrasena_temporal'].concat(hechas.map(c => [c.correo, c.nombre, c.institucion, c.alcaldia || '', c.entidad || '', c.contrasena_temporal].map(q).join(',')));
       const nombre = `cuentas_con_contrasenas_${new Date().toISOString().slice(0, 10).replace(/-/g, '')}.csv`;
       const caja = el('div', null, 'clave'); caja.appendChild(el('b', 'Contraseñas temporales (se muestran una sola vez). '));
       caja.appendChild(el('span', 'Descarga el archivo, repártelas por un medio seguro y por separado del correo de cada cuenta, y bórralo después. Al entrar, cada persona creará su propia contraseña.'));
@@ -206,12 +312,12 @@
     const maxD = Math.max(1, ...d.por_grupo.map(g => g.descargas));
     const tg = $('u-grupo'); tg.textContent = ''; if (!d.por_grupo.length) vacia(tg, 7);
     d.por_grupo.forEach(g => { const barra = el('div', null, 'barra-hbar'); barra.style.width = Math.round(100 * g.descargas / maxD) + '%'; barra.setAttribute('aria-hidden', 'true');
-      fila(tg, [g.institucion, g.alcaldia || '—', g.personas, g.accesos, g.consultas, g.descargas, barra]); });
+      fila(tg, [g.institucion, g.alcaldia || g.entidad || '—', g.personas, g.accesos, g.consultas, g.descargas, barra]); });
     const tt = $('u-territorio'); tt.textContent = ''; if (!d.alcaldias_consultadas.length) vacia(tt, 3); d.alcaldias_consultadas.forEach(a => fila(tt, [a.alcaldia, a.consultas, a.descargas]));
     const ta = $('u-archivos'); ta.textContent = ''; if (!d.archivos.length) vacia(ta, 2); d.archivos.forEach(a => fila(ta, [ARCHIVO[a.tipo] || a.tipo, a.n]));
     const tp = $('u-persona'); tp.textContent = ''; if (!d.por_persona.length) vacia(tp, 6);
     d.por_persona.forEach(p => { const n = el('span'); n.appendChild(el('b', p.nombre)); n.appendChild(el('br')); n.appendChild(el('span', p.correo));
-      fila(tp, [n, p.institucion + (p.alcaldia ? ' · ' + p.alcaldia : ''), p.accesos, p.consultas, p.descargas, fecha(p.ultimo)]); });
+      fila(tp, [n, p.institucion + (p.alcaldia || p.entidad ? ' · ' + (p.alcaldia || p.entidad) : ''), p.accesos, p.consultas, p.descargas, fecha(p.ultimo)]); });
   }
   $('f-usos').addEventListener('submit', e => { e.preventDefault(); cargaUsos(); });
 
@@ -220,5 +326,5 @@
     if (r.d.debe_cambiar) { location.assign('../?cambiar=1'); return; }
     $('yo').textContent = `${r.d.nombre} · ${r.d.correo}`;
     if (r.d.rol !== 'admin') { const s = $('sin-permiso'); s.textContent = 'Tu cuenta no tiene permiso de administración. Si lo necesitas, pídelo a quien administra la herramienta.'; s.hidden = false; return; }
-    $('panel').hidden = false; cargaPersonas(); }).catch(() => {});
+    $('panel').hidden = false; cargaCatalogos().then(cargaPersonas); }).catch(() => {});
 })();

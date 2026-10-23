@@ -55,7 +55,7 @@ CABEN = {
     'sitio/fuentes': {'.woff2', '.txt'},
     'sitio/img': {'.png', '.jpg'},
     'login': {'.md'},
-    'login/acceso': {'.html'}, 'login/acceso/admin': {'.html'},
+    'login/acceso': {'.html'}, 'login/acceso/admin': {'.html'}, 'login/acceso/perfil': {'.html'},
     'login/acceso/recursos': {'.js', '.css', '.woff2', '.png', '.txt'},
     'login/backend/src/modulos/priorizacion-reforestacion': {'.ts'},
     'login/backend/db/priorizacion_reforestacion': {'.sql'},

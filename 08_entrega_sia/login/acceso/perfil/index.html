@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Mi perfil · Modelo de priorización de reforestación urbana</title>
+<link rel="stylesheet" href="../recursos/estilos.css">
+<script src="../recursos/perfil.js" defer></script>
+</head>
+<body class="acceso">
+<main class="tarjeta" id="principal">
+  <img class="logo" src="../recursos/logo.png" alt="Gobierno de la Ciudad de México · Secretaría del Medio Ambiente · Sistema de Información Ambiental de la Ciudad de México · Reforestación Urbana">
+  <p class="eyebrow">Modelo de priorización de reforestación urbana</p>
+  <h1>Mi perfil</h1>
+  <p class="aviso alerta" id="perfil-err" role="alert" hidden></p>
+  <dl class="perfil" id="perfil" aria-busy="true">
+    <dt>Nombre</dt><dd id="p-nombre">…</dd>
+    <dt>Correo electrónico</dt><dd id="p-correo">…</dd>
+    <dt>Área</dt><dd id="p-area">…</dd>
+    <dt>Cargo</dt><dd id="p-cargo">…</dd>
+    <dt>Institución</dt><dd id="p-inst">…</dd>
+    <dt id="p-perten-etq">Alcaldía</dt><dd id="p-perten">…</dd>
+    <dt>Permiso</dt><dd id="p-rol">…</dd>
+  </dl>
+  <p class="nota">Si algún dato no es correcto, pide a quien administra la herramienta que lo corrija.</p>
+  <p class="enlaces">
+    <a class="btn" href="/priorizacion-reforestacion/" id="p-volver">Ir a la herramienta</a>
+    <a class="btn secundario" href="../?cambiar=1" id="p-clave">Cambiar contraseña</a>
+    <a class="btn secundario" href="../admin/" id="p-admin" hidden>Administración</a>
+    <a class="btn secundario" href="/priorizacion-reforestacion/api/salir">Cerrar sesión</a>
+  </p>
+  <p class="pie"><a href="../aviso-de-privacidad.html">Aviso de privacidad</a></p>
+</main>
+</body>
+</html>

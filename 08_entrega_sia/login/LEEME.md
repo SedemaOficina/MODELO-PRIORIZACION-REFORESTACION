@@ -15,7 +15,7 @@ Todo queda bajo `/priorizacion-reforestacion/`: la cookie de sesión lleva `Path
 
 ## Quién opera las cuentas
 
-- **La Oficina de la Secretaría** opera las cuentas desde el panel de administración: altas (una por una o en bloque), bajas, reactivaciones, restablecimientos de contraseña y permisos.
+- **La Oficina de la Secretaría** opera las cuentas desde el panel de administración: altas (una por una o en bloque), cambios de datos, bajas, reactivaciones, restablecimientos de contraseña y permisos. También el catálogo de dependencias, organizaciones y empresas (pestaña «Catálogos»).
 - **El SIA** mantiene el servidor, la base de datos y sus respaldos. No da de alta ni de baja cuentas.
 - Las cuentas viven en el esquema propio del módulo (`priorizacion_reforestacion`), separadas de las de otros sistemas del SIA.
 
@@ -28,14 +28,14 @@ Todo queda bajo `/priorizacion-reforestacion/`: la cookie de sesión lleva `Path
 | `backend/src/modulos/priorizacion-reforestacion/` | El módulo, en TypeScript y con la misma forma que los demás: `rutas.ts` exporta `crearRutasPriorizacionReforestacion(pool)`. Además `contrasenas.ts` (huellas scrypt), `masiva.ts` (alta masiva desde CSV) y `alcaldias.ts`. La IP de origen la toma de `ipDeOrigen(req)` de `src/comun/procedencia.ts` de `sia-backend` (no viene en el paquete). No agrega dependencias: usa `express` y `pg`, que el backend ya tiene |
 | `backend/db/priorizacion_reforestacion/` | `01-…-esquema.sql` (tablas, restricciones y depuración por plazos) y `02-…-rol-y-grants.sql` (rol `priorizacion_reforestacion_api` con mínimo privilegio, controles negativos y línea de `pg_hba`) |
 | `backend/herramientas/priorizacion-reforestacion/primera-cuenta.ts` | Genera el SQL de la primera cuenta de administración. No se conecta a nada |
-| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), aviso de privacidad (`aviso-de-privacidad.html`), página «sin servicio» para cuando el módulo no responde (`sin-servicio.html`) y sus recursos (estáticos, los sirve nginx) |
+| `acceso/` | Pantalla de acceso (`index.html`), panel de administración (`admin/`), «Mi perfil» (`perfil/`: los datos de la cuenta, solo para ver), aviso de privacidad (`aviso-de-privacidad.html`), página «sin servicio» para cuando el módulo no responde (`sin-servicio.html`) y sus recursos (estáticos, los sirve nginx) |
 <!-- solo-repositorio -->
 
 Solo en el repositorio (no van en el paquete del SIA):
 
 | Carpeta | Qué es |
 |---|---|
-| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
+| `backend/pruebas/` | Pruebas: el módulo montado como en `sia-backend` (helmet, cors y `express.json()` globales), el catálogo, el área y el cargo, la pertenencia de cada cuenta y «Mi perfil» (`catalogos.test.mjs`), la IP detrás de nginx, el empaquetado con su misma configuración de tsup, la herramienta de la primera cuenta , la seguridad del acceso (`seguridad.test.mjs`: intentos simultáneos, contraseña temporal, contraseñas comunes, una cuenta de administración, entradas mal formadas, procedencia y caché) y, contra PostgreSQL real (`PRUEBAS_PG=1`), la depuración, la transacción del alta masiva y los controles negativos del rol. Los archivos corren uno tras otro (`--test-concurrency=1`): con PostgreSQL real comparten la base |
 | `backend/src/comun/procedencia.ts` | Sustituto local de `ipDeOrigen(req)` para las pruebas, la revisión de tipos y la demostración, con el mismo criterio que el del SIA (`SIA_PROXIES_CONFIABLES`). En `sia-backend` se usa el archivo propio del SIA |
 | `backend/scripts/servidor_demo.mjs`, `datos_demo.mjs` | Demostración en una sola máquina y datos simulados para ver el panel lleno |
 | `backend/package.json`, `tsconfig.check.json` | Para correr las pruebas y la revisión de tipos (la misma configuración que `sia-backend`) |
@@ -44,7 +44,7 @@ Solo en el repositorio (no van en el paquete del SIA):
 
 ## Privacidad
 
-El registro de usos trata datos personales: nombre, correo, institución, IP y bitácora. El aviso integral se publica en la pantalla de acceso (`acceso/aviso-de-privacidad.html`) y declara los plazos que cumple la depuración automática: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
+El registro de usos trata datos personales: nombre, correo, institución, IP y bitácora; desde la versión 1.49, también área, cargo y la dependencia u organización. **Pendiente:** los avisos de privacidad y la solicitud a la Unidad de Transparencia (`privacidad/`) todavía no mencionan área, cargo ni las cuentas de organizaciones de la sociedad civil y empresas privadas. Hay que ajustarlos antes de enviar la solicitud y antes de la entrega al SIA (decisión de Liber del 23 de octubre de 2026: primero el panel). El aviso integral se publica en la pantalla de acceso (`acceso/aviso-de-privacidad.html`) y declara los plazos que cumple la depuración automática: bitácora 24 meses, IP 6 meses y cuentas dadas de baja 24 meses después de la baja.
 
 ## Instalación
 
@@ -67,7 +67,7 @@ Después:
 - La línea `hostssl` en `pg_hba.conf` para `priorizacion_reforestacion_api` desde el servidor de aplicaciones (plantilla al final de `02-…`) y `SELECT pg_reload_conf();`.
 - Correr los controles negativos del final de `02-…` conectado **como el rol**: deben fallar.
 
-El rol puede leer y escribir cuentas y sesiones, solo agregar a la bitácora (no modificarla ni borrarla) y pedir la depuración. Las cuentas no se borran: se dan de baja, y `depurar()` (que corre con los permisos del dueño del esquema) las elimina 24 meses después.
+El rol puede leer y escribir cuentas, sesiones y el catálogo (sin borrar cuentas ni entradas del catálogo), solo agregar a la bitácora (no modificarla ni borrarla) y pedir la depuración. Las cuentas no se borran: se dan de baja, y `depurar()` (que corre con los permisos del dueño del esquema) las elimina 24 meses después.
 
 **2. Variables** en el archivo de entorno del backend, con el script que ya usan (`deploy/agregar-clave-modulo.sh`):
 ```
@@ -152,7 +152,7 @@ Todo se puede ensayar en una computadora con Node.js 22.6 o posterior (`cd backe
 4. Demostración con esa base: `DEMO_PG=1 npm run demo`.
 
 **Los datos simulados** son:
-- 37 cuentas ficticias: dos enlaces por alcaldía, tres del Gobierno Central y dos de SEDEMA. Todas con correo `@ejemplo.gob.mx` y contraseña `demostracion-2026`.
+- 41 cuentas ficticias, todas con área y cargo: dos enlaces por alcaldía, tres de SOBSE, una de PAOT, dos de SEDEMA con administración, dos de organizaciones de la sociedad civil y una de una empresa (las tres, ficticias, se agregan al catálogo). Todas con correo `@ejemplo.gob.mx` y contraseña `demostracion-2026`.
 - 90 días de uso con un patrón realista. Por ejemplo, cada enlace consulta sobre todo su alcaldía.
 
 Permiten ver el panel de usos lleno. El script **se niega** a cargarse en una base que ya tenga cuentas reales. Se quitan con `--borrar`.
@@ -174,28 +174,37 @@ Si un envío falla a la mitad (red, sesión vencida), el panel se detiene, dice 
 
 El archivo lleva una persona por renglón:
 ```
-correo,nombre,institucion,alcaldia,rol
-enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
+correo,nombre,area,cargo,institucion,alcaldia,dependencia_u_organizacion,rol
+enlace@azcapotzalco.cdmx.gob.mx,Ana García,Dirección de Medio Ambiente,Enlace,Alcaldía,Azcapotzalco,,usuario
+luis.perez@cdmx.gob.mx,Luis Pérez,Dirección General de Servicios Urbanos y Sustentabilidad,Subdirección,Gobierno Central,,SOBSE,usuario
 ```
-`alcaldia` acepta el nombre o la clave «002»…«017» (vacía si no es de una alcaldía); `rol`, «usuario» o «admin».
+- `area` y `cargo` son obligatorios.
+- `institucion`: Alcaldía, Gobierno Central, Organización de la sociedad civil, Privado u Otra. «SEDEMA», como en la plantilla anterior, se toma como Gobierno Central · SEDEMA.
+- `alcaldia`: solo en cuentas de alcaldía, con el nombre o la clave «002»…«017».
+- `dependencia_u_organizacion`: en las demás, escrita como en el catálogo (sin importar mayúsculas ni acentos). Si no está, se agrega primero en «Catálogos».
+- `rol`: «usuario» o «admin».
 
 ## Operación
 
 - **Altas** (una por una, o muchas con «Alta masiva desde CSV»):
   - Desde el panel (`/priorizacion-reforestacion/acceso/admin/`, solo cuentas con permiso de administración).
-  - Se elige institución y alcaldía; el panel muestra una contraseña temporal **una sola vez**.
+  - Se piden correo, nombre, área, cargo, institución y, según la institución, la alcaldía o la dependencia, organización o empresa del catálogo. El panel muestra una contraseña temporal **una sola vez**.
   - Compártela por un medio institucional y por separado del correo.
+- **Cambios de datos:** «Editar» en la lista de cuentas usa el mismo formulario; el correo no cambia. Al pasar una cuenta de alcaldía a otra institución se le quita la alcaldía, y al revés, la dependencia. Las cuentas anteriores a la versión 1.49 aparecen con «Sin capturar» en área y cargo hasta que se editen.
+- **Lista de cuentas:** se filtra por institución, por alcaldía, dependencia u organización, por permiso y por estado, y se busca por nombre, correo, área o cargo. Un clic en el encabezado de una columna la ordena; otro clic invierte el orden.
+- **Catálogos** (pestaña «Catálogos»): dependencias del Gobierno Central (de arranque: SEDEMA, SOBSE y PAOT), organizaciones de la sociedad civil, empresas privadas y otras instituciones. Se agregan, se renombran y se desactivan; no se borran. Una entrada desactivada deja de ofrecerse en las altas, pero las cuentas que ya la tienen la conservan. No puede haber dos entradas del mismo tipo con el mismo nombre (sin importar mayúsculas ni acentos). Las 16 alcaldías y los tipos de institución son fijos.
+- **«Mi perfil»:** cada persona ve sus datos desde «Mi cuenta» en la herramienta (o en `/priorizacion-reforestacion/acceso/perfil/`): nombre, correo, área, cargo, institución, alcaldía o dependencia y permiso. Solo para ver; los cambios los hace quien administra.
 - **Bajas:** «Dar de baja» cierra las sesiones de la persona al instante; la cuenta puede reactivarse.
 - **Contraseña olvidada:** «Restablecer contraseña» genera otra temporal y cierra sus sesiones.
 - **La contraseña temporal** solo sirve para que la persona cree la suya: con ella no se entra a la herramienta ni al panel, ni se registran usos. **Vence a las 72 horas** de darse; si vence, el panel dice «Contraseña temporal vencida: restablécela» y se restablece. La nueva no puede ser igual a la temporal.
 - **Reportes:** la pestaña «Usos» muestra, por rango de fechas:
   - cuentas activas;
-  - uso por institución y alcaldía de quien consulta;
+  - uso por institución y alcaldía, dependencia u organización de quien consulta;
   - territorios consultados;
   - tipos de archivo descargados;
   - uso por persona.
 
-  «Descargar bitácora (CSV)» exporta el detalle, sin direcciones IP.
+  «Descargar bitácora (CSV)» exporta el detalle, sin direcciones IP, con la dependencia u organización de cada persona.
 - **Seguridad:**
   - Contraseñas de 12 caracteres o más, que no sean comunes, secuencias ni un carácter repetido (lista propia, sin consultar servicios externos), guardadas con huella scrypt: las definitivas con N = 2^14, r = 8, p = 5 (costo equivalente a la recomendación de OWASP, con 16 MiB por cálculo); las temporales, con p = 1. Cada huella guarda sus parámetros, así que las anteriores siguen sirviendo.
   - La cuenta se detiene 15 minutos tras 5 intentos fallidos, también si los intentos llegan al mismo tiempo: cada intento se cuenta en la base con una sola sentencia **antes** de verificar la contraseña. Los intentos con la contraseña actual equivocada al cambiarla cuentan igual y, al quinto, cierran sus sesiones.
@@ -203,7 +212,7 @@ enlace@azcapotzalco.cdmx.gob.mx,Ana García,Alcaldía,Azcapotzalco,usuario
   - «Entrar» tarda lo mismo con una cuenta inexistente, con contraseña temporal o con definitiva: el tiempo no delata qué cuentas existen ni cuáles están sin estrenar.
   - Siempre queda al menos una cuenta de administración activa (aunque dos personas se den de baja una a la otra a la vez).
   - El alta masiva va en una transacción: si algo falla a la mitad, no queda ninguna cuenta creada sin su contraseña.
-  - Nombres de 120 caracteres o menos, que no empiecen con `= + - @`; correos solo con caracteres ASCII visibles. El CSV de contraseñas que arma el panel y el de la bitácora no dejan fórmulas activas.
+  - Nombres, áreas, cargos y entradas del catálogo de 120 caracteres o menos, que no empiecen con `= + - @`; correos solo con caracteres ASCII visibles. El CSV de contraseñas que arma el panel y el de la bitácora no dejan fórmulas activas.
   - Las respuestas del módulo llevan `Cache-Control: no-store`. Una petición que cambia algo y viene de otro sitio (Origin ajeno, o sin Origin y con `Sec-Fetch-Site` de otro sitio) se rechaza; un enlace a «Salir» puesto en otro sitio no cierra la sesión.
   - La sesión dura 12 h sin actividad, con un máximo de 7 días.
   - Cookie `HttpOnly`, `Secure`, `SameSite=Lax` y `Path=/priorizacion-reforestacion/`.

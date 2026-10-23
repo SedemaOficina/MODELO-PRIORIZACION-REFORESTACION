@@ -36,8 +36,9 @@ BEGIN;
 DO $$
 DECLARE n integer;
 BEGIN
-  INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, rol, huella, debe_cambiar)
-  VALUES (${lit(correo)}, ${lit(nombre)}, 'SEDEMA', 'admin', ${lit(h)}, true)
+  -- Gobierno Central · SEDEMA (catálogo); área y cargo se completan después desde el panel
+  INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, entidad_id, rol, huella, debe_cambiar)
+  VALUES (${lit(correo)}, ${lit(nombre)}, 'Gobierno Central', (SELECT id FROM priorizacion_reforestacion.catalogo_entidades WHERE tipo = 'Gobierno Central' AND nombre = 'SEDEMA'), 'admin', ${lit(h)}, true)
   ON CONFLICT (correo) DO NOTHING;
   GET DIAGNOSTICS n = ROW_COUNT;
   IF n = 0 THEN RAISE NOTICE 'Ya existía una cuenta con ese correo: no se cambió nada. Usa «Restablecer» desde el panel.';

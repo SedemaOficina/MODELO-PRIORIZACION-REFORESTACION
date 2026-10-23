@@ -3,7 +3,7 @@ import { createHash, randomBytes } from "node:crypto";
 import type pg from "pg";
 import { huella, huellaTemporal, revisaNueva, temporal, verifica, verificaFicticia, verificaIgual } from "./contrasenas";
 import { ALCALDIAS, nombreAlcaldia } from "./alcaldias";
-import { aplica, INSTITUCIONES, leeCsv, revisa, type CuentaNueva } from "./masiva";
+import { aplica, INSTITUCIONES, leeCsv, norm, revisa, TIPOS_CATALOGO, type CuentaNueva, type Entidad } from "./masiva";
 import { ipDeOrigen } from "../../comun/procedencia";
 
 /* ============================================================
@@ -20,6 +20,8 @@ import { ipDeOrigen } from "../../comun/procedencia";
      antes de entregar cualquier archivo de la herramienta.
    - Registra los usos (accesos, visitas, consultas y descargas) para saber qué
      instituciones y alcaldías usan la herramienta.
+   - Cada cuenta lleva área y cargo; fuera de las alcaldías, una dependencia u
+     organización del catálogo que quien administra edita desde el panel (v1.49).
 
    Direcciones públicas, todas bajo /priorizacion-reforestacion/ (la cookie
    lleva Path=/priorizacion-reforestacion/ y no viaja al resto del dominio):
@@ -85,7 +87,8 @@ const CAMPOS_USO = ["red", "alcaldia", "colonia", "avenida", "calle", "banqueta"
 const LIMPIO = /^[\p{L}\p{N} .,;:()«»'_\-·/]{0,160}$/u;
 
 interface Usuario {
-  id: number; correo: string; nombre: string; institucion: string; alcaldia_cve: string | null; rol: "usuario" | "admin";
+  id: number; correo: string; nombre: string; area: string | null; cargo: string | null; institucion: string; alcaldia_cve: string | null;
+  entidad_id: number | null; entidad?: string | null; rol: "usuario" | "admin";
   activo: boolean; huella: string; debe_cambiar: boolean; intentos_fallidos: number; bloqueado_hasta: Date | null;
   creado: Date; actualizado: Date; ultimo_acceso: Date | null; baja: Date | null; temporal_desde: Date | null;
 }
@@ -116,6 +119,12 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   const anota = (usuario_id: number | null, evento: string, detalle: object | null, req: Request | null) =>
     pool.query("INSERT INTO priorizacion_reforestacion.bitacora (usuario_id, evento, detalle, ip) VALUES ($1, $2, $3, $4)",
       [usuario_id, evento, detalle ? JSON.stringify(detalle) : null, req ? ipDeOrigen(req) : null]);
+
+  /** Una cuenta con el nombre de su dependencia u organización. */
+  const CON_ENTIDAD = `SELECT u.*, e.nombre AS entidad FROM priorizacion_reforestacion.usuarios u
+    LEFT JOIN priorizacion_reforestacion.catalogo_entidades e ON e.id = u.entidad_id`;
+  const leeUsuario = async (id: number) => (await pool.query<Usuario>(`${CON_ENTIDAD} WHERE u.id = $1`, [id])).rows[0] ?? null;
+  const leeCatalogo = async () => (await pool.query<Entidad>("SELECT id, tipo, nombre, activo FROM priorizacion_reforestacion.catalogo_entidades ORDER BY tipo, nombre")).rows;
 
   const leeCookie = (req: Request): string | null => {
     const m = (req.get("cookie") ?? "").split(/;\s*/).find((x) => x.startsWith(COOKIE + "="));
@@ -263,7 +272,10 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   r.get("/yo", async (req, res) => {
     const s = await sesion(req);
     if (!s) { res.status(401).json({ error: "Sin sesión." }); return; }
-    res.json({ correo: s.correo, nombre: s.nombre, rol: s.rol, institucion: s.institucion, alcaldia_cve: s.alcaldia_cve, alcaldia: nombreAlcaldia(s.alcaldia_cve), debe_cambiar: s.debe_cambiar });
+    // «Mi perfil» (acceso/perfil/) también lee de aquí: área, cargo y dependencia u organización
+    const u = await leeUsuario(s.id);
+    res.json({ correo: s.correo, nombre: s.nombre, rol: s.rol, institucion: s.institucion, alcaldia_cve: s.alcaldia_cve, alcaldia: nombreAlcaldia(s.alcaldia_cve),
+      area: u?.area ?? null, cargo: u?.cargo ?? null, entidad: u?.entidad ?? null, debe_cambiar: s.debe_cambiar });
   });
 
   // ---------- cambiar la contraseña (obligatorio con contraseña temporal) ----------
@@ -305,7 +317,8 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
   // ================= administración (rol admin) =================
   const admin = conSesion("admin");
   const vistaUsuario = (u: Usuario) => ({
-    id: u.id, correo: u.correo, nombre: u.nombre, institucion: u.institucion, alcaldia_cve: u.alcaldia_cve, alcaldia: nombreAlcaldia(u.alcaldia_cve),
+    id: u.id, correo: u.correo, nombre: u.nombre, area: u.area, cargo: u.cargo, institucion: u.institucion, alcaldia_cve: u.alcaldia_cve, alcaldia: nombreAlcaldia(u.alcaldia_cve),
+    entidad_id: u.entidad_id, entidad: u.entidad ?? null,
     rol: u.rol, activo: u.activo, debe_cambiar: u.debe_cambiar, temporal_vencida: temporalVencida(u), bloqueado: !!(u.bloqueado_hasta && new Date(u.bloqueado_hasta) > new Date()),
     creado: u.creado, ultimo_acceso: u.ultimo_acceso,
   });
@@ -313,36 +326,63 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     if (nuevo && !CORREO_RE.test(texto(b.correo).trim())) return "Escribe un correo válido.";
     if (nuevo && !texto(b.nombre).trim()) return "Escribe el nombre.";
     if (typeof b.nombre === "string" && nombreMalo(b.nombre.trim())) return `El nombre debe tener a lo más ${NOMBRE_MAX} caracteres y no empezar con = + - @.`;
+    for (const [k, txt] of [["area", "el área"], ["cargo", "el cargo"]] as const) {
+      if (b[k] !== undefined && typeof b[k] !== "string") return `Escribe ${txt}.`;
+      if (nuevo && !texto(b[k]).trim()) return `Escribe ${txt}.`;
+      if (typeof b[k] === "string" && nombreMalo(b[k].trim())) return `${txt[0].toUpperCase() + txt.slice(1)} debe tener a lo más ${NOMBRE_MAX} caracteres y no empezar con = + - @.`;
+    }
     if (b.institucion !== undefined && !(INSTITUCIONES as readonly unknown[]).includes(b.institucion)) return "Institución no válida.";
     if (b.alcaldia_cve !== undefined && b.alcaldia_cve !== null && b.alcaldia_cve !== "" && !(typeof b.alcaldia_cve === "string" && ALCALDIAS[b.alcaldia_cve])) return "Alcaldía no válida.";
     if (b.rol !== undefined && b.rol !== "usuario" && b.rol !== "admin") return "Rol no válido.";
     if (b.nombre !== undefined && typeof b.nombre !== "string") return "Nombre no válido.";
     if (b.activo !== undefined && typeof b.activo !== "boolean") return "Estado no válido.";
+    if (b.entidad_id !== undefined && b.entidad_id !== null && !(Number.isInteger(b.entidad_id) && (b.entidad_id as number) > 0)) return "Dependencia u organización no válida.";
     return null;
+  };
+  /* Institución, alcaldía y dependencia u organización van juntas: una cuenta de alcaldía lleva su alcaldía y ninguna entrada del
+     catálogo; las demás, una entrada activa del catálogo de su tipo y ninguna alcaldía. En un cambio solo se revisan si se tocan: así
+     una cuenta anterior a la v1.49 sin dependencia se puede seguir editando, y una entrada ya desactivada se conserva si no cambia. */
+  type Pertenencia = { institucion: string; alcaldia_cve: string | null; entidad_id: number | null };
+  const revisaPertenencia = async (b: Record<string, unknown>, actual: Usuario | null): Promise<{ error: string } | Pertenencia | null> => {
+    if (actual && b.institucion === undefined && b.alcaldia_cve === undefined && b.entidad_id === undefined) return null;
+    const institucion = (b.institucion ?? actual?.institucion ?? "Alcaldía") as string;
+    const alcaldia_cve = b.alcaldia_cve !== undefined ? ((b.alcaldia_cve as string) || null) : actual?.alcaldia_cve ?? null;
+    const entidad_id = b.entidad_id !== undefined ? (b.entidad_id as number | null) : actual?.entidad_id ?? null;
+    if (institucion === "Alcaldía") {
+      if (!alcaldia_cve) return { error: "Elige la alcaldía de la persona." };
+      return { institucion, alcaldia_cve, entidad_id: null };
+    }
+    if (!entidad_id) return { error: institucion === "Gobierno Central" ? "Elige la dependencia." : "Elige la organización o institución." };
+    const e = (await pool.query<Entidad>("SELECT id, tipo, nombre, activo FROM priorizacion_reforestacion.catalogo_entidades WHERE id = $1", [entidad_id])).rows[0];
+    if (!e || e.tipo !== institucion) return { error: "La dependencia u organización no corresponde a la institución." };
+    if (!e.activo && entidad_id !== actual?.entidad_id) return { error: `«${e.nombre}» está desactivada en el catálogo.` };
+    return { institucion, alcaldia_cve: null, entidad_id };
   };
 
   r.get("/admin/usuarios", admin, async (_req, res) => {
-    const { rows } = await pool.query<Usuario>("SELECT * FROM priorizacion_reforestacion.usuarios ORDER BY activo DESC, institucion, alcaldia_cve, nombre");
+    const { rows } = await pool.query<Usuario>(`${CON_ENTIDAD} ORDER BY u.activo DESC, u.institucion, u.alcaldia_cve, u.nombre`);
     res.json(rows.map(vistaUsuario));
   });
 
   r.post("/admin/usuarios", mismaProcedencia, json, admin, async (req, res) => {
     const b = cuerpo(req), err = revisaDatos(b, true);
     if (err) { res.status(400).json({ error: err }); return; }
+    const pert = await revisaPertenencia(b, null);
+    if (!pert || "error" in pert) { res.status(400).json({ error: pert?.error ?? "Institución no válida." }); return; }
     const correo = texto(b.correo).trim().toLowerCase(), clave = temporal();
     if ((await pool.query("SELECT 1 FROM priorizacion_reforestacion.usuarios WHERE correo = $1", [correo])).rows.length) { res.status(409).json({ error: "Ya existe una cuenta con ese correo." }); return; }
     let rows: Usuario[];
     try {
       ({ rows } = await pool.query<Usuario>(
-        `INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, huella, debe_cambiar, temporal_desde)
-         VALUES ($1, $2, $3, $4, $5, $6, true, now()) RETURNING *`,
-        [correo, texto(b.nombre).trim(), b.institucion ?? "Alcaldía", b.alcaldia_cve || null, b.rol ?? "usuario", await huellaTemporal(clave)]));
+        `INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, area, cargo, institucion, alcaldia_cve, entidad_id, rol, huella, debe_cambiar, temporal_desde)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, true, now()) RETURNING *`,
+        [correo, texto(b.nombre).trim(), texto(b.area).trim(), texto(b.cargo).trim(), pert.institucion, pert.alcaldia_cve, pert.entidad_id, b.rol ?? "usuario", await huellaTemporal(clave)]));
     } catch (e) {   // dos altas del mismo correo a la vez: la segunda choca con el índice único
       if ((e as { code?: string }).code === "23505" || /duplicate|unique/i.test((e as Error).message)) { res.status(409).json({ error: "Ya existe una cuenta con ese correo." }); return; }
       throw e;
     }
     await anota(usuarioDe(res).id, "admin", { accion: "alta", usuario: rows[0].id }, req);
-    res.status(201).json({ usuario: vistaUsuario(rows[0]), contrasena_temporal: clave });   // se muestra una sola vez
+    res.status(201).json({ usuario: vistaUsuario((await leeUsuario(rows[0].id)) ?? rows[0]), contrasena_temporal: clave });   // se muestra una sola vez
   });
 
   r.patch("/admin/usuarios/:id", mismaProcedencia, json, admin, async (req, res) => {
@@ -351,9 +391,15 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     const id = idValido(req.params.id), yo = usuarioDe(res);
     if (id === null) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
     if (id === yo.id && (b.activo === false || b.rol === "usuario")) { res.status(400).json({ error: "No puedes desactivarte ni quitarte el rol de administración a ti mismo." }); return; }
+    const actual = await leeUsuario(id);
+    if (!actual) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
+    const pert = await revisaPertenencia(b, actual);
+    if (pert && "error" in pert) { res.status(400).json({ error: pert.error }); return; }
+    const d: Record<string, unknown> = { ...b, ...(pert ?? {}) };
+    for (const k of ["nombre", "area", "cargo"] as const) if (typeof d[k] === "string") d[k] = (d[k] as string).trim();
     const cambios: string[] = [], vals: unknown[] = [];
-    for (const k of ["nombre", "institucion", "alcaldia_cve", "rol", "activo"] as const)
-      if (b[k] !== undefined) { vals.push(k === "alcaldia_cve" ? b[k] || null : b[k]); cambios.push(`${k} = $${vals.length}`); }
+    for (const k of ["nombre", "area", "cargo", "institucion", "alcaldia_cve", "entidad_id", "rol", "activo"] as const)
+      if (d[k] !== undefined) { vals.push(k === "alcaldia_cve" ? d[k] || null : d[k]); cambios.push(`${k} = $${vals.length}`); }
     if (b.activo === false) cambios.push("baja = COALESCE(baja, now())");   // el plazo de 24 meses corre desde la baja
     else if (b.activo === true) cambios.push("baja = NULL");
     if (!cambios.length) { res.status(400).json({ error: "Nada que cambiar." }); return; }
@@ -382,7 +428,7 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     }
     if (b.activo === false) await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1", [id]);   // una baja cierra sus sesiones al momento
     await anota(yo.id, "admin", { accion: b.activo === false ? "baja" : b.activo === true ? "reactivacion" : "cambio", usuario: id }, req);
-    res.json(vistaUsuario(rows[0]));
+    res.json(vistaUsuario((await leeUsuario(id)) ?? rows[0]));
   });
 
   r.post("/admin/usuarios/:id/restablecer", mismaProcedencia, admin, async (req, res) => {
@@ -394,7 +440,53 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     if (!rows[0]) { res.status(404).json({ error: "No existe esa cuenta." }); return; }
     await pool.query("DELETE FROM priorizacion_reforestacion.sesiones WHERE usuario_id = $1", [id]);
     await anota(usuarioDe(res).id, "admin", { accion: "restablecer", usuario: id }, req);
-    res.json({ usuario: vistaUsuario(rows[0]), contrasena_temporal: clave });
+    res.json({ usuario: vistaUsuario((await leeUsuario(id)) ?? rows[0]), contrasena_temporal: clave });
+  });
+
+  // ---------- catálogo de dependencias, organizaciones, empresas y otras instituciones ----------
+  /* Quien administra agrega, renombra y desactiva entradas. No se borran: una cuenta que ya tiene una entrada desactivada la conserva.
+     Dos entradas del mismo tipo no pueden llamarse igual, sin importar mayúsculas ni acentos («Sobse» y «SOBSE» son la misma). */
+  const revisaEntrada = async (tipo: string, nombre: string, id: number | null): Promise<string | null> => {
+    if (!nombre) return "Escribe el nombre.";
+    if (nombreMalo(nombre)) return `El nombre debe tener a lo más ${NOMBRE_MAX} caracteres y no empezar con = + - @.`;
+    if ((await leeCatalogo()).some((c) => c.tipo === tipo && c.id !== id && norm(c.nombre) === norm(nombre))) return `Ya existe «${nombre}» en ${tipo}.`;
+    return null;
+  };
+  r.get("/admin/catalogos", admin, async (_req, res) => {
+    const usos = await pool.query<{ entidad_id: number; activo: boolean }>("SELECT entidad_id, activo FROM priorizacion_reforestacion.usuarios WHERE entidad_id IS NOT NULL");
+    const cuentas: Record<number, number> = {};
+    for (const u of usos.rows) if (u.activo) cuentas[u.entidad_id] = (cuentas[u.entidad_id] ?? 0) + 1;
+    res.json({ tipos: TIPOS_CATALOGO, entradas: (await leeCatalogo()).map((c) => ({ ...c, cuentas: cuentas[c.id] ?? 0 })) });
+  });
+  r.post("/admin/catalogos", mismaProcedencia, json, admin, async (req, res) => {
+    const b = cuerpo(req), tipo = texto(b.tipo), nombre = texto(b.nombre).trim();
+    if (!(TIPOS_CATALOGO as readonly string[]).includes(tipo)) { res.status(400).json({ error: "Tipo de catálogo no válido." }); return; }
+    const err = await revisaEntrada(tipo, nombre, null);
+    if (err) { res.status(err.startsWith("Ya existe") ? 409 : 400).json({ error: err }); return; }
+    let rows: Entidad[];
+    try {
+      ({ rows } = await pool.query<Entidad>("INSERT INTO priorizacion_reforestacion.catalogo_entidades (tipo, nombre) VALUES ($1, $2) RETURNING id, tipo, nombre, activo", [tipo, nombre]));
+    } catch (e) {   // dos altas iguales a la vez: la segunda choca con el índice único
+      if ((e as { code?: string }).code === "23505" || /duplicate|unique/i.test((e as Error).message)) { res.status(409).json({ error: `Ya existe «${nombre}» en ${tipo}.` }); return; }
+      throw e;
+    }
+    await anota(usuarioDe(res).id, "admin", { accion: "catalogo_alta", entidad: rows[0].id }, req);
+    res.status(201).json({ ...rows[0], cuentas: 0 });
+  });
+  r.patch("/admin/catalogos/:id", mismaProcedencia, json, admin, async (req, res) => {
+    const b = cuerpo(req), id = idValido(req.params.id);
+    const actual = id === null ? undefined : (await leeCatalogo()).find((c) => c.id === id);
+    if (!actual) { res.status(404).json({ error: "No existe esa entrada del catálogo." }); return; }
+    if (b.activo !== undefined && typeof b.activo !== "boolean") { res.status(400).json({ error: "Estado no válido." }); return; }
+    if (b.nombre !== undefined && typeof b.nombre !== "string") { res.status(400).json({ error: "Nombre no válido." }); return; }
+    const nombre = typeof b.nombre === "string" ? b.nombre.trim() : undefined;
+    if (nombre !== undefined) { const err = await revisaEntrada(actual.tipo, nombre, actual.id); if (err) { res.status(err.startsWith("Ya existe") ? 409 : 400).json({ error: err }); return; } }
+    if (nombre === undefined && b.activo === undefined) { res.status(400).json({ error: "Nada que cambiar." }); return; }
+    const { rows } = await pool.query<Entidad>(
+      "UPDATE priorizacion_reforestacion.catalogo_entidades SET nombre = $1, activo = $2, actualizado = now() WHERE id = $3 RETURNING id, tipo, nombre, activo",
+      [nombre ?? actual.nombre, b.activo ?? actual.activo, actual.id]);
+    await anota(usuarioDe(res).id, "admin", { accion: nombre !== undefined ? "catalogo_cambio" : b.activo ? "catalogo_reactivacion" : "catalogo_baja", entidad: actual.id }, req);
+    res.json(rows[0]);
   });
 
   /* Alta masiva desde el panel: primero se revisa (no escribe nada); con aplicar: true da de alta las válidas nuevas.
@@ -407,12 +499,15 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     let renglones;
     try { renglones = leeCsv(csv); } catch { res.status(400).json({ error: "No se pudo leer el archivo como CSV." }); return; }
     if (!renglones.length) { res.status(400).json({ error: "El archivo no tiene renglones después del encabezado." }); return; }
-    if (!("correo" in renglones[0]) || !("nombre" in renglones[0])) { res.status(400).json({ error: "Faltan columnas: el encabezado debe decir correo, nombre, institucion, alcaldia, rol." }); return; }
+    if (!("correo" in renglones[0]) || !("nombre" in renglones[0])) { res.status(400).json({ error: "Faltan columnas: el encabezado debe decir correo, nombre, area, cargo, institucion, alcaldia, dependencia_u_organizacion, rol." }); return; }
     if (renglones.length > MASIVA_MAX) { res.status(400).json({ error: `Máximo ${MASIVA_MAX} cuentas por envío: divide el archivo en partes.` }); return; }
-    const { ok, errores } = revisa(renglones);
+    const catalogo = await leeCatalogo();
+    const { ok, errores } = revisa(renglones, catalogo);
+    const entidad = (id: number | null) => catalogo.find((c) => c.id === id)?.nombre ?? null;
     const existe = new Set<string>();
     for (const c of ok) if ((await pool.query("SELECT 1 FROM priorizacion_reforestacion.usuarios WHERE correo = $1", [c.correo])).rows.length) existe.add(c.correo);
-    const vista = (c: CuentaNueva) => ({ correo: c.correo, nombre: c.nombre, institucion: c.institucion, alcaldia: nombreAlcaldia(c.alcaldia_cve), rol: c.rol, existe: existe.has(c.correo) });
+    const vista = (c: CuentaNueva) => ({ correo: c.correo, nombre: c.nombre, area: c.area, cargo: c.cargo, institucion: c.institucion, alcaldia: nombreAlcaldia(c.alcaldia_cve),
+      entidad: entidad(c.entidad_id), rol: c.rol, existe: existe.has(c.correo) });
     if (!b.aplicar || errores.length) { res.json({ aplicado: false, validas: ok.map(vista), errores }); return; }
     const yo = usuarioDe(res);
     const hecho = await aplica(pool, ok, yo.id);
@@ -425,21 +520,23 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
     const desde = new Date(texto(req.query.desde) || Date.now() - 90 * 864e5), hasta = new Date(texto(req.query.hasta) || Date.now());
     if (isNaN(desde.getTime()) || isNaN(hasta.getTime())) { res.status(400).json({ error: "Fechas no válidas." }); return; }
     const p = [desde, new Date(hasta.getTime() + 864e5)];
-    type Fila = { institucion: string; alcaldia_cve: string | null; accesos: string; consultas: string; descargas: string; visitas?: string; personas?: string } & Record<string, unknown>;
+    type Fila = { institucion: string; alcaldia_cve: string | null; entidad: string | null; accesos: string; consultas: string; descargas: string; visitas?: string; personas?: string } & Record<string, unknown>;
     const porGrupo = await pool.query<Fila>(
-      `SELECT u.institucion, u.alcaldia_cve, count(DISTINCT b.usuario_id) AS personas,
+      `SELECT u.institucion, u.alcaldia_cve, e.nombre AS entidad, count(DISTINCT b.usuario_id) AS personas,
               sum(CASE WHEN b.evento = 'acceso' THEN 1 ELSE 0 END) AS accesos, sum(CASE WHEN b.evento = 'visita' THEN 1 ELSE 0 END) AS visitas,
               sum(CASE WHEN b.evento = 'consulta' THEN 1 ELSE 0 END) AS consultas, sum(CASE WHEN b.evento = 'descarga' THEN 1 ELSE 0 END) AS descargas
          FROM priorizacion_reforestacion.bitacora b JOIN priorizacion_reforestacion.usuarios u ON u.id = b.usuario_id
+         LEFT JOIN priorizacion_reforestacion.catalogo_entidades e ON e.id = u.entidad_id
         WHERE b.momento >= $1 AND b.momento < $2
-        GROUP BY u.institucion, u.alcaldia_cve ORDER BY descargas DESC, consultas DESC`, p);
+        GROUP BY u.institucion, u.alcaldia_cve, e.nombre ORDER BY descargas DESC, consultas DESC`, p);
     const porPersona = await pool.query<Fila>(
-      `SELECT u.id, u.nombre, u.correo, u.institucion, u.alcaldia_cve, max(b.momento) AS ultimo,
+      `SELECT u.id, u.nombre, u.correo, u.institucion, u.alcaldia_cve, e.nombre AS entidad, max(b.momento) AS ultimo,
               sum(CASE WHEN b.evento = 'acceso' THEN 1 ELSE 0 END) AS accesos, sum(CASE WHEN b.evento = 'consulta' THEN 1 ELSE 0 END) AS consultas,
               sum(CASE WHEN b.evento = 'descarga' THEN 1 ELSE 0 END) AS descargas
          FROM priorizacion_reforestacion.bitacora b JOIN priorizacion_reforestacion.usuarios u ON u.id = b.usuario_id
+         LEFT JOIN priorizacion_reforestacion.catalogo_entidades e ON e.id = u.entidad_id
         WHERE b.momento >= $1 AND b.momento < $2
-        GROUP BY u.id, u.nombre, u.correo, u.institucion, u.alcaldia_cve ORDER BY descargas DESC, consultas DESC`, p);
+        GROUP BY u.id, u.nombre, u.correo, u.institucion, u.alcaldia_cve, e.nombre ORDER BY descargas DESC, consultas DESC`, p);
     const eventos = await pool.query<{ evento: string; detalle: unknown }>(
       `SELECT b.evento, b.detalle FROM priorizacion_reforestacion.bitacora b WHERE b.momento >= $1 AND b.momento < $2 AND b.evento IN ('consulta', 'descarga')`, p);
     // lo consultado y lo descargado, por alcaldía consultada (puede ser distinta de la de quien consulta) y por tipo de archivo
@@ -464,16 +561,17 @@ export function crearRutasPriorizacionReforestacion(pool: pg.Pool, opciones: Par
 
   // ---------- bitácora completa en CSV (sin IP: la IP solo se usa para seguridad) ----------
   r.get("/admin/usos.csv", admin, async (req, res) => {
-    const { rows } = await pool.query<{ momento: Date; evento: string; correo: string | null; institucion: string | null; alcaldia_cve: string | null; detalle: unknown }>(
-      `SELECT b.momento, b.evento, u.correo, u.institucion, u.alcaldia_cve, b.detalle
+    const { rows } = await pool.query<{ momento: Date; evento: string; correo: string | null; institucion: string | null; alcaldia_cve: string | null; entidad: string | null; detalle: unknown }>(
+      `SELECT b.momento, b.evento, u.correo, u.institucion, u.alcaldia_cve, e.nombre AS entidad, b.detalle
          FROM priorizacion_reforestacion.bitacora b LEFT JOIN priorizacion_reforestacion.usuarios u ON u.id = b.usuario_id
+         LEFT JOIN priorizacion_reforestacion.catalogo_entidades e ON e.id = u.entidad_id
         WHERE b.momento >= $1 ORDER BY b.momento`, [new Date(texto(req.query.desde) || Date.now() - 90 * 864e5)]);
     const celda = (v: unknown) => {
       const s = v === null || v === undefined ? "" : v instanceof Date ? v.toISOString() : typeof v === "object" ? JSON.stringify(v) : String(v);
       return /^[=+\-@\t\r]/.test(s) ? `"'${s.replace(/"/g, '""')}"` : `"${s.replace(/"/g, '""')}"`;   // sin fórmulas al abrir en Excel
     };
-    const csv = ["momento,evento,correo,institucion,alcaldia_cve,detalle"]
-      .concat(rows.map((x) => [x.momento, x.evento, x.correo, x.institucion, x.alcaldia_cve, x.detalle].map(celda).join(","))).join("\r\n");
+    const csv = ["momento,evento,correo,institucion,alcaldia_cve,dependencia_u_organizacion,detalle"]
+      .concat(rows.map((x) => [x.momento, x.evento, x.correo, x.institucion, x.alcaldia_cve, x.entidad, x.detalle].map(celda).join(","))).join("\r\n");
     res.set("Content-Type", "text/csv; charset=utf-8").set("Content-Disposition", 'attachment; filename="usos_priorizacion_reforestacion.csv"').send("﻿" + csv);
   });
 

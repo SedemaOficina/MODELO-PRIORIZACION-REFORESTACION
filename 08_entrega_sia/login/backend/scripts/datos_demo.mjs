@@ -16,6 +16,12 @@ const NOMBRES = ['Ana', 'Luis', 'María', 'Jorge', 'Carmen', 'Raúl', 'Lucía', 
 const APELLIDOS = ['García', 'Hernández', 'López', 'Martínez', 'Pérez', 'Sánchez', 'Ramírez', 'Flores', 'Cruz', 'Morales', 'Reyes', 'Torres', 'Jiménez', 'Ruiz', 'Vargas', 'Castillo'];
 const AVENIDAS = ['Calzada de Tlalpan', 'Avenida Insurgentes Sur', 'Eje 5 Sur', 'Calzada Ermita Iztapalapa', 'Anillo Periférico', 'Río Churubusco', 'Avenida Tláhuac', 'Calzada Ignacio Zaragoza'];
 const COLONIAS = ['Centro', 'Santo Domingo', 'San Felipe de Jesús', 'Agrícola Oriental', 'Tacubaya', 'Del Mar Sur', 'Moctezuma 2a Sección', 'La Malinche', 'Barrio Norte', 'Industrial Vallejo'];
+// área y cargo de ejemplo de cada tipo de cuenta
+const AREAS_ALC = ['Dirección General de Servicios Urbanos', 'Dirección de Medio Ambiente', 'Jefatura de Unidad Departamental de Parques y Jardines', 'Dirección de Obras'];
+const CARGOS = ['Jefatura de Unidad Departamental', 'Subdirección', 'Enlace', 'Líder Coordinador de Proyectos', 'Técnica operativa'];
+// organizaciones y empresas ficticias del catálogo
+const OSC = ['Bosque Urbano A.C. (ejemplo)', 'Red Vecinal Verde (ejemplo)'];
+const PRIVADOS = ['Viveros del Valle S.A. (ejemplo)'];
 // tipos de archivo con su peso: el Excel de frentes y la ficha de alcaldía son los más pedidos
 const ARCHIVOS = [['excel_frentes', 30], ['excel_calles', 18], ['ficha_alcaldia', 14], ['ficha_colonia', 12], ['kml', 9], ['excel_calle', 6], ['ficha_calle', 5], ['geojson', 3], ['excel_tramos', 2], ['ficha_vialidades', 1]];
 const slug = s => s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '');
@@ -30,17 +36,25 @@ export async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.no
   const h = await huella(CLAVE_DEMO);
   const personas = [];
   const nombre = () => `${elige(NOMBRES)} ${elige(APELLIDOS)} ${elige(APELLIDOS)}`;
-  // dos enlaces por alcaldía (uno muy activo, otro ocasional), tres del Gobierno Central, dos de SEDEMA con administración
+  // entradas del catálogo: las dependencias de arranque (esquema) y organizaciones y empresas ficticias
+  const entidad = async (tipo, n) => { await pool.query('INSERT INTO priorizacion_reforestacion.catalogo_entidades (tipo, nombre) VALUES ($1, $2) ON CONFLICT (tipo, nombre) DO NOTHING', [tipo, n]);
+    return (await pool.query('SELECT id FROM priorizacion_reforestacion.catalogo_entidades WHERE tipo = $1 AND nombre = $2', [tipo, n])).rows[0].id; };
+  const SEDEMA = await entidad('Gobierno Central', 'SEDEMA'), SOBSE = await entidad('Gobierno Central', 'SOBSE'), PAOT = await entidad('Gobierno Central', 'PAOT');
+  // dos enlaces por alcaldía (uno muy activo, otro ocasional), tres de SOBSE (vialidades primarias), una de PAOT, dos de SEDEMA con
+  // administración, dos de organizaciones de la sociedad civil y una de una empresa privada
   for (const [cve, alc] of Object.entries(ALCALDIAS)) for (const k of [1, 2])
-    personas.push({ correo: `enlace${k}.${slug(alc)}${DOMINIO}`, nombre: nombre(), institucion: 'Alcaldía', alcaldia_cve: cve, rol: 'usuario', actividad: k === 1 ? 0.35 + r() * 0.4 : 0.05 + r() * 0.15 });
-  for (const k of [1, 2, 3]) personas.push({ correo: `vialidades${k}${DOMINIO}`, nombre: nombre(), institucion: 'Gobierno Central', alcaldia_cve: null, rol: 'usuario', actividad: 0.2 + r() * 0.3 });
-  for (const k of [1, 2]) personas.push({ correo: `sia${k}${DOMINIO}`, nombre: nombre(), institucion: 'SEDEMA', alcaldia_cve: null, rol: 'admin', actividad: 0.25 });
+    personas.push({ correo: `enlace${k}.${slug(alc)}${DOMINIO}`, nombre: nombre(), area: elige(AREAS_ALC), cargo: elige(CARGOS), institucion: 'Alcaldía', alcaldia_cve: cve, rol: 'usuario', actividad: k === 1 ? 0.35 + r() * 0.4 : 0.05 + r() * 0.15 });
+  for (const k of [1, 2, 3]) personas.push({ correo: `vialidades${k}${DOMINIO}`, nombre: nombre(), area: 'Dirección General de Servicios Urbanos y Sustentabilidad', cargo: elige(CARGOS), institucion: 'Gobierno Central', entidad_id: SOBSE, rol: 'usuario', actividad: 0.2 + r() * 0.3 });
+  personas.push({ correo: `paot1${DOMINIO}`, nombre: nombre(), area: 'Subprocuraduría Ambiental', cargo: 'Subdirección', institucion: 'Gobierno Central', entidad_id: PAOT, rol: 'usuario', actividad: 0.1 });
+  for (const k of [1, 2]) personas.push({ correo: `sia${k}${DOMINIO}`, nombre: nombre(), area: 'Sistema de Información Ambiental', cargo: k === 1 ? 'Coordinación' : 'Analista', institucion: 'Gobierno Central', entidad_id: SEDEMA, rol: 'admin', actividad: 0.25 });
+  for (const [i, n] of OSC.entries()) personas.push({ correo: `osc${i + 1}${DOMINIO}`, nombre: nombre(), area: 'Proyectos', cargo: 'Coordinación de proyectos', institucion: 'Organización de la sociedad civil', entidad_id: await entidad('Organización de la sociedad civil', n), rol: 'usuario', actividad: 0.08 });
+  for (const [i, n] of PRIVADOS.entries()) personas.push({ correo: `privado${i + 1}${DOMINIO}`, nombre: nombre(), area: 'Paisajismo', cargo: 'Gerencia', institucion: 'Privado', entidad_id: await entidad('Privado', n), rol: 'usuario', actividad: 0.05 });
   const ids = [];
   for (const [i, p] of personas.entries()) {
     const baja = i === 7, pendiente = i === 12, detenida = i === 20;   // algunos casos para ver los estados en el panel
-    const { rows } = await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, institucion, alcaldia_cve, rol, activo, huella, debe_cambiar, bloqueado_hasta, creado)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) ON CONFLICT (correo) DO UPDATE SET nombre = EXCLUDED.nombre RETURNING id`,
-      [p.correo, p.nombre, p.institucion, p.alcaldia_cve, p.rol, !baja, h, pendiente, detenida ? new Date(ahora + 10 * 60000) : null, new Date(ahora - (dias + 5) * 864e5)]);
+    const { rows } = await pool.query(`INSERT INTO priorizacion_reforestacion.usuarios (correo, nombre, area, cargo, institucion, alcaldia_cve, entidad_id, rol, activo, huella, debe_cambiar, bloqueado_hasta, creado)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) ON CONFLICT (correo) DO UPDATE SET nombre = EXCLUDED.nombre RETURNING id`,
+      [p.correo, p.nombre, p.area, p.cargo, p.institucion, p.alcaldia_cve ?? null, p.entidad_id ?? null, p.rol, !baja, h, pendiente, detenida ? new Date(ahora + 10 * 60000) : null, new Date(ahora - (dias + 5) * 864e5)]);
     ids.push({ ...p, id: rows[0].id, activo: !baja && !pendiente });
   }
   // bitácora: por día hábil, cada persona entra con la probabilidad de su actividad; consulta su alcaldía la mayoría de las veces
@@ -54,7 +68,7 @@ export async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.no
       const mas = min => { t = new Date(t.getTime() + min * 60000); return t; };
       if (r() < 0.06) filas.push([p.id, 'acceso_fallido', null, mas(0), ip()]);
       filas.push([p.id, 'acceso', null, mas(1), ip()]); filas.push([p.id, 'visita', null, mas(0), ip()]);
-      const gc = p.institucion === 'Gobierno Central';
+      const gc = p.entidad_id === SOBSE;
       const nCons = 1 + Math.floor(r() * 4);
       for (let c = 0; c < nCons; c++) {
         const alc = p.alcaldia_cve && r() < 0.85 ? ALCALDIAS[p.alcaldia_cve] : elige(Object.values(ALCALDIAS));
@@ -80,6 +94,8 @@ export async function sembrar(pool, { dias = 90, semilla = 2026, ahora = Date.no
 export async function borrar(pool) {
   await pool.query(`DELETE FROM priorizacion_reforestacion.bitacora WHERE usuario_id IN (SELECT id FROM priorizacion_reforestacion.usuarios WHERE correo LIKE '%${DOMINIO}')`);
   const { rows } = await pool.query(`DELETE FROM priorizacion_reforestacion.usuarios WHERE correo LIKE '%${DOMINIO}' RETURNING id`);
+  // las organizaciones y empresas ficticias del catálogo (las dependencias de arranque se quedan)
+  await pool.query("DELETE FROM priorizacion_reforestacion.catalogo_entidades WHERE nombre LIKE '%(ejemplo)'");
   return rows.length;
 }
 

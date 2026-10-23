@@ -91,6 +91,21 @@ tr.inactiva td{color:var(--ink-3)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 .sr{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
 .clave .btn{width:auto;margin-top:8px}
+/* ---------- v1.49: encabezados que ordenan, catálogos y «Mi perfil» ---------- */
+.tenue{color:var(--ink-3)}
+th .ordena{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:4px;min-height:24px;font:inherit;color:inherit;text-transform:inherit;letter-spacing:inherit}
+th .ordena::after{content:"↕";color:var(--ctl)}
+th[aria-sort=ascending] .ordena::after{content:"▲";color:var(--guinda-ink)}
+th[aria-sort=descending] .ordena::after{content:"▼";color:var(--guinda-ink)}
+th .ordena:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.caja h3{margin:0 0 10px;font-size:1.0625rem}
+.caja .tabla-envoltura{margin:14px 0 0}
+.perfil{display:grid;grid-template-columns:minmax(120px,auto) 1fr;gap:8px 16px;margin:0 0 18px}
+.perfil dt{font-weight:600;color:var(--ink-2)}
+.perfil dd{margin:0;overflow-wrap:anywhere}
+.enlaces{display:flex;flex-wrap:wrap;gap:8px;margin:0}
+.enlaces .btn{text-decoration:none}
+@media (max-width:420px){.perfil{grid-template-columns:1fr;gap:2px}.perfil dd{margin-bottom:8px}}
 .tarjeta.documento{max-width:760px}
 .documento h1{font-size:1.5rem;margin:6px 0 4px}
 .documento h2{font-size:1.0625rem;margin:22px 0 6px}

@@ -21,7 +21,7 @@ Navegador ── pide /priorizacion-reforestacion/datos/data.bin ──▶ nginx
 | Reconoce la sesión vencida: respuesta 401 o 403, o una página HTML donde esperaba datos o un programa | `esSesion`, `causaFalla` en `app.js` |
 | Dice «Tu sesión terminó. Vuelve a iniciar sesión para continuar.», con enlace a la pantalla de acceso, en lugar de «revisa tu conexión» | Carga inicial, Excel, fichas PDF y, desde la versión 1.38, KML y GeoJSON (antes de entregarlos pregunta al servidor si la sesión sigue activa) |
 | Con la sesión vencida no entrega archivos de respaldo | Descargas, en `app.js` |
-| Muestra «Mi cuenta» (cambiar contraseña y cerrar sesión) junto a los logotipos si la instalación define esa dirección | `window.SIA_SESION` en `config.js` |
+| Muestra «Mi cuenta» (mi perfil, cambiar contraseña y cerrar sesión) junto a los logotipos si la instalación define esa dirección | `window.SIA_SESION` en `config.js` |
 | No guarda copia para uso sin conexión cuando hay sesión, y retira la que hubiera | Arranque, en `app.js` |
 
 Las direcciones se fijan al armar el paquete; las de este paquete están en `INSTALACION.md`, sección 7, y en `VERSION.txt`.
@@ -53,7 +53,7 @@ Al SIA le corresponde instalarlo (`login/LEEME.md`). Tamaño esperado: decenas d
 
 ### Quién opera las cuentas
 
-- **La Oficina de la Secretaría** opera las cuentas desde el panel de administración: altas (una por una o en bloque desde CSV), bajas, reactivaciones y restablecimientos de contraseña.
+- **La Oficina de la Secretaría** opera las cuentas desde el panel de administración: altas (una por una o en bloque desde CSV), cambios de datos, bajas, reactivaciones y restablecimientos de contraseña, y el catálogo de dependencias, organizaciones y empresas.
 - **El SIA** solo mantiene el servidor, la base de datos y sus respaldos.
 - Las cuentas viven en el esquema propio del módulo (`priorizacion_reforestacion`), no en las de otros sistemas del SIA.
 
