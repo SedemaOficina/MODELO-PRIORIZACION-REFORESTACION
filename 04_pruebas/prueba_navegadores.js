@@ -3,19 +3,21 @@
 // y la ficha PDF con contenido válido. Sin dibujar el mapa (#nomap): los equipos de GitHub no siempre tienen WebGL.
 // En el equipo de trabajo, el motor que no esté instalado o que el sistema no deje abrir se omite y se dice (Windows no deja abrir el Firefox
 // de Playwright); con NAVEGADORES_OBLIGATORIOS=1 (así corre en GitHub), un motor que no abre es una falla.
+// En GitHub solo corre WebKit (NAVEGADORES_MOTORES=WebKit; decisión de Liber del 23 oct 2026): ahí Firefox no tiene WebGL 2 ni forzándolo
+// (v1.47) y la herramienta lo exige al abrir. Firefox se revisa a mano (05_documentacion/verificacion_automatica_github.md).
 // Uso: node 04_pruebas/prueba_navegadores.js
 const path = require('path'), fs = require('fs'), PW = require('playwright');
 const L = require('./lib_pruebas.js');
 const ok = L.Registro('Firefox y WebKit');
 const SAL = path.join(__dirname, 'capturas', 'navegadores'); fs.mkdirSync(SAL, { recursive: true });
 const OBLIGATORIOS = process.env.NAVEGADORES_OBLIGATORIOS === '1';
+const SOLO = (process.env.NAVEGADORES_MOTORES || '').split(',').map(s => s.trim()).filter(Boolean);
 const MOTORES = [
-  // Firefox sin pantalla en Linux apaga WebGL si no reconoce la tarjeta gráfica; se fuerza el dibujo por programa (la herramienta exige WebGL 2)
-  ['Firefox', () => PW.firefox.launch({ firefoxUserPrefs: { 'webgl.force-enabled': true, 'webgl.disabled': false } })],
+  ['Firefox', () => PW.firefox.launch()],
   // WebKit: el que pide Playwright o, si no está, el que ya está instalado en el equipo de trabajo (no se descarga)
   ['WebKit', async () => { try { return await PW.webkit.launch(); } catch (e) {
     const p = path.join(process.env.LOCALAPPDATA || '', 'ms-playwright', 'webkit-2359', 'Playwright.exe'); if (fs.existsSync(p)) return PW.webkit.launch({ executablePath: p }); throw e; } }],
-];
+].filter(([m]) => !SOLO.length || SOLO.includes(m));
 
 (async () => {
   const srv = await L.servidor(0); const base = srv.url + '?modo=ligero#nomap';

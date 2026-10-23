@@ -74,13 +74,14 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo) o `node 04_pruebas/corr
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub:** en cada *Push*, GitHub repite las verificaciones rápidas y marca el commit con una palomita verde o una cruz roja (`.github/workflows/verificar.yml`). Qué hacer si falla: `05_documentacion/verificacion_automatica_github.md`. La página se publica igual; la cruz es un aviso para corregir.
 
-## Estado al 22 de octubre de 2026 (versión 1.47)
+## Estado al 23 de octubre de 2026 (versión 1.48)
 
-- Versión vigente: **v1.47**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.48**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.48 | GitHub prueba el flujo principal solo en Safari (WebKit). Su Firefox no tiene WebGL 2 ni forzándolo y la herramienta lo necesita para abrir. Firefox se revisa a mano antes de cada versión que cambie la herramienta y de cada entrega al SIA (`05_documentacion/verificacion_automatica_github.md`). Solo cambian la prueba y la verificación |
 | 1.47 | Prueba de Firefox en GitHub: la herramienta no terminaba de abrir en Firefox. La prueba fuerza WebGL en ese Firefox y, si falla, dice qué muestra la pantalla de carga y si hay WebGL 2. Solo cambia la prueba |
 | 1.46 | Verificación en GitHub legible sin iniciar sesión: cada verificación que falla se publica como aviso de la corrida (`04_pruebas/avisos_github.js`). La primera corrida de Firefox y WebKit falló y su detalle solo se veía con sesión |
 | 1.45 | Lo aprendido del tablero de Categorías de protección ambiental, ya instalado en el SIA con inicio de sesión. El ejemplo de nginx repite las cabeceras generales del dominio con el mismo archivo que usa ese tablero (`snippets/sia-cabeceras-servidor*.conf`) y no trae HSTS, que decide el SIA. Si el servidor de la sesión no responde, se muestra una página propia («La herramienta no está disponible en este momento») en lugar de la genérica de nginx. La IP de origen se explica con la variable del SIA (`SIA_PROXIES_CONFIABLES`) y el sustituto de las pruebas sigue su mismo criterio |

@@ -1,6 +1,6 @@
 # Verificación automática (A1-01 de la auditoría del 19 oct 2026; decisión de Liber: las rápidas en GitHub en cada Push).
 # Dos trabajos: las mismas verificaciones rápidas que «node 04_pruebas/correr_todas.js rapidas» en el equipo de trabajo (sin navegador) y
-# el flujo principal en Firefox y WebKit (prueba_navegadores.js).
+# el flujo principal en Safari (WebKit, prueba_navegadores.js).
 # Cuáles son y qué revisa cada una: 04_pruebas/LEEME.md. Explicación para quien administra el repositorio: 05_documentacion/verificacion_automatica_github.md
 # Si falla, GitHub muestra una cruz roja en el commit y avisa por correo; la página publicada no cambia por ello. avisos_github.js publica
 # cada «FALLA» como aviso de la corrida, que se lee sin iniciar sesión (el registro completo pide sesión).
@@ -33,9 +33,10 @@ jobs:
       - name: Verificaciones rápidas
         run: node 04_pruebas/avisos_github.js node 04_pruebas/correr_todas.js rapidas
   navegadores:
-    # Firefox y Safari (WebKit): el flujo principal fuera de Chromium (decisión de Liber del 21 oct 2026). En el equipo de trabajo
-    # Windows no deja abrir el Firefox de las pruebas; aquí se instalan los dos y un motor que no abre cuenta como falla.
-    name: Firefox y WebKit
+    # Safari (WebKit): el flujo principal fuera de Chromium (decisión de Liber del 21 oct 2026); un motor que no abre cuenta como falla.
+    # Firefox no corre aquí (decisión de Liber del 23 oct 2026): en este equipo de GitHub no tiene WebGL 2 ni forzándolo y la herramienta
+    # lo exige al abrir. Se revisa a mano: 05_documentacion/verificacion_automatica_github.md.
+    name: WebKit (Safari)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -45,9 +46,10 @@ jobs:
           node-version: '22'
       - name: Herramientas de prueba (versiones fijadas en package-lock.json)
         run: npm ci --no-audit --no-fund
-      - name: Firefox y WebKit de Playwright, con lo que necesitan del sistema
-        run: npx playwright install --with-deps firefox webkit
-      - name: Flujo principal en Firefox y WebKit
+      - name: WebKit de Playwright, con lo que necesita del sistema
+        run: npx playwright install --with-deps webkit
+      - name: Flujo principal en WebKit
         run: node 04_pruebas/avisos_github.js node 04_pruebas/prueba_navegadores.js
         env:
           NAVEGADORES_OBLIGATORIOS: '1'
+          NAVEGADORES_MOTORES: WebKit
