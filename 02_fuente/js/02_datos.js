@@ -1,4 +1,5 @@
-// Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin y vp.bin, descompresión y decodificación a arreglos (frentes F, geometría POS, vialidades primarias VP).
+// Datos: descarga (sitio) o lectura (archivo único) de meta.bin, data.bin, vp.bin y calles.bin, descompresión y decodificación a arreglos
+// (frentes F, geometría POS, vialidades primarias VP, tramos de calle TRC).
 // ---------- lectura y decodificación ----------
 function b64ToBytes(s){ const bin = atob(s); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++) u[i]=bin.charCodeAt(i); return u; }
 async function gunzip(bytes, crc){
@@ -35,8 +36,8 @@ async function fetchBytes(name){
 const blk = (id, name) => { const el = $(id); if (el) return Promise.resolve(b64ToBytes(el.textContent.trim()));
   if (!DATOS) return Promise.reject(errAmable('Falta el archivo de configuración del sitio (config.js): la herramienta no sabe dónde están sus datos. Avisa al Sistema de Información Ambiental.', 'sin window.SIA_DATOS'));
   return fetchBytes(name); };
-const pMeta = blk('meta-b64','meta.bin'), pData = blk('data-b64','data.bin'), pVp = blk('vp-b64','vp.bin');
-pMeta.catch(()=>{}); pData.catch(()=>{}); pVp.catch(()=>{});
+const pMeta = blk('meta-b64','meta.bin'), pData = blk('data-b64','data.bin'), pVp = blk('vp-b64','vp.bin'), pCalles = blk('calles-b64','calles.bin');
+pMeta.catch(()=>{}); pData.catch(()=>{}); pVp.catch(()=>{}); pCalles.catch(()=>{});
 // El lector falla si se acaban los bytes: un archivo cortado no pasa por completo
 const DATOS_CORTOS = () => errAmable('Un archivo de datos llegó incompleto: su contenido termina antes de lo declarado. Suele deberse a una descarga interrumpida.', 'datos cortos');
 function reader(raw){ let rp=0; const f = ()=>{ let res=0, shift=0, b; do{ if (rp>=raw.length) throw DATOS_CORTOS(); b=raw[rp++]; res += (b & 0x7f) * Math.pow(2,shift); shift+=7; }while(b & 0x80); return (res % 2) ? -((res+1)/2) : res/2; }; f.pos = ()=>rp; return f; }
@@ -85,6 +86,36 @@ function puntoMedio(P, a, b){ const c=Math.cos(P[2*a+1]*Math.PI/180); let L=0; f
   return [P[2*(b-1)], P[2*(b-1)+1]]; }
 const midLon = i => puntoMedio(POS, start[i], start[i+1])[0];
 const midLat = i => puntoMedio(POS, start[i], start[i+1])[1];
+
+// calles de la Ciudad de México (capa calles-cdmx 1.0.0, SEDEMA con INEGI 2025; 03_procesamiento_datos/10_ligar_calles.py): el tramo de
+// cada frente y el nombre homologado de su calle, que reemplaza al catálogo de INEGI 2020. Ningún otro dato del frente cambia.
+// F.tr: tramo de la capa (-1: sin tramo; conserva su nombre de 2020); TRC: nombre y calles de las dos esquinas de cada tramo (-1: ninguna;
+// la esquina 1 es la del poniente o, si la calle corre de norte a sur, la del sur); ALIAS_CALLE: nombre de 2020 de las calles que lo cambiaron
+setLoad('Cargando calles…', .87);
+const craw = await gunzip(await pCalles, crcDe('calles.bin'));
+rv = reader(craw);
+const C_FORMATO = rv(), CN = rv(), CNOM = rv(), CANT = rv(), NTR = rv(), CALIAS = rv(), REC_TR = rv(), REC_NOM = rv();
+if (C_FORMATO!==1 || CN!==N) throw errAmable('El archivo de calles no corresponde con los frentes de manzana o llegó incompleto. Recarga la página.', `calles.bin: formato=${C_FORMATO} N=${CN} de ${N}`);
+const leeTexto = ()=>{ const n=rv(), c=new Array(n); for(let k=0;k<n;k++) c[k]=rv(); return String.fromCharCode.apply(null, c); };
+META.names = Array.from({length:CNOM}, leeTexto).map(limpioCat);
+const anterioresCalle = Array.from({length:CANT}, leeTexto).map(limpioCat);
+// los tramos y los nombres vienen como «el mismo de hace poco» cuando se puede (los últimos REC_TR tramos y REC_NOM nombres)
+F.tr = new Int32Array(N);
+{ let mx=0; const rec=[];
+  for(let i=0;i<N;i++){ const v=rv(); if (v===0){ F.tr[i]=-1; continue; }
+    const x = v===1? ++mx : v>1? rec.splice(v-2,1)[0] : mx+1+v; rec.unshift(x); if (rec.length>REC_TR) rec.length=REC_TR; F.tr[i]=x-1; } }
+const TRC = {nom:new Int32Array(NTR), e1:new Int32Array(NTR), e2:new Int32Array(NTR)};
+{ const rec=[]; const lee = ()=>{ const v=rv(); if (v===0) return -1; const x = v<=REC_NOM? rec.splice(v-1,1)[0] : v-1-REC_NOM; rec.unshift(x); if (rec.length>REC_NOM) rec.length=REC_NOM; return x; };
+  for(let t=0;t<NTR;t++){ TRC.nom[t]=lee(); TRC.e1[t]=lee(); TRC.e2[t]=lee(); } }
+for(let i=0;i<N;i++) F.name[i] = F.tr[i]>=0? TRC.nom[F.tr[i]] : rv();
+const ALIAS_CALLE = new Map();
+for(let k=0;k<CALIAS;k++){ const nid=rv(), a=anterioresCalle[rv()]; if (!ALIAS_CALLE.has(nid)) ALIAS_CALLE.set(nid, []); ALIAS_CALLE.get(nid).push(a); }
+let nomMal = false; for(let i=0;i<N && !nomMal;i++) nomMal = !(F.name[i]>=0 && F.name[i]<CNOM);
+for(let t=0;t<NTR && !nomMal;t++) nomMal = TRC.e1[t]>=CNOM || TRC.e2[t]>=CNOM || TRC.nom[t]<0;
+if (nomMal || rv.pos()!==craw.length) throw errAmable('El archivo de calles no corresponde con los frentes de manzana o llegó incompleto. Recarga la página.', `calles.bin: pos=${rv.pos()} de ${craw.length}`);
+// en el mapa, el buscador y los nombres de archivo, «Calle» sobra: «Hidalgo» se lee igual que «Calle Hidalgo» (los demás tipos sí se
+// dicen: Cerrada, Avenida…); así el Excel de una calle no se llama «frente_por_frente_calle_calle_…»
+const nomCorto = n => String(n||'').replace(/^Calle\s+/, '');
 
 // vialidades primarias (Gobierno Central)
 setLoad('Cargando vialidades primarias…', .9);

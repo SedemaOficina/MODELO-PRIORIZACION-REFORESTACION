@@ -330,7 +330,7 @@ function docsDe(ref) { const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'docs-a
         const fA = fs.readFileSync(path.join(ANT, 'datos', 'inventario', RES.frentes_con_espacio.archivo)), fB = fs.readFileSync(path.join(L.DOCS, 'datos', 'inventario', RES.frentes_con_espacio.archivo));
         ok(`los puntos del inventario conservan coordenadas, tipo, clave y frente asignado, y espacios_frentes.bin es el mismo que en ${REF}`, !malos.length && zlib.gunzipSync(fA).equals(zlib.gunzipSync(fB)), malos.join(', ') || `${todos.length} puntos`); }
       const sAnt = await L.servidor(0, ANT); const errAnt = [];
-      const pA = await L.abrir(browser, sAnt.url + '?modo=ligero#nomap', {}, errAnt), pN = await L.abrir(browser, base + '#nomap', {}, errores);
+      const pA = await L.abrir(browser, sAnt.url + '?modo=ligero#nomap', {}, errAnt), pN = await L.abrir(browser, base + '#nomap', { nombres2020: true }, errores);   // v1.51: con los nombres de calle de 2020, todo lo demás igual
       const irA = async (p, url) => { await p.goto('about:blank'); await p.goto(url); await p.waitForSelector('#loader[hidden]', { state: 'attached' }); await p.waitForTimeout(700); await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
       // v1.27: del Resumen se comparan las cifras sin sus rótulos (cambiaron a propósito); en el orden por cepas, lo que la versión anterior
       // listaba, en el mismo orden y con sus cifras (la v1.27 agrega el total de cada renglón y, al final, lo que no tiene km prioritarios)

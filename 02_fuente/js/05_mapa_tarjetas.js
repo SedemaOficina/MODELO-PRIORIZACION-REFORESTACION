@@ -2,20 +2,22 @@
 const dot = c => `<i class="dot" data-st="background:rgb(${c[0]},${c[1]},${c[2]})"></i>`;
 function featHtml(i, compact){
   const c = T.prio[F.prio[i]]; const rgb=`rgb(${c[0]},${c[1]},${c[2]})`;
-  const nm = nomFrente(i); const tp = META.tipos[F.tipo[i]] || '—'; const pre = (sinNombreFr(i) || tp==='—')? '' : tp+' '; const col = META.colonias[F.col[i]];
+  const nm = nomFrente(i); const tp = META.tipos[F.tipo[i]] || '—'; const col = META.colonias[F.col[i]];
   const ban = META.disp[(F.flags[i]>>3)&7];
   const cpTxt = col.cp ? col.cp.padStart(5,'0') : ''; const colTxt = col.n ? `${col.n}${cpTxt? ' · CP '+cpTxt : ''}` : 'Colonia no identificada';
-  if (compact) return `<span class="pr" data-st="background:${rgb}"></span><b>${pre}${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${fmt.format(F.len[i])} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
+  if (compact) return `<span class="pr" data-st="background:${rgb}"></span><b>${nm}</b><br><span class="m">${col.n||'Colonia no identificada'} · ${fmt.format(F.len[i])} m · Prioridad ${META.prio[F.prio[i]]}</span>`;
   const cp = col.p>=0 ? META.prio[col.p] : '—';
   const cc = col.p>=0 ? T.prio[col.p] : null;
   const respTxt = (F.gc[i]? `Gobierno Central · sobre ${VPC.nomenclat[VP.nom[F.vp[i]]]}` : 'Alcaldía');
   // si la colonia del frente ya es la consultada, sus datos están en el panel: no se repiten aquí
   const dupCol = (selCol!==null && F.col[i]===selCol);
+  const ent = F.gc[i]? null : entreFrente(i);   // calles de las esquinas, de la capa de calles de la CDMX
   return `<button class="close" aria-label="Cerrar">×</button>
     <span class="pill"><i data-st="background:${rgb}"></i>Prioridad ${META.prio[F.prio[i]]}</span>
-    <h3>${pre}${nm}</h3>
+    <h3>${nm}</h3>
     <div class="sub">${colTxt} · ${META.munNames[F.mun[i]]}</div>
-    <dl><dt>Quién atiende</dt><dd>${respTxt}</dd>
+    <dl>${ent? `<dt>Tramo</dt><dd>${ent[0].toUpperCase()+ent.slice(1)}</dd>` : ''}
+    <dt>Quién atiende</dt><dd>${respTxt}</dd>
     <dt>Tipo de vialidad</dt><dd>${tp}</dd>
     <dt>Longitud del frente</dt><dd>${fmt.format(F.len[i])} m</dd>
     <dt>Banqueta (INEGI 2020)</dt><dd>${ban}</dd>

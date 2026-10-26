@@ -285,7 +285,7 @@ const geoSinVer = txt => { const J = JSON.parse(txt); J.descripcion = String(J.d
     let ANT = null; try { ANT = docsDe(REF); } catch (e) { ok(`se obtiene docs/ de la versión anterior (${REF}) desde Git`, false, String(e.message || e).slice(0, 160)); }
     if (ANT) {
       const sAnt = await L.servidor(0, ANT); const errAnt = [];
-      const pA = await L.abrir(browser, sAnt.url + '?modo=ligero#nomap', {}, errAnt), pN = await L.abrir(browser, base + '#nomap', {}, errores);
+      const pA = await L.abrir(browser, sAnt.url + '?modo=ligero#nomap', {}, errAnt), pN = await L.abrir(browser, base + '#nomap', { nombres2020: true }, errores);   // v1.51: con los nombres de calle de 2020, todo lo demás igual
       const irA = async (p, url) => { await p.goto('about:blank'); await p.goto(url); await p.waitForSelector('#loader[hidden]', { state: 'attached' }); await p.waitForTimeout(700); await p.evaluate(() => { const t = document.getElementById('tab-res'); if (t) t.click(); }); };
       // las cifras del Resumen sin sus rótulos (cambiaron a propósito), listas, leyenda, descargas, capas; por cepas, lo que la v1.26 listaba
       const CAMPOS = ['titulo', 'kpis', 'bars', 'bars2Vis', 'bars2', 'nota', 'alcinfo', 'colinfo', 'avinfo', 'mapsum', 'listTitle', 'listCount', 'lista', 'dl', 'dlStatus', 'leyenda', 'lgScope', 'legendVp', 'capas'];

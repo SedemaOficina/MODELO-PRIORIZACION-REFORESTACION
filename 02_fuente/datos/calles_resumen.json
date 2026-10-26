@@ -1,0 +1,21 @@
+{
+  "nota": "Lo escribe 03_procesamiento_datos/10_ligar_calles.py. construir.py comprueba que calles.bin sea este y que se haya ligado con este data.bin.",
+  "capa": "calles-cdmx 1.0.0 (SEDEMA con INEGI, Marco Geoestadístico EI 2025)",
+  "capa_sha256": "9ecc12364a88d5a0ccf1af183af4e459d9af663c08a4be31a09f52d77cae400f",
+  "frentes_sha256": "af8a08ffa0636cd3347cd9f29521d6c208ebfb7d88390f99b0f2ff5246650539",
+  "calles_sha256": "75b90c5f71acc1c899030097fd9863f99e967d54f6e958576dd067ac9773fe6e",
+  "formato": 1,
+  "frentes": 372534,
+  "tramos_de_la_capa": 178771,
+  "frentes_ligados": 290741,
+  "km_ligados": 22761.1,
+  "frentes_sin_tramo": 81793,
+  "km_sin_tramo": 2984.4,
+  "sin_tramo_por_ser_rasgo": 47867,
+  "cerca_pero_con_otro_nombre": 9290,
+  "tramos_usados": 153407,
+  "nombres": 31502,
+  "alias": 335,
+  "frentes_con_nombre_distinto": 285066,
+  "regla": "tramo a ≤40 m del punto medio del frente y ≤30°; sin coincidencia de nombre, a ≤20 m; se liga si el nombre coincide o el de 2020 era de relleno"
+}

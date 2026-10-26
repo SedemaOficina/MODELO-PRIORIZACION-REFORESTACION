@@ -52,15 +52,15 @@ const NOTAS_COMUNES = [
   'De lo prioritario se reportan los kilómetros de frente sin arbolado y los que además tienen banqueta. «Sin arbolado» es la clase del modelo; «con banqueta» es el registro de INEGI 2020 y no garantiza espacio de plantación.',
   'El Índice de Desarrollo Social y la población en pobreza corresponden a la unidad territorial de EVALÚA CDMX en la que se ubica la colonia, no a la colonia; no deben sumarse entre colonias.'
 ];
-const FUENTES = 'Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); SEDEMA, modelo de priorización de frentes de manzana, Sistema de Información Ambiental (noviembre de 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (agosto de 2026); EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial; CONAPO, índice de marginación urbana 2020 (criterio de rezago social del modelo vigente); catálogo de colonias SEDEMA-SIA.' + (INV? ` Espacios para plantar (cepas vacantes, tocones y árboles muertos): ${INV.fuente}, en curso; corte: ${INV.corte}.` : '');
+const FUENTES = 'Fuentes: INEGI, Características del Entorno Urbano 2020 (frentes de manzana); SEDEMA, modelo de priorización de frentes de manzana, Sistema de Información Ambiental (noviembre de 2025); SEDEMA, capa de vialidades primarias priorizadas para reforestación (agosto de 2026); EVALÚA CDMX, Índice de Desarrollo Social por unidad territorial; CONAPO, índice de marginación urbana 2020 (criterio de rezago social del modelo vigente); catálogo de colonias SEDEMA-SIA. ' + CITA_CALLES + (INV? ` Espacios para plantar (cepas vacantes, tocones y árboles muertos): ${INV.fuente}, en curso; corte: ${INV.corte}.` : '');
 const DIC = {
   frentes: { titulo:'Frente por frente', contenido:'Un renglón por frente de manzana con prioridad Muy Alta, Alta o Media a cargo de la alcaldía.',
     cols:[10,11,30,16,13,28,28,7,16,18,26,14,18,20,11,20,11,11],
     campos:[
       ['id_frente','Identificador del frente de manzana en esta versión de los datos (ver «Corte de los datos»). Permite cruzar el renglón con la capa geográfica y detectar duplicados; no cambia mientras no cambie el corte.','Entero'],
       ['prioridad','Prioridad del frente de manzana.','Muy Alta, Alta o Media'],
-      ['vialidad','Nombre de la calle a la que da el frente. Cuando INEGI no registra un nombre de calle («Ninguno», «Sin Referencia», «Manzana o Edificación Contigua»), dice «Frente sin nombre de calle (INEGI)».','Texto'],
-      ['tipo_vialidad','Tipo de vialidad registrado por INEGI.','Calle, Avenida, Cerrada, Calzada, Eje Vial…'],
+      ['vialidad','Nombre de la calle a la que da el frente, con su tipo («Calle Hidalgo»), como lo escribe la capa de calles de la Ciudad de México. Si el frente no tiene calle en esa capa, es el de INEGI 2020. Cuando no hay nombre de calle («Ninguno», «Sin Referencia», «Manzana o Edificación Contigua»), dice «Frente sin nombre de calle (INEGI)».','Texto'],
+      ['tipo_vialidad','Tipo de vialidad registrado por INEGI 2020.','Calle, Avenida, Cerrada, Calzada, Eje Vial…'],
       ['quien_atiende','Quién atiende el frente: la alcaldía o el Gobierno Central.','Alcaldía'],
       ['colonia','Colonia en la que cae el punto medio del frente, con acentos y sin abreviaturas.','Texto'],
       ['colonia_catalogo','Nombre de la colonia tal como viene en el catálogo de origen (sin acentos, con abreviaturas). Sirve para cruzar con otras capas.','Texto'],
@@ -148,8 +148,8 @@ DIC.alcaldias = { titulo:'Las 16 alcaldías', contenido:'Un renglón por alcald�
     ['km_frente_prioritario_total','Suma de km_frente_prioritario_alcaldia y km_frente_prioritario_gobierno_central.','Kilómetros de frente'] ] };
 DIC.calle.campos = DIC.frentes.campos.map(f=> f[0]==='prioridad'? ['prioridad','Prioridad del frente de manzana.','Muy Baja a Muy Alta'] : f);
 DIC.calle.campos.splice(DIC.calle.campos.findIndex(f=>f[0]==='lat'), 0,
-  ['tramo','Número del tramo de la calle al que pertenece el frente. Un tramo va de esquina a esquina y reúne los frentes de sus dos lados; se numera a lo largo de la calle. Se arma con una regla geométrica (frentes casi paralelos, en lados opuestos y traslapados) y debe confirmarse en campo.','Entero'],
-  ['tramo_entre','Vialidades más cercanas a los extremos del tramo.','Texto']);
+  ['tramo','Número del tramo de la calle al que pertenece el frente. Un tramo va de esquina a esquina y reúne los frentes de sus dos lados; se numera a lo largo de la calle. Es el tramo de la capa de calles de la Ciudad de México; los frentes que esa capa no tiene se agrupan con una regla geométrica (frentes casi paralelos, en lados opuestos y traslapados), que debe confirmarse en campo.','Entero'],
+  ['tramo_entre','Calles de las dos esquinas del tramo: las de la capa de calles o, en los tramos de la regla geométrica, las vialidades más cercanas a sus extremos.','Texto']);
 function calleAmbito(c){ const cols=[...new Set(c.idx.map(i=>F.col[i]).filter(Boolean))].map(k=>META.colonias[k].n); const muns=[...new Set(c.idx.map(i=>F.mun[i]))].map(m=>META.munNames[m]);
   return `Calle ${c.nombre} · ${cols.length>4? cols.length+' colonias' : cols.join(', ')} · ${muns.join(', ')}`; }
 function ambitoTxt(key){
@@ -326,7 +326,7 @@ $('dl-calle').onclick = ()=>{
   const idx=[...c.idx].sort((a,b)=> nt(a)-nt(b) || F.prio[b]-F.prio[a]);
   for(const i of idx){ const k=META.colonias[F.col[i]]; rows.push([i, META.prio[F.prio[i]], nomFrente(i), META.tipos[F.tipo[i]], 'Alcaldía', k.n, k.cat||k.n, k.cp? k.cp.padStart(5,'0'):'', k.p>=0? META.prio[k.p]:'', k.ids||'', k.ut||'', k.n? (k.pob||0) : '', k.n? (k.nbi||0) : '', META.munNames[F.mun[i]], F.len[i], META.disp[(F.flags[i]>>3)&7], nt(i)||'', tr.has(i)? tramoTxt(tr.get(i)) : '', num(midLat(i).toFixed(6)), num(midLon(i).toFixed(6))]); }
   const muns=[...new Set(c.idx.map(i=>F.mun[i]))];
-  deliverConEsp(`frente_por_frente_calle_${slug(c.nombre)}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${filtroSlug()}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]],
+  deliverConEsp(`frente_por_frente_calle_${slug(nomCorto(c.nombre))}_${muns.length===1? slug(META.munNames[muns[0]]) : 'ciudad'}${selCol!==null? '_'+slug(colNombre(selCol)) : ''}${filtroSlug()}`, 'calle', rows, [['Tramos de la calle', new Set([...tr.values()].map(t=>t.n)).size]],
     idx, espDeFrente, 'frente');
 };
 $('dl-calles').onclick = ()=>{

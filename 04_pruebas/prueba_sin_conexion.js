@@ -1,7 +1,7 @@
 // Sin conexión y peso (v1.41, bloque 5 de la auditoría del 19 de octubre de 2026). La red se corta en el servidor (deja de responder),
 // no con setOffline de Playwright, que no corta los pedidos del proceso de servicio (A1-03). Revisa:
 //  1) peso de la primera visita en teléfono con el proceso de servicio: cada archivo se pide una sola vez y el total, comprimido como lo
-//     entrega GitHub Pages, cabe en el presupuesto de 6.5 MB (B6-02);
+//     entrega GitHub Pages, cabe en el presupuesto de 7.5 MB (B6-02; era de 6.5 MB hasta la v1.50: calles.bin, de la v1.51, suma 1 MB);
 //  2) sin red: la herramienta abre, el inventario de arbolado se dibuja y el filtro «Espacio» funciona (decisión 7), y salen el Excel y la
 //     ficha PDF. Control: si se quita data.bin de la copia, sin red ya no abre (así se sabe que la prueba usa la copia y no la red);
 //  3) ciclo de versión (B6-01): se publica una versión nueva y la red falla de tres maneras (A: no falla; B: la página nueva llega pero
@@ -12,7 +12,7 @@ const L = require('./lib_pruebas.js'); const fs = require('fs'), path = require(
 const ok = L.Registro('sin conexión'); const D = L.decodificar(); const M = D.META;
 const SAL = fs.mkdtempSync(path.join(os.tmpdir(), 'sinred-'));
 const PARTES = (process.env.PARTES || '1,3,4').split(',');
-const MB = 1048576, PRESUPUESTO = 6.5 * MB;
+const MB = 1048576, PRESUPUESTO = 7.5 * MB;
 const SW = fs.readFileSync(path.join(L.DOCS, 'sw.js'), 'utf8');
 const PRE = JSON.parse(SW.match(/const PRE = (\[.*\]);/)[1]), CACHE = SW.match(/const CACHE = '([^']+)'/)[1];
 const IZT = M.munNames.indexOf('Iztapalapa');

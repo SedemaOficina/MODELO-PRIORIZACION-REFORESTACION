@@ -35,7 +35,31 @@ function decodificar(docs = DOCS) {
     const nv = rv(); v.pts = []; for (let k = 0; k < nv; k++) { px += rv(); py += rv(); v.pts.push(px / Q, py / Q); }
     VP.push(v);
   }
-  return { META, F, VP, N, NV };
+  // calles.bin (v1.51; CONTRATO_DE_DATOS.md, sección 6 ter): nombre homologado de cada frente y su tramo de la capa de calles. Como en la
+  // herramienta, su catálogo reemplaza a META.names; f.tr es el tramo (-1 sin tramo) y TR, el nombre y las esquinas de cada tramo
+  rv = lector(zlib.gunzipSync(fs.readFileSync(path.join(docs, 'datos', 'calles.bin'))));
+  const [, CN, CNOM, CANT, NTR, CALIAS, R_TR, R_NOM] = Array.from({ length: 8 }, rv);
+  if (CN !== N) throw new Error(`calles.bin trae ${CN} frentes y data.bin ${N}`);
+  const texto = () => { const n = rv(); let s = ''; for (let k = 0; k < n; k++) s += String.fromCharCode(rv()); return s; };
+  META.names = Array.from({ length: CNOM }, texto); const anteriores = Array.from({ length: CANT }, texto);
+  { let mx = 0; const rec = [];
+    for (const f of F) { const v = rv(); if (v === 0) { f.tr = -1; continue; }
+      const x = v === 1 ? ++mx : v > 1 ? rec.splice(v - 2, 1)[0] : mx + 1 + v; rec.unshift(x); rec.length = Math.min(rec.length, R_TR); f.tr = x - 1; } }
+  const TR = [];
+  { const rec = []; const lee = () => { const v = rv(); if (v === 0) return -1; const x = v <= R_NOM ? rec.splice(v - 1, 1)[0] : v - 1 - R_NOM; rec.unshift(x); rec.length = Math.min(rec.length, R_NOM); return x; };
+    for (let t = 0; t < NTR; t++) TR.push({ nom: lee(), e1: lee(), e2: lee() }); }
+  for (const f of F) f.name = f.tr >= 0 ? TR[f.tr].nom : rv();
+  const ALIAS = new Map(); for (let k = 0; k < CALIAS; k++) { const nid = rv(), a = anteriores[rv()]; ALIAS.set(nid, [...(ALIAS.get(nid) || []), a]); }
+  return { META, F, VP, N, NV, TR, ALIAS };
+}
+// calles.bin con el nombre k del catálogo cambiado por «texto» (gzip listo para servir): para probar nombres de calle con marcado
+function callesConNombre(k, texto, docs = DOCS) {
+  const raw = zlib.gunzipSync(fs.readFileSync(path.join(docs, 'datos', 'calles.bin'))); const rv = lector(raw);
+  const v = Array.from({ length: raw.reduce((t, c) => t + !(c & 0x80), 0) }, rv);   // un entero termina en cada byte sin el bit alto
+  let p = 8; for (let j = 0; j < k; j++) p += 1 + v[p];
+  v.splice(p, 1 + v[p], texto.length, ...Array.from(texto, c => c.charCodeAt(0)));
+  const out = []; for (const x of v) { let z = x >= 0 ? 2 * x : -2 * x - 1; do { let b = z % 128; z = Math.floor(z / 128); out.push(z ? b | 0x80 : b); } while (z); }
+  return zlib.gzipSync(Buffer.from(out));
 }
 const norm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 // «prioritario» = Muy Alta, Alta y Media (clase ≥ 2); mismo umbral que PRIO_MIN de la herramienta
@@ -85,12 +109,13 @@ async function quieto(page, tope = 10000) {
   }
 }
 async function abrir(browser, url, opciones = {}, errores = []) {
-  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => !['entrada', 'recorrido', 'preparar'].includes(k))) });
+  const ctx = await browser.newContext({ acceptDownloads: true, viewport: { width: 1440, height: 900 }, locale: 'es-MX', serviceWorkers: 'block', ...Object.fromEntries(Object.entries(opciones).filter(([k]) => !['entrada', 'recorrido', 'preparar', 'nombres2020'].includes(k))) });
   await ctx.addInitScript(() => { window.SIA_PRUEBA = true; }); await vigia(ctx);
   if (opciones.recorrido) await ctx.addInitScript(() => { window.SIA_RECORRIDO = true; });   // el recorrido guiado arranca solo, como en una primera visita
   // Las pruebas parten de «toda la ciudad», como una visita que ya eligió territorio; `entrada: true` deja la primera visita tal cual.
   if (!opciones.entrada) await sinEntrada(ctx);
   if (opciones.preparar) await opciones.preparar(ctx);   // lo que la prueba necesite antes de cargar (sesión simulada, rutas…)
+  if (opciones.nombres2020){ CALLES_2020 = CALLES_2020 || calles2020(); await ctx.route(/datos\/calles\.bin/, r => r.fulfill({ status: 200, contentType: 'application/octet-stream', body: CALLES_2020 })); }
   const page = await ctx.newPage(); page.setDefaultTimeout(+process.env.T_ESPERA || 300000);
   page.on('pageerror', e => errores.push('pageerror: ' + e.message));
   page.on('console', m => { if (m.type() === 'error' && !/Failed to load resource|ERR_/.test(m.text())) errores.push('console: ' + m.text()); });
@@ -170,7 +195,23 @@ const vocabC5 = t => t.replace(/\b(enero|febrero|marzo|abril|mayo|junio|julio|ag
   .replace(/\b(clases|categorías|prioridades) (Muy Alta, Alta y Media)/g, '$2').replace(/en todas las (clases de prioridad|clases|prioridades)/g, 'en todas las prioridades')
   .replace(/Clase de prioridad del /g, 'Prioridad del ').replace(/Prioridad predominante = (categoría con|la que tiene) más/g, 'Prioridad predominante = más').replace(/(fichas?) (en )?PDF/g, '$1');
 const textoAntes = t => typeof t !== 'string' ? t : vocabC5(t.replace(/ Espacios para plantar \(cepas vacantes, tocones y árboles muertos\): [^.]*\./g, '')).replace(/Gobierno de la Ciudad( de México)?/g, 'Gobierno Central').replace(/\(aceras con manzana enfrente\), [\d,.]+ km (sobre tramos prioritarios|prioritarios)\./g, '(aceras con manzana enfrente), N km prioritarios.')
-  .replace(/Excel «Frente por frente»/g, 'Excel de frentes').replace('no incluidos en esta lista', 'no incluidos en este resumen');
+  .replace(/Excel «Frente por frente»/g, 'Excel de frentes').replace('no incluidos en esta lista', 'no incluidos en este resumen')
+  // v1.51: la cita de la capa de calles en las fuentes, y los textos del diccionario sobre el nombre, el tipo y los tramos de la calle
+  .replace(/ Nombres de calle y tramos: capa de calles de la Ciudad de México .*? ni están respaldadas por ellos\./g, '')
+  .replace(', capa de vialidades primarias (agosto de 2026) y capa de calles de la Ciudad de México 1.0.0 (con datos de INEGI y SEMOVI);', ' y capa de vialidades primarias (agosto de 2026);')
+  .replace('Nombre de la calle a la que da el frente, con su tipo («Calle Hidalgo»), como lo escribe la capa de calles de la Ciudad de México. Si el frente no tiene calle en esa capa, es el de INEGI 2020. Cuando no hay nombre de calle', 'Nombre de la calle a la que da el frente. Cuando INEGI no registra un nombre de calle')
+  .replace('Tipo de vialidad registrado por INEGI 2020.', 'Tipo de vialidad registrado por INEGI.');
+// v1.51: los nombres de calle vienen de calles.bin. Para comparar con una versión anterior, la nueva se abre con un calles.bin que
+// repite los nombres de INEGI 2020 de meta.bin, sin tramos de la capa (`abrir(…, {nombres2020: true})`): así todo lo demás debe quedar igual
+function calles2020(docs = DOCS) {
+  const META = JSON.parse(zlib.gunzipSync(fs.readFileSync(path.join(docs, 'datos', 'meta.bin'))).toString('utf8'));
+  const rv = lector(zlib.gunzipSync(fs.readFileSync(path.join(docs, 'datos', 'data.bin')))); const N = rv(), nom = [];
+  for (let i = 0; i < N; i++) { rv(); rv(); nom.push(rv()); for (let k = 0; k < 5; k++) rv(); const nv = rv(); for (let k = 0; k < 2 * nv; k++) rv(); }
+  const v = [1, N, META.names.length, 0, 0, 0, 8, 16]; for (const s of META.names) v.push(s.length, ...Array.from(s, c => c.charCodeAt(0)));
+  for (let i = 0; i < N; i++) v.push(0); for (const x of nom) v.push(x);   // ningún frente con tramo; cada uno con su nombre de 2020
+  const out = []; for (const x of v) { let z = x >= 0 ? 2 * x : -2 * x - 1; do { const b = z % 128; z = Math.floor(z / 128); out.push(z ? b | 0x80 : b); } while (z); }
+  return zlib.gzipSync(Buffer.from(out)); }
+let CALLES_2020 = null;
 function excelAntes(X, lista) { let datos = X.datos || [], dic = (X.dic || []).filter(r => !DIC_GC_V137.includes(r[0])).map(r => r.map(textoAntes));
   if (lista) { const h = datos[0] || [], k = h.indexOf('cepas_vacantes_prioritario'), iK = h.indexOf('km_prioritario'); const sin = r => k < 0 ? r : r.filter((_, j) => j !== k);
     datos = [sin(h), ...datos.slice(1).filter(r => r[iK] > 0).map(sin).map(r => JSON.stringify(r)).sort().map(r => JSON.parse(r))];
@@ -204,4 +245,4 @@ function Registro(nombre) {
   ok.fin = () => { const f = r.filter(x => !x[0]); console.log(`\n[${nombre}] ${r.length - f.length} de ${r.length} verificaciones correctas; ${f.length} fallas`); if (f.length) { console.log('Fallas:'); f.forEach(x => console.log('  - ' + x[1] + (x[2] ? ' · ' + x[2] : ''))); } return f.length; };
   ok.todos = r; return ok;
 }
-module.exports = { PRIO_MIN, sinEntrada, vigia, quieto, PY, DOCS, servidor, decodificar, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, nombreAntes, mismoNombre, textoAntes, excelAntes, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };
+module.exports = { PRIO_MIN, sinEntrada, vigia, quieto, PY, DOCS, servidor, decodificar, callesConNombre, norm, resumenFrentes, resumenVP, kmTxt, kmUn, numEs, lanzar, abrir, estado, comparable, sinTotal, nombreAntes, mismoNombre, textoAntes, excelAntes, MALOS, negativos, buscar, elegir, clic, descargar, Registro, ponResp, ponPrio, elegirTipo, f0, f1, fN };

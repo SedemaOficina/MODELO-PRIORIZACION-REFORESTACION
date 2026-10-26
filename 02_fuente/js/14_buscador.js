@@ -23,7 +23,8 @@ function omniIndex(){ if (OM) return OM;
   const stat = new Map();
   for(let i=0;i<N;i++){ if (F.gc[i]) continue; const nid=F.name[i]; if (PLACEHOLDER.has(nid)) continue; let s=stat.get(nid); if(!s){ s={cols:new Map(), kmp:0, muns:new Set()}; stat.set(nid,s); }
     const k = esPrio(F.prio[i])? F.len[i]/1000 : 0; s.kmp+=k; s.cols.set(F.col[i], (s.cols.get(F.col[i])||0)+k); s.muns.add(F.mun[i]); }
-  OM.stStat = stat; OM.stIds = [...stat.keys()]; OM.st = OM.stIds.map(nid=>toks(META.names[nid]));
+  // la calle se busca sin el «Calle» inicial (como se escribe) y también por su nombre de INEGI 2020 si cambió (ALIAS_CALLE)
+  OM.stStat = stat; OM.stIds = [...stat.keys()]; OM.st = OM.stIds.map(nid=>toks(nomCorto(META.names[nid]) + (ALIAS_CALLE.has(nid)? ' '+ALIAS_CALLE.get(nid).join(' ') : '')));
   // colonias homónimas (mismo nombre, CP y alcaldía): se numeran
   const seen = new Map(); OM.part = new Map();
   for(let i=1;i<META.colonias.length;i++){ const c=META.colonias[i]; if(!c.n) continue; const k=c.n+'|'+(c.cp||'')+'|'+c.m; const a=seen.get(k)||[]; a.push(i); seen.set(k,a); }
