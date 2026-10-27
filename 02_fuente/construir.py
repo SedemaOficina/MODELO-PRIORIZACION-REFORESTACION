@@ -80,8 +80,8 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.53'
-ACTUALIZACION = '26 de octubre de 2026'
+VERSION = '1.0.0'
+ACTUALIZACION = '27 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de noviembre de 2025; vialidades primarias de agosto de 2026'
 
 

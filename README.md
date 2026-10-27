@@ -74,13 +74,19 @@ Para verificar: `node 04_pruebas/correr_todas.js` (todo) o `node 04_pruebas/corr
 5. **Git sobre la carpeta sincronizada por OneDrive:** si una orden de Git deja archivos de bloqueo (`.git/index.lock`, `tmp_obj_*`) que impiden el siguiente commit, se retiran moviéndolos a `_to_delete/`; las consultas se hacen con `GIT_OPTIONAL_LOCKS=0`. Solo una sesión trabaja sobre la carpeta a la vez.
 6. **Verificación automática en GitHub:** en cada *Push*, GitHub repite las verificaciones rápidas y marca el commit con una palomita verde o una cruz roja (`.github/workflows/verificar.yml`). Qué hacer si falla: `05_documentacion/verificacion_automatica_github.md`. La página se publica igual; la cruz es un aviso para corregir.
 
-## Estado al 26 de octubre de 2026 (versión 1.53)
+## Estado al 27 de octubre de 2026 (versión 1.0.0)
 
-- Versión vigente: **v1.53**, publicada en GitHub Pages. Al SIA se entregó la v1.0 (paquete del 8 de octubre); las versiones siguientes irán en la próxima entrega.
+- Versión vigente: **v1.0.0**, la **primera versión liberada**: la que se entrega al SIA para instalarla y la que se publica en GitHub Pages.
+- **Numeración** (decisión de Liber del 27 de octubre de 2026): desde la 1.0.0 se numera X.Y.Z:
+  - Z sube con correcciones (1.0.1);
+  - Y sube con funciones nuevas (1.1.0), por ejemplo el inventario de arbolado completo;
+  - X sube con cambios grandes (2.0.0), por ejemplo un modelo de priorización nuevo.
+- Las versiones 1.0 a 1.53 (y antes, las 17.x) fueron de **desarrollo y pruebas**. El paquete «v1.0» del 8 de octubre se le entregó al SIA, pero la herramienta no se instaló; solo se publicaron sus capas en el GeoServer.
 - Lo que cambió en cada versión está en el historial de Git (un commit por versión, con su descripción) y, en la copia local, en `05_documentacion/bitacora/`.
 
 | Versión | Qué atendió |
 |---|---|
+| 1.0.0 | **Primera versión liberada.** Es la misma herramienta de la 1.53, con otro número. Se entrega al SIA por el repositorio privado (etiqueta `entrega-2026-10-27`) |
 | 1.53 | Entrega al SIA por un repositorio privado (`SedemaOficina/modelo-priorizacion-reforestacion-sia`), una etiqueta `entrega-AAAA-MM-DD` por entrega, como el tablero de Categorías: `publicar_entrega.py` comprueba el paquete y lo deja ahí con su commit y su etiqueta. El paquete ya no lleva las capas para GeoServer: la herramienta no lo usa. La portada del paquete dice cómo bajar la etiqueta y que el inventario de arbolado se reemplazará cuando llegue el completo. La herramienta no cambia |
 | 1.52 | Se retira la v1.51 (nombres de calle y tramos de la capa calles-cdmx): la herramienta queda igual que en la v1.50, que es la que se entrega al SIA (decisión de Liber del 26 de octubre de 2026). La capa queda en el historial de Git (commit de la v1.51) para retomarla después |
 | 1.51 | Nombres de calle y tramos de la capa calles-cdmx (retirada en la v1.52) |

@@ -10,7 +10,7 @@ Uso:  python 08_entrega_sia/publicar_entrega.py [ZIP]      (por omisión, el ZIP
   2. Deja en el clon del repositorio privado (_local/repo_sia/, se clona si no está) exactamente el contenido del paquete:
      lo de la entrega anterior que ya no viene se quita (queda en el historial de ese repositorio).
   3. .gitattributes «* -text»: Git no cambia ningún fin de línea, así las sumas del manifiesto valen al bajarlo en Linux.
-  4. Commit «Entrega AAAA-MM-DD · vX.YY» y etiqueta entrega-AAAA-MM-DD (con b, c… si ya hubo otra ese día).
+  4. Commit «Entrega AAAA-MM-DD · vX.Y.Z» y etiqueta entrega-AAAA-MM-DD (con b, c… si ya hubo otra ese día).
 NO hace Push: lo hace quien entrega, después de revisar: git -C _local/repo_sia push origin main <etiqueta>
 """
 import hashlib, os, re, shutil, subprocess, sys, tempfile, zipfile
@@ -31,10 +31,11 @@ def git(*args, salida=False):
     if p.returncode: sys.exit('ERROR: git %s\n%s' % (' '.join(args), p.stderr.strip()))
     return p.stdout.strip() if salida else None
 
-zips = sorted(a for a in os.listdir(ENTREGA) if a.endswith('.zip')) if os.path.isdir(ENTREGA) else []
-ZIP = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else (os.path.join(ENTREGA, zips[-1]) if zips else None)
+# el más reciente por fecha del archivo, no por nombre: «v1.0.0» va antes que «v1.53» en orden alfabético
+zips = sorted((os.path.join(ENTREGA, a) for a in os.listdir(ENTREGA) if a.endswith('.zip')), key=os.path.getmtime) if os.path.isdir(ENTREGA) else []
+ZIP = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else (zips[-1] if zips else None)
 if not ZIP or not os.path.exists(ZIP): sys.exit('ERROR: no hay paquete; primero: python 08_entrega_sia/empaquetar.py')
-m = re.search(r'_v(\d+\.\d+)_(\d{4})(\d{2})(\d{2})\.zip$', ZIP)
+m = re.search(r'_v(\d+(?:\.\d+)+)_(\d{4})(\d{2})(\d{2})\.zip$', ZIP)
 if not m: sys.exit('ERROR: el nombre del ZIP no es el de empaquetar.py: ' + os.path.basename(ZIP))
 version, fecha = m.group(1), '%s-%s-%s' % m.group(2, 3, 4)
 
