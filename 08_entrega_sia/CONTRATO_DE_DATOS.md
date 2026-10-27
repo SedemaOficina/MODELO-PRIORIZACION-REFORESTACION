@@ -1,6 +1,6 @@
 # Contrato de datos
 
-Formato exacto de los tres archivos del modelo en `datos/` (secciones 1 a 6), de los del inventario de arbolado en `datos/inventario/` (sección 6 bis) y de `datos/calles.bin` (sección 6 ter, v1.51), suficiente para escribir un lector o un generador sin ver el código. Lectores de referencia en Python, sin dependencias: `03_procesamiento_datos/verificar_datos.py` (todos) y `03_procesamiento_datos/reporte_catalogos.py`. Los generadores son `03_procesamiento_datos/4_generar_datos.py` (los tres del modelo), `03_procesamiento_datos/9_inventario_espacios.py` (los del inventario) y `03_procesamiento_datos/10_ligar_calles.py` (`calles.bin`).
+Formato exacto de los tres archivos de `datos/` (secciones 1 a 6) y de los del inventario de arbolado en `datos/inventario/` (sección 6 bis), suficiente para escribir un lector o un generador sin ver el código. Lectores de referencia en Python, sin dependencias: `03_procesamiento_datos/verificar_datos.py` (todos) y `03_procesamiento_datos/reporte_catalogos.py`. Los generadores son `03_procesamiento_datos/4_generar_datos.py` (los tres de `datos/`) y `03_procesamiento_datos/9_inventario_espacios.py` (los del inventario).
 
 Los tres archivos de `datos/` no llevan número de versión de formato ni fecha dentro (los del inventario sí traen su número de formato: sección 6 bis); la versión y el corte se declaran en `construir.py` (`VERSION`, `CORTE_DATOS`) y la identidad del contenido, en `02_fuente/datos/SUMAS.json`.
 
@@ -13,7 +13,6 @@ Los tres archivos son **gzip** (firma `1f 8b`). Se sirven como `application/octe
 | `meta.bin` | **Texto JSON en UTF-8** (no una secuencia de enteros) |
 | `data.bin` | Secuencia de enteros: frentes de manzana |
 | `vp.bin` | Secuencia de enteros: partes de vialidad primaria |
-| `calles.bin` | Secuencia de enteros: tramo y nombre de calle de cada frente (sección 6 ter) |
 
 ## 2. Enteros
 
@@ -167,34 +166,10 @@ Hoy el inventario está en curso y este proyecto lleva su propia copia procesada
 
 Mientras tanto, nada cambia: el script `03_procesamiento_datos/9_inventario_espacios.py` lee el CSV local. Cuando el SIA lo tenga publicado, solo cambia de dónde lo lee el script; el formato de estos archivos se queda igual.
 
-## 6 ter. `datos/calles.bin` · tramo y nombre de calle de cada frente (v1.51)
-
-Liga cada frente de manzana con su tramo de la capa de calles de la Ciudad de México (calles-cdmx 1.0.0, SEDEMA con INEGI 2025) y le da el nombre homologado de su calle. Lo escribe `03_procesamiento_datos/10_ligar_calles.py`, junto con `datos/calles_resumen.json` (cifras de control, huella SHA-256 del contenido descomprimido, de la capa y del `data.bin` con que se ligó). No cambia ningún dato de `data.bin`, `meta.bin` ni `vp.bin`: la herramienta toma de aquí el catálogo de nombres, que reemplaza a `names` de `meta.bin`, y el tramo de cada frente. Secuencia de enteros, en este orden:
-
-1. **Encabezado (8 enteros):** formato (1), `N` (frentes; igual al de `data.bin`), `NNOM` (nombres), `NANT` (nombres anteriores), `NT` (tramos), `NAL` (alias), `R_TR` (8) y `R_NOM` (16).
-2. **Textos:** los `NNOM` nombres y luego los `NANT` anteriores. Cada uno es su largo seguido de un entero por carácter (código UTF-16, todos del plano básico). El nombre vacío («») es una calle sin nombre.
-3. **Tramo de cada frente (`N` enteros), en el orden de `data.bin`.** Se lleva `mx` (tramos vistos, empieza en 0) y una lista de los `R_TR` tramos más recientes (el más reciente primero). Valor `v`:
-   - 0: sin tramo;
-   - 1: el siguiente tramo nuevo, `mx + 1`;
-   - `v ≥ 2`: el que está en la posición `v − 2` de la lista;
-   - `v < 0`: el tramo `mx + 1 + v`.
-
-   Con cualquier valor distinto de 0, el tramo pasa al frente de la lista, que se corta a `R_TR`. Los tramos se cuentan desde 1: el tramo `x` es el índice `x − 1`.
-4. **Nombre y esquinas de cada tramo (`NT` × 3 enteros):** nombre, esquina 1 y esquina 2. Se lleva una lista de los `R_NOM` nombres más recientes. Valor `v`:
-   - 0: ninguna (solo en las esquinas);
-   - `1 ≤ v ≤ R_NOM`: el nombre de la posición `v − 1` de la lista;
-   - `v > R_NOM`: el nombre `v − 1 − R_NOM` del catálogo.
-
-   Todo nombre leído pasa al frente de la lista, que se corta a `R_NOM`. La esquina 1 es la del poniente o, si la calle corre de norte a sur, la del sur.
-5. **Nombre de cada frente sin tramo**, en el orden de `data.bin`: índice en el catálogo. Los frentes con tramo llevan el nombre de su tramo.
-6. **Alias (`NAL` × 2 enteros):** índice del nombre nuevo e índice del nombre anterior. Sirven para que el buscador encuentre también el nombre de INEGI 2020 de las calles que lo cambiaron.
-
-**Reglas:** el archivo debe terminar justo después del último alias, y `N` debe ser el de `data.bin`. Si `data.bin` se regenera (pasos 4 u 8), hay que volver a correr el paso 10: `construir.py` compara la huella guardada en `calles_resumen.json`.
-
 ## 7. Reglas que deben respetarse al sustituir datos
 
 1. **Nunca editar un archivo a mano ni sustituir uno solo.** Los tres se generan juntos con el paso 4; los resúmenes de `meta.bin` deben corresponder a los registros.
-2. Después de generar (en el repositorio): `python 03_procesamiento_datos/verificar_datos.py --actualizar`, `python 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js`. En un equipo Linux donde Python se llame `python3`, usar ese nombre. Si cambió `data.bin` o `vp.bin`, antes de verificar hay que volver a correr `python 03_procesamiento_datos/9_inventario_espacios.py` (sección 6 bis) y, si cambió `data.bin`, `python 03_procesamiento_datos/10_ligar_calles.py` (sección 6 ter). `construir.py` se niega a construir con datos distintos de los registrados.
+2. Después de generar (en el repositorio): `python 03_procesamiento_datos/verificar_datos.py --actualizar`, `python 02_fuente/construir.py` y `node 04_pruebas/correr_todas.js`. En un equipo Linux donde Python se llame `python3`, usar ese nombre. Si cambió `data.bin` o `vp.bin`, antes de verificar hay que volver a correr `python 03_procesamiento_datos/9_inventario_espacios.py` (sección 6 bis). `construir.py` se niega a construir con datos distintos de los registrados.
 3. Los catálogos se referencian **por posición**: insertar un elemento en medio de `names`, `colonias` o `vp.nomenclat` cambia el significado de todos los registros.
 4. El número de clases de prioridad (5) y el umbral «prioritario» (≥ 2: Muy Alta, Alta y Media) están en `02_fuente/js/01_utilidades.js` (`PRIO_MIN`). `meta.bin` trae `cruce.km_gc_prio` calculado con umbral ≥ 3 (solo Muy Alta y Alta); la herramienta no lo usa y se corrige al regenerar los datos. Cambiar el número de clases exige revisar la leyenda, las fichas y los Excel.
 

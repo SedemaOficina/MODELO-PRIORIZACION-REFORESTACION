@@ -6,8 +6,7 @@ Piezas (todas en esta carpeta; ver ARQUITECTURA.md en la raíz):
   css/*.css        estilos, en orden de aplicación (01_variables … 10_dos_pantallas)
   js/*.js          lógica, un archivo por tema, en orden de ejecución (01_utilidades … 17_recorrido);
                    se unen en un solo app.js dentro de una función asíncrona
-  datos/*.bin      frentes, catálogos, vialidades primarias y calles (varint + gzip); calles.bin, con su calles_resumen.json, es de
-                   03_procesamiento_datos/10_ligar_calles.py: tramo y nombre homologado de cada frente (capa calles-cdmx)
+  datos/*.bin      frentes, catálogos y vialidades primarias (varint + gzip)
   datos/nombres_colonias.json   nombre para mostrar de cada colonia que lo cambia (03_procesamiento_datos/7_nombres_colonias.py)
   datos/fondo/     fondo propio del mapa (opción «Calles»): manzanas por alcaldía, parques, agua, ANP y AVA
                    (de 03_procesamiento_datos/6_fondo.py); se piden solo al encender ese fondo
@@ -53,7 +52,7 @@ ESQUELETO = ('<!doctype html><html lang="es-MX"><head><meta charset="utf-8">'
 LIBS_ARRANQUE = ('deck.js', 'pako.js')
 LIBS_DEMANDA = ('xlsx.js', 'jspdf.js')
 IMAGENES = {'img/logo_institucional.png': 'image/png', 'img/composicion_frentes_manzana.jpg': 'image/jpeg'}
-DATOS = ('meta', 'data', 'vp', 'calles')
+DATOS = ('meta', 'data', 'vp')
 # Tipografías servidas desde el sitio (familia -> archivo en fuentes/). Peso variable de 400 a 700.
 FUENTES = {'Cabin': 'cabin.woff2', 'Roboto': 'roboto.woff2'}
 # Clave (API key) de ArcGIS Location Platform para el fondo satelital de Esri. Vacía = World Imagery y nombres de
@@ -81,7 +80,7 @@ SESION = {'inicio': os.environ.get('SIA_SESION_INICIO') or _claves.get('SESION_I
           'uso': os.environ.get('SIA_SESION_USO') or _claves.get('SESION_USO') or ''}   # registro de usos; vacío = /priorizacion-reforestacion/api/uso si hay sesión
 # Versión de la herramienta y corte de los datos. Se muestran en el panel, las fichas PDF y el diccionario de los Excel.
 # Actualizar VERSION y ACTUALIZACION (fecha de la versión) en cada publicación, y CORTE_DATOS cuando cambien los datos de 02_fuente/datos/.
-VERSION = '1.51'
+VERSION = '1.52'
 ACTUALIZACION = '26 de octubre de 2026'
 CORTE_DATOS = 'modelo de priorización de noviembre de 2025; vialidades primarias de agosto de 2026'
 
@@ -133,7 +132,7 @@ for carpeta, esperados in (('libs', LIBS_PUBLICADAS), ('fuentes', FUENTES_PUBLIC
     faltan = [n for n in esperados if not os.path.isfile(os.path.join(FUENTE, carpeta, n))]
     if faltan:
         falla('%s/ no trae: %s.' % (carpeta, ', '.join(faltan)))
-    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo', 'inventario', 'nombres_colonias.json', 'calles_resumen.json'))
+    extra = sorted(n for n in os.listdir(os.path.join(FUENTE, carpeta)) if n not in esperados and n not in ('SUMAS.json', 'fondo', 'inventario', 'nombres_colonias.json'))
     if extra:
         print('AVISO: %s/ trae archivos que no se publican: %s.' % (carpeta, ', '.join(extra)))
 # Los datos deben ser los verificados: se compara el contenido descomprimido con datos/SUMAS.json,
@@ -144,23 +143,13 @@ if not os.path.isfile(ruta_sumas):
 sumas = json.load(open(ruta_sumas, encoding='utf-8'))['sha256_descomprimido']
 N_FRENTES = json.load(open(ruta_sumas, encoding='utf-8'))['frentes']
 N_PARTES = json.load(open(ruta_sumas, encoding='utf-8'))['partes_de_vialidad']
-# calles.bin no está en SUMAS.json: lo registra su propio resumen (10_ligar_calles.py), con la huella del data.bin con que se ligó
-try:
-    CALLES_RES = json.load(open(os.path.join(FUENTE, 'datos', 'calles_resumen.json'), encoding='utf-8'))
-except (OSError, ValueError) as e:
-    falla('falta o está dañado datos/calles_resumen.json (%s). Regenerar con 03_procesamiento_datos/10_ligar_calles.py o recuperarlo de Git.' % e)
 for n in DATOS:
     try:
         h = hashlib.sha256(gzip.decompress(open(os.path.join(FUENTE, 'datos', n + '.bin'), 'rb').read())).hexdigest()
     except Exception as e:
         falla('datos/%s.bin no se puede descomprimir (%s).' % (n, e))
-    if n == 'calles':
-        if h != CALLES_RES.get('calles_sha256'):
-            falla('datos/calles.bin no coincide con datos/calles_resumen.json. Regenerar con 03_procesamiento_datos/10_ligar_calles.py.')
-    elif h != sumas.get(n + '.bin'):
+    if h != sumas.get(n + '.bin'):
         falla('datos/%s.bin no coincide con datos/SUMAS.json. Si los datos se regeneraron a propósito, correr 03_procesamiento_datos/verificar_datos.py --actualizar.' % n)
-if CALLES_RES.get('frentes_sha256') != sumas.get('data.bin') or CALLES_RES.get('frentes') != N_FRENTES:
-    falla('las calles se ligaron con otros frentes (data.bin cambió). Volver a correr 03_procesamiento_datos/10_ligar_calles.py.')
 # Nombres de colonia para mostrar (03_procesamiento_datos/7_nombres_colonias.py): {id: nombre}; la app conserva el del catálogo
 try:
     NOMBRES_COL = json.load(open(os.path.join(FUENTE, 'datos', 'nombres_colonias.json'), encoding='utf-8'))
@@ -240,11 +229,11 @@ VIGIA = ("(function(){ function aviso(t){ if (window.SIA_LISTO) return; var l=do
          " var cx=navigator.connection; if (cx && (cx.saveData || /2g|3g/.test(cx.effectiveType||''))){ var l0=document.getElementById('loader'); if (l0){ var n0=document.createElement('div'); n0.className='conex'; n0.textContent='Con esta conexión la primera carga puede tardar más de un minuto.'; l0.querySelector('div').appendChild(n0); } }"
          " setTimeout(function(){ aviso('La carga está tardando más de lo normal. Puede ser una conexión lenta; si no avanza, vuelve a intentarlo.'); }, 45000); })();\n")
 
-# Los cuatro archivos de datos se empiezan a pedir en config.js, el primer programa y el más chico, mientras bajan las librerías; 02_datos.js usa
+# Los tres archivos de datos se empiezan a pedir en config.js, el primer programa y el más chico, mientras bajan las librerías; 02_datos.js usa
 # esas mismas respuestas. Así se piden una sola vez en todos los navegadores: WebKit (Safari) no aprovechaba <link rel="preload" as="fetch">
 # y los pedía dos veces (B8-01).
 PEDIDOS = ("(function(){ var D=window.SIA_DATOS; if (!D || !window.fetch) return; window.SIA_PEDIDOS={};"
-           " ['meta.bin','data.bin','vp.bin','calles.bin'].forEach(function(n){ var p=fetch('datos/'+n+'?v='+D.v[n]); p['catch'](function(){}); window.SIA_PEDIDOS[n]=p; }); })();\n")
+           " ['meta.bin','data.bin','vp.bin'].forEach(function(n){ var p=fetch('datos/'+n+'?v='+D.v[n]); p['catch'](function(){}); window.SIA_PEDIDOS[n]=p; }); })();\n")
 
 
 def unir(carpeta, extension):

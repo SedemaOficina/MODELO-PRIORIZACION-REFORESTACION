@@ -99,10 +99,6 @@ Lo que ya publica el GeoServer del SIA, comparado con la herramienta:
 - `sia:alcaldias`: las mismas 16.
 - No hay capa de colonias.
 
-## Calles de la Ciudad de México (v1.51)
-
-La herramienta toma los nombres de calle y los tramos de la capa calles-cdmx 1.0.0 (SEDEMA, con el Marco Geoestadístico EI 2025 del INEGI, la Red Nacional de Caminos 2025, la red de SEMOVI y el acuerdo de la Comisión de Clasificación de Vialidades de 2024). Cada frente se liga a su tramo (`03_procesamiento_datos/10_ligar_calles.py`); la prioridad, quién atiende y las longitudes siguen siendo las del modelo. El SIA ya aceptó la capa y la instalará en `territorio.calles` (GeoServer `sia:calles`); mientras, se lee del GeoPackage del paquete. Licencia CC BY 4.0, con su cita obligatoria en «Fuentes y versión», los Excel y las fichas PDF. El análisis de cómo se cruzó y qué cambiaría al usar también su red vial y quién atiende está en `05_documentacion/analisis_calles_cdmx/ANALISIS.md`.
-
 ## Lo que no es capa del proyecto
 
 Los mapas de fondo no forman parte de los datos del modelo ni deben estar en GeoServer. «Calles» es propio (manzanas del Catastro de la CDMX, parques y jardines del Inventario de Áreas Verdes 2017, ANP y AVA oficiales y cuerpos de agua; `03_procesamiento_datos/6_fondo.py`) y se aloja con el sitio. El satélite son teselas de Esri que se piden solo si la persona lo enciende.

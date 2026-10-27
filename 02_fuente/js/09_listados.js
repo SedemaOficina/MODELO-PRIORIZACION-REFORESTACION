@@ -26,7 +26,7 @@ function buildAvenues(){
     const k=VP.len[i]/1000; s.idx.push(i); s.km+=k; s.recs.add(VP.rec[i]); if (ESP_VPN) s.cvt+=ESP_VPN[3*i]; if(esPrio(VP.prio[i])){ s.kmp+=k; s.recsp.add(VP.rec[i]); if (ESP_VPN) s.cv+=ESP_VPN[3*i]; } s.nombres.add(VPC.nombres[VP.nombre[i]]); s.muns.add(VP.mun[i]); s.tipos.add(VPC.tipos[VP.tipo[i]]); }
 }
 const norm = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
-const NAMES_N = META.names.map((n,k)=> norm(ALIAS_CALLE.has(k)? n+' · '+ALIAS_CALLE.get(k).join(' · ') : n));   // con el nombre de 2020 si cambió
+const NAMES_N = META.names.map(norm);
 const AV_N = VPC.nomenclat.map(norm);
 // desglose de una calle por prioridad: una calle reúne frentes de prioridades distintas, por eso no tiene una sola
 function desgHtml(s){ const d = dom({km:s.kp}); const partes = []; for(let p=4;p>=0;p--) if (s.kp[p]>0) partes.push(`<span><i data-st="background:var(--p${p})"></i>${META.prio[p]} ${kmFull(s.kp[p])}</span>`);

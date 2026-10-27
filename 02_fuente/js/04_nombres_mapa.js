@@ -126,7 +126,7 @@ function colocarNombres(){
     const nidSel = nidResaltado();
     const cands = [];
     for(const t of tramos){
-      const texto = t.vp? t.texto : nomCorto(META.names[t.nid]); const w = anchoTexto(texto, FUENTE_CALLE);
+      const texto = t.vp? t.texto : META.names[t.nid]; const w = anchoTexto(texto, FUENTE_CALLE);
       const [ax,ay] = aMundo(t.x0/(111320*t.c), t.y0/110540, zr), [bx,by] = aMundo(t.x1/(111320*t.c), t.y1/110540, zr);
       const L = Math.hypot(bx-ax, by-ay); if (L < 1.05*w) continue;   // el nombre no cabe en el tramo
       if (!dentro((ax+bx)/2, (ay+by)/2, Math.max(mx,my)+L/2)) continue;

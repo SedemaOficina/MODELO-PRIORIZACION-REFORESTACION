@@ -90,7 +90,7 @@ function invPick(x, y){ if (!invVisible()) return null; const ids = INV_CAPAS.fi
 // vialidad primaria) dice su avenida y que lo atiende el Gobierno Central, con la prioridad del tramo.
 function invHtml(p, compact){ const ti = INV_TIPOS[p.t], fr = p.fr, hay = fr>=0 && fr<N, cam = !hay && p.vp>=0 && p.vp<NV;
   const sim = `<i class="inv-sim ${ti.id}" aria-hidden="true"></i>`;
-  const calle = hay? nomFrente(fr) : '';   // el nombre ya trae su tipo («Calle Hidalgo», «Cerrada Pinos»)
+  const tp = hay? (META.tipos[F.tipo[fr]] || '—') : '—', calle = hay? ((sinNombreFr(fr) || tp==='—')? '' : tp+' ') + nomFrente(fr) : '';
   const col = hay? META.colonias[F.col[fr]] : null, colTxt = col && col.n? col.n : 'Colonia no identificada';
   const alc = hay? META.munNames[F.mun[fr]] : (META.munNames[munIndex[p.a]] || ''), avCam = cam? VPC.nomenclat[VP.nom[p.vp]] : '';
   if (compact) return `${sim}<b>${ti.n}</b><br><span class="m">${hay? calle + ' · ' : cam? 'Camellón de ' + avCam + ' · ' : ''}${ti.que}</span>`;

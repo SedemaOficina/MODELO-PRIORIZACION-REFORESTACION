@@ -2,24 +2,24 @@
 
 Generado por 02_fuente/construir.py en cada construcción. No editar aquí.
 
-Medidas al construir la versión 1.51. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
+Medidas al construir la versión 1.52. README y ARQUITECTURA remiten a esta tabla en lugar de repetir tamaños y conteos.
 
 | Concepto | Valor |
 |---|---|
-| Versión de la herramienta | 1.51 |
+| Versión de la herramienta | 1.52 |
 | Corte de los datos | modelo de priorización de noviembre de 2025; vialidades primarias de agosto de 2026 |
 | Módulos de lógica (`02_fuente/js/`) | 20 |
 | Hojas de estilo (`02_fuente/css/`) | 11 |
 | `docs/index.html` | 45 KB |
-| `docs/app.js` | 390 KB |
+| `docs/app.js` | 384 KB |
 | `docs/estilos.css` | 87 KB |
-| Datos (`docs/datos/*.bin`) | 5.3 MB |
+| Datos (`docs/datos/*.bin`) | 4.3 MB |
 | Librerías (`docs/libs/*.js`) | 3.3 MB |
 | Tipografías (`docs/fuentes/*.woff2`) | 62 KB |
-| Sitio completo (`docs/`) | 11.6 MB |
-| Archivos que se piden al abrir, sin comprimir | 7.9 MB |
-| Archivo único (`_local/priorizacion_reforestacion.html`) | 12.3 MB |
-| Archivos que guarda el navegador para abrir sin conexión | 36 |
+| Sitio completo (`docs/`) | 10.6 MB |
+| Archivos que se piden al abrir, sin comprimir | 6.9 MB |
+| Archivo único (`_local/priorizacion_reforestacion.html`) | 10.9 MB |
+| Archivos que guarda el navegador para abrir sin conexión | 35 |
 | Fondo propio «Calles» (`docs/datos/fondo/`; es el fondo inicial: de lejos se pide `fondo_base.bin` y las manzanas, por alcaldía, al acercar) | 1.6 MB |
 | Espacios para plantar del inventario de arbolado (`docs/datos/inventario/inv_*.bin`, se piden al acercar el mapa) | 347 KB · 62,898 puntos · corte: septiembre de 2026 |
 | Filtro «Espacio» y orden por cepas: puntos por tipo de cada frente (`docs/datos/inventario/espacios_frentes.bin`, se pide al usarlos) | 41 KB · 29,090 frentes |
