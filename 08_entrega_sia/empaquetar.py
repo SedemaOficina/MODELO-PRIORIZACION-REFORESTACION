@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
-"""Arma el paquete de entrega para el SIA: un ZIP limpio, para entregarlo por enlace de descarga, con la herramienta, el inicio de
-sesión, las capas para GeoServer y los documentos de instalación. No lleva pruebas, demostraciones, borradores ni archivos
-de trabajo.
+"""Arma el paquete de entrega para el SIA: un ZIP limpio con la herramienta, el inicio de sesión y los documentos de instalación.
+No lleva pruebas, demostraciones, borradores ni archivos de trabajo, ni las capas de capas_geoserver/: la herramienta no usa
+GeoServer y las capas no se entregan (decisión de Liber del 26 oct 2026). Después, publicar_entrega.py lo sube al repositorio
+privado del SIA como una etiqueta entrega-AAAA-MM-DD.
 
 Construye en una carpeta temporal, con los parámetros de la instalación (claves de los mapas de fondo y direcciones de la
 sesión) tomados de las variables de entorno o de 02_fuente/claves.local.json; así docs/ y el repositorio no cambian.
@@ -11,7 +12,7 @@ y registro de usos en /priorizacion-reforestacion/api/uso); --sin-sesion arma la
 Uso:  python 08_entrega_sia/empaquetar.py [--sin-sesion] [--revisar]
       --revisar arma y revisa el paquete en la carpeta temporal, pero no escribe el ZIP (para comprobar antes de entregar).
 Sale: _local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip y su .zip.sha256   (no se publican; viajan SIEMPRE juntos)
-      Dentro: LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/, capas_geoserver/ y documentos/.
+      Dentro: LEEME.md, VERSION.txt, MANIFIESTO.sha256, sitio/, login/ y documentos/.
       MANIFIESTO.sha256 trae la suma de CADA archivo del paquete (salvo él mismo), con rutas relativas a la raíz del
       paquete: se comprueba con «sha256sum -c MANIFIESTO.sha256» desde esa carpeta.
 
@@ -40,7 +41,6 @@ import zipfile
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(AQUI)
 DOCUMENTOS = ['INSTALACION.md', 'nginx_priorizacion_reforestacion.conf.ejemplo', 'LISTA_DE_VERIFICACION.md', 'SESION_Y_LOGIN.md', 'CONTRATO_DE_DATOS.md']
-CAPAS = ['frentes_reforestacion', 'vialidades_primarias_reforestacion', 'colonias_reforestacion']
 NOMBRES = os.path.join(AQUI, 'nombres_sia.local.json')   # [[texto genérico, texto real], …] en «reemplazos»
 SOLO_REPO = re.compile(r'<!-- solo-repositorio -->.*?<!-- /solo-repositorio -->\n?', re.S)
 REVISAR = '--revisar' in sys.argv
@@ -60,7 +60,6 @@ CABEN = {
     'login/backend/src/modulos/priorizacion-reforestacion': {'.ts'},
     'login/backend/db/priorizacion_reforestacion': {'.sql'},
     'login/backend/herramientas/priorizacion-reforestacion': {'.ts'},
-    'capas_geoserver': {'.gpkg', '.sld', '.md', '.sha256'},
     'documentos': {'.md', '.ejemplo'},
 }
 OCULTOS_PERMITIDOS = {'sitio/.nojekyll'}
@@ -203,20 +202,7 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
         shutil.copytree(os.path.join(L, 'backend', *parte), os.path.join(base, 'login', 'backend', *parte))
     copia_doc(os.path.join(L, 'LEEME.md'), os.path.join(base, 'login', 'LEEME.md'))
 
-    # 3. capas para GeoServer, comprobadas contra su manifiesto
-    C = os.path.join(AQUI, 'capas_geoserver')
-    esperadas = dict(l.split('  ')[::-1] for l in open(os.path.join(C, 'MANIFIESTO.sha256'), encoding='utf-8').read().split('\n') if l.strip())
-    os.makedirs(os.path.join(base, 'capas_geoserver'))
-    for c in CAPAS:
-        for ext in ('.gpkg', '.sld'):
-            origen = os.path.join(C, c + ext)
-            if not os.path.exists(origen):
-                sys.exit('ERROR: falta %s; regenerar con 03_procesamiento_datos/5_exportar_geoserver.py' % (c + ext))
-            if esperadas.get(c + ext) != suma(origen):
-                sys.exit('ERROR: %s no coincide con capas_geoserver/MANIFIESTO.sha256' % (c + ext))
-            shutil.copy(origen, os.path.join(base, 'capas_geoserver'))
-    shutil.copy(os.path.join(C, 'MANIFIESTO.sha256'), os.path.join(base, 'capas_geoserver'))
-    copia_doc(os.path.join(C, 'LEEME.md'), os.path.join(base, 'capas_geoserver', 'LEEME.md'))
+    # 3. las capas de capas_geoserver/ ya no viajan: la herramienta no usa GeoServer (decisión de Liber del 26 oct 2026)
 
     # 4. documentos y portada
     for d in DOCUMENTOS:
@@ -241,8 +227,8 @@ try:   # la carpeta temporal lleva una copia de 02_fuente (con claves.local.json
     malos = [(r, motivos(r, os.path.join(base, r))) for r in todo]
     malos = [(r, m) for r, m in malos if m]
     if malos:
-        sys.exit('ERROR: no se armó el paquete; %d archivo(s) no deben viajar al SIA (rutas dentro del paquete; login/ y '
-                 'capas_geoserver/ salen de 08_entrega_sia/):\n%s\nQuitarlos (o moverlos a _to_delete/) y volver a correr.'
+        sys.exit('ERROR: no se armó el paquete; %d archivo(s) no deben viajar al SIA (rutas dentro del paquete; login/ '
+                 'sale de 08_entrega_sia/):\n%s\nQuitarlos (o moverlos a _to_delete/) y volver a correr.'
                  % (len(malos), '\n'.join('  - %s: %s' % (r, '; '.join(m)) for r, m in malos)))
     if REVISAR:
         cuenta = {}

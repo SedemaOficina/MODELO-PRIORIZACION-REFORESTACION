@@ -91,7 +91,7 @@ Un registro con varias partes (multilínea) se divide en partes; cada una conser
 
 ## Capas para GeoServer (5 oct 2026)
 
-`08_entrega_sia/capas_geoserver/` trae las capas de la herramienta listas para publicar como capas **nuevas** en el GeoServer del SIA (`sia:frentes_reforestacion`, `sia:vialidades_primarias_reforestacion`, `sia:colonias_reforestacion`), con estilos SLD en los colores de la herramienta y su guía. Se generan con `03_procesamiento_datos/5_exportar_geoserver.py`.
+`08_entrega_sia/capas_geoserver/` trae las capas de la herramienta (desde la v1.53 **no se entregan al SIA**: la herramienta no usa GeoServer; el SIA publicó las del paquete del 8 de octubre). Se pensaron como capas **nuevas** del GeoServer del SIA (`sia:frentes_reforestacion`, `sia:vialidades_primarias_reforestacion`, `sia:colonias_reforestacion`), con estilos SLD en los colores de la herramienta y su guía. Se generan con `03_procesamiento_datos/5_exportar_geoserver.py`.
 
 Lo que ya publica el GeoServer del SIA, comparado con la herramienta:
 - `sia:frentes_manzanas`: los mismos 372,534 frentes y campos que el modelo. No trae el responsable ni la colonia, y su estilo es genérico.

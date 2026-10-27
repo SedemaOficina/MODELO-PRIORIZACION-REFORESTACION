@@ -1,5 +1,7 @@
 # Capas para el GeoServer del SIA · Modelo de priorización de reforestación urbana
 
+> **No se entregan al SIA desde la v1.53** (decisión de Liber del 26 de octubre de 2026): la herramienta no usa GeoServer y lleva sus propios datos. Estas capas quedan para QGIS del proyecto. Las que el SIA publicó con el paquete del 8 de octubre traen la regla anterior de «prioritario» (solo Muy Alta y Alta).
+
 Tres capas y sus estilos, para publicarlas en `https://sedema.sia.cdmx.gob.mx/geoserver`, espacio de trabajo `sia`.
 
 **Se publican como capas NUEVAS.** No sustituyen a `sia:frentes_manzanas` ni a `sia:vial_primarias`:

@@ -13,7 +13,6 @@ modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD/
 ├── MANIFIESTO.sha256      suma SHA-256 de cada archivo del paquete
 ├── VERSION.txt            versión, fecha, corte de los datos y parámetros con que se armó
 ├── login/                 inicio de sesión y registro de usos: pantalla de acceso, módulo del backend y esquema de base de datos
-├── capas_geoserver/       tres capas en GeoPackage con sus estilos, para el GeoServer
 └── documentos/            esta guía, el ejemplo de nginx, la lista de verificación y los demás documentos
 ```
 

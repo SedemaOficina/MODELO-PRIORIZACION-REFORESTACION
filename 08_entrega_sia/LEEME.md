@@ -2,7 +2,7 @@
 
 Todo lo que el equipo del Sistema de Información Ambiental necesita para instalar, verificar, actualizar y operar la herramienta en `sedema.sia.cdmx.gob.mx/priorizacion-reforestacion/` sin depender de quien la elaboró.
 
-**Cómo se entrega:** `python 08_entrega_sia/empaquetar.py` arma `_local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip`, que se entrega por enlace de descarga (pesa unos 46 MB, más de lo que admite un adjunto de correo), siempre junto con su archivo `.sha256`, en el mismo enlace. Dentro, `MANIFIESTO.sha256` trae la suma de cada archivo del paquete. Trae solo lo que se instala: `LEEME.md` (portada, desde `LEEME_PAQUETE.md`), `sitio/` con la sesión configurada, `login/` sin pruebas ni demostraciones, `capas_geoserver/` y `documentos/`. Las instrucciones para quien mantiene el repositorio van entre `<!-- solo-repositorio -->` y no llegan al paquete. Lo versionado (público) nombra la infraestructura del SIA con textos genéricos; el paquete lleva los nombres reales, tomados de `nombres_sia.local.json` (no se publica).
+**Cómo se entrega** (desde la v1.53, como el tablero de Categorías): `python 08_entrega_sia/empaquetar.py` arma `_local/entrega/modelo-priorizacion-reforestacion_vX.Y_AAAAMMDD.zip` con su `.sha256`, y `python 08_entrega_sia/publicar_entrega.py` lo comprueba y lo deja en el clon del repositorio **privado** `SedemaOficina/modelo-priorizacion-reforestacion-sia` (`_local/repo_sia/`), con commit y etiqueta `entrega-AAAA-MM-DD`; se publica con `git -C _local/repo_sia push origin main entrega-AAAA-MM-DD` y el SIA instala desde esa etiqueta. Este repositorio es público y no lleva los nombres reales del SIA; el paquete sí, por eso va en uno privado. El ZIP queda como respaldo por si alguna vez se manda por enlace, siempre junto con su `.sha256`. Dentro, `MANIFIESTO.sha256` trae la suma de cada archivo del paquete. Trae solo lo que se instala: `LEEME.md` (portada, desde `LEEME_PAQUETE.md`), `sitio/` con la sesión configurada, `login/` sin pruebas ni demostraciones y `documentos/`. Las capas de `capas_geoserver/` ya no se entregan: la herramienta no usa GeoServer (decisión de Liber del 26 de octubre de 2026). Las instrucciones para quien mantiene el repositorio van entre `<!-- solo-repositorio -->` y no llegan al paquete. Lo versionado (público) nombra la infraestructura del SIA con textos genéricos; el paquete lleva los nombres reales, tomados de `nombres_sia.local.json` (no se publica).
 
 | Documento | Para qué |
 |---|---|
@@ -13,9 +13,10 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | [`CIERRE_FASE_1.md`](CIERRE_FASE_1.md) | Orden para apagar la página de GitHub y lo demás del piloto (interno; no va en el paquete) |
 | [`CONTRATO_DE_DATOS.md`](CONTRATO_DE_DATOS.md) | Formato de los archivos de datos (interno; no va en el paquete) |
 | [`login/`](login/LEEME.md) | **Inicio de sesión y registro de usos:** módulo para el backend, esquema de base de datos, pantalla de acceso, panel de administración (cuentas, usos y catálogos) y aviso de privacidad |
-| [`capas_geoserver/`](capas_geoserver/LEEME.md) | Tres capas en GeoPackage con sus estilos para publicar en el GeoServer del SIA (independientes de la herramienta) |
+| [`capas_geoserver/`](capas_geoserver/LEEME.md) | Tres capas en GeoPackage con sus estilos, para QGIS del proyecto. **No se entregan al SIA** desde la v1.53: la herramienta no usa GeoServer |
 | [`LEEME_PAQUETE.md`](LEEME_PAQUETE.md) | Portada del paquete: contenido y orden de instalación |
 | `empaquetar.py` | Arma el ZIP de entrega |
+| `publicar_entrega.py` | Comprueba el ZIP y lo deja en el repositorio privado del SIA con su etiqueta `entrega-AAAA-MM-DD` (sin Push) |
 
 ## En una página
 
@@ -48,4 +49,4 @@ Todo lo que el equipo del Sistema de Información Ambiental necesita para instal
 | Guía de instalación, actualización y reversión | Escrita; **sin ensayar por una persona distinta de quien la escribió** |
 | Claves de los mapas de fondo | «Calles» no necesita clave (fondo propio). Esri: pendiente (el satélite funciona sin clave por ahora) |
 | Insumos originales (modelo de priorización y vialidades primarias) | Localizados y comprobados; en la copia local, con sus huellas en `03_procesamiento_datos/SUMAS_INSUMOS.md` |
-| Capas para GeoServer | Listas en `capas_geoserver/`, revisadas en QGIS. GeoWebCache está encendido (cuota de 2 GiB): no se recomienda precargar toda la ciudad (ver `capas_geoserver/LEEME.md`) |
+| Capas para GeoServer | No se entregan (decisión de Liber del 26 oct 2026): la herramienta no usa GeoServer. Las tres que el SIA publicó con el paquete del 8 de octubre no las usa la herramienta |

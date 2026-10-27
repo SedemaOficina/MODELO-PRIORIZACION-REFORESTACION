@@ -12,7 +12,10 @@ const r = []; const ok = (n, cond, det = '') => { r.push([!!cond, n, det]); cons
 
 // lo que el empaquetado toma de 08_entrega_sia (rutas relativas a esa carpeta; dentro del paquete quedan igual)
 const PARTES = ['login/acceso', 'login/LEEME.md', 'login/backend/src/modulos/priorizacion-reforestacion', 'login/backend/db/priorizacion_reforestacion',
-  'login/backend/herramientas/priorizacion-reforestacion', 'capas_geoserver'];
+  'login/backend/herramientas/priorizacion-reforestacion'];
+// las capas de capas_geoserver/ no viajan (la herramienta no usa GeoServer; decisión de Liber del 26 oct 2026): se copian a la
+// carpeta de trabajo para comprobar que el empaquetado no las mete aunque estén
+const CAPAS_DIR = 'capas_geoserver';
 // archivos sembrados: ruta dentro de 08_entrega_sia (= ruta dentro del paquete) y contenido, todo ficticio
 const SEMBRADOS = {
   'login/acceso/.env': 'DB_PASSWORD=ficticia-solo-para-la-prueba\n',
@@ -44,16 +47,11 @@ try {
   for (const a of fs.readdirSync(E)) if (/\.(md|ejemplo|py)$/.test(a)) fs.copyFileSync(path.join(E, a), path.join(T, '08_entrega_sia', a));
   if (process.env.EMPAQUETAR) fs.copyFileSync(path.resolve(process.env.EMPAQUETAR), path.join(T, '08_entrega_sia', 'empaquetar.py'));
   for (const p of PARTES) copiar(path.join(E, p), path.join(T, '08_entrega_sia', p));
-  // en una copia de GitHub no vienen las capas .gpkg ni su manifiesto (no se publican): se ponen capas ficticias con su
-  // manifiesto, porque esta prueba revisa qué deja viajar el empaquetado, no las capas
-  const CG = path.join(T, '08_entrega_sia', 'capas_geoserver'), sinCapas = !fs.existsSync(path.join(CG, 'MANIFIESTO.sha256'));
-  if (sinCapas) { const sha = f => require('crypto').createHash('sha256').update(fs.readFileSync(f)).digest('hex');
-    const capas = fs.readdirSync(CG).filter(a => a.endsWith('.sld')).map(a => a.slice(0, -4));
-    for (const c of capas) fs.writeFileSync(path.join(CG, c + '.gpkg'), 'capa ficticia para la prueba del empaquetado\n');
-    fs.writeFileSync(path.join(CG, 'MANIFIESTO.sha256'), capas.flatMap(c => ['.gpkg', '.sld'].map(x => `${sha(path.join(CG, c + x))}  ${c + x}\n`)).join('')); }
+  // solo lo pequeño de las capas (estilos y LEEME; los .gpkg no se publican en GitHub): basta para ver que no viajan
+  copiar(path.join(E, CAPAS_DIR), path.join(T, '08_entrega_sia', CAPAS_DIR), s => /\.gpkg$/.test(s));
   const fuera = path.relative(RAIZ, T);
   ok('copia de trabajo fuera del repositorio', (fuera.startsWith('..') || path.isAbsolute(fuera)) && fs.existsSync(path.join(T, '08_entrega_sia', 'empaquetar.py')),
-    `${Math.round((Date.now() - t0) / 1000)} s${process.env.EMPAQUETAR ? ' · guion: ' + process.env.EMPAQUETAR : ''}${sinCapas ? ' · sin las capas .gpkg (copia de GitHub): se usan capas ficticias' : ''}`);
+    `${Math.round((Date.now() - t0) / 1000)} s${process.env.EMPAQUETAR ? ' · guion: ' + process.env.EMPAQUETAR : ''}`);
   const sql = fs.readdirSync(path.join(E, 'login/backend/db/priorizacion_reforestacion')).filter(a => a.endsWith('.sql'));
   const loginEsperados = PARTES.filter(p => p.startsWith('login/')).reduce((s, p) => s + cuenta(path.join(E, p)), 0);
 
@@ -66,6 +64,7 @@ try {
   ok(`limpio: entran todos los archivos de login/, con los ${sql.length} .sql del módulo (db/)`, enLogin === loginEsperados && sql.length >= 2,
     `${enLogin} de ${loginEsperados} · ${sql.join(', ')}`);
   ok('limpio con --revisar: no se escribe ZIP ni .sha256', zips(T).length === 0, zips(T).join(', '));
+  ok('limpio: las capas de capas_geoserver/ no viajan (la herramienta no usa GeoServer)', !!m && !/capas_geoserver/.test(m[2]), m ? m[2] : '');
   // nombres del SIA (F4-02): sin nombres_sia.local.json (no se copia: no se publica) van los textos genéricos y se avisa;
   // con él, el texto genérico se cambia por el real; si un texto genérico ya no está en el paquete, termina con error
   ok('sin nombres_sia.local.json: el paquete lleva los textos genéricos y lo dice', /nombres del SIA: no \(falta/.test(c.salida), (c.salida.match(/nombres del SIA: .*/) || ['no lo dice'])[0]);
